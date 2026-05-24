@@ -1,6 +1,15 @@
 import { Router, type IRouter } from "express";
 import Anthropic from "@anthropic-ai/sdk";
-import { COACH_SYSTEM_PROMPT } from "../lib/synochi";
+import {
+  db,
+  fightersTable,
+  messagesTable,
+  calibrationsTable,
+  athleteSignalsTable,
+} from "@workspace/db";
+import { asc, desc, eq } from "drizzle-orm";
+import { COACH_SYSTEM_PROMPT_STATIC, buildDynamicContext } from "../lib/synochi";
+import { getOrCreateActiveConversation } from "./conversation";
 
 const router: IRouter = Router();
 
@@ -15,26 +24,46 @@ if (!baseURL || !apiKey) {
 
 const client = new Anthropic({ baseURL, apiKey });
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
-
-function isValidMessages(value: unknown): value is ChatMessage[] {
-  if (!Array.isArray(value) || value.length === 0) return false;
-  for (const m of value) {
-    if (!m || typeof m !== "object") return false;
-    const mm = m as Record<string, unknown>;
-    if (mm["role"] !== "user" && mm["role"] !== "assistant") return false;
-    if (typeof mm["content"] !== "string") return false;
-  }
-  return true;
-}
-
 router.post("/coach/chat", async (req, res) => {
-  const messages = (req.body as { messages?: unknown })?.messages;
-
-  if (!isValidMessages(messages)) {
-    res.status(400).json({ error: "messages must be a non-empty array of {role, content}" });
+  const body = req.body as { content?: unknown };
+  if (typeof body.content !== "string" || body.content.trim().length === 0) {
+    res.status(400).json({ error: "content (string) required" });
     return;
   }
+  const userContent = body.content.trim();
+
+  const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
+  if (!fighter) {
+    res.status(400).json({ error: "no fighter — complete onboarding first" });
+    return;
+  }
+  const conversation = await getOrCreateActiveConversation(fighter.id);
+
+  await db.insert(messagesTable).values({
+    conversationId: conversation.id,
+    role: "user",
+    content: userContent,
+  });
+
+  const history = await db
+    .select()
+    .from(messagesTable)
+    .where(eq(messagesTable.conversationId, conversation.id))
+    .orderBy(asc(messagesTable.createdAt));
+
+  const signals = await db
+    .select()
+    .from(athleteSignalsTable)
+    .where(eq(athleteSignalsTable.fighterId, fighter.id))
+    .orderBy(desc(athleteSignalsTable.createdAt))
+    .limit(30);
+
+  const calibrations = await db
+    .select()
+    .from(calibrationsTable)
+    .where(eq(calibrationsTable.fighterId, fighter.id))
+    .orderBy(desc(calibrationsTable.createdAt))
+    .limit(10);
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -46,6 +75,8 @@ router.post("/coach/chat", async (req, res) => {
     res.write(`data: ${JSON.stringify(event)}\n\n`);
   };
 
+  let assembled = "";
+
   try {
     const stream = client.messages.stream({
       model: "claude-sonnet-4-6",
@@ -53,26 +84,41 @@ router.post("/coach/chat", async (req, res) => {
       system: [
         {
           type: "text",
-          text: COACH_SYSTEM_PROMPT,
+          text: COACH_SYSTEM_PROMPT_STATIC,
           cache_control: { type: "ephemeral" },
         },
+        {
+          type: "text",
+          text: buildDynamicContext(fighter, signals, calibrations),
+        },
       ],
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      messages: history.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
     });
 
     for await (const event of stream) {
-      if (
-        event.type === "content_block_delta" &&
-        event.delta.type === "text_delta"
-      ) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        assembled += event.delta.text;
         send({ content: event.delta.text });
       }
     }
+
+    await db.insert(messagesTable).values({
+      conversationId: conversation.id,
+      role: "assistant",
+      content: assembled,
+    });
 
     send({ done: true });
     res.end();
   } catch (err) {
     req.log.error({ err }, "Coach stream failed");
+    if (assembled.length > 0) {
+      await db.insert(messagesTable).values({
+        conversationId: conversation.id,
+        role: "assistant",
+        content: assembled,
+      });
+    }
     send({ error: err instanceof Error ? err.message : "stream failed" });
     res.end();
   }

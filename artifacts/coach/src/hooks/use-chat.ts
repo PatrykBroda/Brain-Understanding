@@ -1,134 +1,157 @@
-import { useState, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, coachChatUrl, type ServerMessage } from "@/lib/api";
 
-export type Message = {
+export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  pending?: boolean;
 };
 
+function toClient(msg: ServerMessage): ChatMessage {
+  return { id: `s-${msg.id}`, role: msg.role, content: msg.content };
+}
+
 export function useChat() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const qc = useQueryClient();
+  const conversationQuery = useQuery({
+    queryKey: ["conversation"],
+    queryFn: () => api.getActiveConversation(),
+  });
+
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const [userTurnsThisSession, setUserTurnsThisSession] = useState(0);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (conversationQuery.data) {
+      setLocalMessages(conversationQuery.data.messages.map(toClient));
+      setError(null);
+    }
+  }, [conversationQuery.data]);
 
   const stop = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-      setIsStreaming(false);
-    }
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsStreaming(false);
   }, []);
 
-  const clearChat = useCallback(() => {
-    stop();
-    setMessages([]);
-    setError(null);
-    setInput("");
-  }, [stop]);
+  const resetMutation = useMutation({
+    mutationFn: () => api.resetConversation(),
+    onSuccess: (data) => {
+      stop();
+      setError(null);
+      setInput("");
+      setLocalMessages(data.messages.map(toClient));
+      setUserTurnsThisSession(0);
+      qc.setQueryData(["conversation"], data);
+    },
+  });
 
-  const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim()) return;
-    
-    stop();
-    setError(null);
-    
-    const userMessage: Message = { id: crypto.randomUUID(), role: "user", content };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    setInput("");
-    setIsStreaming(true);
+  const sendMessage = useCallback(
+    async (content: string) => {
+      const trimmed = content.trim();
+      if (!trimmed || isStreaming) return;
+      stop();
+      setError(null);
 
-    const assistantMessageId = crypto.randomUUID();
-    setMessages((prev) => [...prev, { id: assistantMessageId, role: "assistant", content: "" }]);
+      const userMsg: ChatMessage = {
+        id: `u-${Date.now()}`,
+        role: "user",
+        content: trimmed,
+      };
+      const assistantId = `a-${Date.now()}`;
+      setLocalMessages((prev) => [
+        ...prev,
+        userMsg,
+        { id: assistantId, role: "assistant", content: "", pending: true },
+      ]);
+      setInput("");
+      setIsStreaming(true);
+      setUserTurnsThisSession((n) => n + 1);
 
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
 
-    try {
-      const res = await fetch(`${import.meta.env.BASE_URL}api/coach/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: newMessages.map(m => ({ role: m.role, content: m.content }))
-        }),
-        signal: abortController.signal
-      });
-
-      if (!res.ok) {
-        throw new Error(`Failed to fetch: ${res.statusText}`);
-      }
-
-      if (!res.body) {
-        throw new Error("No response body");
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          
-          const dataStr = line.slice("data: ".length);
-          if (!dataStr) continue;
-
-          try {
-            const data = JSON.parse(dataStr);
-            
-            if (data.error) {
-              setError(data.error);
-              setIsStreaming(false);
-              return;
+      try {
+        const res = await fetch(coachChatUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: trimmed }),
+          signal: ctrl.signal,
+        });
+        if (!res.ok || !res.body) {
+          throw new Error(`Stream failed: ${res.status}`);
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buf = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const blocks = buf.split("\n\n");
+          buf = blocks.pop() ?? "";
+          for (const block of blocks) {
+            if (!block.startsWith("data: ")) continue;
+            const payload = block.slice(6);
+            try {
+              const evt = JSON.parse(payload) as
+                | { content: string }
+                | { done: true }
+                | { error: string };
+              if ("error" in evt) {
+                setError(evt.error);
+                continue;
+              }
+              if ("done" in evt) {
+                setIsStreaming(false);
+                qc.invalidateQueries({ queryKey: ["conversation"] });
+                qc.invalidateQueries({ queryKey: ["calibration", "next"] });
+                return;
+              }
+              if ("content" in evt) {
+                setLocalMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId
+                      ? { ...m, content: m.content + evt.content, pending: false }
+                      : m,
+                  ),
+                );
+              }
+            } catch {
+              // ignore partial / bad lines
             }
-
-            if (data.done) {
-              setIsStreaming(false);
-              return;
-            }
-
-            if (data.content) {
-              setMessages((prev) => 
-                prev.map(m => 
-                  m.id === assistantMessageId 
-                    ? { ...m, content: m.content + data.content }
-                    : m
-                )
-              );
-            }
-          } catch (e) {
-            console.error("Failed to parse SSE JSON:", e, dataStr);
           }
         }
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          setError((err as Error).message || "stream failed");
+        }
+      } finally {
+        setIsStreaming(false);
+        abortRef.current = null;
       }
-    } catch (err: any) {
-      if (err.name === "AbortError") {
-        console.log("Chat aborted");
-      } else {
-        console.error("Chat error:", err);
-        setError(err.message || "An error occurred");
-      }
-      setIsStreaming(false);
-    }
-  }, [messages, stop]);
+    },
+    [isStreaming, qc, stop],
+  );
 
   return {
-    messages,
+    messages: localMessages,
     input,
     setInput,
     isStreaming,
     error,
+    isLoading: conversationQuery.isLoading,
     sendMessage,
     stop,
-    clearChat
+    reset: () => resetMutation.mutate(),
+    resetting: resetMutation.isPending,
+    userTurnsThisSession,
+    bumpCalibrationCounter: () => setUserTurnsThisSession(0),
   };
 }

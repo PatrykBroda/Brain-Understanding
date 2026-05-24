@@ -1,0 +1,281 @@
+SYNOCHI / FRAME — USER FLOW / SYSTEM FLOW
+
+The product should feel less like “using an app” and more like entering an adaptive coaching system.
+
+The core experience is:
+
+ATHLETE ENTERS SYSTEM → SYSTEM BUILDS PROFILE → USER TRAINS / INTERACTS → SYSTEM LEARNS PATTERNS → SYSTEM ADAPTS COACHING
+
+OVERALL FLOW
+
+1. USER DOWNLOADS APP
+    ↓
+2. USER CREATES FIGHTER PROFILE
+    ↓
+3. SYSTEM GENERATES INITIAL ATHLETE MODEL
+    ↓
+4. USER ENTERS CHAT-FIRST INTERFACE
+    ↓
+5. USER TALKS TO CYNICY
+    ↓
+6. SYSTEM ASKS CALIBRATION QUESTIONS OVER TIME
+    ↓
+7. CALIBRATION FEEDS ATHLETE MODEL + AI LOGIC
+    ↓
+8. SYSTEM DETECTS RECURRING PATTERNS
+    ↓
+9. SYSTEM PRESCRIBES DRILLS / REGULATION / TECHNICAL FOCUS
+    ↓
+10. USER TRAINS + RETURNS
+    ↓
+11. SYSTEM RECALIBRATES + REFINES PROFILE
+
+DETAILED FLOW
+
+PHASE 1 — ONBOARDING
+
+User enters:
+
+* age
+* martial arts
+* skill level
+* training frequency
+* goals
+* weaknesses
+* competition status
+
+The purpose is not just profile creation.
+
+The purpose is:
+initialising the athlete model.
+
+Example:
+If user is:
+
+* intermediate BJJ competitor
+* weak takedowns
+* competes regularly
+* struggles under pressure
+
+…the AI immediately has context for:
+
+* likely behavioural patterns
+* likely technical gaps
+* coaching style
+* future calibration logic
+
+PHASE 2 — HOME INTERFACE
+
+After onboarding:
+user lands directly into the main interface.
+
+No complicated dashboard.
+
+The default state is:
+CHAT.
+
+Layout idea:
+
+TOP:
+
+* fighter identity
+* nervous system orb/state indicator
+
+CENTRE:
+
+* conversation feed
+
+BOTTOM:
+
+* message input
+* quick actions
+
+Quick actions:
+
+* Analyse Session
+* Build Drill
+* Fix My Game
+* Competition Prep
+* Regulate
+* Reflect
+
+The feeling should be:
+“immediate access to a combat coach.”
+
+PHASE 3 — CORE CHAT LOOP
+
+User enters:
+
+* technical problems
+* sparring reflections
+* competition concerns
+* emotional/performance issues
+* tactical questions
+
+AI logic:
+
+* vague input → clarifying question
+* specific input → diagnosis + prescription
+
+Important:
+The AI should feel adaptive and investigative.
+
+Not:
+
+* dumping generic advice
+* overexplaining
+* acting like a therapist
+
+The interaction pattern should feel:
+coach → diagnose → constrain → direct
+
+PHASE 4 — CALIBRATION SYSTEM
+
+This is one of the most important systems.
+
+Over time, the app periodically surfaces lightweight calibration MCQs.
+
+These are:
+
+* optional
+* quick
+* behaviour-based
+* different over time
+* low friction
+
+Examples:
+
+* “Where did you break first today?”
+* “What kept failing during sparring?”
+* “Where did hesitation appear?”
+* “What happened under pressure?”
+
+The important part:
+
+Calibration does NOT exist for journaling.
+
+Calibration exists to feed the AI system.
+
+Calibration answers update:
+
+* athlete model
+* fight chart
+* behavioural profile
+* nervous system state
+* recurring failure detection
+* future coaching logic
+
+The calibration engine is effectively:
+continuous athlete mapping.
+
+PHASE 5 — ATHLETE MODEL / FIGHT CHART
+
+As interactions increase, the system builds an increasingly detailed internal model.
+
+The AI tracks:
+
+* recurring technical failures
+* confidence zones
+* behavioural tendencies
+* stress responses
+* recurring breakdowns
+* adaptation trends
+* pressure tolerance
+
+Over time:
+the AI becomes more personalised and predictive.
+
+The goal is:
+the system gradually understands the fighter more deeply than a normal coaching app could.
+
+PHASE 6 — PRESCRIPTION ENGINE
+
+Once patterns are detected, the system prescribes actions.
+
+Not motivational advice.
+
+Actual prescriptions:
+
+* drills
+* constraint rounds
+* tactical focuses
+* regulation protocols
+* positional work
+* behavioural corrections
+
+Structure example:
+
+* start position
+* objective
+* constraint
+* round timer
+* failure condition
+* progression
+
+The app should feel:
+diagnostic → corrective.
+
+PHASE 7 — NERVOUS SYSTEM ORB
+
+Persistent passive state indicator.
+
+This is NOT a gimmick.
+
+Purpose:
+visual representation of:
+
+* coherence
+* readiness
+* stress accumulation
+* regulation state
+
+The orb subtly changes based on:
+
+* calibration patterns
+* interaction behaviour
+* training load
+* detected instability/stability
+
+It acts as a:
+background nervous-system layer.
+
+Minimal.
+Ambient.
+Alive.
+Not gamified.
+
+PHASE 8 — LONG-TERM EXPERIENCE
+
+Over weeks/months:
+the app evolves from:
+“AI combat chatbot”
+into:
+“adaptive digital coach.”
+
+The key idea is:
+the system remembers patterns and adjusts.
+
+The more signal collected:
+
+* the better the coaching
+* the better the calibration
+* the more precise the prescriptions
+* the more accurate the athlete model
+
+CORE PRODUCT FEELING
+
+The app should feel:
+
+* calm
+* intelligent
+* minimal
+* dark
+* adaptive
+* combat-oriented
+* high-signal
+
+Less:
+“fitness app”
+
+More:
+“living combat coaching system.”
