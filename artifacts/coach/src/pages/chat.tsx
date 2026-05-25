@@ -1,14 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { Send, Square, RefreshCcw, Brain } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
+import { Link } from "wouter";
+import { Send, Square, RefreshCcw, ChevronLeft } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAnswerCalibration, useNextCalibration } from "@/hooks/use-calibration";
-import { useMemory } from "@/hooks/use-memory";
 import { MessageContent } from "@/components/message-content";
 import { NervousSystemOrb } from "@/components/nervous-system-orb";
 import { CalibrationCard } from "@/components/calibration-card";
-import { MemorySheet } from "@/components/memory-sheet";
+import { BottomNav } from "@/components/bottom-nav";
 import { Button } from "@/components/ui/button";
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
@@ -50,18 +49,6 @@ export default function ChatPage() {
   const answerCalibration = useAnswerCalibration();
 
   const bottomRef = useRef<HTMLDivElement>(null);
-  const scrollerRef = useRef<HTMLDivElement>(null);
-
-  const [memoryOpen, setMemoryOpen] = useState(false);
-  const memoryQuery = useMemory(memoryOpen);
-  const queryClient = useQueryClient();
-  const wasStreaming = useRef(false);
-  useEffect(() => {
-    if (wasStreaming.current && !isStreaming) {
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: ["memory"] }), 1500);
-    }
-    wasStreaming.current = isStreaming;
-  }, [isStreaming, queryClient]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -73,9 +60,9 @@ export default function ChatPage() {
   );
 
   const orbLabel = isStreaming
-    ? "Synochi · transmitting"
+    ? "Transmitting"
     : messages.length === 0
-      ? "Dense calm potential"
+      ? "Dense calm"
       : "Coherent";
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -92,72 +79,50 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-background text-foreground font-sans">
-      <header className="flex-none flex items-center justify-between px-6 py-3.5 border-b border-border/60 bg-background/95 backdrop-blur-sm z-10 sticky top-0">
-        <div className="flex items-center gap-5">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-primary" />
-            <h1 className="font-mono font-bold text-sm tracking-[0.3em] uppercase text-foreground/90">
-              Synochi
-            </h1>
-          </div>
+      <header className="flex-none flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-border/60 bg-background/95 backdrop-blur-sm">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
+          <span className="font-mono text-[10px] uppercase tracking-widest">Frame</span>
+        </Link>
+        <div className="flex items-center gap-2">
           {fighter && (
-            <div className="hidden md:flex items-center gap-3 pl-5 border-l border-border/60">
-              <div className="font-mono text-xs uppercase tracking-widest text-foreground/80">
-                {fighter.name}
-              </div>
-              <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                {fighter.art} · {fighter.level} · {fighter.trainingFrequency}
-              </div>
+            <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/80 mr-1">
+              {fighter.name}
             </div>
           )}
-        </div>
-        <div className="flex items-center gap-5">
           <NervousSystemOrb state={orbState} label={orbLabel} />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setMemoryOpen(true)}
-            className="text-muted-foreground hover:text-foreground font-mono text-[10px] uppercase tracking-widest"
-          >
-            <Brain className="w-3 h-3 mr-2" />
-            Model
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => reset()}
-            className="text-muted-foreground hover:text-foreground font-mono text-[10px] uppercase tracking-widest"
-          >
-            <RefreshCcw className="w-3 h-3 mr-2" />
-            Reset
-          </Button>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => reset()}
+          className="text-muted-foreground hover:text-foreground font-mono text-[10px] uppercase tracking-widest -mr-2"
+        >
+          <RefreshCcw className="w-3 h-3 mr-1.5" />
+          Reset
+        </Button>
       </header>
 
-      <MemorySheet
-        open={memoryOpen}
-        onClose={() => setMemoryOpen(false)}
-        facts={memoryQuery.data?.facts ?? []}
-        loading={memoryQuery.isLoading}
-      />
-
-      <main ref={scrollerRef} className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 pb-48">
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
           {isLoading ? (
             <div className="flex justify-center pt-20 text-muted-foreground font-mono text-xs uppercase tracking-widest">
               Loading state…
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center min-h-[55vh] space-y-10 animate-in fade-in duration-700">
+            <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-8 animate-in fade-in duration-700">
               <div className="text-center space-y-2">
                 <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                  System ready
+                  Frame open
                 </div>
                 <p className="text-sm text-muted-foreground max-w-sm">
                   Talk to the coach. Debrief a session, request a drill, regulate, or reflect.
                 </p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 w-full max-w-xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-xl">
                 {SUGGESTED_PROMPTS.map((prompt) => (
                   <button
                     key={prompt}
@@ -170,7 +135,7 @@ export default function ChatPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-10">
+            <div className="space-y-8">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -182,7 +147,7 @@ export default function ChatPage() {
                   <div
                     className={
                       msg.role === "user"
-                        ? "max-w-[90%] md:max-w-[80%] bg-secondary/70 text-secondary-foreground px-5 py-3 border-l-2 border-primary/40"
+                        ? "max-w-[90%] md:max-w-[80%] bg-secondary/70 text-secondary-foreground px-4 py-3 border-l-2 border-primary/40"
                         : "max-w-full text-foreground"
                     }
                   >
@@ -210,7 +175,7 @@ export default function ChatPage() {
         </div>
       </main>
 
-      <footer className="flex-none p-3 md:p-4 bg-gradient-to-t from-background via-background to-transparent border-t border-border/40 fixed bottom-0 w-full backdrop-blur-sm">
+      <footer className="flex-none p-3 bg-background border-t border-border/40">
         <div className="max-w-3xl mx-auto space-y-3">
           {enableCalibration && calibrationQuery.data?.question && (
             <CalibrationCard
@@ -246,18 +211,18 @@ export default function ChatPage() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Enter transmission..."
-              className="w-full bg-secondary/50 border border-border/60 text-foreground placeholder:text-muted-foreground/70 placeholder:font-mono focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 resize-none min-h-[56px] max-h-[200px] py-4 pl-4 pr-14 text-sm"
+              className="w-full bg-secondary/50 border border-border/60 text-foreground placeholder:text-muted-foreground/70 placeholder:font-mono focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 resize-none min-h-[52px] max-h-[200px] py-3.5 pl-4 pr-12 text-sm"
               rows={1}
               disabled={isStreaming}
             />
-            <div className="absolute right-2 bottom-2">
+            <div className="absolute right-1.5 bottom-1.5">
               {isStreaming ? (
                 <Button
                   type="button"
                   size="icon"
                   variant="ghost"
                   onClick={stop}
-                  className="h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   <Square className="w-4 h-4 fill-current" />
                 </Button>
@@ -267,15 +232,16 @@ export default function ChatPage() {
                   size="icon"
                   variant="ghost"
                   disabled={!input.trim()}
-                  className="h-10 w-10 text-primary hover:text-primary hover:bg-primary/10"
+                  className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10"
                 >
                   <Send className="w-4 h-4" />
                 </Button>
               )}
             </div>
           </form>
+
           {messages.length === 0 && (
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex flex-wrap gap-2 justify-center pt-1">
               {QUICK_ACTIONS.map((qa) => (
                 <button
                   key={qa.label}
@@ -289,6 +255,8 @@ export default function ChatPage() {
           )}
         </div>
       </footer>
+
+      <BottomNav />
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import ChatPage from "@/pages/chat";
 import OnboardingPage from "@/pages/onboarding";
+import HomePage from "@/pages/home";
+import ProfilePage from "@/pages/profile";
 import { useFighter } from "@/hooks/use-fighter";
 
 const queryClient = new QueryClient({
@@ -13,7 +15,7 @@ const queryClient = new QueryClient({
   },
 });
 
-function Gate() {
+function Gate({ children }: { children: React.ReactNode }) {
   const { data, isLoading, isError } = useFighter();
   if (isLoading) {
     return (
@@ -29,13 +31,28 @@ function Gate() {
       </div>
     );
   }
-  return data?.fighter ? <ChatPage /> : <OnboardingPage />;
+  if (!data?.fighter) return <OnboardingPage />;
+  return <>{children}</>;
 }
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Gate} />
+      <Route path="/">
+        <Gate>
+          <HomePage />
+        </Gate>
+      </Route>
+      <Route path="/chat">
+        <Gate>
+          <ChatPage />
+        </Gate>
+      </Route>
+      <Route path="/profile">
+        <Gate>
+          <ProfilePage />
+        </Gate>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

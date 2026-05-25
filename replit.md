@@ -28,8 +28,8 @@ A personal Claude-wrapped BJJ + nervous-system coach that uses the user's own Ob
 - `artifacts/api-server/src/lib/calibrationBank.ts` — calibration MCQ bank + rotation logic
 - `artifacts/api-server/src/routes/` — `coach.ts` (SSE chat + fires memory extraction), `fighter.ts`, `conversation.ts`, `calibration.ts`, `memory.ts`
 - `lib/db/src/schema/` — `fighters`, `conversations`, `messages`, `calibrations`, `athlete_facts` (plus legacy `athlete_signals`, unused)
-- `artifacts/coach/src/pages/` — `onboarding.tsx`, `chat.tsx`
-- `artifacts/coach/src/components/` — `message-content.tsx`, `drill-card.tsx`, `nervous-system-orb.tsx`, `calibration-card.tsx`, `memory-sheet.tsx` (right-side athlete-model panel)
+- `artifacts/coach/src/pages/` — `onboarding.tsx`, `home.tsx` (FRAME-style landing with big spinning orb + Enter Frame CTA), `chat.tsx`, `profile.tsx` (fighter info + inline athlete-model panel)
+- `artifacts/coach/src/components/` — `message-content.tsx`, `drill-card.tsx`, `nervous-system-orb.tsx` (small header indicator), `cosmic-orb.tsx` (big home-page orb: CSS/SVG topo band drift + glow + crosshair, no Three.js), `bottom-nav.tsx` (Home/Chat/Profile tabs), `calibration-card.tsx`, `memory-sheet.tsx` (legacy right-side panel, no longer mounted — model lives on Profile)
 
 ## Architecture decisions
 
@@ -46,11 +46,14 @@ A personal Claude-wrapped BJJ + nervous-system coach that uses the user's own Ob
 
 ## Product
 
-A coaching chat at `/`:
-1. First-time users get an onboarding form (name, age, art, level, frequency, goals, weaknesses, competes).
-2. Chat opens with quick actions (Analyse session, Build drill, Fix my game, Competition prep, Regulate, Reflect), the nervous-system orb, persistent history, periodic calibration prompts, and a **Model** button in the header that opens the athlete-model panel.
-3. Model panel shows everything the coach knows about the user, grouped by category, with confidence and source. Refreshes ~1.5s after each reply so newly learned facts appear.
-4. Coach speaks in the vault's voice, references `[[concepts]]`, anchors claims to the framework or the athlete's recorded model, and emits drill blocks when prescribing.
+Mobile-first 3-tab app (will be wrapped in a mobile shell). All routes gated by `useFighter()`; first-run shows onboarding.
+
+1. **Onboarding** — name, age, art, level, frequency, goals, weaknesses, competes. Seeds the model.
+2. **Home (`/`)** — FRAME-MMA-style landing: SYNOCHI / OPERATING SYSTEM wordmark, profile shortcut, big slowly-spinning cosmic orb (CosmicOrb = CSS+SVG: topographic horizontal wave band that translates -50% on a 60s loop for spin illusion, radial sphere shading, 3 concentric rings, pulsing primary-color halo, crosshair ticks), STATE label derived from message count (INITIALISING / DENSE CALM POTENTIAL / WARMING / LOCKED IN), "Narrow the decision tree." tagline, big primary CTA "Enter Frame" → `/chat`.
+3. **Chat (`/chat`)** — ChevronLeft back to Home, fighter name + nervous-system orb in header, quick actions (Analyse session, Build drill, Fix my game, Competition prep, Regulate, Reflect), persistent history, periodic calibration prompts. Mobile flex layout (footer in flow, not fixed) with BottomNav at end.
+4. **Profile (`/profile`)** — fighter avatar/stats/goals/weaknesses + athlete-model grouped by category (Weaknesses, Strengths, Technical knowledge, Recurring patterns, Coaching preferences, Active goals, Recent events, Life context) with confidence and source per fact. Refreshes ~1.5s after each chat reply.
+5. **Bottom nav** — Home / Chat / Profile tabs, wouter Links, `env(safe-area-inset-bottom)` aware, active tab in primary color.
+6. Coach speaks in the vault's voice, references `[[concepts]]`, anchors claims to the framework or the athlete's recorded model, and emits drill blocks when prescribing.
 
 ## User preferences
 
