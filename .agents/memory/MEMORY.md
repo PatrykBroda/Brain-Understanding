@@ -1,0 +1,1 @@
+- [Welcome dedup pattern](welcome-endpoint-concurrency.md) — long-running LLM endpoints that persist a row need an advisory lock plus a post-generation recheck or they double-fire under StrictMode/multi-tab.

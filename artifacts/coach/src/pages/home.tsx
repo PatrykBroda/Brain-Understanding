@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link } from "wouter";
 import { MessageSquare, ChevronRight, Shield } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { CosmicOrb } from "@/components/cosmic-orb";
+import { CosmicOrb, type OrbState } from "@/components/cosmic-orb";
 import { BottomNav } from "@/components/bottom-nav";
 import { useFighter } from "@/hooks/use-fighter";
 import { api } from "@/lib/api";
@@ -18,11 +18,13 @@ export default function HomePage() {
 
   const messageCount = convQuery.data?.messages.length ?? 0;
 
-  const state = useMemo(() => {
-    if (!fighter) return { label: "INITIALISING", orbState: "idle" as const };
-    if (messageCount === 0) return { label: "DENSE CALM POTENTIAL", orbState: "idle" as const };
-    if (messageCount < 6) return { label: "WARMING", orbState: "active" as const };
-    return { label: "LOCKED IN", orbState: "active" as const };
+  const state = useMemo<{ label: string; orbState: OrbState }>(() => {
+    if (!fighter || messageCount === 0) {
+      return { label: "NOT DETECTED", orbState: "dormant" };
+    }
+    if (messageCount < 4) return { label: "DENSE CALM POTENTIAL", orbState: "calm" };
+    if (messageCount < 10) return { label: "WARMING", orbState: "warming" };
+    return { label: "LOCKED IN", orbState: "lockedIn" };
   }, [fighter, messageCount]);
 
   return (
@@ -59,7 +61,7 @@ export default function HomePage() {
           <div className="font-mono text-[10px] uppercase tracking-[0.45em] text-muted-foreground">
             State
           </div>
-          <div className="font-mono text-[clamp(1.25rem,5vw,1.6rem)] tracking-[0.35em] text-foreground/95 font-light leading-none">
+          <div className="font-mono text-[clamp(1.2rem,4.8vw,1.55rem)] tracking-[0.35em] text-foreground/95 font-light leading-none">
             {state.label}
           </div>
           <div className="w-6 h-px bg-foreground/30 mx-auto" />

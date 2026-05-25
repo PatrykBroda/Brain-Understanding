@@ -1,17 +1,142 @@
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
+
+export type OrbState = "dormant" | "calm" | "warming" | "lockedIn" | "streaming";
+
 interface CosmicOrbProps {
-  state?: "idle" | "active" | "streaming";
+  state?: OrbState;
   className?: string;
 }
 
-export function CosmicOrb({ state = "idle", className = "" }: CosmicOrbProps) {
-  const spinSeconds = state === "streaming" ? 22 : state === "active" ? 30 : 38;
-  const glowOpacity = state === "streaming" ? 0.55 : state === "active" ? 0.4 : 0.28;
+interface OrbVisuals {
+  glowColor: string;
+  glowSecondary: string;
+  glowOpacity: number;
+  glowBlur: number;
+  spinSeconds: number;
+  pulseSeconds: number;
+}
+
+const VISUALS: Record<OrbState, OrbVisuals> = {
+  dormant: {
+    glowColor: "hsla(215, 18%, 55%, 0.18)",
+    glowSecondary: "hsla(220, 20%, 45%, 0.06)",
+    glowOpacity: 0.55,
+    glowBlur: 28,
+    spinSeconds: 52,
+    pulseSeconds: 9,
+  },
+  calm: {
+    glowColor: "hsla(200, 60%, 60%, 0.32)",
+    glowSecondary: "hsla(210, 55%, 50%, 0.12)",
+    glowOpacity: 0.7,
+    glowBlur: 38,
+    spinSeconds: 40,
+    pulseSeconds: 6.5,
+  },
+  warming: {
+    glowColor: "hsla(35, 75%, 60%, 0.32)",
+    glowSecondary: "hsla(210, 55%, 50%, 0.1)",
+    glowOpacity: 0.75,
+    glowBlur: 42,
+    spinSeconds: 32,
+    pulseSeconds: 5.5,
+  },
+  lockedIn: {
+    glowColor: "hsla(var(--primary), 0.55)",
+    glowSecondary: "hsla(var(--primary), 0.16)",
+    glowOpacity: 0.85,
+    glowBlur: 46,
+    spinSeconds: 26,
+    pulseSeconds: 4.5,
+  },
+  streaming: {
+    glowColor: "hsla(var(--primary), 0.7)",
+    glowSecondary: "hsla(var(--primary), 0.22)",
+    glowOpacity: 0.95,
+    glowBlur: 50,
+    spinSeconds: 18,
+    pulseSeconds: 3.2,
+  },
+};
+
+export function CosmicOrb({ state = "dormant", className = "" }: CosmicOrbProps) {
+  const visuals = VISUALS[state];
+
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const sphereRef = useRef<HTMLDivElement>(null);
+  const offsetRef = useRef(0);
+  const velocityRef = useRef(0);
+  const draggingRef = useRef(false);
+  const lastPointerXRef = useRef(0);
+  const lastMoveTimeRef = useRef(0);
+
+  useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const baseSpeed = 50 / visuals.spinSeconds;
+
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+
+      if (!draggingRef.current) {
+        velocityRef.current *= Math.pow(0.25, dt);
+        const speed = baseSpeed + velocityRef.current;
+        offsetRef.current = ((offsetRef.current + speed * dt) % 50 + 50) % 50;
+      }
+
+      if (surfaceRef.current) {
+        surfaceRef.current.style.transform = `translate3d(${-offsetRef.current}%, 0, 0)`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [visuals.spinSeconds]);
+
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    draggingRef.current = true;
+    lastPointerXRef.current = e.clientX;
+    lastMoveTimeRef.current = performance.now();
+    velocityRef.current = 0;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!draggingRef.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const width = rect.width || 1;
+    const pctPerPx = 50 / width;
+    const dx = e.clientX - lastPointerXRef.current;
+    lastPointerXRef.current = e.clientX;
+    const now = performance.now();
+    const dt = Math.max(0.005, (now - lastMoveTimeRef.current) / 1000);
+    lastMoveTimeRef.current = now;
+
+    offsetRef.current = ((offsetRef.current - dx * pctPerPx) % 50 + 50) % 50;
+    velocityRef.current = (-dx * pctPerPx) / dt;
+  };
+
+  const endDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      /* noop */
+    }
+  };
 
   return (
-    <div className={`relative aspect-square ${className}`}>
+    <div className={`relative aspect-square select-none ${className}`}>
       <div
         className="absolute -inset-[30%] rounded-full pointer-events-none cosmic-glow"
-        style={{ opacity: glowOpacity }}
+        style={{
+          background: `radial-gradient(circle at 50% 50%, ${visuals.glowColor} 0%, ${visuals.glowSecondary} 24%, transparent 65%)`,
+          opacity: visuals.glowOpacity,
+          filter: `blur(${visuals.glowBlur}px)`,
+          animation: `cosmic-glow-pulse ${visuals.pulseSeconds}s ease-in-out infinite`,
+        }}
       />
 
       <div className="absolute -inset-[6%] rounded-full border border-foreground/[0.05]" />
@@ -21,20 +146,22 @@ export function CosmicOrb({ state = "idle", className = "" }: CosmicOrbProps) {
       <CrosshairTicks />
 
       <div
-        className="absolute inset-[6%] rounded-full overflow-hidden"
+        ref={sphereRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        className="absolute inset-[6%] rounded-full overflow-hidden cursor-grab active:cursor-grabbing touch-none"
         style={{
           background:
             "radial-gradient(circle at 32% 26%, #2c2c2e 0%, #131316 38%, #07070a 72%, #000 100%)",
-          boxShadow:
-            "0 0 60px rgba(0,0,0,0.75), inset 0 0 20px rgba(0,0,0,0.55)",
+          boxShadow: "0 0 60px rgba(0,0,0,0.75), inset 0 0 20px rgba(0,0,0,0.55)",
         }}
       >
         <div
-          className="absolute inset-0"
-          style={{
-            animation: `cosmic-spin ${spinSeconds}s linear infinite`,
-            willChange: "transform",
-          }}
+          ref={surfaceRef}
+          className="absolute inset-0 pointer-events-none"
+          style={{ willChange: "transform" }}
         >
           <TopoSurface />
         </div>
@@ -54,26 +181,20 @@ export function CosmicOrb({ state = "idle", className = "" }: CosmicOrbProps) {
               "radial-gradient(circle at 28% 22%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 18%, transparent 42%)",
           }}
         />
+
+        <div
+          className="absolute inset-0 pointer-events-none rounded-full mix-blend-screen"
+          style={{
+            background: `radial-gradient(circle at 50% 100%, ${visuals.glowColor} 0%, transparent 35%)`,
+            opacity: 0.55,
+          }}
+        />
       </div>
 
       <style>{`
-        @keyframes cosmic-spin {
-          from { transform: translate3d(0, 0, 0); }
-          to   { transform: translate3d(-50%, 0, 0); }
-        }
         @keyframes cosmic-glow-pulse {
-          0%, 100% { transform: scale(1); filter: blur(38px); }
-          50%      { transform: scale(1.06); filter: blur(48px); }
-        }
-        .cosmic-glow {
-          background:
-            radial-gradient(circle at 50% 50%,
-              hsla(var(--primary), 0.45) 0%,
-              hsla(var(--primary), 0.18) 22%,
-              hsla(220, 70%, 55%, 0.08) 45%,
-              transparent 65%);
-          filter: blur(38px);
-          animation: cosmic-glow-pulse 6s ease-in-out infinite;
+          0%, 100% { transform: scale(1); }
+          50%      { transform: scale(1.06); }
         }
       `}</style>
     </div>

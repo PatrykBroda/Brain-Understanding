@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Link } from "wouter";
 import { Send, Square, RefreshCcw, ChevronLeft } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useChat } from "@/hooks/use-chat";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAnswerCalibration, useNextCalibration } from "@/hooks/use-calibration";
@@ -9,6 +10,7 @@ import { NervousSystemOrb } from "@/components/nervous-system-orb";
 import { CalibrationCard } from "@/components/calibration-card";
 import { BottomNav } from "@/components/bottom-nav";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   { label: "Analyse session", prompt: "Debrief my last training session — what fragmented, what held, what's the next rep." },
@@ -44,9 +46,32 @@ export default function ChatPage() {
     bumpCalibrationCounter,
   } = useChat();
 
-  const enableCalibration = messages.length >= 2 && userTurnsThisSession >= 3 && !isStreaming;
+  const enableCalibration = messages.length >= 1 && !isStreaming;
   const calibrationQuery = useNextCalibration(enableCalibration);
   const answerCalibration = useAnswerCalibration();
+
+  const qc = useQueryClient();
+  const welcomeRef = useRef(false);
+  const welcomeMutation = useMutation({
+    mutationFn: () => api.postWelcome(),
+    onSuccess: (data) => {
+      if (data.message) {
+        qc.invalidateQueries({ queryKey: ["conversation"] });
+      }
+    },
+  });
+
+  useEffect(() => {
+    welcomeRef.current = false;
+  }, [fighter?.id]);
+
+  useEffect(() => {
+    if (welcomeRef.current) return;
+    if (isLoading || isStreaming || !fighter) return;
+    welcomeRef.current = true;
+    welcomeMutation.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, fighter?.id]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 

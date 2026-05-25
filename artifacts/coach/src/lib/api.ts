@@ -96,6 +96,10 @@ export const api = {
       body: JSON.stringify({ key, answer }),
     }),
   getMemory: () => jsonFetch<{ facts: AthleteFact[]; count: number }>("api/memory"),
+  postWelcome: () =>
+    jsonFetch<{ message: ServerMessage | null; reason?: string }>("api/coach/welcome", {
+      method: "POST",
+    }),
 };
 
 export const coachChatUrl = `${base}api/coach/chat`;
