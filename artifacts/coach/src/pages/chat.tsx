@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useRef } from "react";
-import { Send, Square, RefreshCcw } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Send, Square, RefreshCcw, Brain } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAnswerCalibration, useNextCalibration } from "@/hooks/use-calibration";
+import { useMemory } from "@/hooks/use-memory";
 import { MessageContent } from "@/components/message-content";
 import { NervousSystemOrb } from "@/components/nervous-system-orb";
 import { CalibrationCard } from "@/components/calibration-card";
+import { MemorySheet } from "@/components/memory-sheet";
 import { Button } from "@/components/ui/button";
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
@@ -48,6 +51,17 @@ export default function ChatPage() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
+
+  const [memoryOpen, setMemoryOpen] = useState(false);
+  const memoryQuery = useMemory(memoryOpen);
+  const queryClient = useQueryClient();
+  const wasStreaming = useRef(false);
+  useEffect(() => {
+    if (wasStreaming.current && !isStreaming) {
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ["memory"] }), 1500);
+    }
+    wasStreaming.current = isStreaming;
+  }, [isStreaming, queryClient]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -102,6 +116,15 @@ export default function ChatPage() {
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => setMemoryOpen(true)}
+            className="text-muted-foreground hover:text-foreground font-mono text-[10px] uppercase tracking-widest"
+          >
+            <Brain className="w-3 h-3 mr-2" />
+            Model
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => reset()}
             className="text-muted-foreground hover:text-foreground font-mono text-[10px] uppercase tracking-widest"
           >
@@ -110,6 +133,13 @@ export default function ChatPage() {
           </Button>
         </div>
       </header>
+
+      <MemorySheet
+        open={memoryOpen}
+        onClose={() => setMemoryOpen(false)}
+        facts={memoryQuery.data?.facts ?? []}
+        loading={memoryQuery.isLoading}
+      />
 
       <main ref={scrollerRef} className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 pb-48">

@@ -5,11 +5,12 @@ import {
   fightersTable,
   messagesTable,
   calibrationsTable,
-  athleteSignalsTable,
 } from "@workspace/db";
 import { asc, desc, eq } from "drizzle-orm";
 import { COACH_SYSTEM_PROMPT_STATIC, buildDynamicContext } from "../lib/synochi";
 import { getOrCreateActiveConversation } from "./conversation";
+import { getActiveFacts } from "../lib/factsService";
+import { extractMemory } from "../lib/memoryExtractor";
 
 const router: IRouter = Router();
 
@@ -51,12 +52,7 @@ router.post("/coach/chat", async (req, res) => {
     .where(eq(messagesTable.conversationId, conversation.id))
     .orderBy(asc(messagesTable.createdAt));
 
-  const signals = await db
-    .select()
-    .from(athleteSignalsTable)
-    .where(eq(athleteSignalsTable.fighterId, fighter.id))
-    .orderBy(desc(athleteSignalsTable.createdAt))
-    .limit(30);
+  const facts = await getActiveFacts(fighter.id);
 
   const calibrations = await db
     .select()
@@ -89,7 +85,7 @@ router.post("/coach/chat", async (req, res) => {
         },
         {
           type: "text",
-          text: buildDynamicContext(fighter, signals, calibrations),
+          text: buildDynamicContext(fighter, facts, calibrations),
         },
       ],
       messages: history.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
@@ -110,6 +106,15 @@ router.post("/coach/chat", async (req, res) => {
 
     send({ done: true });
     res.end();
+
+    if (assembled.trim().length > 0) {
+      extractMemory({
+        fighter,
+        userText: userContent,
+        assistantText: assembled,
+        log: req.log,
+      }).catch((err) => req.log.error({ err }, "extractMemory rejected"));
+    }
   } catch (err) {
     req.log.error({ err }, "Coach stream failed");
     if (assembled.length > 0) {

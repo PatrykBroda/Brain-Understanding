@@ -1,12 +1,8 @@
 import { Router, type IRouter } from "express";
-import {
-  db,
-  fightersTable,
-  calibrationsTable,
-  athleteSignalsTable,
-} from "@workspace/db";
+import { db, fightersTable, calibrationsTable } from "@workspace/db";
 import { asc, desc, eq } from "drizzle-orm";
 import { CALIBRATION_BANK, pickNextQuestion, answerToSignal } from "../lib/calibrationBank";
+import { addFact } from "../lib/factsService";
 
 const router: IRouter = Router();
 
@@ -55,9 +51,11 @@ router.post("/calibration/answer", async (req, res) => {
   });
   const signalText = answerToSignal(question, body.answer);
   if (signalText) {
-    await db.insert(athleteSignalsTable).values({
-      fighterId: fighter.id,
-      signal: signalText,
+    await addFact(fighter.id, {
+      category: "pattern",
+      topic: question.key,
+      content: signalText,
+      confidence: 2,
       source: "calibration",
     });
   }

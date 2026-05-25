@@ -37,6 +37,29 @@ export type CalibrationQuestion = {
 
 export type FighterInput = Omit<Fighter, "id" | "createdAt" | "updatedAt">;
 
+export type FactCategory =
+  | "strength"
+  | "weakness"
+  | "technical_knowledge"
+  | "pattern"
+  | "preference"
+  | "event"
+  | "goal"
+  | "context";
+
+export type AthleteFact = {
+  id: number;
+  fighterId: number;
+  category: FactCategory;
+  topic: string;
+  content: string;
+  confidence: number;
+  status: "active" | "superseded" | "resolved";
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${base}${path}`, {
     ...init,
@@ -72,6 +95,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ key, answer }),
     }),
+  getMemory: () => jsonFetch<{ facts: AthleteFact[]; count: number }>("api/memory"),
 };
 
 export const coachChatUrl = `${base}api/coach/chat`;
