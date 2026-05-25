@@ -1,46 +1,32 @@
 interface CosmicOrbProps {
-  size?: number;
   state?: "idle" | "active" | "streaming";
+  className?: string;
 }
 
-export function CosmicOrb({ size = 320, state = "idle" }: CosmicOrbProps) {
-  const glowOpacity = state === "streaming" ? 0.7 : state === "active" ? 0.45 : 0.25;
-  const spinSeconds = state === "streaming" ? 28 : 60;
+export function CosmicOrb({ state = "idle", className = "" }: CosmicOrbProps) {
+  const spinSeconds = state === "streaming" ? 22 : state === "active" ? 30 : 38;
+  const glowOpacity = state === "streaming" ? 0.55 : state === "active" ? 0.4 : 0.28;
 
   return (
-    <div
-      className="relative flex items-center justify-center"
-      style={{ width: size, height: size }}
-    >
+    <div className={`relative aspect-square ${className}`}>
       <div
-        className="absolute inset-[-40%] cosmic-glow"
+        className="absolute -inset-[30%] rounded-full pointer-events-none cosmic-glow"
         style={{ opacity: glowOpacity }}
       />
 
-      <div
-        className="absolute inset-[-10%] rounded-full border border-foreground/[0.04]"
-        style={{ animation: "cosmic-ring-pulse 8s ease-in-out infinite" }}
-      />
-      <div
-        className="absolute inset-[-22%] rounded-full border border-foreground/[0.03]"
-        style={{ animation: "cosmic-ring-pulse 11s ease-in-out infinite", animationDelay: "1.5s" }}
-      />
-      <div
-        className="absolute inset-[-34%] rounded-full border border-foreground/[0.02]"
-        style={{ animation: "cosmic-ring-pulse 14s ease-in-out infinite", animationDelay: "3s" }}
-      />
+      <div className="absolute -inset-[6%] rounded-full border border-foreground/[0.05]" />
+      <div className="absolute -inset-[18%] rounded-full border border-foreground/[0.035]" />
+      <div className="absolute -inset-[32%] rounded-full border border-foreground/[0.022]" />
 
-      <Crosshair size={size} />
+      <CrosshairTicks />
 
       <div
-        className="relative rounded-full overflow-hidden"
+        className="absolute inset-[6%] rounded-full overflow-hidden"
         style={{
-          width: size * 0.78,
-          height: size * 0.78,
           background:
-            "radial-gradient(circle at 32% 28%, hsl(0,0%,18%) 0%, hsl(0,0%,7%) 45%, hsl(0,0%,3%) 75%, hsl(0,0%,0%) 100%)",
+            "radial-gradient(circle at 32% 26%, #2c2c2e 0%, #131316 38%, #07070a 72%, #000 100%)",
           boxShadow:
-            "inset -18px -18px 60px rgba(0,0,0,0.9), inset 14px 12px 50px rgba(255,255,255,0.04), 0 0 80px rgba(0,0,0,0.6)",
+            "0 0 60px rgba(0,0,0,0.75), inset 0 0 20px rgba(0,0,0,0.55)",
         }}
       >
         <div
@@ -50,122 +36,120 @@ export function CosmicOrb({ size = 320, state = "idle" }: CosmicOrbProps) {
             willChange: "transform",
           }}
         >
-          <TopoBand />
+          <TopoSurface />
         </div>
 
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 25%, transparent 50%)",
+              "radial-gradient(circle at center, transparent 38%, rgba(0,0,0,0.55) 78%, rgba(0,0,0,0.95) 100%)",
           }}
         />
 
         <div
-          className="absolute inset-0 rounded-full"
+          className="absolute inset-0 pointer-events-none"
           style={{
-            boxShadow: "inset 0 0 30px rgba(0,0,0,0.85)",
+            background:
+              "radial-gradient(circle at 28% 22%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 18%, transparent 42%)",
           }}
         />
       </div>
 
       <style>{`
         @keyframes cosmic-spin {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
-        @keyframes cosmic-ring-pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.45; transform: scale(1.015); }
+          from { transform: translate3d(0, 0, 0); }
+          to   { transform: translate3d(-50%, 0, 0); }
         }
         @keyframes cosmic-glow-pulse {
-          0%, 100% { filter: blur(60px); transform: scale(1); }
-          50% { filter: blur(80px); transform: scale(1.08); }
+          0%, 100% { transform: scale(1); filter: blur(38px); }
+          50%      { transform: scale(1.06); filter: blur(48px); }
         }
         .cosmic-glow {
           background:
-            radial-gradient(circle at center,
-              hsla(var(--primary), 0.35) 0%,
-              hsla(var(--primary), 0.15) 25%,
-              hsla(220, 70%, 50%, 0.08) 45%,
-              transparent 70%);
-          filter: blur(60px);
+            radial-gradient(circle at 50% 50%,
+              hsla(var(--primary), 0.45) 0%,
+              hsla(var(--primary), 0.18) 22%,
+              hsla(220, 70%, 55%, 0.08) 45%,
+              transparent 65%);
+          filter: blur(38px);
           animation: cosmic-glow-pulse 6s ease-in-out infinite;
-          pointer-events: none;
         }
       `}</style>
     </div>
   );
 }
 
-function Crosshair({ size }: { size: number }) {
-  const tick = size * 0.06;
-  const off = size * 0.5;
-  const inset = size * 0.5 - size * 0.42;
+function CrosshairTicks() {
   return (
     <svg
-      width={size}
-      height={size}
       className="absolute inset-0 pointer-events-none"
-      viewBox={`0 0 ${size} ${size}`}
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
     >
-      <g stroke="hsl(0,0%,55%)" strokeWidth="0.8" opacity="0.7">
-        <line x1={off} y1={inset} x2={off} y2={inset + tick} />
-        <line x1={off} y1={size - inset - tick} x2={off} y2={size - inset} />
-        <line x1={inset} y1={off} x2={inset + tick} y2={off} />
-        <line x1={size - inset - tick} y1={off} x2={size - inset} y2={off} />
+      <g
+        stroke="rgba(180,180,185,0.55)"
+        strokeWidth="0.35"
+        fill="none"
+        vectorEffect="non-scaling-stroke"
+      >
+        <line x1="50" y1="0" x2="50" y2="4.5" />
+        <line x1="50" y1="95.5" x2="50" y2="100" />
+        <line x1="0" y1="50" x2="4.5" y2="50" />
+        <line x1="95.5" y1="50" x2="100" y2="50" />
       </g>
     </svg>
   );
 }
 
-function TopoBand() {
-  const width = 800;
-  const height = 400;
-  const lines = 22;
+function TopoSurface() {
+  const W = 400;
+  const H = 200;
+  const lineCount = 16;
+  const step = 6;
+
+  const paths: { d: string; opacity: number; sw: number }[] = [];
+  for (let i = 0; i < lineCount; i++) {
+    const baseY = 10 + (i / (lineCount - 1)) * (H - 20);
+    const distFromCenter = Math.abs(baseY - H / 2) / (H / 2);
+    const equatorWeight = 1 - distFromCenter;
+    const amp = 2.5 + equatorWeight * 6;
+    const phase1 = i * 0.55;
+    const phase2 = i * 1.3 + 0.7;
+
+    const pts: string[] = [];
+    for (let x = 0; x <= W * 2; x += step) {
+      const t = (x / W) * Math.PI * 2;
+      const y =
+        baseY +
+        Math.sin(t * 2 + phase1) * amp +
+        Math.sin(t * 5 + phase2) * amp * 0.35;
+      pts.push(`${x === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(2)}`);
+    }
+
+    const opacity = 0.42 - distFromCenter * 0.3;
+    const sw = 0.5 + equatorWeight * 0.35;
+    paths.push({ d: pts.join(" "), opacity, sw });
+  }
+
   return (
     <svg
-      viewBox={`0 0 ${width} ${height}`}
+      viewBox={`0 0 ${W * 2} ${H}`}
+      preserveAspectRatio="none"
       width="200%"
       height="100%"
-      preserveAspectRatio="none"
       style={{ display: "block" }}
     >
-      <defs>
-        <linearGradient id="topo-fade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="white" stopOpacity="0" />
-          <stop offset="0.2" stopColor="white" stopOpacity="0.85" />
-          <stop offset="0.5" stopColor="white" stopOpacity="1" />
-          <stop offset="0.8" stopColor="white" stopOpacity="0.85" />
-          <stop offset="1" stopColor="white" stopOpacity="0" />
-        </linearGradient>
-        <mask id="topo-mask">
-          <rect x="0" y="0" width={width} height={height} fill="url(#topo-fade)" />
-        </mask>
-      </defs>
-      <g mask="url(#topo-mask)">
-        {Array.from({ length: lines }).map((_, i) => {
-          const y = (i / (lines - 1)) * height;
-          const amp = 18 + Math.sin(i * 0.9) * 10;
-          const offset = i * 23;
-          const d =
-            `M 0 ${y} ` +
-            `Q ${100 + offset / 4} ${y + amp} 200 ${y} ` +
-            `T 400 ${y} ` +
-            `T 600 ${y} ` +
-            `T 800 ${y}`;
-          const opacity = 0.18 + Math.sin(i * 0.7) * 0.1;
-          return (
-            <path
-              key={i}
-              d={d}
-              fill="none"
-              stroke={`rgba(220,220,220,${opacity})`}
-              strokeWidth={0.8}
-            />
-          );
-        })}
-      </g>
+      {paths.map((p, i) => (
+        <path
+          key={i}
+          d={p.d}
+          stroke={`rgba(225,228,232,${p.opacity.toFixed(3)})`}
+          strokeWidth={p.sw}
+          fill="none"
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
     </svg>
   );
 }

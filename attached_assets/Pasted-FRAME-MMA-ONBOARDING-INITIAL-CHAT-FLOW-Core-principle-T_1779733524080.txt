@@ -1,0 +1,190 @@
+FRAME MMA — ONBOARDING + INITIAL CHAT FLOW
+
+Core principle:
+
+The onboarding should not feel like account creation.
+It should feel like athlete calibration.
+
+The goal is:
+
+* low friction
+* high signal
+* immediate psychological buy-in
+* fast entry into the system
+
+Target onboarding completion time:
+60–90 seconds maximum.
+
+No long forms.
+No tutorials.
+No wellness/productivity app feeling.
+
+The athlete should feel:
+“This system is already profiling how I train and compete.”
+
+⸻
+
+ONBOARDING FLOW
+
+SCREEN 1 — Identity
+
+Fields:
+
+* Name / Callsign
+* Age
+* Weight
+* Primary Art
+* Skill Level
+* Training Frequency
+* Competition Experience
+
+UI direction:
+
+* clean
+* minimal
+* dark
+* restrained
+* mostly dropdowns/toggles
+* minimal typing
+
+Suggested header copy:
+“Initialise athlete model.”
+
+Subtext:
+“This is not a profile. It is the foundation for how FRAME coaches you.”
+
+⸻
+
+SCREEN 2 — Archetype Calibration
+
+Question:
+
+“What style do you naturally fall into under live pressure?”
+
+Options:
+
+* Top pressure
+* Guard player
+* Wrestling-based
+* Scramble-heavy
+* Submission hunter
+* Control-focused
+* Speed / movement
+* Defensive / reactive
+* Don’t know yet
+
+Purpose:
+This gives FRAME a first behavioural signal without over-analysing the athlete.
+
+It allows the system to estimate:
+
+* pacing tendencies
+* confidence style
+* likely strategic preferences
+* energy usage
+* probable coaching direction
+
+Important:
+Do NOT frame this as a permanent identity.
+This is only an initial signal.
+
+⸻
+
+POST-ONBOARDING TRANSITION
+
+After onboarding finishes:
+
+* do NOT show a dashboard first
+* do NOT show tutorials
+* do NOT show features
+
+The athlete should enter directly into chat.
+
+The first thing visible should be a message from FRAME.
+
+This message is extremely important.
+
+The purpose is to:
+
+* create immediate trust
+* reflect back the onboarding signals
+* explain how FRAME thinks
+* establish coaching tone
+* make the athlete feel understood quickly
+
+Tone direction:
+
+* calm
+* observant
+* direct
+* performance-oriented
+* restrained
+* intelligent
+* not robotic
+* not motivational
+* not therapeutic
+
+⸻
+
+INITIAL CHAT MESSAGE STRUCTURE
+
+1. Welcome
+2. Reflect onboarding signals
+3. Explain what FRAME currently knows
+4. Explain that the model sharpens over time
+5. Explain FRAME philosophy briefly
+6. Invite interaction
+
+⸻
+
+EXAMPLE INITIAL MESSAGE
+
+“Welcome to FRAME.
+
+You’re a blue belt training 3–4 times per week with competition experience. Your natural tendency under pressure is to create movement and transitions rather than slow exchanges down.
+
+That already tells me a few things:
+
+* you likely perform best when reactions stay instinctive
+* your confidence probably rises with momentum
+* your game is strongest when you commit early instead of hesitating mid-transition
+
+Right now I only have a few signals.
+That’s enough to begin building your athlete model.
+
+As we train together, the model sharpens:
+
+* decision patterns
+* pressure responses
+* recurring breakdowns
+* tactical strengths
+* competition behaviour
+
+FRAME is not designed to overload you with information.
+
+The goal is simple:
+reduce noise,
+increase clarity,
+improve execution under pressure.
+
+Start anywhere:
+
+* recent session
+* competition prep
+* recurring problem
+* something that finally clicked”
+
+⸻
+
+IMPORTANT UX PRINCIPLES
+
+1. Fast entry into the system
+    The athlete should reach chat almost immediately.
+2. No excessive psychological profiling
+    Avoid fake precision or overly clinical questioning.
+3. No therapist energy
+    FRAME should always feel performance-based and grounded.
+4. Minimal UI noise
+    The onboarding should feel confident through restraint.
+5. The athlete should immediately feel:
+    “This is different from ChatGPT.”
