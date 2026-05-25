@@ -1,1 +1,2 @@
-- [Welcome dedup pattern](welcome-endpoint-concurrency.md) — long-running LLM endpoints that persist a row need an advisory lock plus a post-generation recheck or they double-fire under StrictMode/multi-tab.
+- [Welcome endpoint concurrency](welcome-endpoint-concurrency.md) — auto-welcome generation needs a pg advisory lock + post-generation recheck or React StrictMode double-mounts produce duplicate greetings.
+- [Locking transient query data into UI state](lock-query-data-into-state.md) — when an overlay must show one snapshot of a query result and ignore later refetches, lock it in a useEffect that gates on `!locked && incoming`, never via ref-mutation during render.

@@ -48,7 +48,7 @@ export default function ChatPage() {
   } = useChat();
 
   const enableCalibration = !!fighter && !isStreaming;
-  const calibrationQuery = useNextCalibration(enableCalibration);
+  const calibrationQuery = useNextCalibration(enableCalibration, fighter?.id ?? null);
   const answerCalibration = useAnswerCalibration();
 
   const qc = useQueryClient();
@@ -63,12 +63,12 @@ export default function ChatPage() {
   });
 
   const [entryActive, setEntryActive] = useState(true);
-  const entryQuestionRef = useRef<CalibrationQuestion | null>(null);
+  const [entryQuestion, setEntryQuestion] = useState<CalibrationQuestion | null>(null);
 
   useEffect(() => {
     welcomeRef.current = false;
     setEntryActive(true);
-    entryQuestionRef.current = null;
+    setEntryQuestion(null);
   }, [fighter?.id]);
 
   useEffect(() => {
@@ -79,13 +79,15 @@ export default function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, fighter?.id]);
 
-  // Lock in the first non-null calibration question for the entry sequence so
-  // it never swaps to a different question mid-sequence (e.g. if a background
-  // refetch returns a new one).
-  if (entryActive && !entryQuestionRef.current && calibrationQuery.data?.question) {
-    entryQuestionRef.current = calibrationQuery.data.question;
-  }
-  const entryQuestion = entryQuestionRef.current ?? null;
+  // Lock in the first non-null calibration question once it arrives, then
+  // ignore subsequent changes so a background refetch never swaps the question
+  // mid-sequence. Commit-safe — runs after render, never during it.
+  useEffect(() => {
+    if (!entryActive) return;
+    if (entryQuestion) return;
+    const incoming = calibrationQuery.data?.question;
+    if (incoming) setEntryQuestion(incoming);
+  }, [entryActive, entryQuestion, calibrationQuery.data]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 

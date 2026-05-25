@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
-export function useNextCalibration(enabled: boolean) {
+export function useNextCalibration(enabled: boolean, fighterId?: string | number | null) {
   return useQuery({
-    queryKey: ["calibration", "next"],
+    queryKey: ["calibration", "next", fighterId ?? null],
     queryFn: () => api.getNextCalibration(),
-    enabled,
+    enabled: enabled && !!fighterId,
   });
 }
 
