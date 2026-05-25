@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { Send, Square, RefreshCcw, ChevronLeft } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -8,9 +8,10 @@ import { useAnswerCalibration, useNextCalibration } from "@/hooks/use-calibratio
 import { MessageContent } from "@/components/message-content";
 import { NervousSystemOrb } from "@/components/nervous-system-orb";
 import { CalibrationCard } from "@/components/calibration-card";
+import { EntrySequence } from "@/components/entry-sequence";
 import { BottomNav } from "@/components/bottom-nav";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
+import { api, type CalibrationQuestion } from "@/lib/api";
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   { label: "Analyse session", prompt: "Debrief my last training session — what fragmented, what held, what's the next rep." },
@@ -46,7 +47,7 @@ export default function ChatPage() {
     bumpCalibrationCounter,
   } = useChat();
 
-  const enableCalibration = messages.length >= 1 && !isStreaming;
+  const enableCalibration = !!fighter && !isStreaming;
   const calibrationQuery = useNextCalibration(enableCalibration);
   const answerCalibration = useAnswerCalibration();
 
@@ -61,17 +62,30 @@ export default function ChatPage() {
     },
   });
 
+  const [entryActive, setEntryActive] = useState(true);
+  const entryQuestionRef = useRef<CalibrationQuestion | null>(null);
+
   useEffect(() => {
     welcomeRef.current = false;
+    setEntryActive(true);
+    entryQuestionRef.current = null;
   }, [fighter?.id]);
 
   useEffect(() => {
     if (welcomeRef.current) return;
-    if (isLoading || isStreaming || !fighter) return;
+    if (isLoading || !fighter) return;
     welcomeRef.current = true;
     welcomeMutation.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, fighter?.id]);
+
+  // Lock in the first non-null calibration question for the entry sequence so
+  // it never swaps to a different question mid-sequence (e.g. if a background
+  // refetch returns a new one).
+  if (entryActive && !entryQuestionRef.current && calibrationQuery.data?.question) {
+    entryQuestionRef.current = calibrationQuery.data.question;
+  }
+  const entryQuestion = entryQuestionRef.current ?? null;
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -103,6 +117,21 @@ export default function ChatPage() {
   };
 
   return (
+    <>
+      {entryActive && fighter && (
+        <EntrySequence
+          fighterName={fighter.name}
+          question={entryQuestion}
+          questionLoading={calibrationQuery.isLoading || calibrationQuery.isFetching}
+          briefingPending={welcomeMutation.isPending}
+          isAnswering={answerCalibration.isPending}
+          onAnswer={(key, answer) => {
+            answerCalibration.mutate({ key, answer });
+            bumpCalibrationCounter();
+          }}
+          onDismiss={() => setEntryActive(false)}
+        />
+      )}
     <div className="flex flex-col h-[100dvh] bg-background text-foreground font-sans">
       <header className="flex-none flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-border/60 bg-background/95 backdrop-blur-sm">
         <Link
@@ -283,5 +312,6 @@ export default function ChatPage() {
 
       <BottomNav />
     </div>
+    </>
   );
 }
