@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 export type OrbState =
   | "dormant"
   | "stable"
@@ -15,207 +17,177 @@ interface CosmicOrbProps {
 }
 
 interface OrbVisuals {
-  /** Core sphere base hue — kept biological, never neon. */
-  coreHue: string;
-  /** Soft environmental glow that sits behind the sphere. */
-  bloomHue: string;
-  /** Inner atmospheric tint. */
-  atmosphereHue: string;
-  /** Outer rim tint — the "edge of presence". */
-  rimHue: string;
-  /** Seconds per breath cycle. Slower = more composed, faster = more activated. */
+  coreL: number;
+  rimHue: number;
+  rimSat: number;
+  rimLight: number;
+  bloomHue: number;
+  bloomSat: number;
+  bloomAlpha: number;
   breathSeconds: number;
-  /** Seconds per ambient opacity drift. */
-  driftSeconds: number;
-  /** Base luminance of the bloom (0..1). */
-  bloomLuminance: number;
-  /** Slight scale delta on breath (e.g. 0.02 = 2% breathing range). */
   breathAmplitude: number;
 }
 
 /**
- * State visuals. Read each block as a posture — these aren't gaming-UI palettes,
- * they're nervous-system temperatures. Default neutral is warm-grey; activated
- * states warm slightly; recovering states cool slightly; volatile widens the
- * breath range; composed tightens it.
+ * Per-state visual posture. All stay inside a dark-warm palette — no neon,
+ * no gaming HUD. The differences are subtle: rim brightness, glow saturation,
+ * breath rate. Read each block as a nervous-system temperature.
  */
 const VISUALS: Record<OrbState, OrbVisuals> = {
-  dormant: {
-    coreHue: "215 8% 14%",
-    bloomHue: "215 12% 32%",
-    atmosphereHue: "215 14% 38%",
-    rimHue: "215 14% 42%",
-    breathSeconds: 9,
-    driftSeconds: 14,
-    bloomLuminance: 0.32,
-    breathAmplitude: 0.012,
-  },
-  stable: {
-    coreHue: "30 6% 12%",
-    bloomHue: "30 14% 38%",
-    atmosphereHue: "30 18% 46%",
-    rimHue: "30 22% 52%",
-    breathSeconds: 7.5,
-    driftSeconds: 13,
-    bloomLuminance: 0.5,
-    breathAmplitude: 0.016,
-  },
-  loaded: {
-    coreHue: "20 12% 14%",
-    bloomHue: "20 30% 42%",
-    atmosphereHue: "20 38% 50%",
-    rimHue: "20 42% 56%",
-    breathSeconds: 6,
-    driftSeconds: 11,
-    bloomLuminance: 0.62,
-    breathAmplitude: 0.022,
-  },
-  recovering: {
-    coreHue: "205 10% 12%",
-    bloomHue: "205 22% 36%",
-    atmosphereHue: "205 26% 44%",
-    rimHue: "205 28% 50%",
-    breathSeconds: 10,
-    driftSeconds: 16,
-    bloomLuminance: 0.42,
-    breathAmplitude: 0.013,
-  },
-  tight: {
-    coreHue: "35 8% 12%",
-    bloomHue: "35 18% 36%",
-    atmosphereHue: "35 22% 42%",
-    rimHue: "35 24% 48%",
-    breathSeconds: 5,
-    driftSeconds: 10,
-    bloomLuminance: 0.46,
-    breathAmplitude: 0.01,
-  },
-  volatile: {
-    coreHue: "12 14% 14%",
-    bloomHue: "12 34% 44%",
-    atmosphereHue: "12 38% 52%",
-    rimHue: "12 42% 58%",
-    breathSeconds: 5.5,
-    driftSeconds: 9,
-    bloomLuminance: 0.7,
-    breathAmplitude: 0.026,
-  },
-  composed: {
-    coreHue: "var(--primary-h) 10% 14%",
-    bloomHue: "var(--primary-h) 30% 42%",
-    atmosphereHue: "var(--primary-h) 36% 50%",
-    rimHue: "var(--primary-h) 40% 56%",
-    breathSeconds: 7,
-    driftSeconds: 12,
-    bloomLuminance: 0.6,
-    breathAmplitude: 0.015,
-  },
-  overextended: {
-    coreHue: "220 8% 11%",
-    bloomHue: "220 14% 30%",
-    atmosphereHue: "220 16% 36%",
-    rimHue: "220 18% 40%",
-    breathSeconds: 11,
-    driftSeconds: 18,
-    bloomLuminance: 0.28,
-    breathAmplitude: 0.009,
-  },
-  streaming: {
-    coreHue: "var(--primary-h) 14% 16%",
-    bloomHue: "var(--primary-h) 50% 52%",
-    atmosphereHue: "var(--primary-h) 54% 58%",
-    rimHue: "var(--primary-h) 58% 62%",
-    breathSeconds: 4.5,
-    driftSeconds: 8,
-    bloomLuminance: 0.82,
-    breathAmplitude: 0.024,
-  },
+  dormant:      { coreL: 4, rimHue: 215, rimSat:  8, rimLight: 38, bloomHue: 215, bloomSat: 14, bloomAlpha: 0.10, breathSeconds: 9.5, breathAmplitude: 0.010 },
+  stable:       { coreL: 4, rimHue:  32, rimSat: 18, rimLight: 46, bloomHue:  30, bloomSat: 22, bloomAlpha: 0.14, breathSeconds: 7.5, breathAmplitude: 0.014 },
+  loaded:       { coreL: 5, rimHue:  24, rimSat: 32, rimLight: 52, bloomHue:  22, bloomSat: 36, bloomAlpha: 0.20, breathSeconds: 6.0, breathAmplitude: 0.020 },
+  recovering:   { coreL: 4, rimHue: 205, rimSat: 22, rimLight: 44, bloomHue: 205, bloomSat: 24, bloomAlpha: 0.13, breathSeconds: 10.0, breathAmplitude: 0.011 },
+  tight:        { coreL: 4, rimHue:  38, rimSat: 18, rimLight: 42, bloomHue:  36, bloomSat: 18, bloomAlpha: 0.12, breathSeconds: 5.2, breathAmplitude: 0.008 },
+  volatile:     { coreL: 5, rimHue:  14, rimSat: 34, rimLight: 50, bloomHue:  12, bloomSat: 38, bloomAlpha: 0.22, breathSeconds: 5.5, breathAmplitude: 0.024 },
+  composed:     { coreL: 4, rimHue:  35, rimSat: 38, rimLight: 52, bloomHue:  35, bloomSat: 40, bloomAlpha: 0.18, breathSeconds: 7.0, breathAmplitude: 0.013 },
+  overextended: { coreL: 3, rimHue: 220, rimSat: 10, rimLight: 34, bloomHue: 220, bloomSat: 12, bloomAlpha: 0.08, breathSeconds: 11.0, breathAmplitude: 0.008 },
+  streaming:    { coreL: 5, rimHue:  35, rimSat: 52, rimLight: 58, bloomHue:  35, bloomSat: 54, bloomAlpha: 0.28, breathSeconds: 4.5, breathAmplitude: 0.022 },
 };
 
 export function CosmicOrb({ state = "dormant", className = "" }: CosmicOrbProps) {
   const v = VISUALS[state];
+  const uid = useId().replace(/:/g, "");
+  const ringFade = `frame-ring-fade-${uid}`;
+  const ringMask = `frame-ring-mask-${uid}`;
+  const meshFade = `frame-mesh-fade-${uid}`;
+  const sphereClip = `frame-sphere-clip-${uid}`;
+  const meshMask = `frame-mesh-mask-${uid}`;
+  const core = `hsl(0 0% ${v.coreL}%)`;
+  const coreDeep = `hsl(0 0% 0%)`;
+  const rim = `hsla(${v.rimHue} ${v.rimSat}% ${v.rimLight}% / 0.85)`;
+  const rimSoft = `hsla(${v.rimHue} ${v.rimSat}% ${v.rimLight}% / 0.35)`;
+  const bloom = `hsla(${v.bloomHue} ${v.bloomSat}% 50% / ${v.bloomAlpha})`;
+  const bloomEdge = `hsla(${v.bloomHue} ${v.bloomSat}% 50% / 0)`;
+  const breathUp = (1 + v.breathAmplitude).toFixed(4);
+  const breathDown = (1 - v.breathAmplitude * 0.5).toFixed(4);
 
-  // Compose hsla colors. `coreHue` etc are space-separated H S% L% (or CSS var)
-  const bloom = `hsla(${v.bloomHue} / ${(v.bloomLuminance * 0.7).toFixed(3)})`;
-  const bloomEdge = `hsla(${v.bloomHue} / 0)`;
-  const atmosphere = `hsla(${v.atmosphereHue} / 0.55)`;
-  const rim = `hsla(${v.rimHue} / 0.65)`;
-  const coreInner = `hsla(${v.coreHue} / 1)`;
-  const coreMid = `hsla(${v.coreHue} / 1)`;
-
-  // Stable React-key so animation seeds restart per state change
   return (
     <div
       key={state}
       className={`relative aspect-square select-none pointer-events-none ${className}`}
       style={
         {
-          animation: `frame-orb-breath ${v.breathSeconds}s ease-in-out infinite`,
-          ["--breath-up" as string]: (1 + v.breathAmplitude).toFixed(4),
-          ["--breath-down" as string]: (1 - v.breathAmplitude * 0.4).toFixed(4),
+          ["--breath-up" as string]: breathUp,
+          ["--breath-down" as string]: breathDown,
+          ["--breath-s" as string]: `${v.breathSeconds}s`,
         } as React.CSSProperties
       }
     >
-      {/* outer environmental bloom — a held breath of light in the room around the orb */}
+      {/* Outer volumetric glow — atmosphere, not a halo. Wide, soft, low-alpha. */}
       <div
-        className="absolute -inset-[48%] rounded-full"
+        className="absolute -inset-[35%] rounded-full"
         style={{
-          background: `radial-gradient(circle at 50% 50%, ${bloom} 0%, ${bloomEdge} 62%)`,
-          filter: "blur(48px)",
-          animation: `frame-orb-drift ${v.driftSeconds}s ease-in-out infinite`,
+          background: `radial-gradient(circle at 50% 50%, ${bloom} 0%, ${bloomEdge} 60%)`,
+          filter: "blur(40px)",
           mixBlendMode: "screen",
+          animation: `frame-orb-glow ${(v.breathSeconds * 1.4).toFixed(2)}s ease-in-out infinite`,
         }}
       />
 
-      {/* the sphere itself — dark, organic, lit from upper-left like a wet stone */}
+      {/* Concentric orbital rings behind the sphere — targeting marks, ultra-subtle. */}
+      <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full" aria-hidden>
+        <defs>
+          <radialGradient id={ringFade} cx="50%" cy="50%" r="50%">
+            <stop offset="55%" stopColor="white" stopOpacity="0" />
+            <stop offset="78%" stopColor="white" stopOpacity="1" />
+            <stop offset="100%" stopColor="white" stopOpacity="0" />
+          </radialGradient>
+          <mask id={ringMask}>
+            <rect width="200" height="200" fill={`url(#${ringFade})`} />
+          </mask>
+        </defs>
+        <g mask={`url(#${ringMask})`} stroke="white" fill="none" strokeWidth="0.35">
+          <circle cx="100" cy="100" r="62" opacity="0.07" />
+          <circle cx="100" cy="100" r="74" opacity="0.05" />
+          <circle cx="100" cy="100" r="88" opacity="0.035" />
+        </g>
+        <g stroke="white" strokeWidth="0.4" opacity="0.10">
+          <line x1="100" y1="6" x2="100" y2="11" />
+          <line x1="100" y1="189" x2="100" y2="194" />
+          <line x1="6" y1="100" x2="11" y2="100" />
+          <line x1="189" y1="100" x2="194" y2="100" />
+        </g>
+      </svg>
+
+      {/* The sphere — breath animation lives here so the glow stays steady */}
       <div
-        className="absolute inset-[8%] rounded-full overflow-hidden"
+        className="absolute inset-[18%] rounded-full"
         style={{
-          background: `
-            radial-gradient(circle at 34% 28%, hsla(0 0% 22% / 1) 0%, ${coreMid} 32%, ${coreInner} 68%, #050507 100%)
-          `,
+          background: `radial-gradient(circle at 36% 28%, hsl(0 0% 18%) 0%, hsl(0 0% 9%) 22%, ${core} 55%, ${coreDeep} 100%)`,
           boxShadow: `
-            0 30px 90px -20px rgba(0,0,0,0.85),
-            inset 0 0 60px rgba(0,0,0,0.55),
-            0 0 80px ${atmosphere}
+            inset 0 1px 1px ${rim},
+            inset 0 0 60px hsl(0 0% 0% / 0.6),
+            inset 0 -30px 60px hsl(0 0% 0% / 0.5),
+            0 30px 80px -10px hsl(0 0% 0% / 0.9),
+            0 0 90px ${rimSoft}
           `,
+          animation: `frame-orb-breath ${v.breathSeconds}s ease-in-out infinite`,
         }}
       >
-        {/* inner atmosphere — soft tint at the equator that drifts in opacity, like breath inside the surface */}
+        {/* Internal mesh — latitude lines, masked to sphere, suggest planet topology */}
+        <svg
+          viewBox="0 0 100 100"
+          className="absolute inset-0 w-full h-full rounded-full overflow-hidden"
+          aria-hidden
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <defs>
+            <radialGradient id={meshFade} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="white" stopOpacity="0.6" />
+              <stop offset="70%" stopColor="white" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="white" stopOpacity="0" />
+            </radialGradient>
+            <clipPath id={sphereClip}>
+              <circle cx="50" cy="50" r="50" />
+            </clipPath>
+            <mask id={meshMask}>
+              <circle cx="50" cy="50" r="50" fill={`url(#${meshFade})`} />
+            </mask>
+          </defs>
+          <g
+            clipPath={`url(#${sphereClip})`}
+            mask={`url(#${meshMask})`}
+            stroke={`hsla(${v.rimHue} ${v.rimSat}% ${v.rimLight + 8}% / 0.5)`}
+            fill="none"
+            strokeWidth="0.18"
+          >
+            <ellipse cx="50" cy="50" rx="48" ry="6" opacity="0.55" />
+            <ellipse cx="50" cy="38" rx="44" ry="5" opacity="0.35" />
+            <ellipse cx="50" cy="62" rx="44" ry="5" opacity="0.35" />
+            <ellipse cx="50" cy="28" rx="38" ry="4" opacity="0.22" />
+            <ellipse cx="50" cy="72" rx="38" ry="4" opacity="0.22" />
+            <ellipse cx="50" cy="20" rx="30" ry="3" opacity="0.14" />
+            <ellipse cx="50" cy="80" rx="30" ry="3" opacity="0.14" />
+            <ellipse cx="50" cy="50" rx="6" ry="48" opacity="0.18" />
+          </g>
+        </svg>
+
+        {/* Inner atmospheric tint — equatorial warmth that breathes opacity */}
         <div
           className="absolute inset-0 rounded-full"
           style={{
-            background: `radial-gradient(circle at 50% 60%, ${atmosphere} 0%, transparent 55%)`,
+            background: `radial-gradient(circle at 50% 62%, hsla(${v.rimHue} ${v.rimSat}% ${v.rimLight}% / 0.35) 0%, transparent 55%)`,
             mixBlendMode: "screen",
-            animation: `frame-orb-atmosphere ${(v.breathSeconds * 1.4).toFixed(2)}s ease-in-out infinite`,
+            animation: `frame-orb-atmos ${(v.breathSeconds * 1.3).toFixed(2)}s ease-in-out infinite`,
           }}
         />
 
-        {/* deep vignette so the sphere reads as round, not flat */}
+        {/* Specular — single bright highlight, makes it feel material not digital */}
         <div
           className="absolute inset-0 rounded-full pointer-events-none"
           style={{
             background:
-              "radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.55) 82%, rgba(0,0,0,0.95) 100%)",
+              "radial-gradient(circle at 32% 24%, hsla(0 0% 100% / 0.18) 0%, hsla(0 0% 100% / 0.04) 14%, transparent 34%)",
           }}
         />
 
-        {/* specular — the single highlight that makes it feel material, not digital */}
+        {/* Outer-edge vignette — re-asserts roundness against any rim-light lift */}
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0 rounded-full pointer-events-none"
           style={{
             background:
-              "radial-gradient(circle at 30% 22%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 16%, transparent 38%)",
-          }}
-        />
-
-        {/* faint under-rim warmth — light that exists just at the bottom curve, like reflected floor */}
-        <div
-          className="absolute inset-0 rounded-full pointer-events-none mix-blend-screen"
-          style={{
-            background: `radial-gradient(circle at 50% 100%, ${rim} 0%, transparent 36%)`,
-            opacity: 0.55,
-            animation: `frame-orb-atmosphere ${(v.breathSeconds * 1.6).toFixed(2)}s ease-in-out infinite`,
+              "radial-gradient(circle at center, transparent 58%, hsla(0 0% 0% / 0.55) 88%, hsla(0 0% 0% / 0.95) 100%)",
           }}
         />
       </div>
@@ -225,13 +197,13 @@ export function CosmicOrb({ state = "dormant", className = "" }: CosmicOrbProps)
           0%, 100% { transform: scale(var(--breath-down, 0.992)); }
           50%      { transform: scale(var(--breath-up, 1.018)); }
         }
-        @keyframes frame-orb-drift {
-          0%, 100% { opacity: 0.7; }
+        @keyframes frame-orb-glow {
+          0%, 100% { opacity: 0.55; }
           50%      { opacity: 1; }
         }
-        @keyframes frame-orb-atmosphere {
-          0%, 100% { opacity: 0.45; }
-          50%      { opacity: 0.85; }
+        @keyframes frame-orb-atmos {
+          0%, 100% { opacity: 0.5; }
+          50%      { opacity: 0.95; }
         }
       `}</style>
     </div>

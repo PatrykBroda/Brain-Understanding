@@ -1,0 +1,190 @@
+FRAME MMA — REDESIGN REQUIREMENTS
+
+The current implementation does NOT match the provided reference aesthetic.
+
+The target design language is:
+
+cinematic
+premium
+minimal
+futuristic
+emotionally immersive
+luxury-tech
+blacked-out UI with subtle glow accents
+Core Problems With Current Build
+1. Orb is wrong
+
+Current orb:
+
+flat
+blurry
+no dimensional lighting
+no elegant particle wave
+weak glow
+
+Target orb:
+
+photoreal dark sphere
+subtle rim lighting
+volumetric glow
+internal mesh/wave texture
+floating in darkness
+high contrast
+should feel like a planet/AI core
+2. Typography is incorrect
+
+Need:
+
+wide tracking
+elegant spacing
+thin/light font weights
+luxury sci-fi feel
+
+Avoid:
+
+default sans-serif appearance
+cramped spacing
+generic UI typography
+
+Use:
+
+Inter Tight
+Space Grotesk
+Neue Montreal
+Satoshi
+with increased letter spacing.
+3. Layout hierarchy is wrong
+
+Reference uses:
+
+centered composition
+strong negative space
+breathing room
+vertical rhythm
+
+Current version:
+
+crowded
+boxed
+dashboard-like
+
+Need:
+
+much more empty space
+orb as dominant focal point
+text secondary
+navigation visually minimized
+4. Colors are wrong
+
+Use:
+
+pure black background (#000000)
+warm white text
+subtle gold accents
+soft glow gradients
+low-opacity UI rings
+
+Avoid:
+
+blue glow
+bright gradients
+visible borders everywhere
+5. UI chrome is too visible
+
+Buttons/nav should:
+
+almost disappear into background
+use ultra-subtle borders
+low opacity
+soft illumination only on active state
+6. Orbital targeting graphics missing
+
+Reference has:
+
+concentric orbital rings
+subtle targeting lines
+radial alignment marks
+
+Need these implemented very subtly behind the sphere.
+
+7. Mobile-first polish needed
+
+The reference feels like:
+
+luxury iOS app
+ultra-refined spacing
+smooth transitions
+OLED optimized
+
+Current version feels:
+
+desktop web mockup shrunk down
+Design Direction
+
+Think:
+
+Apple Watch breathing app
+Nothing OS minimalism
+sci-fi meditation interface
+luxury AI operating system
+cinematic MMA mindset tool
+
+NOT:
+
+SaaS dashboard
+crypto app
+generic AI app
+gaming UI
+Required Visual Features
+
+Implement:
+
+animated ambient glow
+soft moving particle mesh inside orb
+ultra subtle grain/noise
+vignette edges
+smooth fade transitions
+glassmorphism ONLY minimally
+elegant hover/press states
+thin orbital lines around sphere
+Exact Home Screen Structure
+
+TOP:
+FRAME MMA logo small and subtle
+
+CENTER:
+Large glowing orb
+Concentric rings behind orb
+State label
+“LOCKED IN” large typography
+
+LOWER:
+Tagline:
+“NARROW THE DECISION TREE.”
+
+PRIMARY CTA:
+Large rounded rectangle
+Very subtle border
+Warm gold text
+
+BOTTOM:
+Minimal nav bar
+Icons very dim unless active
+
+Technical Styling Requirements
+OLED black background
+120fps smooth animation feel
+Framer-motion animations
+Soft radial gradients
+Backdrop blur only subtly
+No hard shadows
+No bright UI elements
+No thick borders
+No generic Tailwind component styling
+IMPORTANT
+
+The app should feel:
+“calm, elite, focused, dangerous, intelligent”
+
+NOT:
+“startup template”

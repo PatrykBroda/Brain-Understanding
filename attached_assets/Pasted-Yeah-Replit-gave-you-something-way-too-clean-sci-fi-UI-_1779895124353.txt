@@ -1,0 +1,138 @@
+Yeah — Replit gave you something way too “clean sci-fi UI”.
+The second image works because it feels:
+
+darker
+more aggressive
+cinematic
+minimal
+high contrast
+emotionally tense
+
+Your current one looks like a startup loading screen. The target looks like a fight documentary / elite performance brand.
+
+To get the style closer to image 2, change these things:
+
+Typography
+
+Use:
+
+condensed bold font
+ALL CAPS
+wide letter spacing
+centered layout
+
+Fonts that fit:
+
+Bebas Neue
+Anton
+Oswald
+Agency FB
+Druk-style fonts
+Background
+
+Current:
+
+blue gradient
+soft glow
+futuristic
+
+Target:
+
+near-black
+textured grain
+subtle vignette
+low-key lighting
+maybe blurred object in foreground
+Motion
+
+Instead of:
+
+smooth UI fade
+
+Use:
+
+flicker
+film grain
+slight shake
+fade from black
+slow zoom
+Text Structure
+
+Your current:
+
+TILT IS DATA
+
+Target style:
+
+MOST MISTAKES
+ARE NERVOUS SYSTEM
+MISTAKES
+
+Short. Punchy. Stacked.
+
+Color Palette
+
+Use:
+
+black
+dark charcoal
+off-white
+tiny red accent ONLY if needed
+
+Avoid:
+
+blue glow
+neon
+sci-fi gradients
+CSS Direction
+
+Tell Replit something like:
+
+Make the loading screen cinematic and brutalist.
+
+Style references:
+- elite combat sports branding
+- dark documentary intros
+- luxury tactical aesthetic
+
+Use:
+- black textured background
+- heavy vignette
+- subtle film grain
+- bold condensed uppercase typography
+- centered stacked text
+- slow fade animations
+- minimal UI
+- no futuristic blue glow
+- no soft gradients
+- no “tech startup” aesthetic
+
+Typography should resemble:
+Bebas Neue / Anton / Druk
+
+Mood:
+cold, serious, performance-focused, nervous-system training aesthetic.
+
+And for the actual screen:
+
+Background almost entirely black.
+Add faint gritty texture and subtle spotlight from above.
+
+Centered text:
+“MOST MISTAKES
+ARE NERVOUS SYSTEM
+MISTAKES”
+
+Large condensed white font with wide spacing.
+
+Very subtle animation:
+- slow fade in
+- grain movement
+- tiny camera shake
+
+Bottom logo:
+FRAME
+
+Minimal and cinematic.
+
+That’ll get you WAY closer to the second image aesthetic.
