@@ -22,17 +22,20 @@ A personal Claude-wrapped BJJ + nervous-system coach that uses the user's own Ob
 
 - `artifacts/api-server/src/synochi/` — raw Obsidian vault (7 folders, ~558 notes, source of truth)
 - `artifacts/api-server/build-synochi.mjs` — bundler; runs as `prebuild`, regenerates `src/lib/synochi.generated.ts`
-- `artifacts/api-server/src/lib/synochi.ts` — coach system prompt (static + dynamic builder; anchoring + gauge/match/check protocol)
+- `artifacts/api-server/src/lib/synochi.ts` — FRAME system prompt: two-layer architecture (Layer 1 immutable philosophy + Layer 2 adaptive expression), then SYNOCHI vault as anchored knowledge framework, gauge/match/check protocol, drill block contract, hard rules
 - `artifacts/api-server/src/lib/memoryExtractor.ts` — post-turn Claude tool-use call that writes `athlete_facts`
 - `artifacts/api-server/src/lib/factsService.ts` — add / supersede / resolve / query active facts
 - `artifacts/api-server/src/lib/calibrationBank.ts` — calibration MCQ bank + rotation logic
 - `artifacts/api-server/src/routes/` — `coach.ts` (SSE chat + fires memory extraction), `fighter.ts`, `conversation.ts`, `calibration.ts`, `memory.ts`
 - `lib/db/src/schema/` — `fighters`, `conversations`, `messages`, `calibrations`, `athlete_facts` (plus legacy `athlete_signals`, unused)
 - `artifacts/coach/src/pages/` — `onboarding.tsx`, `home.tsx` (FRAME-style landing with big spinning orb + Enter Frame CTA), `chat.tsx`, `profile.tsx` (fighter info + inline athlete-model panel)
-- `artifacts/coach/src/components/` — `message-content.tsx`, `drill-card.tsx`, `nervous-system-orb.tsx` (small header indicator), `cosmic-orb.tsx` (big home-page orb: CSS/SVG topo band drift + glow + crosshair, no Three.js), `bottom-nav.tsx` (Home/Chat/Profile tabs), `calibration-card.tsx`, `memory-sheet.tsx` (legacy right-side panel, no longer mounted — model lives on Profile)
+- `artifacts/coach/src/components/` — `message-content.tsx`, `drill-card.tsx`, `nervous-system-orb.tsx` (small header indicator), `cosmic-orb.tsx` (big home-page orb: pure CSS biological dark sphere — radial shading + soft bloom + breath scale + atmospheric drift, no crosshair/rings/topo/RAF, 9 state variants tuned as nervous-system temperatures), `bottom-nav.tsx` (Home/Chat/Profile tabs), `calibration-card.tsx`, `memory-sheet.tsx` (legacy, no longer mounted)
+- `artifacts/coach/src/hooks/use-frame-state.ts` — interpretive state derivation: keyword regex over recent 12 active facts → one of Dormant/Stable/Loaded/Recovering/Tight/Volatile/Composed/Overextended, first-match-wins, honest fallbacks, `source` string exposed via title tooltip for provenance. No fake biometrics, no numeric scores.
 
 ## Architecture decisions
 
+- **Two-layer prompt architecture.** Layer 1 (immutable philosophy: identity, posture, NEVER list, value priority, signal phrases) sits above Layer 2 (adaptive expression: register mirroring, banter default-on, sentence cadence). Named explicitly in the prompt so the model has a place to put each instruction — Layer 1 stays still while Layer 2 breathes. FRAME is the persona, SYNOCHI is the knowledge framework underneath. See `.agents/memory/frame-two-layer-architecture.md`.
+- **No-fake-biometrics state.** The home orb label only ever shows interpretive words (Stable/Loaded/Recovering/Tight/Volatile/Composed/Overextended/Dormant) derived deterministically from real recorded `athlete_facts`. Never percentages, readiness scores, fatigue indices. Provenance is surfaced via `title=` tooltip. Restraint over engagement is a HARD product constraint — no streaks, no counters, no dopamine loops.
 - **Vault baked into the build.** The full SPINE/IDENTITY/PROTOCOLS/Interaction Psychology/Guidance Dynamics layers are included verbatim; MODELS/MECHANISMS are a title+blurb index. ~100K tokens, sent as a single cached system block on every request.
 - **System prompt = static (cached) + dynamic (per-fighter).** Static block has `cache_control: ephemeral`. Dynamic block injects fighter profile + all active facts grouped by category + recent calibration answers.
 - **Conversation state lives server-side.** Frontend POSTs only the new `content`; the server loads full history from Postgres, calls Anthropic, persists the assistant reply.
@@ -49,7 +52,7 @@ A personal Claude-wrapped BJJ + nervous-system coach that uses the user's own Ob
 Mobile-first 3-tab app (will be wrapped in a mobile shell). All routes gated by `useFighter()`; first-run shows onboarding.
 
 1. **Onboarding** — name, age, art, level, frequency, goals, weaknesses, competes. Seeds the model.
-2. **Home (`/`)** — FRAME-MMA-style landing: SYNOCHI / OPERATING SYSTEM wordmark, profile shortcut, big slowly-spinning cosmic orb (CosmicOrb = CSS+SVG: topographic horizontal wave band that translates -50% on a 60s loop for spin illusion, radial sphere shading, 3 concentric rings, pulsing primary-color halo, crosshair ticks), STATE label derived from message count (INITIALISING / DENSE CALM POTENTIAL / WARMING / LOCKED IN), "Narrow the decision tree." tagline, big primary CTA "Enter Frame" → `/chat`.
+2. **Home (`/`)** — quiet, dark, restrained: FRAME / CALIBRATION SYSTEM wordmark, profile shortcut (shield icon), biological CosmicOrb centered, interpretive STATE label (Dormant/Stable/Loaded/Recovering/Tight/Volatile/Composed/Overextended, derived honestly from recorded facts, tooltip shows source), doorway-style "Enter" CTA (border-y only, no fill, no shadow) → `/chat`. No tagline, no counters, no engagement loops.
 3. **Chat (`/chat`)** — ChevronLeft back to Home, fighter name + nervous-system orb in header, quick actions (Analyse session, Build drill, Fix my game, Competition prep, Regulate, Reflect), persistent history, periodic calibration prompts. Mobile flex layout (footer in flow, not fixed) with BottomNav at end.
 4. **Profile (`/profile`)** — fighter avatar/stats/goals/weaknesses + athlete-model grouped by category (Weaknesses, Strengths, Technical knowledge, Recurring patterns, Coaching preferences, Active goals, Recent events, Life context) with confidence and source per fact. Refreshes ~1.5s after each chat reply.
 5. **Bottom nav** — Home / Chat / Profile tabs, wouter Links, `env(safe-area-inset-bottom)` aware, active tab in primary color.

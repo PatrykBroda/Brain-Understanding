@@ -81,6 +81,7 @@
   --popover-border: 180 5% 90%;
 
   --primary: 35 60% 45%;
+  --primary-h: 35;
   --primary-foreground: 0 0% 100%;
   
   --secondary: 180 10% 94%;
@@ -120,6 +121,7 @@
   --popover-border: 210 10% 12%;
 
   --primary: 35 65% 55%; /* Dim warm accent, amber/bronze */
+  --primary-h: 35;
   --primary-foreground: 210 12% 6%;
   
   --secondary: 210 10% 12%;

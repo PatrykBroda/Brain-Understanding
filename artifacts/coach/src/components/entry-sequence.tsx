@@ -137,7 +137,7 @@ export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
       }`}
       style={{ background }}
     >
-      {/* deep bloom — wide soft halo that breathes (the dopamine layer) */}
+      {/* deep bloom — wide soft halo that breathes (ambient layer) */}
       <div
         className="absolute inset-0 pointer-events-none synochi-bloom"
         style={{
