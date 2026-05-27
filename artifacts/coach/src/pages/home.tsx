@@ -5,11 +5,14 @@ import { useQuery } from "@tanstack/react-query";
 import { CosmicOrb, type OrbState } from "@/components/cosmic-orb";
 import { BottomNav } from "@/components/bottom-nav";
 import { useFighter } from "@/hooks/use-fighter";
+import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { api } from "@/lib/api";
 
 export default function HomePage() {
   const { data: fighterData } = useFighter();
   const fighter = fighterData?.fighter ?? null;
+
+  useAutoWelcome();
 
   const convQuery = useQuery({
     queryKey: ["conversation", "active"],

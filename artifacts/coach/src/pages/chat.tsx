@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { Send, Square, RefreshCcw, ChevronLeft, Paperclip, X } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useChat } from "@/hooks/use-chat";
 import { useFighter } from "@/hooks/use-fighter";
+import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { MessageContent } from "@/components/message-content";
 import { NervousSystemOrb } from "@/components/nervous-system-orb";
 import { EntrySequence } from "@/components/entry-sequence";
@@ -84,16 +84,7 @@ export default function ChatPage() {
     reset,
   } = useChat();
 
-  const qc = useQueryClient();
-  const welcomeRef = useRef(false);
-  const welcomeMutation = useMutation({
-    mutationFn: () => api.postWelcome(),
-    onSuccess: (data) => {
-      if (data.message) {
-        qc.invalidateQueries({ queryKey: ["conversation"] });
-      }
-    },
-  });
+  useAutoWelcome();
 
   const [entryActive, setEntryActive] = useState(true);
   const [drafts, setDrafts] = useState<AttachmentDto[]>([]);
@@ -102,18 +93,9 @@ export default function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    welcomeRef.current = false;
     setEntryActive(true);
     setDrafts([]);
   }, [fighter?.id]);
-
-  useEffect(() => {
-    if (welcomeRef.current) return;
-    if (isLoading || !fighter) return;
-    welcomeRef.current = true;
-    welcomeMutation.mutate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, fighter?.id]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
