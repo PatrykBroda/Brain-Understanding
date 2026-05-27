@@ -16,6 +16,7 @@ import { getOrCreateActiveConversation } from "./conversation";
 import { getActiveFacts } from "../lib/factsService";
 import { extractMemory } from "../lib/memoryExtractor";
 import { UPLOADS_DIR } from "./attachments";
+import { selectRelevantNodes, buildRetrievalQuery } from "../lib/vaultRetrieval";
 
 const router: IRouter = Router();
 
@@ -82,6 +83,22 @@ router.post("/coach/welcome", async (req, res) => {
       .orderBy(desc(calibrationsTable.createdAt))
       .limit(10);
 
+    const recentTurns = await db
+      .select()
+      .from(messagesTable)
+      .where(eq(messagesTable.conversationId, conversation.id))
+      .orderBy(desc(messagesTable.createdAt))
+      .limit(6);
+    const recentText = recentTurns
+      .map((m) => m.content)
+      .filter(Boolean)
+      .join("\n\n");
+    const profileText = [fighter.goals, fighter.weaknesses].filter(Boolean).join(" ");
+    const deepNodes = selectRelevantNodes(
+      `${profileText}\n${recentText}`,
+      6,
+    );
+
     const entryInstruction = `\n\n[ENTRY BRIEFING MODE]\nThe athlete just opened the frame. Produce a short opening (4-7 sentences, no preamble).\n- Open with their name in the first 1-3 words.\n- Reflect ONE specific signal you actually have on them (from their model, onboarding, or last calibration) so they feel seen.\n- Name where they appear to be right now (fresh, mid-cycle, deload, post-comp, etc. — only assert what you actually have evidence for; otherwise name the gap).\n- Offer 2 or 3 concrete entry points for this session (e.g. "debrief last roll", "tighten the half-guard pass", "regulate before tomorrow").\n- A single line of dry, earned banter about their archetype is permitted ONLY if you have a specific archetype signal. No generic motivation. No therapist energy. No questions back at the end — just open the floor.\nVoice: direct, structural, performance-grounded. End cleanly without sign-off.`;
 
     const response = await client.messages.create({
@@ -95,7 +112,9 @@ router.post("/coach/welcome", async (req, res) => {
         },
         {
           type: "text",
-          text: buildDynamicContext(fighter, facts, calibrations) + entryInstruction,
+          text:
+            buildDynamicContext(fighter, facts, calibrations, deepNodes) +
+            entryInstruction,
         },
       ],
       messages: [{ role: "user", content: "[athlete entering frame]" }],
@@ -251,6 +270,24 @@ router.post("/coach/chat", async (req, res) => {
     .orderBy(desc(calibrationsTable.createdAt))
     .limit(10);
 
+  // Build retrieval context: profile signals + last 6 turns + the new user message,
+  // with the new message weighted highest. selectRelevantNodes scores MODELS/MECHANISMS
+  // and returns full-text for top matches to inline in the dynamic system block.
+  const recentForRetrieval = history.slice(-6).map((m) => ({
+    role: m.role as "user" | "assistant",
+    content: m.content,
+  }));
+  const profileText = [fighter.goals, fighter.weaknesses].filter(Boolean).join(" ");
+  const retrievalQuery = `${profileText}\n${buildRetrievalQuery(recentForRetrieval, userContent)}`;
+  const deepNodes = selectRelevantNodes(retrievalQuery, 8);
+  req.log.info(
+    {
+      deepNodeCount: deepNodes.length,
+      deepTitles: deepNodes.map((n) => `${n.folder}/${n.title}(${n.score})`),
+    },
+    "vault retrieval",
+  );
+
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
@@ -288,7 +325,7 @@ router.post("/coach/chat", async (req, res) => {
         },
         {
           type: "text",
-          text: buildDynamicContext(fighter, facts, calibrations),
+          text: buildDynamicContext(fighter, facts, calibrations, deepNodes),
         },
       ],
       messages: claudeMessages,

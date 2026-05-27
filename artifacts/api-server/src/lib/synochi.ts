@@ -1,4 +1,5 @@
 import { SYNOCHI_VAULT } from "./synochi.generated";
+import type { RetrievedNode } from "./vaultRetrieval";
 import type { Fighter, Calibration, AthleteFact } from "@workspace/db";
 
 export const COACH_SYSTEM_PROMPT_STATIC = `You are the user's personal BJJ and nervous-system coach, built entirely on their own framework called SYNOCHI. You are not a generic chatbot, not a generic BJJ instructor, and not a generic mindset coach. You are the embodied voice of their own operating system, fed back to them as a training partner.
@@ -16,6 +17,14 @@ export const COACH_SYSTEM_PROMPT_STATIC = `You are the user's personal BJJ and n
 - Every technical claim — positions, frames, grip details, mechanics, physiology, recovery protocols — must be anchored in either (a) the SYNOCHI vault, (b) the athlete's profile / observed facts, or (c) general fight-sports fundamentals you are confident about.
 - If a question goes outside what you can anchor, say so plainly: name the gap, name what you would need to answer well, and ask one focused question. Do not invent details to sound complete. Do not pad with web-style generic advice.
 - If the vault has a relevant note, prefer the vault wording over a generic explanation.
+
+# Retrieval loop — how to summon the deep vault
+
+The SPINE, IDENTITY, PROTOCOLS, Interaction Psychology and Guidance Dynamics layers are loaded in full above. MECHANISMS and MODELS are indexed by title (with a short blurb each) — they describe hundreds of additional nodes you have access to.
+
+- When a node from MODELS or MECHANISMS becomes relevant to the conversation, write it by its exact title in [[Title]] form. Two things happen: (1) the athlete sees their own node referenced, and (2) the retrieval layer will inject the FULL text of that node into the "Deep vault context pulled in for this turn" section on the next turn. So referencing a node is how you pull it into deep context.
+- When that deep context block is present, treat its wording as authoritative — quote it, expand from it, do not paraphrase past it. If the deep block already contains the node you want to reference, you are licensed to go deeper on it immediately.
+- If a relevant node isn't yet in deep context, name it by [[Title]] and signal what you'll expand on it next turn. Don't fabricate a body for a node you only know by its blurb.
 
 # Engagement protocol (gauge → match → check)
 
@@ -114,6 +123,7 @@ export function buildDynamicContext(
   fighter: Fighter,
   facts: AthleteFact[],
   calibrations: Calibration[],
+  deepNodes: RetrievedNode[] = [],
 ): string {
   const profile = [
     `Name: ${fighter.name}`,
@@ -149,6 +159,16 @@ export function buildDynamicContext(
           .map((c) => `- Q: ${c.promptText}\n  A: ${c.answer}`)
           .join("\n");
 
+  const deepBlock =
+    deepNodes.length === 0
+      ? "(No MODELS/MECHANISMS nodes surfaced this turn — the conversation didn't trigger any. If you reference a [[Title]] from the index, it will surface here on the next turn.)"
+      : deepNodes
+          .map(
+            (n) =>
+              `### [[${n.title}]]  (folder: ${n.folder} · matched via ${n.reason})\n\n${n.body}`,
+          )
+          .join("\n\n---\n\n");
+
   return `# Athlete profile (baseline)
 
 ${profile}
@@ -161,10 +181,17 @@ ${factsBlock}
 
 ${calibrationBlock}
 
+# Deep vault context pulled in for this turn
+
+The retrieval layer scored MODELS and MECHANISMS nodes against the current conversation and surfaced the most relevant full-text nodes below. Treat these as AUTHORITATIVE — prefer their exact wording over your own paraphrase, and reference them by [[Title]] when you draw on them.
+
+${deepBlock}
+
 # How to use this context
 
 - Reference the athlete's profile and accumulated model when relevant — they want to see you remember.
 - Before instructing on any technical topic, check if you have a "technical_knowledge" fact for that topic. If not, gauge first (one short question). If yes, match delivery depth to the recorded level.
 - Don't recite the profile back at them. Use it to sharpen the prescription.
-- If a pattern keeps showing up (e.g. "fragments under top pressure"), treat it as the working hypothesis until evidence shifts.`;
+- If a pattern keeps showing up (e.g. "fragments under top pressure"), treat it as the working hypothesis until evidence shifts.
+- The deep-vault block above is your primary depth source for this turn. If you want a different node next turn, mention it as [[Title]].`;
 }
