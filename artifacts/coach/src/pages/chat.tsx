@@ -82,6 +82,8 @@ export default function ChatPage() {
     sendMessage,
     stop,
     reset,
+    provider,
+    setProvider,
   } = useChat();
 
   useAutoWelcome();
@@ -178,9 +180,31 @@ export default function ChatPage() {
             <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
             <span className="font-mono text-[10px] uppercase tracking-widest">Frame</span>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex items-center border border-border/60 overflow-hidden"
+              role="group"
+              aria-label="AI model"
+            >
+              {(["claude", "openai"] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  disabled={isStreaming || provider === p}
+                  onClick={() => setProvider(p)}
+                  aria-pressed={provider === p}
+                  className={`font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 transition-colors ${
+                    provider === p
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                  } disabled:cursor-default`}
+                >
+                  {p === "claude" ? "Claude" : "GPT"}
+                </button>
+              ))}
+            </div>
             {fighter && (
-              <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/80 mr-1">
+              <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/80">
                 {fighter.name}
               </div>
             )}

@@ -31,9 +31,12 @@ export type ServerMessage = {
   attachments?: AttachmentDto[];
 };
 
+export type AiProvider = "claude" | "openai";
+
 export type Conversation = {
   id: number;
   fighterId: number;
+  aiProvider: AiProvider;
   startedAt: string;
   endedAt: string | null;
 };
@@ -105,6 +108,11 @@ export const api = {
     jsonFetch<{ conversation: Conversation | null; messages: ServerMessage[] }>(
       "api/conversation/active",
     ),
+  setConversationProvider: (provider: AiProvider) =>
+    jsonFetch<{ conversation: Conversation }>("api/conversation/active/provider", {
+      method: "PATCH",
+      body: JSON.stringify({ provider }),
+    }),
   resetConversation: () =>
     jsonFetch<{ conversation: Conversation; messages: ServerMessage[] }>(
       "api/conversation/reset",

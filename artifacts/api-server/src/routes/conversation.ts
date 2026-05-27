@@ -84,5 +84,26 @@ router.post("/conversation/reset", async (_req, res) => {
   res.json({ conversation, messages: [] });
 });
 
+router.patch("/conversation/active/provider", async (req, res) => {
+  const body = req.body as { provider?: unknown };
+  const provider = body.provider;
+  if (provider !== "claude" && provider !== "openai") {
+    res.status(400).json({ error: "provider must be 'claude' or 'openai'" });
+    return;
+  }
+  const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
+  if (!fighter) {
+    res.status(400).json({ error: "no fighter" });
+    return;
+  }
+  const conversation = await getOrCreateActiveConversation(fighter.id);
+  const [updated] = await db
+    .update(conversationsTable)
+    .set({ aiProvider: provider })
+    .where(eq(conversationsTable.id, conversation.id))
+    .returning();
+  res.json({ conversation: updated });
+});
+
 export { getOrCreateActiveConversation };
 export default router;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, coachChatUrl, type AttachmentDto, type ServerMessage } from "@/lib/api";
+import { api, coachChatUrl, type AiProvider, type AttachmentDto, type ServerMessage } from "@/lib/api";
 
 export type ChatMessage = {
   id: string;
@@ -165,5 +165,10 @@ export function useChat() {
     resetting: resetMutation.isPending,
     userTurnsThisSession,
     bumpCalibrationCounter: () => setUserTurnsThisSession(0),
+    provider: (conversationQuery.data?.conversation?.aiProvider ?? "claude") as AiProvider,
+    setProvider: async (p: AiProvider) => {
+      await api.setConversationProvider(p);
+      qc.invalidateQueries({ queryKey: ["conversation"] });
+    },
   };
 }

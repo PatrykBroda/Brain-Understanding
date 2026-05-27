@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import Anthropic from "@anthropic-ai/sdk";
+import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
 import {
   db,
   fightersTable,
@@ -17,6 +18,9 @@ import { getActiveFacts } from "../lib/factsService";
 import { extractMemory } from "../lib/memoryExtractor";
 import { UPLOADS_DIR } from "./attachments";
 import { selectRelevantNodes, buildRetrievalQuery } from "../lib/vaultRetrieval";
+import { openai, OPENAI_COACH_MODEL } from "../lib/openaiClient";
+
+const OPENAI_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 const router: IRouter = Router();
 
@@ -101,29 +105,40 @@ router.post("/coach/welcome", async (req, res) => {
 
     const entryInstruction = `\n\n[ENTRY BRIEFING MODE]\nThe athlete just opened the frame. Produce a short opening (4-7 sentences, no preamble).\n- Open with their name in the first 1-3 words.\n- Reflect ONE specific signal you actually have on them (from their model, onboarding, or last calibration) so they feel seen.\n- Name where they appear to be right now (fresh, mid-cycle, deload, post-comp, etc. — only assert what you actually have evidence for; otherwise name the gap).\n- Offer 2 or 3 concrete entry points for this session (e.g. "debrief last roll", "tighten the half-guard pass", "regulate before tomorrow").\n- A single line of dry, earned banter about their archetype is permitted ONLY if you have a specific archetype signal. No generic motivation. No therapist energy. No questions back at the end — just open the floor.\nVoice: direct, structural, performance-grounded. End cleanly without sign-off.`;
 
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 600,
-      system: [
-        {
-          type: "text",
-          text: COACH_SYSTEM_PROMPT_STATIC,
-          cache_control: { type: "ephemeral" },
-        },
-        {
-          type: "text",
-          text:
-            buildDynamicContext(fighter, facts, calibrations, deepNodes) +
-            entryInstruction,
-        },
-      ],
-      messages: [{ role: "user", content: "[athlete entering frame]" }],
-    });
+    const dynamicText =
+      buildDynamicContext(fighter, facts, calibrations, deepNodes) + entryInstruction;
 
-    const text = response.content
-      .map((b) => (b.type === "text" ? b.text : ""))
-      .join("")
-      .trim();
+    let text = "";
+    if (conversation.aiProvider === "openai") {
+      const completion = await openai.chat.completions.create({
+        model: OPENAI_COACH_MODEL,
+        max_completion_tokens: 600,
+        messages: [
+          { role: "system", content: COACH_SYSTEM_PROMPT_STATIC },
+          { role: "system", content: dynamicText },
+          { role: "user", content: "[athlete entering frame]" },
+        ],
+      });
+      text = (completion.choices[0]?.message?.content ?? "").trim();
+    } else {
+      const response = await client.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 600,
+        system: [
+          {
+            type: "text",
+            text: COACH_SYSTEM_PROMPT_STATIC,
+            cache_control: { type: "ephemeral" },
+          },
+          { type: "text", text: dynamicText },
+        ],
+        messages: [{ role: "user", content: "[athlete entering frame]" }],
+      });
+      text = response.content
+        .map((b) => (b.type === "text" ? b.text : ""))
+        .join("")
+        .trim();
+    }
 
     if (!text) {
       res.json({ message: null, reason: "empty generation" });
@@ -164,6 +179,37 @@ router.post("/coach/welcome", async (req, res) => {
       .catch((err) => req.log.error({ err }, "welcome advisory unlock failed"));
   }
 });
+
+async function buildOpenAIUserContent(
+  text: string,
+  attachments: Attachment[],
+  includeImageBytes: boolean,
+): Promise<string | ChatCompletionContentPart[]> {
+  if (attachments.length === 0) return text;
+  const parts: ChatCompletionContentPart[] = [];
+  for (const a of attachments) {
+    if (a.kind === "image" && OPENAI_IMAGE_MIME.has(a.mimeType) && includeImageBytes) {
+      try {
+        const buf = await fs.readFile(path.join(UPLOADS_DIR, a.filePath));
+        parts.push({
+          type: "image_url",
+          image_url: { url: `data:${a.mimeType};base64,${buf.toString("base64")}` },
+        });
+      } catch {
+        parts.push({ type: "text", text: `[image attached but unreadable: ${a.filename}]` });
+      }
+    } else if (a.kind === "image") {
+      parts.push({ type: "text", text: `[earlier image attached: ${a.filename}]` });
+    } else {
+      parts.push({
+        type: "text",
+        text: `[video attached: ${a.filename} (${a.mimeType}) — you cannot see video, ask the athlete to describe what to focus on or take stills]`,
+      });
+    }
+  }
+  if (text) parts.push({ type: "text", text });
+  return parts;
+}
 
 async function buildUserMessageContent(
   text: string,
@@ -301,40 +347,71 @@ router.post("/coach/chat", async (req, res) => {
   let assembled = "";
 
   try {
-    const claudeMessages: Anthropic.MessageParam[] = [];
-    for (const m of history) {
-      const role = m.role as "user" | "assistant";
-      const atts = byMsg.get(m.id) ?? [];
-      if (role === "assistant") {
-        claudeMessages.push({ role, content: m.content });
-        continue;
+    const dynamicText = buildDynamicContext(fighter, facts, calibrations, deepNodes);
+
+    if (conversation.aiProvider === "openai") {
+      const openaiMessages: ChatCompletionMessageParam[] = [
+        { role: "system", content: COACH_SYSTEM_PROMPT_STATIC },
+        { role: "system", content: dynamicText },
+      ];
+      for (const m of history) {
+        const role = m.role as "user" | "assistant";
+        const atts = byMsg.get(m.id) ?? [];
+        if (role === "assistant") {
+          openaiMessages.push({ role: "assistant", content: m.content });
+          continue;
+        }
+        const includeImageBytes = m.id === lastUserMsgId;
+        const content = await buildOpenAIUserContent(m.content, atts, includeImageBytes);
+        openaiMessages.push({ role: "user", content } as ChatCompletionMessageParam);
       }
-      const includeImageBytes = m.id === lastUserMsgId;
-      const content = await buildUserMessageContent(m.content, atts, includeImageBytes);
-      claudeMessages.push({ role, content });
-    }
 
-    const stream = client.messages.stream({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8192,
-      system: [
-        {
-          type: "text",
-          text: COACH_SYSTEM_PROMPT_STATIC,
-          cache_control: { type: "ephemeral" },
-        },
-        {
-          type: "text",
-          text: buildDynamicContext(fighter, facts, calibrations, deepNodes),
-        },
-      ],
-      messages: claudeMessages,
-    });
+      const stream = await openai.chat.completions.create({
+        model: OPENAI_COACH_MODEL,
+        max_completion_tokens: 8192,
+        messages: openaiMessages,
+        stream: true,
+      });
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content;
+        if (delta) {
+          assembled += delta;
+          send({ content: delta });
+        }
+      }
+    } else {
+      const claudeMessages: Anthropic.MessageParam[] = [];
+      for (const m of history) {
+        const role = m.role as "user" | "assistant";
+        const atts = byMsg.get(m.id) ?? [];
+        if (role === "assistant") {
+          claudeMessages.push({ role, content: m.content });
+          continue;
+        }
+        const includeImageBytes = m.id === lastUserMsgId;
+        const content = await buildUserMessageContent(m.content, atts, includeImageBytes);
+        claudeMessages.push({ role, content });
+      }
 
-    for await (const event of stream) {
-      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-        assembled += event.delta.text;
-        send({ content: event.delta.text });
+      const stream = client.messages.stream({
+        model: "claude-sonnet-4-6",
+        max_tokens: 8192,
+        system: [
+          {
+            type: "text",
+            text: COACH_SYSTEM_PROMPT_STATIC,
+            cache_control: { type: "ephemeral" },
+          },
+          { type: "text", text: dynamicText },
+        ],
+        messages: claudeMessages,
+      });
+
+      for await (const event of stream) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          assembled += event.delta.text;
+          send({ content: event.delta.text });
+        }
       }
     }
 
