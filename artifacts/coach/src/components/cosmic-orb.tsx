@@ -128,7 +128,10 @@ export function CosmicOrb({ state = "dormant", className = "" }: CosmicOrbProps)
   };
 
   return (
-    <div className={`relative aspect-square select-none ${className}`}>
+    <div
+      className={`relative aspect-square select-none ${className}`}
+      style={{ animation: `cosmic-orb-breath ${(visuals.pulseSeconds * 1.7).toFixed(1)}s ease-in-out infinite` }}
+    >
       <div
         className="absolute -inset-[30%] rounded-full pointer-events-none cosmic-glow"
         style={{
@@ -193,8 +196,12 @@ export function CosmicOrb({ state = "dormant", className = "" }: CosmicOrbProps)
 
       <style>{`
         @keyframes cosmic-glow-pulse {
+          0%, 100% { transform: scale(1);    opacity: ${visuals.glowOpacity * 0.85}; }
+          50%      { transform: scale(1.06); opacity: ${visuals.glowOpacity}; }
+        }
+        @keyframes cosmic-orb-breath {
           0%, 100% { transform: scale(1); }
-          50%      { transform: scale(1.06); }
+          50%      { transform: scale(1.012); }
         }
       `}</style>
     </div>
