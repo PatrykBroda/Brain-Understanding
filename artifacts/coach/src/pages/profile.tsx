@@ -1,9 +1,12 @@
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useFighter } from "@/hooks/use-fighter";
 import { useMemory } from "@/hooks/use-memory";
 import { BottomNav } from "@/components/bottom-nav";
+import { FrameOctagon } from "@/components/frame-octagon";
 import { Link } from "wouter";
 import { ChevronLeft } from "lucide-react";
-import type { FactCategory } from "@/lib/api";
+import { api, type FactCategory } from "@/lib/api";
 
 const CATEGORY_LABELS: Record<FactCategory, string> = {
   weakness: "Weaknesses",
@@ -27,16 +30,44 @@ const CATEGORY_ORDER: FactCategory[] = [
   "context",
 ];
 
+function daysBetween(a: Date, b: Date) {
+  return Math.max(0, Math.floor((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
 export default function ProfilePage() {
   const { data: fighterData } = useFighter();
   const fighter = fighterData?.fighter ?? null;
   const memoryQuery = useMemory(true);
   const facts = memoryQuery.data?.facts ?? [];
 
+  const convQuery = useQuery({
+    queryKey: ["conversation", "active"],
+    queryFn: api.getActiveConversation,
+  });
+  const messages = convQuery.data?.messages ?? [];
+
   const grouped: Partial<Record<FactCategory, typeof facts>> = {};
   for (const f of facts) {
     (grouped[f.category] ??= []).push(f);
   }
+
+  const stats = useMemo(() => {
+    const userTurns = messages.filter((m) => m.role === "user").length;
+    const coachTurns = messages.filter((m) => m.role === "assistant").length;
+    const sinceDays = fighter ? daysBetween(new Date(fighter.createdAt), new Date()) : 0;
+    const avgConf =
+      facts.length === 0
+        ? 0
+        : facts.reduce((s, f) => s + f.confidence, 0) / facts.length;
+
+    const integrityRaw = Math.min(
+      1,
+      facts.length / 24 + Math.min(userTurns / 30, 0.4),
+    );
+    const integrityPct = Math.round(integrityRaw * 100);
+
+    return { userTurns, coachTurns, sinceDays, avgConf, integrityPct };
+  }, [messages, facts, fighter]);
 
   return (
     <div className="flex flex-col h-[100dvh] bg-background text-foreground">
@@ -63,23 +94,54 @@ export default function ProfilePage() {
           {fighter ? (
             <>
               <section>
-                <div className="flex items-center gap-4 mb-5">
-                  <div className="w-14 h-14 border border-primary/50 bg-secondary/30 flex items-center justify-center font-mono text-lg uppercase tracking-widest text-primary">
-                    {fighter.name.charAt(0)}
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="relative">
+                    <FrameOctagon size={72} spinSeconds={120} glow />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none font-mono text-base uppercase tracking-widest text-primary">
+                      {fighter.name.charAt(0)}
+                    </div>
                   </div>
                   <div>
                     <div className="font-mono text-base uppercase tracking-widest text-foreground/95">
                       {fighter.name}
                     </div>
                     <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-                      {fighter.art} · {fighter.level} · {fighter.trainingFrequency}
+                      {fighter.art} · {fighter.level}
+                    </div>
+                    <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">
+                      {fighter.trainingFrequency}
                     </div>
                   </div>
                 </div>
 
-                <dl className="grid grid-cols-2 gap-4 text-sm">
+                {/* Frame integrity gauge */}
+                <div className="border border-border/50 px-3 py-3 mb-4">
+                  <div className="flex items-baseline justify-between mb-2">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                      Frame integrity
+                    </div>
+                    <div className="font-mono text-[11px] uppercase tracking-widest text-primary">
+                      {stats.integrityPct}%
+                    </div>
+                  </div>
+                  <div className="relative h-1 bg-border/60 overflow-hidden">
+                    <div
+                      className="absolute top-0 left-0 h-full bg-primary transition-all duration-700"
+                      style={{ width: `${stats.integrityPct}%` }}
+                    />
+                  </div>
+                  <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/85 mt-2">
+                    Sharpens with use. Resolves observations, calibrations, recorded patterns.
+                  </div>
+                </div>
+
+                <dl className="grid grid-cols-2 gap-2.5 text-sm">
                   <Stat label="Age" value={String(fighter.age)} />
                   <Stat label="Competes" value={fighter.competes ? "Yes" : "No"} />
+                  <Stat label="Days in frame" value={String(stats.sinceDays)} />
+                  <Stat label="Transmissions" value={String(stats.userTurns)} />
+                  <Stat label="Observations" value={String(facts.length)} />
+                  <Stat label="Avg confidence" value={stats.avgConf > 0 ? `${stats.avgConf.toFixed(1)}/5` : "—"} />
                 </dl>
 
                 {fighter.goals && (
@@ -112,6 +174,32 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
+
+                {/* category-density bars */}
+                {facts.length > 0 && (
+                  <div className="space-y-1.5 mb-6">
+                    {CATEGORY_ORDER.filter((c) => (grouped[c]?.length ?? 0) > 0).map((c) => {
+                      const count = grouped[c]?.length ?? 0;
+                      const pct = Math.min(100, Math.round((count / Math.max(facts.length, 1)) * 100 * 2));
+                      return (
+                        <div key={c} className="flex items-center gap-3">
+                          <div className="flex-none w-32 font-mono text-[9px] uppercase tracking-widest text-muted-foreground truncate">
+                            {CATEGORY_LABELS[c]}
+                          </div>
+                          <div className="flex-1 relative h-[3px] bg-border/40 overflow-hidden">
+                            <div
+                              className="absolute top-0 left-0 h-full bg-primary/70"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <div className="flex-none font-mono text-[9px] uppercase tracking-widest text-foreground/80 w-5 text-right">
+                            {count}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {facts.length === 0 ? (
                   <div className="text-sm text-muted-foreground leading-relaxed border border-border/40 p-4">
@@ -168,7 +256,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground mb-1">
         {label}
       </div>
-      <div className="text-sm text-foreground/95">{value}</div>
+      <div className="text-sm text-foreground/95 font-mono">{value}</div>
     </div>
   );
 }

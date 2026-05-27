@@ -4,6 +4,8 @@ import {
   fightersTable,
   conversationsTable,
   messagesTable,
+  attachmentsTable,
+  type Attachment,
 } from "@workspace/db";
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
 
@@ -24,6 +26,16 @@ async function getOrCreateActiveConversation(fighterId: number) {
   return created!;
 }
 
+function attachmentDto(a: Attachment) {
+  return {
+    id: a.id,
+    kind: a.kind,
+    mimeType: a.mimeType,
+    filename: a.filename,
+    sizeBytes: a.sizeBytes,
+  };
+}
+
 router.get("/conversation/active", async (_req, res) => {
   const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
   if (!fighter) {
@@ -36,7 +48,26 @@ router.get("/conversation/active", async (_req, res) => {
     .from(messagesTable)
     .where(eq(messagesTable.conversationId, conversation.id))
     .orderBy(asc(messagesTable.createdAt));
-  res.json({ conversation, messages });
+
+  const allAtt = await db
+    .select()
+    .from(attachmentsTable)
+    .where(eq(attachmentsTable.conversationId, conversation.id));
+
+  const byMsg = new Map<number, Attachment[]>();
+  for (const a of allAtt) {
+    if (a.messageId == null) continue;
+    const arr = byMsg.get(a.messageId);
+    if (arr) arr.push(a);
+    else byMsg.set(a.messageId, [a]);
+  }
+
+  const messagesWithAtt = messages.map((m) => ({
+    ...m,
+    attachments: (byMsg.get(m.id) ?? []).map(attachmentDto),
+  }));
+
+  res.json({ conversation, messages: messagesWithAtt });
 });
 
 router.post("/conversation/reset", async (_req, res) => {

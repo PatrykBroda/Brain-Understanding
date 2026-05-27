@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
-import { Send, Square, RefreshCcw, ChevronLeft } from "lucide-react";
+import { Send, Square, RefreshCcw, ChevronLeft, Paperclip, X } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useChat } from "@/hooks/use-chat";
 import { useFighter } from "@/hooks/use-fighter";
@@ -8,8 +8,9 @@ import { MessageContent } from "@/components/message-content";
 import { NervousSystemOrb } from "@/components/nervous-system-orb";
 import { EntrySequence } from "@/components/entry-sequence";
 import { BottomNav } from "@/components/bottom-nav";
+import { FrameOctagon } from "@/components/frame-octagon";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
+import { api, attachmentFileUrl, type AttachmentDto } from "@/lib/api";
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   { label: "Analyse session", prompt: "Debrief my last training session — what fragmented, what held, what's the next rep." },
@@ -27,6 +28,45 @@ const SUGGESTED_PROMPTS = [
   "What's my next rep on the half-guard pass?",
 ];
 
+const MAX_FILE_BYTES = 12 * 1024 * 1024;
+
+function AttachmentThumb({
+  att,
+  onRemove,
+}: {
+  att: AttachmentDto;
+  onRemove?: () => void;
+}) {
+  const url = attachmentFileUrl(att.id);
+  return (
+    <div className="relative inline-block border border-border/60 bg-secondary/40 overflow-hidden">
+      {att.kind === "image" ? (
+        <img
+          src={url}
+          alt={att.filename}
+          className="block max-h-64 max-w-full object-contain"
+        />
+      ) : (
+        <video
+          src={url}
+          controls
+          className="block max-h-64 max-w-full object-contain bg-black"
+        />
+      )}
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="absolute top-1 right-1 w-6 h-6 bg-background/80 hover:bg-background border border-border/60 flex items-center justify-center text-foreground/85 hover:text-destructive transition-colors"
+          aria-label="Remove attachment"
+        >
+          <X className="w-3.5 h-3.5" strokeWidth={2} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function ChatPage() {
   const { data: fighterData } = useFighter();
   const fighter = fighterData?.fighter ?? null;
@@ -38,6 +78,7 @@ export default function ChatPage() {
     isStreaming,
     error,
     isLoading,
+    conversationId,
     sendMessage,
     stop,
     reset,
@@ -55,10 +96,15 @@ export default function ChatPage() {
   });
 
   const [entryActive, setEntryActive] = useState(true);
+  const [drafts, setDrafts] = useState<AttachmentDto[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     welcomeRef.current = false;
     setEntryActive(true);
+    setDrafts([]);
   }, [fighter?.id]);
 
   useEffect(() => {
@@ -86,17 +132,52 @@ export default function ChatPage() {
       ? "Dense calm"
       : "Coherent";
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0 || !conversationId) return;
+    setUploadError(null);
+    setUploading(true);
+    try {
+      for (const file of files) {
+        if (file.size > MAX_FILE_BYTES) {
+          setUploadError(`${file.name} too large (max 12MB)`);
+          continue;
+        }
+        const att = await api.uploadAttachment(conversationId, file);
+        setDrafts((d) => [...d, att]);
+      }
+    } catch (err) {
+      setUploadError((err as Error).message || "upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeDraft = (id: number) => {
+    setDrafts((d) => d.filter((x) => x.id !== id));
+  };
+
+  const doSend = () => {
+    if (isStreaming) return;
+    if (!input.trim() && drafts.length === 0) return;
+    sendMessage(input, drafts);
+    setDrafts([]);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim() && !isStreaming) sendMessage(input);
+    doSend();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      doSend();
     }
   };
+
+  const canSend = (input.trim().length > 0 || drafts.length > 0) && !isStreaming;
 
   return (
     <>
@@ -175,20 +256,38 @@ export default function ChatPage() {
                     <div
                       className={
                         msg.role === "user"
-                          ? "max-w-[90%] md:max-w-[80%] bg-secondary/70 text-secondary-foreground px-4 py-3 border-l-2 border-primary/40"
+                          ? "max-w-[90%] md:max-w-[80%] space-y-2"
                           : "max-w-full text-foreground"
                       }
                     >
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {msg.attachments.map((a) => (
+                            <AttachmentThumb key={a.id} att={a} />
+                          ))}
+                        </div>
+                      )}
                       {msg.role === "assistant" && msg.pending && !msg.content ? (
-                        <div className="flex items-center gap-2 h-6">
-                          <div className="w-1.5 h-3 bg-primary animate-pulse" />
-                          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                        <div className="flex items-center gap-3 py-2">
+                          <FrameOctagon size={36} spin spinSeconds={4} />
+                          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground synochi-typing-label">
                             sensing
                           </span>
+                          <style>{`
+                            @keyframes synochi-typing-fade {
+                              0%, 100% { opacity: 0.5; }
+                              50%      { opacity: 1; }
+                            }
+                            .synochi-typing-label { animation: synochi-typing-fade 1.8s ease-in-out infinite; }
+                          `}</style>
                         </div>
-                      ) : (
+                      ) : msg.role === "user" && msg.content ? (
+                        <div className="bg-secondary/70 text-secondary-foreground px-4 py-3 border-l-2 border-primary/40 whitespace-pre-wrap text-[0.95rem] leading-relaxed">
+                          {msg.content}
+                        </div>
+                      ) : msg.content ? (
                         <MessageContent content={msg.content} />
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 ))}
@@ -220,38 +319,75 @@ export default function ChatPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="relative flex items-end">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Enter transmission..."
-                className="w-full bg-secondary/50 border border-border/60 text-foreground placeholder:text-muted-foreground/70 placeholder:font-mono focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 resize-none min-h-[52px] max-h-[200px] py-3.5 pl-4 pr-12 text-sm"
-                rows={1}
-                disabled={isStreaming}
+            {drafts.length > 0 && (
+              <div className="flex flex-wrap gap-2 px-1">
+                {drafts.map((d) => (
+                  <AttachmentThumb key={d.id} att={d} onRemove={() => removeDraft(d.id)} />
+                ))}
+              </div>
+            )}
+
+            {uploadError && (
+              <div className="font-mono text-[10px] uppercase tracking-widest text-destructive px-1">
+                {uploadError}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="relative flex items-end gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+                multiple
+                onChange={handleFileChange}
+                className="sr-only"
               />
-              <div className="absolute right-1.5 bottom-1.5">
-                {isStreaming ? (
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={stop}
-                    className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  >
-                    <Square className="w-4 h-4 fill-current" />
-                  </Button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || isStreaming || !conversationId}
+                className="flex-none h-[52px] w-11 flex items-center justify-center border border-border/60 bg-secondary/50 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-40"
+                aria-label="Attach image or video"
+              >
+                {uploading ? (
+                  <FrameOctagon size={20} spin spinSeconds={3} glow={false} />
                 ) : (
-                  <Button
-                    type="submit"
-                    size="icon"
-                    variant="ghost"
-                    disabled={!input.trim()}
-                    className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
+                  <Paperclip className="w-4 h-4" strokeWidth={1.5} />
                 )}
+              </button>
+              <div className="relative flex-1">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Enter transmission..."
+                  className="w-full bg-secondary/50 border border-border/60 text-foreground placeholder:text-muted-foreground/70 placeholder:font-mono focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 resize-none min-h-[52px] max-h-[200px] py-3.5 pl-4 pr-12 text-sm"
+                  rows={1}
+                  disabled={isStreaming}
+                />
+                <div className="absolute right-1.5 bottom-1.5">
+                  {isStreaming ? (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={stop}
+                      className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Square className="w-4 h-4 fill-current" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      size="icon"
+                      variant="ghost"
+                      disabled={!canSend}
+                      className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10"
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </form>
 

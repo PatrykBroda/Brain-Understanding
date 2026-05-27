@@ -5,12 +5,17 @@ import {
   fightersTable,
   messagesTable,
   calibrationsTable,
+  attachmentsTable,
+  type Attachment,
 } from "@workspace/db";
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import { COACH_SYSTEM_PROMPT_STATIC, buildDynamicContext } from "../lib/synochi";
 import { getOrCreateActiveConversation } from "./conversation";
 import { getActiveFacts } from "../lib/factsService";
 import { extractMemory } from "../lib/memoryExtractor";
+import { UPLOADS_DIR } from "./attachments";
 
 const router: IRouter = Router();
 
@@ -28,6 +33,13 @@ const client = new Anthropic({ baseURL, apiKey });
 const ENTRY_STALE_MS = 30 * 60 * 1000;
 
 const WELCOME_LOCK_NAMESPACE = 7411;
+
+const CLAUDE_IMAGE_MIME = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
 
 router.post("/coach/welcome", async (req, res) => {
   const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
@@ -99,9 +111,6 @@ router.post("/coach/welcome", async (req, res) => {
       return;
     }
 
-    // Re-check: while we were generating, did a user (or another writer)
-    // post a new message? If so, drop the welcome — sending it now would
-    // arrive out of order and disrupt the live exchange.
     const [latest] = await db
       .select()
       .from(messagesTable)
@@ -137,13 +146,58 @@ router.post("/coach/welcome", async (req, res) => {
   }
 });
 
+async function buildUserMessageContent(
+  text: string,
+  attachments: Attachment[],
+  includeImageBytes: boolean,
+): Promise<Anthropic.MessageParam["content"]> {
+  if (attachments.length === 0) return text;
+
+  const blocks: Anthropic.ContentBlockParam[] = [];
+  for (const a of attachments) {
+    if (a.kind === "image" && CLAUDE_IMAGE_MIME.has(a.mimeType) && includeImageBytes) {
+      try {
+        const buf = await fs.readFile(path.join(UPLOADS_DIR, a.filePath));
+        blocks.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: a.mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+            data: buf.toString("base64"),
+          },
+        });
+      } catch {
+        blocks.push({ type: "text", text: `[image attached but unreadable: ${a.filename}]` });
+      }
+    } else if (a.kind === "image") {
+      blocks.push({ type: "text", text: `[earlier image attached: ${a.filename}]` });
+    } else {
+      blocks.push({
+        type: "text",
+        text: `[video attached: ${a.filename} (${a.mimeType}) — you cannot see video, ask the athlete to describe what to focus on or take stills]`,
+      });
+    }
+  }
+  if (text) blocks.push({ type: "text", text });
+  return blocks;
+}
+
 router.post("/coach/chat", async (req, res) => {
-  const body = req.body as { content?: unknown };
-  if (typeof body.content !== "string" || body.content.trim().length === 0) {
+  const body = req.body as { content?: unknown; attachmentIds?: unknown };
+  if (typeof body.content !== "string") {
     res.status(400).json({ error: "content (string) required" });
     return;
   }
   const userContent = body.content.trim();
+
+  const attachmentIds: number[] = Array.isArray(body.attachmentIds)
+    ? body.attachmentIds.filter((n): n is number => typeof n === "number" && Number.isFinite(n))
+    : [];
+
+  if (userContent.length === 0 && attachmentIds.length === 0) {
+    res.status(400).json({ error: "message must have text or attachments" });
+    return;
+  }
 
   const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
   if (!fighter) {
@@ -152,11 +206,21 @@ router.post("/coach/chat", async (req, res) => {
   }
   const conversation = await getOrCreateActiveConversation(fighter.id);
 
-  await db.insert(messagesTable).values({
-    conversationId: conversation.id,
-    role: "user",
-    content: userContent,
-  });
+  const [userMsg] = await db
+    .insert(messagesTable)
+    .values({
+      conversationId: conversation.id,
+      role: "user",
+      content: userContent,
+    })
+    .returning();
+
+  if (attachmentIds.length > 0 && userMsg) {
+    await db
+      .update(attachmentsTable)
+      .set({ messageId: userMsg.id })
+      .where(inArray(attachmentsTable.id, attachmentIds));
+  }
 
   const history = await db
     .select()
@@ -164,8 +228,22 @@ router.post("/coach/chat", async (req, res) => {
     .where(eq(messagesTable.conversationId, conversation.id))
     .orderBy(asc(messagesTable.createdAt));
 
-  const facts = await getActiveFacts(fighter.id);
+  const allAttachments = await db
+    .select()
+    .from(attachmentsTable)
+    .where(eq(attachmentsTable.conversationId, conversation.id));
 
+  const byMsg = new Map<number, Attachment[]>();
+  for (const a of allAttachments) {
+    if (a.messageId == null) continue;
+    const arr = byMsg.get(a.messageId);
+    if (arr) arr.push(a);
+    else byMsg.set(a.messageId, [a]);
+  }
+
+  const lastUserMsgId = userMsg?.id ?? -1;
+
+  const facts = await getActiveFacts(fighter.id);
   const calibrations = await db
     .select()
     .from(calibrationsTable)
@@ -186,6 +264,19 @@ router.post("/coach/chat", async (req, res) => {
   let assembled = "";
 
   try {
+    const claudeMessages: Anthropic.MessageParam[] = [];
+    for (const m of history) {
+      const role = m.role as "user" | "assistant";
+      const atts = byMsg.get(m.id) ?? [];
+      if (role === "assistant") {
+        claudeMessages.push({ role, content: m.content });
+        continue;
+      }
+      const includeImageBytes = m.id === lastUserMsgId;
+      const content = await buildUserMessageContent(m.content, atts, includeImageBytes);
+      claudeMessages.push({ role, content });
+    }
+
     const stream = client.messages.stream({
       model: "claude-sonnet-4-6",
       max_tokens: 8192,
@@ -200,7 +291,7 @@ router.post("/coach/chat", async (req, res) => {
           text: buildDynamicContext(fighter, facts, calibrations),
         },
       ],
-      messages: history.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+      messages: claudeMessages,
     });
 
     for await (const event of stream) {

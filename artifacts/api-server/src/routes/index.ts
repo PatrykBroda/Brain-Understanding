@@ -5,6 +5,7 @@ import fighterRouter from "./fighter";
 import conversationRouter from "./conversation";
 import calibrationRouter from "./calibration";
 import memoryRouter from "./memory";
+import attachmentsRouter from "./attachments";
 
 const router: IRouter = Router();
 
@@ -13,6 +14,7 @@ router.use(fighterRouter);
 router.use(conversationRouter);
 router.use(calibrationRouter);
 router.use(memoryRouter);
+router.use(attachmentsRouter);
 router.use(coachRouter);
 
 export default router;

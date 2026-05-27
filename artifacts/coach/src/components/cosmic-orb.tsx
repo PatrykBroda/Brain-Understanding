@@ -10,52 +10,70 @@ interface CosmicOrbProps {
 interface OrbVisuals {
   glowColor: string;
   glowSecondary: string;
+  bloomColor: string;
   glowOpacity: number;
   glowBlur: number;
+  bloomBlur: number;
   spinSeconds: number;
   pulseSeconds: number;
+  rimColor: string;
 }
 
 const VISUALS: Record<OrbState, OrbVisuals> = {
   dormant: {
-    glowColor: "hsla(215, 18%, 55%, 0.18)",
-    glowSecondary: "hsla(220, 20%, 45%, 0.06)",
-    glowOpacity: 0.55,
-    glowBlur: 28,
+    glowColor: "hsla(215, 35%, 65%, 0.45)",
+    glowSecondary: "hsla(220, 30%, 55%, 0.18)",
+    bloomColor: "hsla(210, 30%, 60%, 0.22)",
+    glowOpacity: 0.85,
+    glowBlur: 36,
+    bloomBlur: 80,
     spinSeconds: 52,
-    pulseSeconds: 9,
+    pulseSeconds: 8,
+    rimColor: "hsla(210, 40%, 70%, 0.5)",
   },
   calm: {
-    glowColor: "hsla(200, 60%, 60%, 0.32)",
-    glowSecondary: "hsla(210, 55%, 50%, 0.12)",
-    glowOpacity: 0.7,
-    glowBlur: 38,
+    glowColor: "hsla(200, 75%, 65%, 0.55)",
+    glowSecondary: "hsla(210, 65%, 55%, 0.22)",
+    bloomColor: "hsla(200, 70%, 60%, 0.28)",
+    glowOpacity: 0.95,
+    glowBlur: 44,
+    bloomBlur: 90,
     spinSeconds: 40,
     pulseSeconds: 6.5,
+    rimColor: "hsla(200, 75%, 70%, 0.6)",
   },
   warming: {
-    glowColor: "hsla(35, 75%, 60%, 0.32)",
-    glowSecondary: "hsla(210, 55%, 50%, 0.1)",
-    glowOpacity: 0.75,
-    glowBlur: 42,
+    glowColor: "hsla(32, 90%, 62%, 0.6)",
+    glowSecondary: "hsla(20, 80%, 55%, 0.25)",
+    bloomColor: "hsla(28, 85%, 60%, 0.3)",
+    glowOpacity: 1,
+    glowBlur: 48,
+    bloomBlur: 96,
     spinSeconds: 32,
     pulseSeconds: 5.5,
+    rimColor: "hsla(30, 90%, 68%, 0.65)",
   },
   lockedIn: {
-    glowColor: "hsla(var(--primary), 0.55)",
-    glowSecondary: "hsla(var(--primary), 0.16)",
-    glowOpacity: 0.85,
-    glowBlur: 46,
+    glowColor: "hsla(var(--primary), 0.85)",
+    glowSecondary: "hsla(var(--primary), 0.32)",
+    bloomColor: "hsla(var(--primary), 0.42)",
+    glowOpacity: 1,
+    glowBlur: 54,
+    bloomBlur: 110,
     spinSeconds: 26,
     pulseSeconds: 4.5,
+    rimColor: "hsla(var(--primary), 0.7)",
   },
   streaming: {
-    glowColor: "hsla(var(--primary), 0.7)",
-    glowSecondary: "hsla(var(--primary), 0.22)",
-    glowOpacity: 0.95,
-    glowBlur: 50,
+    glowColor: "hsla(var(--primary), 1)",
+    glowSecondary: "hsla(var(--primary), 0.45)",
+    bloomColor: "hsla(var(--primary), 0.6)",
+    glowOpacity: 1,
+    glowBlur: 60,
+    bloomBlur: 130,
     spinSeconds: 18,
     pulseSeconds: 3.2,
+    rimColor: "hsla(var(--primary), 0.85)",
   },
 };
 
@@ -132,19 +150,30 @@ export function CosmicOrb({ state = "dormant", className = "" }: CosmicOrbProps)
       className={`relative aspect-square select-none ${className}`}
       style={{ animation: `cosmic-orb-breath ${(visuals.pulseSeconds * 1.7).toFixed(1)}s ease-in-out infinite` }}
     >
+      {/* outermost bloom — wide, soft, slow breathing — this is the new "alive" layer */}
+      <div
+        className="absolute -inset-[55%] rounded-full pointer-events-none cosmic-bloom"
+        style={{
+          background: `radial-gradient(circle at 50% 50%, ${visuals.bloomColor} 0%, transparent 60%)`,
+          filter: `blur(${visuals.bloomBlur}px)`,
+          animation: `cosmic-bloom-pulse ${(visuals.pulseSeconds * 1.4).toFixed(1)}s ease-in-out infinite`,
+        }}
+      />
+
+      {/* mid glow */}
       <div
         className="absolute -inset-[30%] rounded-full pointer-events-none cosmic-glow"
         style={{
-          background: `radial-gradient(circle at 50% 50%, ${visuals.glowColor} 0%, ${visuals.glowSecondary} 24%, transparent 65%)`,
+          background: `radial-gradient(circle at 50% 50%, ${visuals.glowColor} 0%, ${visuals.glowSecondary} 28%, transparent 65%)`,
           opacity: visuals.glowOpacity,
           filter: `blur(${visuals.glowBlur}px)`,
           animation: `cosmic-glow-pulse ${visuals.pulseSeconds}s ease-in-out infinite`,
         }}
       />
 
-      <div className="absolute -inset-[6%] rounded-full border border-foreground/[0.05]" />
-      <div className="absolute -inset-[18%] rounded-full border border-foreground/[0.035]" />
-      <div className="absolute -inset-[32%] rounded-full border border-foreground/[0.022]" />
+      <div className="absolute -inset-[6%] rounded-full border border-foreground/[0.06]" />
+      <div className="absolute -inset-[18%] rounded-full border border-foreground/[0.04]" />
+      <div className="absolute -inset-[32%] rounded-full border border-foreground/[0.025]" />
 
       <CrosshairTicks />
 
@@ -157,8 +186,8 @@ export function CosmicOrb({ state = "dormant", className = "" }: CosmicOrbProps)
         className="absolute inset-[6%] rounded-full overflow-hidden cursor-grab active:cursor-grabbing touch-none"
         style={{
           background:
-            "radial-gradient(circle at 32% 26%, #2c2c2e 0%, #131316 38%, #07070a 72%, #000 100%)",
-          boxShadow: "0 0 60px rgba(0,0,0,0.75), inset 0 0 20px rgba(0,0,0,0.55)",
+            "radial-gradient(circle at 32% 26%, #34343a 0%, #161618 38%, #08080a 72%, #000 100%)",
+          boxShadow: `0 0 80px ${visuals.glowColor}, 0 0 60px rgba(0,0,0,0.75), inset 0 0 24px rgba(0,0,0,0.55)`,
         }}
       >
         <div
@@ -169,11 +198,14 @@ export function CosmicOrb({ state = "dormant", className = "" }: CosmicOrbProps)
           <TopoSurface />
         </div>
 
+        {/* atmosphere — inner edge tint that breathes */}
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0 pointer-events-none rounded-full cosmic-atmosphere"
           style={{
-            background:
-              "radial-gradient(circle at center, transparent 38%, rgba(0,0,0,0.55) 78%, rgba(0,0,0,0.95) 100%)",
+            background: `radial-gradient(circle at center, transparent 50%, ${visuals.glowColor} 92%, transparent 100%)`,
+            mixBlendMode: "screen",
+            opacity: 0.55,
+            animation: `cosmic-atmosphere ${(visuals.pulseSeconds * 1.2).toFixed(1)}s ease-in-out infinite`,
           }}
         />
 
@@ -181,27 +213,45 @@ export function CosmicOrb({ state = "dormant", className = "" }: CosmicOrbProps)
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "radial-gradient(circle at 28% 22%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 18%, transparent 42%)",
+              "radial-gradient(circle at center, transparent 38%, rgba(0,0,0,0.45) 78%, rgba(0,0,0,0.92) 100%)",
           }}
         />
 
+        {/* specular highlight */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle at 28% 22%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 18%, transparent 42%)",
+          }}
+        />
+
+        {/* warm under-rim glow */}
         <div
           className="absolute inset-0 pointer-events-none rounded-full mix-blend-screen"
           style={{
-            background: `radial-gradient(circle at 50% 100%, ${visuals.glowColor} 0%, transparent 35%)`,
-            opacity: 0.55,
+            background: `radial-gradient(circle at 50% 100%, ${visuals.glowColor} 0%, transparent 38%)`,
+            opacity: 0.7,
           }}
         />
       </div>
 
       <style>{`
         @keyframes cosmic-glow-pulse {
-          0%, 100% { transform: scale(1);    opacity: ${visuals.glowOpacity * 0.85}; }
-          50%      { transform: scale(1.06); opacity: ${visuals.glowOpacity}; }
+          0%, 100% { transform: scale(0.98); opacity: ${(visuals.glowOpacity * 0.8).toFixed(3)}; }
+          50%      { transform: scale(1.08); opacity: ${visuals.glowOpacity.toFixed(3)}; }
+        }
+        @keyframes cosmic-bloom-pulse {
+          0%, 100% { transform: scale(0.92); opacity: 0.65; }
+          50%      { transform: scale(1.12); opacity: 1; }
+        }
+        @keyframes cosmic-atmosphere {
+          0%, 100% { opacity: 0.4; }
+          50%      { opacity: 0.75; }
         }
         @keyframes cosmic-orb-breath {
           0%, 100% { transform: scale(1); }
-          50%      { transform: scale(1.012); }
+          50%      { transform: scale(1.018); }
         }
       `}</style>
     </div>
@@ -216,8 +266,8 @@ function CrosshairTicks() {
       preserveAspectRatio="none"
     >
       <g
-        stroke="rgba(180,180,185,0.55)"
-        strokeWidth="0.35"
+        stroke="rgba(200,200,210,0.7)"
+        strokeWidth="0.4"
         fill="none"
         vectorEffect="non-scaling-stroke"
       >
@@ -255,8 +305,8 @@ function TopoSurface() {
       pts.push(`${x === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(2)}`);
     }
 
-    const opacity = 0.42 - distFromCenter * 0.3;
-    const sw = 0.5 + equatorWeight * 0.35;
+    const opacity = 0.5 - distFromCenter * 0.32;
+    const sw = 0.55 + equatorWeight * 0.4;
     paths.push({ d: pts.join(" "), opacity, sw });
   }
 
@@ -272,7 +322,7 @@ function TopoSurface() {
         <path
           key={i}
           d={p.d}
-          stroke={`rgba(225,228,232,${p.opacity.toFixed(3)})`}
+          stroke={`rgba(230,232,238,${p.opacity.toFixed(3)})`}
           strokeWidth={p.sw}
           fill="none"
           vectorEffect="non-scaling-stroke"

@@ -20,12 +20,12 @@ const APHORISMS: string[] = [
   "You do not rise to the level of your hope. You fall to the level of your wiring.",
 ];
 
-const MOODS: { light: string; accent: string; rim: string }[] = [
-  { light: "rgba(190, 140, 80, 0.12)", accent: "rgba(70, 100, 140, 0.07)", rim: "rgba(190, 140, 80, 0.07)" },
-  { light: "rgba(90, 140, 180, 0.10)", accent: "rgba(190, 140, 80, 0.06)", rim: "rgba(90, 140, 180, 0.06)" },
-  { light: "rgba(170, 90, 80, 0.11)", accent: "rgba(80, 120, 140, 0.06)", rim: "rgba(170, 90, 80, 0.06)" },
-  { light: "rgba(140, 140, 150, 0.09)", accent: "rgba(190, 140, 80, 0.06)", rim: "rgba(170, 170, 180, 0.05)" },
-  { light: "rgba(160, 120, 90, 0.11)", accent: "rgba(100, 90, 130, 0.06)", rim: "rgba(160, 120, 90, 0.06)" },
+const MOODS: { light: string; accent: string; rim: string; halo: string }[] = [
+  { light: "rgba(220, 160, 90, 0.28)",  accent: "rgba(90, 130, 180, 0.18)", rim: "rgba(220, 160, 90, 0.18)", halo: "rgba(255, 180, 100, 0.22)" },
+  { light: "rgba(110, 170, 220, 0.25)", accent: "rgba(220, 160, 90, 0.15)", rim: "rgba(110, 170, 220, 0.16)", halo: "rgba(140, 200, 255, 0.22)" },
+  { light: "rgba(210, 110, 100, 0.26)", accent: "rgba(90, 140, 170, 0.14)", rim: "rgba(210, 110, 100, 0.16)", halo: "rgba(255, 140, 120, 0.22)" },
+  { light: "rgba(180, 180, 200, 0.22)", accent: "rgba(220, 160, 90, 0.14)", rim: "rgba(200, 200, 220, 0.14)", halo: "rgba(220, 220, 240, 0.20)" },
+  { light: "rgba(200, 140, 110, 0.26)", accent: "rgba(140, 110, 180, 0.16)", rim: "rgba(200, 140, 110, 0.16)", halo: "rgba(230, 160, 140, 0.22)" },
 ];
 
 const NOISE_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(
@@ -124,10 +124,10 @@ export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
   }, []);
 
   const background = `
-    radial-gradient(ellipse 65% 55% at ${layout.lightX}% ${layout.lightY}%, ${mood.light} 0%, transparent 62%),
-    radial-gradient(ellipse 40% 32% at ${layout.accentX}% ${layout.accentY}%, ${mood.accent} 0%, transparent 55%),
-    radial-gradient(ellipse 110% 30% at 50% ${layout.rimY}%, ${mood.rim} 0%, transparent 70%),
-    radial-gradient(ellipse 130% 130% at 50% 50%, #0d0d10 0%, #07070a 55%, #030305 100%)
+    radial-gradient(ellipse 70% 60% at ${layout.lightX}% ${layout.lightY}%, ${mood.light} 0%, transparent 60%),
+    radial-gradient(ellipse 45% 38% at ${layout.accentX}% ${layout.accentY}%, ${mood.accent} 0%, transparent 55%),
+    radial-gradient(ellipse 120% 32% at 50% ${layout.rimY}%, ${mood.rim} 0%, transparent 70%),
+    radial-gradient(ellipse 130% 130% at 50% 50%, #14141a 0%, #08080c 55%, #030305 100%)
   `;
 
   return (
@@ -137,12 +137,22 @@ export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
       }`}
       style={{ background }}
     >
+      {/* deep bloom — wide soft halo that breathes (the dopamine layer) */}
+      <div
+        className="absolute inset-0 pointer-events-none synochi-bloom"
+        style={{
+          background: `radial-gradient(ellipse 90% 75% at 50% 52%, ${mood.halo} 0%, transparent 65%)`,
+          filter: "blur(40px)",
+          animationDelay: `-${layout.breathPhase}s`,
+        }}
+      />
+
       {/* breathing colour wash — the room itself is alive */}
       <div
         className="absolute inset-0 pointer-events-none synochi-breath"
         style={{
           background: `radial-gradient(ellipse 70% 60% at 50% 55%, ${mood.light} 0%, transparent 70%)`,
-          animationDelay: `-${layout.breathPhase}s`,
+          animationDelay: `-${layout.breathPhase * 0.6}s`,
         }}
       />
 
@@ -208,11 +218,11 @@ export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
             style={{ transform: `rotate(${layout.rotation.toFixed(2)}deg)` }}
           >
             <div
-              className="font-sans uppercase font-extralight leading-[1.35] text-foreground/95 synochi-text-breath"
+              className="font-sans uppercase font-extralight leading-[1.35] text-foreground synochi-text-breath"
               style={{
                 fontSize: "clamp(1.4rem, 6.2vw, 2.15rem)",
                 letterSpacing: "0.13em",
-                textShadow: "0 1px 30px rgba(0,0,0,0.55)",
+                textShadow: `0 1px 30px rgba(0,0,0,0.55), 0 0 38px ${mood.halo}`,
               }}
             >
               {aphorism}
@@ -250,9 +260,15 @@ export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
       </div>
 
       <style>{`
+        @keyframes synochi-bloom {
+          0%, 100% { opacity: 0.45; transform: scale(0.95); }
+          50%      { opacity: 1;    transform: scale(1.08); }
+        }
+        .synochi-bloom { animation: synochi-bloom 7.5s ease-in-out infinite; }
+
         @keyframes synochi-breath {
-          0%, 100% { opacity: 0.5; transform: scale(1); }
-          50%      { opacity: 1;   transform: scale(1.04); }
+          0%, 100% { opacity: 0.55; transform: scale(1); }
+          50%      { opacity: 1;    transform: scale(1.05); }
         }
         .synochi-breath { animation: synochi-breath 9s ease-in-out infinite; }
 
@@ -263,10 +279,10 @@ export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
         .synochi-vignette { animation: synochi-vignette 11s ease-in-out infinite; }
 
         @keyframes synochi-text-breath {
-          0%, 100% { opacity: 0.92; }
-          50%      { opacity: 1; }
+          0%, 100% { opacity: 0.88; filter: brightness(0.92); }
+          50%      { opacity: 1;    filter: brightness(1.08); }
         }
-        .synochi-text-breath { animation: synochi-text-breath 6s ease-in-out infinite; }
+        .synochi-text-breath { animation: synochi-text-breath 5.5s ease-in-out infinite; }
 
         @keyframes synochi-pulse-dot {
           0%, 100% { opacity: 0.35; transform: scale(0.85); }

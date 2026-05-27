@@ -14,12 +14,21 @@ export type Fighter = {
   updatedAt: string;
 };
 
+export type AttachmentDto = {
+  id: number;
+  kind: "image" | "video";
+  mimeType: string;
+  filename: string;
+  sizeBytes: number;
+};
+
 export type ServerMessage = {
   id: number;
   conversationId: number;
   role: "user" | "assistant";
   content: string;
   createdAt: string;
+  attachments?: AttachmentDto[];
 };
 
 export type Conversation = {
@@ -72,6 +81,19 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
 export const api = {
   getFighter: () => jsonFetch<{ fighter: Fighter | null }>("api/fighter"),
   saveFighter: (input: FighterInput) =>
@@ -100,6 +122,25 @@ export const api = {
     jsonFetch<{ message: ServerMessage | null; reason?: string }>("api/coach/welcome", {
       method: "POST",
     }),
+  uploadAttachment: async (
+    conversationId: number,
+    file: File,
+  ): Promise<AttachmentDto> => {
+    const dataBase64 = await fileToBase64(file);
+    const kind: "image" | "video" = file.type.startsWith("video/") ? "video" : "image";
+    const res = await jsonFetch<{ attachment: AttachmentDto }>("api/attachments", {
+      method: "POST",
+      body: JSON.stringify({
+        conversationId,
+        kind,
+        mimeType: file.type,
+        filename: file.name,
+        dataBase64,
+      }),
+    });
+    return res.attachment;
+  },
 };
 
 export const coachChatUrl = `${base}api/coach/chat`;
+export const attachmentFileUrl = (id: number) => `${base}api/attachments/${id}/file`;

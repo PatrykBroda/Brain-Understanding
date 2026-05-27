@@ -1,16 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, coachChatUrl, type ServerMessage } from "@/lib/api";
+import { api, coachChatUrl, type AttachmentDto, type ServerMessage } from "@/lib/api";
 
 export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
   pending?: boolean;
+  attachments?: AttachmentDto[];
 };
 
 function toClient(msg: ServerMessage): ChatMessage {
-  return { id: `s-${msg.id}`, role: msg.role, content: msg.content };
+  return {
+    id: `s-${msg.id}`,
+    role: msg.role,
+    content: msg.content,
+    attachments: msg.attachments ?? [],
+  };
 }
 
 export function useChat() {
@@ -53,9 +59,10 @@ export function useChat() {
   });
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, attachments: AttachmentDto[] = []) => {
       const trimmed = content.trim();
-      if (!trimmed || isStreaming) return;
+      if (!trimmed && attachments.length === 0) return;
+      if (isStreaming) return;
       stop();
       setError(null);
 
@@ -63,6 +70,7 @@ export function useChat() {
         id: `u-${Date.now()}`,
         role: "user",
         content: trimmed,
+        attachments,
       };
       const assistantId = `a-${Date.now()}`;
       setLocalMessages((prev) => [
@@ -81,7 +89,10 @@ export function useChat() {
         const res = await fetch(coachChatUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: trimmed }),
+          body: JSON.stringify({
+            content: trimmed,
+            attachmentIds: attachments.map((a) => a.id),
+          }),
           signal: ctrl.signal,
         });
         if (!res.ok || !res.body) {
@@ -147,6 +158,7 @@ export function useChat() {
     isStreaming,
     error,
     isLoading: conversationQuery.isLoading,
+    conversationId: conversationQuery.data?.conversation?.id ?? null,
     sendMessage,
     stop,
     reset: () => resetMutation.mutate(),
