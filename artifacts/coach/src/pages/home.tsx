@@ -1,10 +1,10 @@
 import { Link } from "wouter";
+import { Shield } from "lucide-react";
+import { CosmicOrb } from "@/components/cosmic-orb";
 import { BottomNav } from "@/components/bottom-nav";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { useFrameState } from "@/hooks/use-frame-state";
-
-const HERO_LINES = ["MOST MISTAKES", "ARE NERVOUS SYSTEM", "MISTAKES"] as const;
 
 export default function HomePage() {
   const { data: fighterData } = useFighter();
@@ -21,128 +21,99 @@ export default function HomePage() {
         background: "#000",
       }}
     >
-      {/* Subtle top spotlight — documentary, not sci-fi. Anchored above hero, dies quickly. */}
+      {/* Page-wide vignette — anchored on the orb, eases off so it doesn't eat the CTA */}
       <div
         className="absolute inset-0 pointer-events-none z-0"
         style={{
           background:
-            "radial-gradient(ellipse 80% 45% at 50% 8%, rgba(255,250,240,0.05) 0%, transparent 60%)",
+            "radial-gradient(ellipse 95% 55% at 50% 38%, transparent 40%, rgba(0,0,0,0.55) 95%)",
         }}
       />
 
-      {/* Heavy edge vignette — pulls focus to center, kills the corners */}
-      <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 110% 80% at 50% 50%, transparent 35%, rgba(0,0,0,0.7) 90%, #000 100%)",
-        }}
-      />
-
-      {/* Film grain — slightly heavier than before to read as documentary not pristine */}
+      {/* Ultra-fine grain — barely perceptible, kills banding on the OLED black */}
       <svg
-        className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.07] mix-blend-overlay z-0"
+        className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.04] mix-blend-overlay z-0"
         aria-hidden
       >
-        <filter id="frame-grain-home">
-          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" />
-          <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0" />
+        <filter id="frame-grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
+          <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0" />
         </filter>
-        <rect width="100%" height="100%" filter="url(#frame-grain-home)" />
+        <rect width="100%" height="100%" filter="url(#frame-grain)" />
       </svg>
 
-      {/* Status bar — TUNING FRAME · STATE LABEL, mono micro-type, almost invisible */}
-      <header className="relative z-10 flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
-        <div className="flex items-center gap-2">
-          <span
-            className="w-1 h-1 rounded-full"
-            style={{ background: "hsla(35, 65%, 60%, 0.85)" }}
-            aria-hidden
-          />
-          <span className="font-mono text-[10px] tracking-[0.32em] text-foreground/55 font-light uppercase">
-            Tuning Frame
-          </span>
+      <header className="relative z-10 flex items-center justify-between px-6 pt-[max(1.1rem,env(safe-area-inset-top))] pb-3">
+        <div>
+          <div className="font-sans font-extralight text-[15px] tracking-[0.55em] text-foreground/95 leading-none">
+            FRAME
+          </div>
+          <div className="font-mono text-[10px] tracking-[0.5em] text-foreground/55 mt-1.5 font-light">
+            MMA · CALIBRATION SYSTEM
+          </div>
         </div>
         <Link
           href="/profile"
           aria-label="Open profile"
-          className="font-mono text-[10px] tracking-[0.32em] text-primary/85 font-light uppercase outline-none focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:rounded-sm hover:text-primary transition-colors"
-          title={frameState.source}
+          className="w-10 h-10 rounded-full border border-white/[0.06] flex items-center justify-center text-foreground/40 hover:border-primary/40 hover:text-primary/90 outline-none focus-visible:ring-1 focus-visible:ring-primary/60 transition-all duration-500"
         >
-          {fighter?.name?.split(" ")[0]?.toUpperCase() ?? "KILO"}
+          <Shield className="w-[15px] h-[15px]" strokeWidth={1.2} />
         </Link>
       </header>
 
-      {/* Hero — stacked, condensed, oversized. Brutalist documentary type. */}
-      <main className="relative z-10 min-h-0 grid place-items-center px-6">
-        <div className="frame-hero text-center max-w-2xl">
-          <h1
-            className="font-light uppercase text-foreground/95 leading-[1.18] tracking-[0.06em]"
-            style={{
-              fontFamily: "'Oswald', 'Inter', sans-serif",
-              fontSize: "clamp(2.2rem, 9vw, 3.8rem)",
-            }}
-          >
-            {HERO_LINES.map((line, i) => (
-              <span
-                key={line}
-                className="block frame-hero-line"
-                style={{ animationDelay: `${0.05 + i * 0.12}s` }}
-              >
-                {line}
-              </span>
-            ))}
-          </h1>
-
-          {/* Three-dot punctuation like the reference. Pure visual breath. */}
-          <div
-            className="flex items-center justify-center gap-2 mt-10 frame-hero-line"
-            style={{ animationDelay: "0.5s" }}
-            aria-hidden
-          >
-            <span className="w-1 h-1 rounded-full bg-foreground/30" />
-            <span className="w-1 h-1 rounded-full bg-foreground/30" />
-            <span className="w-1 h-1 rounded-full bg-foreground/30" />
-          </div>
+      <main className="relative z-10 min-h-0 grid place-items-center overflow-hidden px-6">
+        <div className="frame-fade-in h-full w-full grid place-items-center">
+          <CosmicOrb
+            state={frameState.orb}
+            className="h-full max-h-[400px] max-w-full w-auto"
+          />
         </div>
       </main>
 
-      {/* Wordmark + CTA cluster — minimal, cinematic, no boxes */}
-      <section className="relative z-10 flex flex-col items-center text-center px-6 pb-4 gap-5">
-        <div>
-          <div
-            className="font-extralight uppercase text-foreground/95 leading-none"
-            style={{
-              fontFamily: "'Oswald', 'Inter', sans-serif",
-              fontSize: "clamp(1.8rem, 8vw, 2.4rem)",
-              letterSpacing: "0.42em",
-              paddingLeft: "0.42em",
-            }}
-          >
-            Frame
+      <section className="relative z-10 flex flex-col items-center text-center px-6 gap-6 pb-3">
+        <div className="space-y-3">
+          <div className="font-mono text-[10px] uppercase tracking-[0.55em] text-foreground/55 font-light">
+            State
           </div>
           <div
-            className="font-mono font-light uppercase mt-2"
-            style={{
-              fontSize: "10px",
-              letterSpacing: "0.6em",
-              paddingLeft: "0.6em",
-              color: "hsla(0, 70%, 55%, 0.78)",
-            }}
+            className="font-sans font-extralight uppercase text-[clamp(1.7rem,7vw,2.4rem)] tracking-[0.32em] text-foreground/95 leading-none"
+            title={frameState.source}
           >
-            MMA AI
+            {frameState.label}
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.45em] text-foreground/55 font-light pt-2">
+            Narrow the decision tree.
           </div>
         </div>
 
-        <Link
-          href="/chat"
-          aria-label={fighter ? "Enter the frame" : "Enter"}
-          className="group font-mono text-[10px] uppercase tracking-[0.55em] font-light text-foreground/55 hover:text-foreground/95 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:rounded-sm px-3 py-2"
-        >
-          <span className="opacity-60 mr-2">[</span>
-          Enter
-          <span className="opacity-60 ml-2">]</span>
-        </Link>
+        <div className="w-full max-w-sm">
+          <Link
+            href="/chat"
+            aria-label={fighter ? "Enter the frame" : "Enter"}
+            className="group block w-full rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          >
+            <div
+              className="relative w-full h-[58px] rounded-2xl flex items-center justify-center transition-all duration-500"
+              style={{
+                background:
+                  "linear-gradient(180deg, hsla(35, 60%, 55%, 0.05) 0%, hsla(35, 60%, 55%, 0.015) 100%)",
+                border: "1px solid hsla(35, 65%, 58%, 0.38)",
+                boxShadow:
+                  "0 10px 50px -12px hsla(35, 65%, 55%, 0.32), inset 0 1px 0 hsla(35, 70%, 60%, 0.14)",
+              }}
+            >
+              <span className="font-sans text-[13px] uppercase tracking-[0.5em] font-light text-primary group-hover:tracking-[0.55em] transition-all duration-500">
+                Enter
+              </span>
+              <div
+                className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{
+                  boxShadow:
+                    "0 0 0 1px hsla(35, 65%, 60%, 0.55), 0 14px 60px -8px hsla(35, 65%, 55%, 0.5)",
+                }}
+              />
+            </div>
+          </Link>
+        </div>
       </section>
 
       <div className="relative z-10">
@@ -150,26 +121,12 @@ export default function HomePage() {
       </div>
 
       <style>{`
-        @keyframes frame-hero-rise {
-          from { opacity: 0; transform: translateY(8px); filter: blur(2px); }
-          to   { opacity: 1; transform: translateY(0);  filter: blur(0); }
+        @keyframes frame-fade-in {
+          from { opacity: 0; transform: scale(0.96); }
+          to   { opacity: 1; transform: scale(1); }
         }
-        .frame-hero-line {
-          opacity: 0;
-          animation: frame-hero-rise 0.8s cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
-        }
-        @keyframes frame-grain-drift {
-          0%, 100% { transform: translate(0, 0); }
-          25%      { transform: translate(-1.5%, 0.8%); }
-          50%      { transform: translate(1%, -1%); }
-          75%      { transform: translate(-0.6%, -1.2%); }
-        }
-        .frame-hero {
-          animation: frame-grain-drift 14s ease-in-out infinite;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .frame-hero-line { animation-duration: 0.01s; }
-          .frame-hero { animation: none; }
+        .frame-fade-in {
+          animation: frame-fade-in 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
         }
       `}</style>
     </div>

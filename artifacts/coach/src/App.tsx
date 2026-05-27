@@ -1,4 +1,5 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +8,23 @@ import ChatPage from "@/pages/chat";
 import OnboardingPage from "@/pages/onboarding";
 import HomePage from "@/pages/home";
 import ProfilePage from "@/pages/profile";
+import SplashPage from "@/pages/splash";
 import { useFighter } from "@/hooks/use-fighter";
+
+function SplashGate({ children }: { children: React.ReactNode }) {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("frame:splash-seen") !== "1") {
+        setLocation("/splash", { replace: true });
+      }
+    } catch {
+      // sessionStorage blocked — skip splash, fall through to home
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return <>{children}</>;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,9 +55,16 @@ function Gate({ children }: { children: React.ReactNode }) {
 function Router() {
   return (
     <Switch>
+      <Route path="/splash">
+        <Gate>
+          <SplashPage />
+        </Gate>
+      </Route>
       <Route path="/">
         <Gate>
-          <HomePage />
+          <SplashGate>
+            <HomePage />
+          </SplashGate>
         </Gate>
       </Route>
       <Route path="/chat">
