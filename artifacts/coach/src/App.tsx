@@ -8,6 +8,7 @@ import ChatPage from "@/pages/chat";
 import OnboardingPage from "@/pages/onboarding";
 import HomePage from "@/pages/home";
 import ProfilePage from "@/pages/profile";
+import PlannerPage from "@/pages/planner";
 import SplashPage from "@/pages/splash";
 import { useFighter } from "@/hooks/use-fighter";
 
@@ -75,6 +76,11 @@ function Router() {
       <Route path="/profile">
         <Gate>
           <ProfilePage />
+        </Gate>
+      </Route>
+      <Route path="/planner">
+        <Gate>
+          <PlannerPage />
         </Gate>
       </Route>
       <Route component={NotFound} />

@@ -150,5 +150,46 @@ export const api = {
   },
 };
 
+export type PlanCategory = "fix" | "train" | "technique" | "regulate" | "goal_step";
+
+export type PlanItem = {
+  key: string;
+  category: PlanCategory;
+  title: string;
+  detail: string;
+  sourceFactIds: number[];
+  sourceCalibrationKeys: string[];
+  sourceLabel: string;
+};
+
+export type WeeklyPlan = {
+  id: number;
+  fighterId: number;
+  weekStart: string;
+  aiProvider: AiProvider;
+  items: PlanItem[];
+  rationale: string | null;
+  createdAt: string;
+};
+
+export type PlannerResponse = {
+  plan: WeeklyPlan | null;
+  completions: string[];
+  weekStart: string;
+};
+
+export const plannerApi = {
+  get: () => jsonFetch<PlannerResponse>("api/planner/current"),
+  regenerate: () => jsonFetch<PlannerResponse>("api/planner/regenerate", { method: "POST" }),
+  complete: (key: string) =>
+    jsonFetch<{ ok: true }>(`api/planner/items/${encodeURIComponent(key)}/complete`, {
+      method: "POST",
+    }),
+  uncomplete: (key: string) =>
+    jsonFetch<{ ok: true }>(`api/planner/items/${encodeURIComponent(key)}/complete`, {
+      method: "DELETE",
+    }),
+};
+
 export const coachChatUrl = `${base}api/coach/chat`;
 export const attachmentFileUrl = (id: number) => `${base}api/attachments/${id}/file`;

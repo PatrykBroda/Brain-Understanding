@@ -26,10 +26,11 @@ A personal Claude-wrapped BJJ + nervous-system coach that uses the user's own Ob
 - `artifacts/api-server/src/lib/memoryExtractor.ts` — post-turn Claude tool-use call that writes `athlete_facts`
 - `artifacts/api-server/src/lib/factsService.ts` — add / supersede / resolve / query active facts
 - `artifacts/api-server/src/lib/calibrationBank.ts` — calibration MCQ bank + rotation logic
-- `artifacts/api-server/src/routes/` — `coach.ts` (SSE chat + fires memory extraction), `fighter.ts`, `conversation.ts`, `calibration.ts`, `memory.ts`
-- `lib/db/src/schema/` — `fighters`, `conversations`, `messages`, `calibrations`, `athlete_facts` (plus legacy `athlete_signals`, unused)
-- `artifacts/coach/src/pages/` — `onboarding.tsx`, `home.tsx` (FRAME-style landing with big spinning orb + Enter Frame CTA), `chat.tsx`, `profile.tsx` (fighter info + inline athlete-model panel)
-- `artifacts/coach/src/components/` — `message-content.tsx`, `drill-card.tsx`, `nervous-system-orb.tsx` (small header indicator), `cosmic-orb.tsx` (big home-page orb: pure CSS biological dark sphere — radial shading + soft bloom + breath scale + atmospheric drift, no crosshair/rings/topo/RAF, 9 state variants tuned as nervous-system temperatures), `bottom-nav.tsx` (Home/Chat/Profile tabs), `calibration-card.tsx`, `memory-sheet.tsx` (legacy, no longer mounted)
+- `artifacts/api-server/src/routes/` — `coach.ts` (SSE chat + fires memory extraction), `fighter.ts`, `conversation.ts`, `calibration.ts`, `memory.ts`, `planner.ts` (weekly plan CRUD + item completion)
+- `artifacts/api-server/src/lib/plannerService.ts` — weekly plan generator (Claude tool-use OR OpenAI JSON mode, picked from active conversation's `aiProvider`), validation (every item must cite a real fact id or calibration key, ≥5 items, ≥3 distinct categories, refuse-and-retry once), `weekly_plans` upsert per ISO-Monday-UTC week
+- `lib/db/src/schema/` — `fighters`, `conversations`, `messages`, `calibrations`, `athlete_facts`, `weekly_plans` + `weekly_plan_item_completions` (plus legacy `athlete_signals`, unused)
+- `artifacts/coach/src/pages/` — `onboarding.tsx`, `home.tsx` (FRAME-style landing with big spinning orb + Enter Frame CTA), `chat.tsx`, `profile.tsx` (fighter info + inline athlete-model panel), `planner.tsx` (weekly plan list with checkable items, source line per item, `?` help overlay)
+- `artifacts/coach/src/components/` — `message-content.tsx`, `drill-card.tsx`, `nervous-system-orb.tsx` (small header indicator), `cosmic-orb.tsx` (big home-page orb: pure CSS biological dark sphere — radial shading + soft bloom + breath scale + atmospheric drift, no crosshair/rings/topo/RAF, 9 state variants tuned as nervous-system temperatures), `bottom-nav.tsx` (Home/Chat/Profile/Planner tabs, `grid-cols-4`), `calibration-card.tsx`, `memory-sheet.tsx` (legacy, no longer mounted)
 - `artifacts/coach/src/hooks/use-frame-state.ts` — interpretive state derivation: keyword regex over recent 12 active facts → one of Dormant/Stable/Loaded/Recovering/Tight/Volatile/Composed/Overextended, first-match-wins, honest fallbacks, `source` string exposed via title tooltip for provenance. No fake biometrics, no numeric scores.
 
 ## Architecture decisions
@@ -72,6 +73,7 @@ Mobile-first 3-tab app (will be wrapped in a mobile shell). All routes gated by 
 - Drill blocks must be valid JSON inside ` ```drill ... ``` ` fences — the parser silently skips invalid ones.
 - Memory extraction runs ~3-12s after stream end. Frontend invalidates the `memory` query 1.5s after `isStreaming` flips off; opening the panel sooner just shows the previous state.
 - `athlete_signals` table still exists for back-compat but is no longer written to; all new memory goes into `athlete_facts`.
+- Planner keys weeks by `isoMondayUTC()` (Monday 00:00 UTC). One plan per fighter per week; regenerate wipes existing completions because new item keys won't match. Completing an item writes a `pattern` fact with `source = "planner:item:<key>"` (confidence 2); un-completing resolves any planner-sourced facts for that key. Generator routes through the active conversation's `aiProvider` (Claude → tool_use, OpenAI → response_format json_object). Validation refuses any plan that has items without a real fact id / calibration key, fewer than 5 items, or fewer than 3 distinct categories — retries once before erroring.
 
 ## Pointers
 
