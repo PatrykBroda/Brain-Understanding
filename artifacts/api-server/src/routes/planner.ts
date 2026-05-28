@@ -3,21 +3,20 @@ import {
   db,
   fightersTable,
   calibrationsTable,
+  athleteFactsTable,
+  weeklyPlanItemCompletionsTable,
 } from "@workspace/db";
-import { asc, desc, eq } from "drizzle-orm";
-import { getActiveFacts } from "../lib/factsService";
+import { and, asc, desc, eq, like } from "drizzle-orm";
+import { getActiveFacts, addFact, resolveFact } from "../lib/factsService";
 import {
   generateWeeklyPlan,
   getCurrentPlan,
   listCompletions,
   upsertPlan,
-  setCompletion,
   recentChatSummary,
   isoMondayUTC,
 } from "../lib/plannerService";
 import { getOrCreateActiveConversation } from "./conversation";
-import { addFact, resolveFact } from "../lib/factsService";
-import { db as _db } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -74,6 +73,24 @@ router.post("/planner/regenerate", async (req, res) => {
       provider,
       recentChat,
     });
+
+    // Resolve any still-active planner-sourced pattern facts from the prior plan —
+    // their item keys won't match the regenerated plan, so leaving them active would
+    // keep them influencing future plans as ghost signals.
+    const staleFacts = await db
+      .select()
+      .from(athleteFactsTable)
+      .where(
+        and(
+          eq(athleteFactsTable.fighterId, fighter.id),
+          eq(athleteFactsTable.status, "active"),
+          like(athleteFactsTable.source, "planner:item:%"),
+        ),
+      );
+    for (const f of staleFacts) {
+      await resolveFact(fighter.id, f.id, "planner regenerated");
+    }
+
     const plan = await upsertPlan({
       fighterId: fighter.id,
       provider,
@@ -104,14 +121,25 @@ router.post("/planner/items/:key/complete", async (req, res) => {
     res.status(404).json({ error: "item not in current plan" });
     return;
   }
-  await setCompletion(plan.id, key, true);
-  await addFact(fighter.id, {
-    category: "pattern",
-    topic: `planner: ${item.title}`.slice(0, 120),
-    content: `Completed planner item (${item.category}) — ${item.detail}`.slice(0, 600),
-    confidence: 2,
-    source: `planner:item:${key}`,
-  });
+
+  // Idempotency: only write a pattern fact when the completion row is *newly*
+  // inserted. If it already existed, do nothing — otherwise repeated taps would
+  // pollute the athlete model with duplicate fact rows.
+  const inserted = await db
+    .insert(weeklyPlanItemCompletionsTable)
+    .values({ planId: plan.id, itemKey: key })
+    .onConflictDoNothing()
+    .returning({ id: weeklyPlanItemCompletionsTable.id });
+
+  if (inserted.length > 0) {
+    await addFact(fighter.id, {
+      category: "pattern",
+      topic: `planner: ${item.title}`.slice(0, 120),
+      content: `Completed planner item (${item.category}) — ${item.detail}`.slice(0, 600),
+      confidence: 2,
+      source: `planner:item:${key}`,
+    });
+  }
   res.json({ ok: true });
 });
 
@@ -127,16 +155,29 @@ router.delete("/planner/items/:key/complete", async (req, res) => {
     return;
   }
   const key = req.params.key;
-  await setCompletion(plan.id, key, false);
-  // Best-effort: resolve any planner-sourced facts for this item so the toggle is reversible.
-  const { athleteFactsTable } = await import("@workspace/db");
-  const { and: _and, eq: _eq } = await import("drizzle-orm");
-  const rows = await _db
-    .select()
-    .from(athleteFactsTable)
-    .where(_and(_eq(athleteFactsTable.fighterId, fighter.id), _eq(athleteFactsTable.source, `planner:item:${key}`)));
-  for (const f of rows) {
-    if (f.status === "active") {
+  const removed = await db
+    .delete(weeklyPlanItemCompletionsTable)
+    .where(
+      and(
+        eq(weeklyPlanItemCompletionsTable.planId, plan.id),
+        eq(weeklyPlanItemCompletionsTable.itemKey, key),
+      ),
+    )
+    .returning({ id: weeklyPlanItemCompletionsTable.id });
+
+  if (removed.length > 0) {
+    // Resolve any active planner-sourced facts for this item so the toggle is reversible.
+    const rows = await db
+      .select()
+      .from(athleteFactsTable)
+      .where(
+        and(
+          eq(athleteFactsTable.fighterId, fighter.id),
+          eq(athleteFactsTable.source, `planner:item:${key}`),
+          eq(athleteFactsTable.status, "active"),
+        ),
+      );
+    for (const f of rows) {
       await resolveFact(fighter.id, f.id, "planner item un-completed");
     }
   }
