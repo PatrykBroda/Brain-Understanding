@@ -5,37 +5,23 @@ interface EntrySequenceProps {
   onDismiss: () => void;
 }
 
-const APHORISMS: string[] = [
-  "Most mistakes are nervous system mistakes.",
-  "Pressure is not the problem. Fragmentation under pressure is.",
-  "The system you build is the system that tests you.",
-  "Coherence beats intensity.",
-  "What you can name, you can hold.",
-  "Position before submission. Regulation before position.",
-  "The roll reveals what the drill hides.",
-  "Tilt is data.",
-  "Anchor before you act.",
-  "Narrow the decision tree.",
-  "The frame is built one rep at a time.",
-  "You do not rise to the level of your hope. You fall to the level of your wiring.",
+const APHORISMS: ReadonlyArray<readonly string[]> = [
+  ["MOST MISTAKES", "ARE NERVOUS SYSTEM", "MISTAKES"],
+  ["PRESSURE IS NOT", "THE PROBLEM.", "FRAGMENTATION IS."],
+  ["THE SYSTEM YOU BUILD", "IS THE SYSTEM", "THAT TESTS YOU."],
+  ["COHERENCE", "BEATS", "INTENSITY."],
+  ["POSITION BEFORE SUBMISSION.", "REGULATION", "BEFORE POSITION."],
+  ["THE ROLL REVEALS", "WHAT THE DRILL", "HIDES."],
+  ["TILT", "IS", "DATA."],
+  ["ANCHOR", "BEFORE", "YOU ACT."],
+  ["NARROW", "THE DECISION", "TREE."],
+  ["THE FRAME IS BUILT", "ONE REP", "AT A TIME."],
 ];
 
-const MOODS: { light: string; accent: string; rim: string; halo: string }[] = [
-  { light: "rgba(220, 160, 90, 0.28)",  accent: "rgba(90, 130, 180, 0.18)", rim: "rgba(220, 160, 90, 0.18)", halo: "rgba(255, 180, 100, 0.22)" },
-  { light: "rgba(110, 170, 220, 0.25)", accent: "rgba(220, 160, 90, 0.15)", rim: "rgba(110, 170, 220, 0.16)", halo: "rgba(140, 200, 255, 0.22)" },
-  { light: "rgba(210, 110, 100, 0.26)", accent: "rgba(90, 140, 170, 0.14)", rim: "rgba(210, 110, 100, 0.16)", halo: "rgba(255, 140, 120, 0.22)" },
-  { light: "rgba(180, 180, 200, 0.22)", accent: "rgba(220, 160, 90, 0.14)", rim: "rgba(200, 200, 220, 0.14)", halo: "rgba(220, 220, 240, 0.20)" },
-  { light: "rgba(200, 140, 110, 0.26)", accent: "rgba(140, 110, 180, 0.16)", rim: "rgba(200, 140, 110, 0.16)", halo: "rgba(230, 160, 140, 0.22)" },
-];
+const MIN_DISPLAY_MS = 3600;
+const FADE_OUT_MS = 420;
 
-const NOISE_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(
-  `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0"/></filter><rect width="100%" height="100%" filter="url(#n)" opacity="0.85"/></svg>`,
-)}`;
-
-const MIN_DISPLAY_MS = 3200;
-const FADE_OUT_MS = 520;
-
-function pickRotated<T>(arr: T[], storageKey: string): T {
+function pickRotated<T>(arr: ReadonlyArray<T>, storageKey: string): T {
   if (arr.length === 0) throw new Error("empty array");
   if (arr.length === 1) return arr[0]!;
   let lastIdx = -1;
@@ -55,40 +41,8 @@ function pickRotated<T>(arr: T[], storageKey: string): T {
   return arr[idx]!;
 }
 
-interface Mote {
-  left: number;
-  size: number;
-  delay: number;
-  duration: number;
-  drift: number;
-  opacity: number;
-}
-
-function buildMotes(count: number): Mote[] {
-  return Array.from({ length: count }, () => ({
-    left: Math.random() * 100,
-    size: 1 + Math.random() * 1.6,
-    delay: Math.random() * 14,
-    duration: 14 + Math.random() * 12,
-    drift: -10 + Math.random() * 20,
-    opacity: 0.18 + Math.random() * 0.22,
-  }));
-}
-
 export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
-  const aphorism = useMemo(() => pickRotated(APHORISMS, "synochi:lastAphorismIdx"), []);
-  const mood = useMemo(() => pickRotated(MOODS, "synochi:lastMoodIdx"), []);
-  const motes = useMemo(() => buildMotes(7), []);
-  const layout = useRef({
-    lightX: 18 + Math.random() * 64,
-    lightY: 58 + Math.random() * 36,
-    accentX: 10 + Math.random() * 80,
-    accentY: 8 + Math.random() * 32,
-    rimY: 92 + Math.random() * 8,
-    rotation: -0.8 + Math.random() * 1.6,
-    breathPhase: Math.random() * 7,
-  }).current;
-
+  const hero = useMemo(() => pickRotated(APHORISMS, "frame:lastEntryIdx"), []);
   const [closing, setClosing] = useState(false);
   const mountedAtRef = useRef(performance.now());
   const dismissTimerRef = useRef<number | null>(null);
@@ -123,190 +77,153 @@ export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const background = `
-    radial-gradient(ellipse 70% 60% at ${layout.lightX}% ${layout.lightY}%, ${mood.light} 0%, transparent 60%),
-    radial-gradient(ellipse 45% 38% at ${layout.accentX}% ${layout.accentY}%, ${mood.accent} 0%, transparent 55%),
-    radial-gradient(ellipse 120% 32% at 50% ${layout.rimY}%, ${mood.rim} 0%, transparent 70%),
-    radial-gradient(ellipse 130% 130% at 50% 50%, #14141a 0%, #08080c 55%, #030305 100%)
-  `;
+  const callsign = fighterName?.split(" ")[0]?.toUpperCase() ?? "ATHLETE";
 
   return (
     <div
-      className={`fixed inset-0 z-50 text-foreground transition-opacity duration-[520ms] ease-out ${
+      className={`fixed inset-0 z-50 grid text-foreground overflow-hidden transition-opacity duration-[420ms] ease-out ${
         closing ? "opacity-0 pointer-events-none" : "opacity-100"
       }`}
-      style={{ background }}
+      style={{
+        gridTemplateRows: "auto minmax(0,1fr) auto",
+        background: "#000",
+      }}
     >
-      {/* deep bloom — wide soft halo that breathes (ambient layer) */}
+      {/* overhead spotlight */}
       <div
-        className="absolute inset-0 pointer-events-none synochi-bloom"
-        style={{
-          background: `radial-gradient(ellipse 90% 75% at 50% 52%, ${mood.halo} 0%, transparent 65%)`,
-          filter: "blur(40px)",
-          animationDelay: `-${layout.breathPhase}s`,
-        }}
-      />
-
-      {/* breathing colour wash — the room itself is alive */}
-      <div
-        className="absolute inset-0 pointer-events-none synochi-breath"
-        style={{
-          background: `radial-gradient(ellipse 70% 60% at 50% 55%, ${mood.light} 0%, transparent 70%)`,
-          animationDelay: `-${layout.breathPhase * 0.6}s`,
-        }}
-      />
-
-      {/* drifting dust motes */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {motes.map((m, i) => (
-          <span
-            key={i}
-            className="absolute rounded-full bg-foreground synochi-mote"
-            style={{
-              left: `${m.left}%`,
-              bottom: "-2%",
-              width: `${m.size}px`,
-              height: `${m.size}px`,
-              opacity: m.opacity,
-              animationDuration: `${m.duration}s`,
-              animationDelay: `-${m.delay}s`,
-              ["--mote-drift" as string]: `${m.drift}px`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* photographic grain */}
-      <div
-        className="absolute inset-0 pointer-events-none mix-blend-overlay"
-        style={{ backgroundImage: `url("${NOISE_SVG}")`, opacity: 0.18 }}
-      />
-
-      {/* vignette breath */}
-      <div
-        className="absolute inset-0 pointer-events-none synochi-vignette"
+        className="absolute inset-0 pointer-events-none z-0"
         style={{
           background:
-            "radial-gradient(ellipse 100% 70% at 50% 50%, transparent 30%, rgba(0,0,0,0.45) 78%, rgba(0,0,0,0.88) 100%)",
+            "radial-gradient(ellipse 80% 45% at 50% 8%, rgba(255,250,240,0.05) 0%, transparent 60%)",
         }}
       />
-
+      {/* heavy edge vignette */}
       <div
-        className="relative h-full flex flex-col px-6"
+        className="absolute inset-0 pointer-events-none z-0"
         style={{
-          paddingTop: "max(1.75rem, env(safe-area-inset-top))",
-          paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))",
+          background:
+            "radial-gradient(ellipse 110% 80% at 50% 50%, transparent 35%, rgba(0,0,0,0.7) 90%, #000 100%)",
         }}
+      />
+      {/* film grain */}
+      <svg
+        className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.07] mix-blend-overlay z-0"
+        aria-hidden
       >
-        <header className="flex-none flex items-center justify-between animate-in fade-in slide-in-from-top-1 duration-700">
-          <div className="flex items-center gap-2.5">
-            <span className="w-1 h-1 rounded-full bg-primary synochi-pulse-dot" />
-            <div className="font-mono text-[9px] tracking-[0.45em] text-muted-foreground uppercase">
-              Tuning Frame
-            </div>
-          </div>
-          {fighterName && (
-            <div className="font-mono text-[10px] tracking-[0.4em] text-primary/85 uppercase">
-              {fighterName}
-            </div>
-          )}
-        </header>
+        <filter id="frame-grain-entry">
+          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" />
+          <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#frame-grain-entry)" />
+      </svg>
 
-        <main className="flex-1 grid place-items-center min-h-0 py-8">
+      {/* TUNING FRAME · CALLSIGN */}
+      <header className="relative z-10 flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
+        <div className="flex items-center gap-2">
+          <span
+            className="w-1 h-1 rounded-full"
+            style={{ background: "hsla(35, 65%, 60%, 0.85)" }}
+            aria-hidden
+          />
+          <span className="font-mono text-[10px] tracking-[0.32em] text-foreground/55 font-light uppercase">
+            Tuning Frame
+          </span>
+        </div>
+        <span className="font-mono text-[10px] tracking-[0.32em] text-primary/85 font-light uppercase">
+          {callsign}
+        </span>
+      </header>
+
+      {/* hero — stacked, condensed, oversized */}
+      <main className="relative z-10 min-h-0 grid place-items-center px-6">
+        <div className="frame-entry-hero text-center max-w-2xl">
+          <h1
+            className="font-light uppercase text-foreground/95 leading-[1.18] tracking-[0.06em]"
+            style={{
+              fontFamily: "'Oswald', 'Inter', sans-serif",
+              fontSize: "clamp(2.2rem, 9vw, 3.8rem)",
+            }}
+          >
+            {hero.map((line, i) => (
+              <span
+                key={`${line}-${i}`}
+                className="block frame-entry-line"
+                style={{ animationDelay: `${0.05 + i * 0.12}s` }}
+              >
+                {line}
+              </span>
+            ))}
+          </h1>
+
           <div
-            className="text-center max-w-[22ch] mx-auto animate-in fade-in zoom-in-95 duration-[1100ms]"
-            style={{ transform: `rotate(${layout.rotation.toFixed(2)}deg)` }}
+            className="flex items-center justify-center gap-2 mt-10 frame-entry-line"
+            style={{ animationDelay: "0.5s" }}
+            aria-hidden
           >
-            <div
-              className="font-sans uppercase font-extralight leading-[1.35] text-foreground synochi-text-breath"
-              style={{
-                fontSize: "clamp(1.4rem, 6.2vw, 2.15rem)",
-                letterSpacing: "0.13em",
-                textShadow: `0 1px 30px rgba(0,0,0,0.55), 0 0 38px ${mood.halo}`,
-              }}
-            >
-              {aphorism}
-            </div>
-            <div className="mt-10 flex items-center justify-center gap-1.5 animate-in fade-in duration-700 delay-700 fill-mode-both">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="w-1 h-1 rounded-full bg-foreground/45 synochi-load-dot"
-                  style={{ animationDelay: `${i * 240}ms` }}
-                />
-              ))}
-            </div>
+            <span className="w-1 h-1 rounded-full bg-foreground/30" />
+            <span className="w-1 h-1 rounded-full bg-foreground/30" />
+            <span className="w-1 h-1 rounded-full bg-foreground/30" />
           </div>
-        </main>
+        </div>
+      </main>
 
-        <footer className="flex-none flex flex-col items-center gap-4 animate-in fade-in duration-1000 delay-300 fill-mode-both">
-          <div className="text-center">
-            <div className="font-mono font-bold text-[15px] tracking-[0.4em] text-foreground/85">
-              SYNOCHI
-            </div>
-            <div className="font-mono text-[8px] tracking-[0.55em] text-muted-foreground/80 mt-1.5">
-              V 0 · 1
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => close(true)}
-            disabled={closing}
-            className="font-mono text-[10px] tracking-[0.45em] text-muted-foreground/75 hover:text-foreground transition-colors uppercase disabled:opacity-40"
+      {/* FRAME / MMA AI wordmark + SKIP */}
+      <section className="relative z-10 flex flex-col items-center text-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] gap-5">
+        <div>
+          <div
+            className="font-extralight uppercase text-foreground/95 leading-none"
+            style={{
+              fontFamily: "'Oswald', 'Inter', sans-serif",
+              fontSize: "clamp(1.8rem, 8vw, 2.4rem)",
+              letterSpacing: "0.42em",
+              paddingLeft: "0.42em",
+            }}
           >
-            Skip
-          </button>
-        </footer>
-      </div>
+            Frame
+          </div>
+          <div
+            className="font-mono font-light uppercase mt-2"
+            style={{
+              fontSize: "10px",
+              letterSpacing: "0.6em",
+              paddingLeft: "0.6em",
+              color: "hsla(0, 70%, 55%, 0.78)",
+            }}
+          >
+            MMA AI
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => close(true)}
+          disabled={closing}
+          aria-label="Skip intro and enter"
+          className="font-mono text-[10px] uppercase tracking-[0.55em] font-light text-foreground/55 hover:text-foreground/95 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:rounded-sm px-3 py-2 cursor-pointer disabled:opacity-40"
+        >
+          Skip
+        </button>
+      </section>
 
       <style>{`
-        @keyframes synochi-bloom {
-          0%, 100% { opacity: 0.45; transform: scale(0.95); }
-          50%      { opacity: 1;    transform: scale(1.08); }
+        @keyframes frame-entry-rise {
+          from { opacity: 0; transform: translateY(8px); filter: blur(2px); }
+          to   { opacity: 1; transform: translateY(0);  filter: blur(0); }
         }
-        .synochi-bloom { animation: synochi-bloom 7.5s ease-in-out infinite; }
-
-        @keyframes synochi-breath {
-          0%, 100% { opacity: 0.55; transform: scale(1); }
-          50%      { opacity: 1;    transform: scale(1.05); }
+        .frame-entry-line {
+          opacity: 0;
+          animation: frame-entry-rise 0.8s cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
         }
-        .synochi-breath { animation: synochi-breath 9s ease-in-out infinite; }
-
-        @keyframes synochi-vignette {
-          0%, 100% { opacity: 0.92; }
-          50%      { opacity: 1; }
+        @keyframes frame-entry-drift {
+          0%, 100% { transform: translate(0, 0); }
+          50%      { transform: translate(0.6%, -0.4%); }
         }
-        .synochi-vignette { animation: synochi-vignette 11s ease-in-out infinite; }
-
-        @keyframes synochi-text-breath {
-          0%, 100% { opacity: 0.88; filter: brightness(0.92); }
-          50%      { opacity: 1;    filter: brightness(1.08); }
+        .frame-entry-hero {
+          animation: frame-entry-drift 14s ease-in-out infinite;
         }
-        .synochi-text-breath { animation: synochi-text-breath 5.5s ease-in-out infinite; }
-
-        @keyframes synochi-pulse-dot {
-          0%, 100% { opacity: 0.35; transform: scale(0.85); }
-          50%      { opacity: 1;    transform: scale(1.15); }
-        }
-        .synochi-pulse-dot { animation: synochi-pulse-dot 2.6s ease-in-out infinite; }
-
-        @keyframes synochi-load-dot {
-          0%, 100% { opacity: 0.25; }
-          50%      { opacity: 0.85; }
-        }
-        .synochi-load-dot { animation: synochi-load-dot 1.4s ease-in-out infinite; }
-
-        @keyframes synochi-mote {
-          0%   { transform: translate3d(0, 0, 0); opacity: 0; }
-          15%  { opacity: var(--mote-opacity, 0.3); }
-          85%  { opacity: var(--mote-opacity, 0.3); }
-          100% { transform: translate3d(var(--mote-drift, 0px), -110vh, 0); opacity: 0; }
-        }
-        .synochi-mote {
-          animation-name: synochi-mote;
-          animation-timing-function: linear;
-          animation-iteration-count: infinite;
-          will-change: transform, opacity;
+        @media (prefers-reduced-motion: reduce) {
+          .frame-entry-line { animation-duration: 0.01s; }
+          .frame-entry-hero { animation: none; }
         }
       `}</style>
     </div>
