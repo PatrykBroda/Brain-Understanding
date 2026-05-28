@@ -16,12 +16,19 @@ import { COACH_SYSTEM_PROMPT_STATIC, buildDynamicContext } from "./synochi";
 import { openai, OPENAI_COACH_MODEL } from "./openaiClient";
 import { selectRelevantNodes } from "./vaultRetrieval";
 
-const anthropicBaseURL = process.env["AI_INTEGRATIONS_ANTHROPIC_BASE_URL"];
-const anthropicKey = process.env["AI_INTEGRATIONS_ANTHROPIC_API_KEY"];
-if (!anthropicBaseURL || !anthropicKey) {
-  throw new Error("Anthropic env not set");
+let _anthropic: Anthropic | null = null;
+function getAnthropic(): Anthropic {
+  if (_anthropic) return _anthropic;
+  const baseURL = process.env["AI_INTEGRATIONS_ANTHROPIC_BASE_URL"];
+  const apiKey = process.env["AI_INTEGRATIONS_ANTHROPIC_API_KEY"];
+  if (!baseURL || !apiKey) {
+    throw new Error(
+      "planner: Claude provider selected but AI_INTEGRATIONS_ANTHROPIC_* env not set",
+    );
+  }
+  _anthropic = new Anthropic({ baseURL, apiKey });
+  return _anthropic;
 }
-const anthropic = new Anthropic({ baseURL: anthropicBaseURL, apiKey: anthropicKey });
 
 export function isoMondayUTC(d: Date = new Date()): Date {
   const out = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -39,6 +46,7 @@ HARD RULES:
 - 5 items minimum, 7 maximum. Each item is one concrete action for THIS week, not aspirational long-term goals.
 - title: short imperative, max 60 chars. Lowercase except proper nouns. No emojis.
 - detail: 1-3 sentences, the actual protocol/constraint/cue. Direct, structural. No padding.
+- suggestedDays: a short string naming when in the week to do this. Use weekday short names ("Mon", "Tue, Thu", "Wed–Fri"), or "Any" if any day works, or "Daily" if daily. Honest scheduling, not invented prescription — anchor to the athlete's recorded training frequency where you can.
 - sourceLabel: a 4-12 word human-readable phrase describing why this item exists — e.g. "fragments under top pressure (pattern)" or "calibration: pre-roll arousal".
 - No streaks, no points, no congratulations, no motivational language. Restraint over engagement.
 - The rationale field: 2-3 sentences naming the through-line of the week. What is this week ABOUT for this athlete, given the signals you can see.
@@ -57,6 +65,7 @@ type RawItem = {
   category?: unknown;
   title?: unknown;
   detail?: unknown;
+  suggestedDays?: unknown;
   sourceFactIds?: unknown;
   sourceCalibrationKeys?: unknown;
   sourceLabel?: unknown;
@@ -98,11 +107,16 @@ function validateAndNormalise(
       : factIds.length
         ? `fact #${factIds[0]}`
         : `calibration: ${calKeys[0]}`;
+    const suggestedDays =
+      typeof it.suggestedDays === "string" && it.suggestedDays.trim()
+        ? it.suggestedDays.trim().slice(0, 40)
+        : "Any";
     items.push({
       key: uniqueKey(items.length, title),
       category: cat as PlanCategory,
       title: title.slice(0, 80),
       detail: detail.slice(0, 480),
+      suggestedDays,
       sourceFactIds: factIds,
       sourceCalibrationKeys: calKeys,
       sourceLabel,
@@ -131,11 +145,12 @@ const PLAN_TOOL: Anthropic.Tool = {
             category: { type: "string", enum: [...PLAN_CATEGORIES] },
             title: { type: "string" },
             detail: { type: "string" },
+            suggestedDays: { type: "string" },
             sourceFactIds: { type: "array", items: { type: "integer" } },
             sourceCalibrationKeys: { type: "array", items: { type: "string" } },
             sourceLabel: { type: "string" },
           },
-          required: ["category", "title", "detail", "sourceFactIds", "sourceCalibrationKeys", "sourceLabel"],
+          required: ["category", "title", "detail", "suggestedDays", "sourceFactIds", "sourceCalibrationKeys", "sourceLabel"],
         },
       },
     },
@@ -144,7 +159,7 @@ const PLAN_TOOL: Anthropic.Tool = {
 };
 
 async function callClaude(systemStatic: string, dynamic: string): Promise<RawPlan> {
-  const resp = await anthropic.messages.create({
+  const resp = await getAnthropic().messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 2500,
     system: [
@@ -174,7 +189,7 @@ async function callOpenAI(systemStatic: string, dynamic: string): Promise<RawPla
       {
         role: "user",
         content:
-          'Generate this week\'s plan now. Respond ONLY with a JSON object matching: { "rationale": string, "items": [ { "category": "fix|train|technique|regulate|goal_step", "title": string, "detail": string, "sourceFactIds": number[], "sourceCalibrationKeys": string[], "sourceLabel": string } ] }',
+          'Generate this week\'s plan now. Respond ONLY with a JSON object matching: { "rationale": string, "items": [ { "category": "fix|train|technique|regulate|goal_step", "title": string, "detail": string, "suggestedDays": string, "sourceFactIds": number[], "sourceCalibrationKeys": string[], "sourceLabel": string } ] }',
       },
     ],
   });
@@ -260,6 +275,7 @@ export async function upsertPlan(args: {
           items: args.items,
           rationale: args.rationale,
           aiProvider: args.provider,
+          createdAt: new Date(),
         },
       })
       .returning();
@@ -297,7 +313,7 @@ export async function recentChatSummary(conversationId: number): Promise<string>
     .where(
       and(
         eq(messagesTable.conversationId, conversationId),
-        gt(messagesTable.createdAt, new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)),
+        gt(messagesTable.createdAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
       ),
     )
     .orderBy(desc(messagesTable.createdAt))

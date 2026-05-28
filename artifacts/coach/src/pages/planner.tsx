@@ -11,6 +11,8 @@ import {
 } from "@/hooks/use-planner";
 import type { PlanCategory, PlanItem } from "@/lib/api";
 
+const CATEGORY_ORDER: PlanCategory[] = ["fix", "train", "technique", "regulate", "goal_step"];
+
 const CATEGORY_LABEL: Record<PlanCategory, string> = {
   fix: "Fix",
   train: "Train",
@@ -19,12 +21,31 @@ const CATEGORY_LABEL: Record<PlanCategory, string> = {
   goal_step: "Goal step",
 };
 
+const CATEGORY_HINT: Record<PlanCategory, string> = {
+  fix: "Weaknesses you've named",
+  train: "Mat time + conditioning",
+  technique: "Drills on weak topics",
+  regulate: "Nervous-system work",
+  goal_step: "One step toward a stated goal",
+};
+
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+
 function formatWeekRange(weekStartIso: string) {
   const start = new Date(weekStartIso);
   const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
   const fmt = (d: Date) =>
     `${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
   return `${fmt(start)} — ${fmt(end)}`;
+}
+
+function todayIndex(weekStartIso: string): number {
+  // 0=Mon..6=Sun, relative to the plan's weekStart (ISO Monday UTC)
+  const start = new Date(weekStartIso).getTime();
+  const now = Date.now();
+  const diffDays = Math.floor((now - start) / (24 * 60 * 60 * 1000));
+  if (diffDays < 0 || diffDays > 6) return -1;
+  return diffDays;
 }
 
 export default function PlannerPage() {
@@ -38,6 +59,18 @@ export default function PlannerPage() {
   const plan = planner.data?.plan ?? null;
   const completions = new Set(planner.data?.completions ?? []);
   const weekStart = planner.data?.weekStart ?? new Date().toISOString();
+  const todayIdx = todayIndex(weekStart);
+
+  const grouped: Record<PlanCategory, PlanItem[]> = {
+    fix: [],
+    train: [],
+    technique: [],
+    regulate: [],
+    goal_step: [],
+  };
+  if (plan) {
+    for (const item of plan.items) grouped[item.category].push(item);
+  }
 
   return (
     <div className="flex flex-col h-[100dvh] bg-background text-foreground">
@@ -94,6 +127,32 @@ export default function PlannerPage() {
             </button>
           </section>
 
+          <section
+            aria-label="This week's days, today highlighted"
+            className="grid grid-cols-7 gap-1"
+          >
+            {DAY_LABELS.map((label, idx) => {
+              const isToday = idx === todayIdx;
+              return (
+                <div
+                  key={label}
+                  className={`text-center py-1.5 border ${
+                    isToday
+                      ? "border-primary/70 bg-primary/10 text-primary"
+                      : "border-border/40 text-muted-foreground/80"
+                  }`}
+                >
+                  <div className="font-mono text-[9px] uppercase tracking-widest">{label}</div>
+                  {isToday && (
+                    <div className="font-mono text-[8px] uppercase tracking-widest mt-0.5">
+                      Today
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </section>
+
           {regen.isError && (
             <div className="border border-destructive/40 bg-destructive/10 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
               {(regen.error as Error).message || "generation failed"}
@@ -130,22 +189,43 @@ export default function PlannerPage() {
                 </div>
               )}
 
-              <div className="space-y-3">
-                {plan.items.map((item) => (
-                  <PlanItemCard
-                    key={item.key}
-                    item={item}
-                    done={completions.has(item.key)}
-                    disabled={toggle.isPending}
-                    onToggle={(done) =>
-                      toggle.mutate({ key: item.key, completed: done })
-                    }
-                  />
-                ))}
+              <div className="space-y-7">
+                {CATEGORY_ORDER.map((cat) => {
+                  const items = grouped[cat];
+                  return (
+                    <section key={cat} className="space-y-3">
+                      <div className="flex items-baseline justify-between border-b border-border/40 pb-1.5">
+                        <div className="font-mono text-[11px] uppercase tracking-[0.3em] text-foreground/95">
+                          {CATEGORY_LABEL[cat]}
+                        </div>
+                        <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
+                          {CATEGORY_HINT[cat]}
+                        </div>
+                      </div>
+                      {items.length === 0 ? (
+                        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70 px-1 py-2">
+                          no anchoring signal yet — keep talking to the coach
+                        </div>
+                      ) : (
+                        items.map((item) => (
+                          <PlanItemCard
+                            key={item.key}
+                            item={item}
+                            done={completions.has(item.key)}
+                            disabled={toggle.isPending}
+                            onToggle={(done) =>
+                              toggle.mutate({ key: item.key, completed: done })
+                            }
+                          />
+                        ))
+                      )}
+                    </section>
+                  );
+                })}
               </div>
 
               <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70 pt-2 border-t border-border/30">
-                generated {new Date(plan.createdAt).toLocaleString(undefined, {
+                last built {new Date(plan.createdAt).toLocaleString(undefined, {
                   month: "short",
                   day: "numeric",
                   hour: "numeric",
@@ -205,7 +285,7 @@ function PlanItemCard({
               {item.title}
             </div>
             <div className="flex-none font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-              {CATEGORY_LABEL[item.category]}
+              {item.suggestedDays}
             </div>
           </div>
           <p className={`text-sm leading-relaxed ${done ? "text-muted-foreground/70" : "text-foreground/80"}`}>
@@ -253,13 +333,15 @@ function HelpOverlay({ onClose }: { onClose: () => void }) {
         </div>
         <div className="space-y-3 text-sm text-foreground/85 leading-relaxed">
           <p>
-            One plan per week. 5-7 actions for the next 7 days, mixed across Fix, Train,
-            Technique, Regulate, and Goal step.
+            One plan per week. 5-7 actions for the next 7 days, grouped into Fix, Train,
+            Technique, Regulate, and Goal step. Empty categories say so — the system never
+            invents items to fill them.
           </p>
           <p>
             Every item is drawn from a real recorded signal — a fact in your athlete model, or a
-            calibration answer. The source line under each item names where it came from. If the
-            system can't anchor it, it doesn't include it.
+            calibration answer. The source line under each item names where it came from. The
+            suggested-days label is the system's best guess given your recorded training
+            frequency, not a prescription.
           </p>
           <p>
             Marking an item done writes a low-confidence pattern into your model so the next plan

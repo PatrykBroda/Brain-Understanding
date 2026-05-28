@@ -9,6 +9,7 @@ export type PlanItem = {
   category: PlanCategory;
   title: string;
   detail: string;
+  suggestedDays: string;
   sourceFactIds: number[];
   sourceCalibrationKeys: string[];
   sourceLabel: string;
