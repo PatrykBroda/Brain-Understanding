@@ -3,13 +3,13 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
 import {
   db,
-  fightersTable,
   messagesTable,
   calibrationsTable,
   attachmentsTable,
   type Attachment,
 } from "@workspace/db";
-import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { getUserFighter } from "../middlewares/authMiddleware";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { COACH_SYSTEM_PROMPT_STATIC, buildDynamicContext } from "../lib/synochi";
@@ -47,7 +47,7 @@ const CLAUDE_IMAGE_MIME = new Set([
 ]);
 
 router.post("/coach/welcome", async (req, res) => {
-  const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
+  const fighter = await getUserFighter(req);
   if (!fighter) {
     res.status(400).json({ error: "no fighter — complete onboarding first" });
     return;
@@ -264,7 +264,7 @@ router.post("/coach/chat", async (req, res) => {
     return;
   }
 
-  const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
+  const fighter = await getUserFighter(req);
   if (!fighter) {
     res.status(400).json({ error: "no fighter — complete onboarding first" });
     return;
@@ -281,10 +281,34 @@ router.post("/coach/chat", async (req, res) => {
     .returning();
 
   if (attachmentIds.length > 0 && userMsg) {
+    // Authorize: only attachments belonging to THIS conversation may be linked.
+    // The attachment-upload endpoint already verifies the conversation is owned
+    // by req.clerkUserId, so a conversationId match is sufficient tenant scoping here.
+    const owned = await db
+      .select({ id: attachmentsTable.id })
+      .from(attachmentsTable)
+      .where(
+        and(
+          inArray(attachmentsTable.id, attachmentIds),
+          eq(attachmentsTable.conversationId, conversation.id),
+        ),
+      );
+    if (owned.length !== attachmentIds.length) {
+      res.status(403).json({ error: "attachment not in conversation" });
+      return;
+    }
     await db
       .update(attachmentsTable)
       .set({ messageId: userMsg.id })
-      .where(inArray(attachmentsTable.id, attachmentIds));
+      .where(
+        and(
+          inArray(
+            attachmentsTable.id,
+            owned.map((o) => o.id),
+          ),
+          eq(attachmentsTable.conversationId, conversation.id),
+        ),
+      );
   }
 
   const history = await db

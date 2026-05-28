@@ -1,11 +1,12 @@
 import { Router, type IRouter } from "express";
 import { db, fightersTable, insertFighterSchema } from "@workspace/db";
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import { getUserFighter } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
 
-router.get("/fighter", async (_req, res) => {
-  const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
+router.get("/fighter", async (req, res) => {
+  const fighter = await getUserFighter(req);
   res.json({ fighter: fighter ?? null });
 });
 
@@ -15,7 +16,8 @@ router.post("/fighter", async (req, res) => {
     res.status(400).json({ error: "invalid fighter", details: parsed.error.flatten() });
     return;
   }
-  const [existing] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
+  const userId = req.clerkUserId!;
+  const existing = await getUserFighter(req);
   if (existing) {
     const [updated] = await db
       .update(fightersTable)
@@ -25,7 +27,10 @@ router.post("/fighter", async (req, res) => {
     res.json({ fighter: updated });
     return;
   }
-  const [created] = await db.insert(fightersTable).values(parsed.data).returning();
+  const [created] = await db
+    .insert(fightersTable)
+    .values({ ...parsed.data, userId })
+    .returning();
   res.json({ fighter: created });
 });
 

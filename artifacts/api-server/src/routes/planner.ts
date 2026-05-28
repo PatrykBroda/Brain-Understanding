@@ -7,7 +7,7 @@ import {
   weeklyPlanItemCompletionsTable,
   type WeeklyPlan,
 } from "@workspace/db";
-import { and, asc, desc, eq, like } from "drizzle-orm";
+import { and, desc, eq, like } from "drizzle-orm";
 import { getActiveFacts, addFact, resolveFact } from "../lib/factsService";
 import {
   generateWeeklyPlan,
@@ -18,13 +18,9 @@ import {
   isoMondayUTC,
 } from "../lib/plannerService";
 import { getOrCreateActiveConversation } from "./conversation";
+import { getUserFighter } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
-
-async function loadFighter() {
-  const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
-  return fighter ?? null;
-}
 
 type GenResult =
   | { ok: true; plan: WeeklyPlan }
@@ -107,7 +103,7 @@ async function runGeneration(
 }
 
 router.get("/planner/current", async (req, res) => {
-  const fighter = await loadFighter();
+  const fighter = await getUserFighter(req);
   if (!fighter) {
     res.json({ plan: null, completions: [], weekStart: isoMondayUTC().toISOString() });
     return;
@@ -134,7 +130,7 @@ router.get("/planner/current", async (req, res) => {
 });
 
 router.post("/planner/regenerate", async (req, res) => {
-  const fighter = await loadFighter();
+  const fighter = await getUserFighter(req);
   if (!fighter) {
     res.status(400).json({ error: "no fighter" });
     return;
@@ -148,7 +144,7 @@ router.post("/planner/regenerate", async (req, res) => {
 });
 
 router.post("/planner/items/:key/complete", async (req, res) => {
-  const fighter = await loadFighter();
+  const fighter = await getUserFighter(req);
   if (!fighter) {
     res.status(400).json({ error: "no fighter" });
     return;
@@ -187,7 +183,7 @@ router.post("/planner/items/:key/complete", async (req, res) => {
 });
 
 router.delete("/planner/items/:key/complete", async (req, res) => {
-  const fighter = await loadFighter();
+  const fighter = await getUserFighter(req);
   if (!fighter) {
     res.status(400).json({ error: "no fighter" });
     return;

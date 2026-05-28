@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
-import { db, attachmentsTable, conversationsTable } from "@workspace/db";
+import { db, attachmentsTable, conversationsTable, fightersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { promises as fs } from "node:fs";
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { getUserFighter } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
 
@@ -26,6 +27,27 @@ const SAFE_VIDEO_MIME = new Set([
   "video/webm",
   "video/quicktime",
 ]);
+
+async function conversationBelongsToUser(
+  conversationId: number,
+  clerkUserId: string,
+): Promise<{ id: number } | null> {
+  const [row] = await db
+    .select({ id: conversationsTable.id })
+    .from(conversationsTable)
+    .innerJoin(fightersTable, eq(fightersTable.id, conversationsTable.fighterId))
+    .where(eq(conversationsTable.id, conversationId))
+    .limit(1);
+  if (!row) return null;
+  const [owner] = await db
+    .select({ userId: fightersTable.userId })
+    .from(conversationsTable)
+    .innerJoin(fightersTable, eq(fightersTable.id, conversationsTable.fighterId))
+    .where(eq(conversationsTable.id, conversationId))
+    .limit(1);
+  if (!owner || owner.userId !== clerkUserId) return null;
+  return { id: row.id };
+}
 
 router.post("/attachments", async (req, res) => {
   const body = req.body as {
@@ -56,11 +78,12 @@ router.post("/attachments", async (req, res) => {
     return;
   }
 
-  const [conv] = await db
-    .select()
-    .from(conversationsTable)
-    .where(eq(conversationsTable.id, body.conversationId))
-    .limit(1);
+  const fighter = await getUserFighter(req);
+  if (!fighter) {
+    res.status(403).json({ error: "no fighter" });
+    return;
+  }
+  const conv = await conversationBelongsToUser(body.conversationId, req.clerkUserId!);
   if (!conv) {
     res.status(404).json({ error: "conversation not found" });
     return;
@@ -118,15 +141,21 @@ router.get("/attachments/:id/file", async (req, res) => {
     res.status(400).end();
     return;
   }
-  const [att] = await db
-    .select()
+  const [row] = await db
+    .select({
+      att: attachmentsTable,
+      ownerUserId: fightersTable.userId,
+    })
     .from(attachmentsTable)
+    .innerJoin(conversationsTable, eq(conversationsTable.id, attachmentsTable.conversationId))
+    .innerJoin(fightersTable, eq(fightersTable.id, conversationsTable.fighterId))
     .where(eq(attachmentsTable.id, id))
     .limit(1);
-  if (!att) {
+  if (!row || row.ownerUserId !== req.clerkUserId) {
     res.status(404).end();
     return;
   }
+  const att = row.att;
   const fp = path.join(UPLOADS_DIR, att.filePath);
   if (!existsSync(fp)) {
     res.status(404).end();

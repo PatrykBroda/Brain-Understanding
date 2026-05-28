@@ -7,10 +7,16 @@ import calibrationRouter from "./calibration";
 import memoryRouter from "./memory";
 import attachmentsRouter from "./attachments";
 import plannerRouter from "./planner";
+import { requireAuth } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
 
+// public
 router.use(healthRouter);
+
+// everything below requires an authenticated Clerk session
+router.use(requireAuth);
+
 router.use(fighterRouter);
 router.use(conversationRouter);
 router.use(calibrationRouter);

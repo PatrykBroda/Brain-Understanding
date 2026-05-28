@@ -1,12 +1,15 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useClerk, useUser } from "@clerk/react";
 import { useFighter } from "@/hooks/use-fighter";
 import { useMemory } from "@/hooks/use-memory";
 import { BottomNav } from "@/components/bottom-nav";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { Link } from "wouter";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, LogOut } from "lucide-react";
 import { api, type FactCategory } from "@/lib/api";
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const CATEGORY_LABELS: Record<FactCategory, string> = {
   weakness: "Weaknesses",
@@ -39,6 +42,8 @@ export default function ProfilePage() {
   const fighter = fighterData?.fighter ?? null;
   const memoryQuery = useMemory(true);
   const facts = memoryQuery.data?.facts ?? [];
+  const { signOut } = useClerk();
+  const { user } = useUser();
 
   const convQuery = useQuery({
     queryKey: ["conversation", "active"],
@@ -242,6 +247,27 @@ export default function ProfilePage() {
               No athlete model yet.
             </div>
           )}
+
+          <div className="h-px bg-border/60 mt-2" />
+
+          <section className="space-y-3">
+            <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
+              Account
+            </div>
+            {user?.primaryEmailAddress?.emailAddress && (
+              <div className="font-mono text-[11px] text-foreground/70 tracking-wide">
+                {user.primaryEmailAddress.emailAddress}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => signOut({ redirectUrl: basePath || "/" })}
+              className="w-full flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 hover:text-primary text-foreground/75 transition-colors py-3 font-mono text-[10px] uppercase tracking-[0.3em]"
+            >
+              <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Sign out
+            </button>
+          </section>
         </div>
       </main>
 

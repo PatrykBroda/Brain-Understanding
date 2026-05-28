@@ -1,3 +1,4 @@
+export * from "./users";
 export * from "./fighters";
 export * from "./conversations";
 export * from "./messages";

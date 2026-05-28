@@ -1,13 +1,14 @@
 import { Router, type IRouter } from "express";
-import { db, fightersTable, calibrationsTable } from "@workspace/db";
-import { asc, desc, eq } from "drizzle-orm";
+import { db, calibrationsTable } from "@workspace/db";
+import { desc, eq } from "drizzle-orm";
 import { CALIBRATION_BANK, pickNextQuestion, answerToSignal } from "../lib/calibrationBank";
 import { addFact } from "../lib/factsService";
+import { getUserFighter } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
 
-router.get("/calibration/next", async (_req, res) => {
-  const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
+router.get("/calibration/next", async (req, res) => {
+  const fighter = await getUserFighter(req);
   if (!fighter) {
     res.json({ question: null });
     return;
@@ -38,7 +39,7 @@ router.post("/calibration/answer", async (req, res) => {
     res.status(400).json({ error: "answer not in options" });
     return;
   }
-  const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
+  const fighter = await getUserFighter(req);
   if (!fighter) {
     res.status(400).json({ error: "no fighter" });
     return;

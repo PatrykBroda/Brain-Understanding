@@ -1,9 +1,14 @@
 import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { usersTable } from "./users";
 
 export const fightersTable = pgTable("fighters", {
   id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => usersTable.clerkUserId, { onDelete: "cascade" }),
   name: text("name").notNull(),
   age: integer("age").notNull(),
   art: text("art").notNull(),
@@ -21,6 +26,7 @@ export const fightersTable = pgTable("fighters", {
 
 export const insertFighterSchema = createInsertSchema(fightersTable).omit({
   id: true,
+  userId: true,
   createdAt: true,
   updatedAt: true,
 });

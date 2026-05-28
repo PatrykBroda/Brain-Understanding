@@ -1,13 +1,13 @@
 import { Router, type IRouter } from "express";
 import {
   db,
-  fightersTable,
   conversationsTable,
   messagesTable,
   attachmentsTable,
   type Attachment,
 } from "@workspace/db";
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { getUserFighter } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
 
@@ -36,8 +36,8 @@ function attachmentDto(a: Attachment) {
   };
 }
 
-router.get("/conversation/active", async (_req, res) => {
-  const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
+router.get("/conversation/active", async (req, res) => {
+  const fighter = await getUserFighter(req);
   if (!fighter) {
     res.json({ conversation: null, messages: [] });
     return;
@@ -70,8 +70,8 @@ router.get("/conversation/active", async (_req, res) => {
   res.json({ conversation, messages: messagesWithAtt });
 });
 
-router.post("/conversation/reset", async (_req, res) => {
-  const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
+router.post("/conversation/reset", async (req, res) => {
+  const fighter = await getUserFighter(req);
   if (!fighter) {
     res.status(400).json({ error: "no fighter" });
     return;
@@ -91,7 +91,7 @@ router.patch("/conversation/active/provider", async (req, res) => {
     res.status(400).json({ error: "provider must be 'claude' or 'openai'" });
     return;
   }
-  const [fighter] = await db.select().from(fightersTable).orderBy(asc(fightersTable.id)).limit(1);
+  const fighter = await getUserFighter(req);
   if (!fighter) {
     res.status(400).json({ error: "no fighter" });
     return;
