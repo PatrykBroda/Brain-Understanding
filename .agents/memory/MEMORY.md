@@ -1,2 +1,3 @@
 - [Shared literal-keyed data libs](shared-const-data-libs.md) — use `as const satisfies readonly T[]` (not `: readonly T[]`) so key unions survive for predicates/Record types across packages.
-- [No-fake-percentages pillar](no-fake-percentages-constraint.md) — FRAME never shows numeric scores/biometrics; honor "give me a number" requests via categorical/interpretive language and flag the tension.
+- [No-fabricated-numbers pillar](no-fake-percentages-constraint.md) — never invent numbers; the line is fabrication not numbers. Analyse FRAME REPORT may show REAL pose-measured scores (AI writes only narrative, server recomputes the composite).
+- [Analyse feature](analyse-feature.md) — footage→nervous-system read: pose runs on-device, server narrates + enforces the FRAME REPORT honesty contract.

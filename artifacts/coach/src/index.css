@@ -185,3 +185,63 @@
 .glossable {
   @apply cursor-help underline decoration-dotted decoration-primary/40 underline-offset-4 transition-colors hover:text-primary hover:decoration-primary/70;
 }
+
+/* Analyse — cinematic processing overlay */
+.frame-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.025) 0px,
+    rgba(255, 255, 255, 0.025) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  opacity: 0.6;
+}
+
+.frame-scan-sweep {
+  top: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    hsl(var(--primary) / 0.18),
+    transparent
+  );
+  animation: frame-sweep 2.6s ease-in-out infinite;
+}
+
+@keyframes frame-sweep {
+  0% {
+    transform: translateY(-10vh);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+/* Analyse — soft red danger glow when fragmentation/load reads high */
+.frame-danger-glow {
+  background: radial-gradient(
+    120% 80% at 50% 100%,
+    rgba(196, 56, 46, 0.12) 0%,
+    transparent 55%
+  );
+  animation: frame-danger-pulse 4s ease-in-out infinite;
+}
+
+@keyframes frame-danger-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}

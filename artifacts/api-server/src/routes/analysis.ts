@@ -5,11 +5,21 @@ import {
   type AnalysisKeyframe,
   type AnalysisMetrics,
   type AnalysisSignal,
+  type AnalysisScore,
+  type DetectedEvent,
+  type NervousSystemLoad,
 } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { getActiveFacts, addFact } from "../lib/factsService";
-import { generateAnalysis, isValidKind, isValidLoad } from "../lib/analysisService";
+import {
+  generateAnalysis,
+  buildComparison,
+  isValidKind,
+  isValidLoad,
+  hasCanonicalScores,
+  recomputeSessionScore,
+} from "../lib/analysisService";
 
 const router: IRouter = Router();
 
@@ -36,6 +46,49 @@ function sanitiseSignals(input: unknown): AnalysisSignal[] {
   return out;
 }
 
+function sanitiseScores(input: unknown): AnalysisScore[] {
+  if (!Array.isArray(input)) return [];
+  const out: AnalysisScore[] = [];
+  for (const s of input.slice(0, 12)) {
+    const it = s as Record<string, unknown>;
+    const key = typeof it["key"] === "string" ? it["key"] : "";
+    const label = typeof it["label"] === "string" ? it["label"] : "";
+    if (!key || !label) continue;
+    const rawVal = typeof it["value"] === "number" && Number.isFinite(it["value"]) ? it["value"] : 0;
+    out.push({
+      key: key.slice(0, 40),
+      label: label.slice(0, 60),
+      value: Math.max(0, Math.min(100, Math.round(rawVal))),
+      basis: (typeof it["basis"] === "string" ? it["basis"] : "").slice(0, 240),
+    });
+  }
+  return out;
+}
+
+function sanitiseEvents(input: unknown): DetectedEvent[] {
+  if (!Array.isArray(input)) return [];
+  const out: DetectedEvent[] = [];
+  for (const e of input.slice(0, 8)) {
+    const it = e as Record<string, unknown>;
+    const type = typeof it["type"] === "string" ? it["type"] : "";
+    const label = typeof it["label"] === "string" ? it["label"] : "";
+    if (!type || !label) continue;
+    const sevRaw = typeof it["severity"] === "string" ? it["severity"] : "low";
+    const severity = (["low", "medium", "high"].includes(sevRaw) ? sevRaw : "low") as
+      | "low"
+      | "medium"
+      | "high";
+    out.push({
+      timestamp:
+        typeof it["timestamp"] === "number" && Number.isFinite(it["timestamp"]) ? it["timestamp"] : 0,
+      type: type.slice(0, 40),
+      label: label.slice(0, 60),
+      severity,
+    });
+  }
+  return out;
+}
+
 function sanitiseKeyframes(input: unknown): AnalysisKeyframe[] {
   if (!Array.isArray(input)) return [];
   const out: AnalysisKeyframe[] = [];
@@ -43,10 +96,12 @@ function sanitiseKeyframes(input: unknown): AnalysisKeyframe[] {
     const it = k as Record<string, unknown>;
     const img = typeof it["imageBase64"] === "string" ? it["imageBase64"] : "";
     if (!img || img.length > MAX_KEYFRAME_BYTES) continue;
+    const eventType = typeof it["eventType"] === "string" ? it["eventType"].slice(0, 40) : undefined;
     out.push({
       timestamp: typeof it["timestamp"] === "number" && Number.isFinite(it["timestamp"]) ? it["timestamp"] : 0,
       imageBase64: img,
       caption: (typeof it["caption"] === "string" ? it["caption"] : "").slice(0, 200),
+      ...(eventType ? { eventType } : {}),
     });
   }
   return out;
@@ -61,12 +116,17 @@ router.post("/analysis", async (req, res) => {
 
   const body = req.body as {
     kind?: unknown;
+    focus?: unknown;
     load?: unknown;
+    fragmentationRisk?: unknown;
     loadBasis?: unknown;
+    sessionScore?: unknown;
     durationSec?: unknown;
     framesAnalysed?: unknown;
     poseFrames?: unknown;
     signals?: unknown;
+    scores?: unknown;
+    detectedEvents?: unknown;
     keyframes?: unknown;
   };
 
@@ -78,14 +138,29 @@ router.post("/analysis", async (req, res) => {
     res.status(400).json({ error: "invalid or missing load" });
     return;
   }
+  const fragmentationRisk: NervousSystemLoad = isValidLoad(body.fragmentationRisk)
+    ? body.fragmentationRisk
+    : body.load;
 
   const signals = sanitiseSignals(body.signals);
+  const scores = sanitiseScores(body.scores);
+  const detectedEvents = sanitiseEvents(body.detectedEvents);
   const keyframes = sanitiseKeyframes(body.keyframes);
   if (signals.length === 0) {
     res.status(400).json({ error: "no movement signals — could not read a pose from this clip" });
     return;
   }
 
+  if (!hasCanonicalScores(scores)) {
+    res.status(400).json({ error: "scores must include the four FRAME REPORT attributes" });
+    return;
+  }
+
+  const focus = typeof body.focus === "string" ? body.focus.slice(0, 280) : "";
+  // The headline SESSION SCORE is the composite of the (deterministic, pose-derived) attribute
+  // values. Recompute it server-side from the accepted scores so it can't be a fabricated
+  // free-floating value — it is always internally consistent with the attributes shown.
+  const sessionScore = recomputeSessionScore(scores, fragmentationRisk);
   const durationSec =
     typeof body.durationSec === "number" && Number.isFinite(body.durationSec) ? body.durationSec : 0;
 
@@ -105,23 +180,50 @@ router.post("/analysis", async (req, res) => {
 
   try {
     const facts = await getActiveFacts(fighter.id);
-    const { summary, findings } = await generateAnalysis({
+
+    // previous session (for "what changed") — most recent prior analysis with scores
+    const [prev] = await db
+      .select({ scores: videoAnalysesTable.scores })
+      .from(videoAnalysesTable)
+      .where(eq(videoAnalysesTable.fighterId, fighter.id))
+      .orderBy(desc(videoAnalysesTable.createdAt))
+      .limit(1);
+    const prevScores =
+      prev && Array.isArray(prev.scores) && prev.scores.length ? prev.scores : null;
+
+    const narrative = await generateAnalysis({
       fighter,
       facts,
       kind: body.kind,
+      focus,
       load: body.load,
+      fragmentationRisk,
+      sessionScore,
+      scores,
+      prevScores,
       metrics,
       keyframes,
     });
+
+    const comparison = buildComparison(scores, prevScores, narrative.comparisonNote);
 
     const [row] = await db
       .insert(videoAnalysesTable)
       .values({
         fighterId: fighter.id,
         kind: body.kind,
+        focus,
         nervousSystemLoad: body.load,
-        summary,
-        findings,
+        fragmentationRisk,
+        sessionScore,
+        styleProfile: narrative.styleProfile,
+        aiComment: narrative.aiComment,
+        summary: narrative.summary,
+        findings: narrative.findings,
+        scores,
+        styleParallels: narrative.styleParallels,
+        detectedEvents,
+        comparison,
         metrics,
         keyframes,
         durationSec,
@@ -131,7 +233,7 @@ router.post("/analysis", async (req, res) => {
     if (row) {
       // Feed the model: each high/medium finding becomes a low-confidence pattern fact
       // sourced to this analysis so it informs future coaching without overweighting.
-      for (const f of findings) {
+      for (const f of narrative.findings) {
         if (f.severity === "low") continue;
         await addFact(fighter.id, {
           category: f.severity === "high" ? "weakness" : "pattern",
@@ -161,6 +263,8 @@ router.get("/analysis", async (req, res) => {
       id: videoAnalysesTable.id,
       kind: videoAnalysesTable.kind,
       nervousSystemLoad: videoAnalysesTable.nervousSystemLoad,
+      sessionScore: videoAnalysesTable.sessionScore,
+      styleProfile: videoAnalysesTable.styleProfile,
       summary: videoAnalysesTable.summary,
       durationSec: videoAnalysesTable.durationSec,
       createdAt: videoAnalysesTable.createdAt,

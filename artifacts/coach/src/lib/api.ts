@@ -243,15 +243,49 @@ export type AnalysisKeyframe = {
   timestamp: number;
   imageBase64: string;
   caption: string;
+  eventType?: string;
+};
+
+export type AnalysisScore = {
+  key: string;
+  label: string;
+  value: number;
+  basis: string;
+};
+
+export type StyleParallel = {
+  name: string;
+  note: string;
+};
+
+export type DetectedEvent = {
+  timestamp: number;
+  type: string;
+  label: string;
+  severity: "low" | "medium" | "high";
+};
+
+export type AnalysisComparison = {
+  deltas: { key: string; label: string; delta: number }[];
+  note: string;
 };
 
 export type VideoAnalysis = {
   id: number;
   fighterId: number;
   kind: AnalysisKind;
+  focus: string;
   nervousSystemLoad: NervousSystemLoad;
+  fragmentationRisk: NervousSystemLoad;
+  sessionScore: number;
+  styleProfile: string;
+  aiComment: string;
   summary: string;
   findings: AnalysisFinding[];
+  scores: AnalysisScore[];
+  styleParallels: StyleParallel[];
+  detectedEvents: DetectedEvent[];
+  comparison: AnalysisComparison | null;
   metrics: AnalysisMetrics;
   keyframes: AnalysisKeyframe[];
   durationSec: number;
@@ -262,6 +296,8 @@ export type AnalysisListItem = {
   id: number;
   kind: AnalysisKind;
   nervousSystemLoad: NervousSystemLoad;
+  sessionScore: number;
+  styleProfile: string;
   summary: string;
   durationSec: number;
   createdAt: string;
@@ -269,12 +305,17 @@ export type AnalysisListItem = {
 
 export type CreateAnalysisInput = {
   kind: AnalysisKind;
+  focus: string;
   load: NervousSystemLoad;
+  fragmentationRisk: NervousSystemLoad;
   loadBasis: string;
+  sessionScore: number;
   durationSec: number;
   framesAnalysed: number;
   poseFrames: number;
   signals: AnalysisSignal[];
+  scores: AnalysisScore[];
+  detectedEvents: DetectedEvent[];
   keyframes: AnalysisKeyframe[];
 };
 

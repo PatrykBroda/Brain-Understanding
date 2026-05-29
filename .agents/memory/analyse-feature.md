@@ -19,13 +19,28 @@ The "Analyse" tab turns uploaded footage into a FRAME nervous-system read.
   OVERRIDE — Claude only narrates around it. If you change load logic, change it
   there, not in the prompt.
 
+## FRAME REPORT numbers are real (the one allowed exception)
+- The shareable FRAME REPORT shows AGGRESSION/COMPOSURE/REACTION SPEED/DEFENSIVE
+  RECOVERY (0–100) + SESSION SCORE (/100). These are computed deterministically
+  from on-device pose metrics in `analysis-metrics.ts`, each with a `basis`
+  provenance string. The **AI writes only narrative** (style profile, hedged
+  fighter parallels, comment, comparison note) and is told the numbers are fixed —
+  it must never emit numbers. `fragmentationRisk` stays categorical.
+- **Server enforces the honesty contract**, it does not trust the client blindly:
+  the route requires the four canonical score keys (`hasCanonicalScores`) and
+  **recomputes the composite SESSION SCORE server-side** (`recomputeSessionScore`,
+  mirroring the client weighting) so the headline number can't be a fabricated
+  free-floating value. Per-attribute values stay client-computed only because
+  pose runs on-device. See `no-fake-percentages-constraint.md` for the rule.
+
 ## Brand guards that must not regress
-- Categorical load only: LOW / MODERATE / ELEVATED / HIGH. **Never** percentages,
-  readiness scores, or fake biometrics anywhere — including the loading UI (the
-  cinematic overlay uses a non-numeric phase bar on purpose; do not re-add `%`).
-- No emojis: the prompt forbids them AND `analysisService.normaliseFindings`
-  strips emoji codepoints server-side as a defensive guard before persisting.
-  **Why:** "no emojis / no fake %" are hard product rules, not soft preferences.
+- Load is categorical only: LOW / MODERATE / ELEVATED / HIGH. The cinematic
+  loading overlay uses a non-numeric phase bar on purpose; do not re-add `%`
+  there. Fabricated/proxy-count numbers remain forbidden everywhere outside the
+  measured FRAME REPORT scores above.
+- No emojis: the prompt forbids them AND `analysisService` strips emoji codepoints
+  server-side as a defensive guard before persisting.
+  **Why:** "no emojis / no fabricated numbers" are hard product rules, not soft preferences.
 
 ## Gotchas
 - `disposeExtract` must release the video decoder (pause + removeAttribute("src")

@@ -1,8 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
-import { ChevronLeft, Upload, Film, X } from "lucide-react";
+import { ChevronLeft, Upload, Film, X, Download, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+import { toPng } from "html-to-image";
 import { BottomNav } from "@/components/bottom-nav";
 import { FrameOctagon } from "@/components/frame-octagon";
+import { FrameReportCard } from "@/components/frame-report-card";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAnalyses, useAnalysis, useCreateAnalysis } from "@/hooks/use-analysis";
 import {
@@ -15,8 +17,10 @@ import { computeMetrics } from "@/lib/analysis-metrics";
 import type {
   AnalysisKind,
   AnalysisKeyframe,
+  DetectedEvent,
   NervousSystemLoad,
   VideoAnalysis,
+  Fighter,
 } from "@/lib/api";
 
 const KINDS: { value: AnalysisKind; label: string }[] = [
@@ -50,11 +54,19 @@ type Phase =
   | { stage: "loading_ai" }
   | { stage: "error"; message: string };
 
-const PHASE_COPY: Record<string, { title: string; sub: string }> = {
-  reading: { title: "Reading footage", sub: "Decoding frames" },
-  tracking: { title: "Tracking movement", sub: "Locking the skeleton" },
-  detecting: { title: "Detecting patterns", sub: "Reading the body under load" },
-  loading_ai: { title: "Nervous system load", sub: "Framing what the system is doing" },
+// Rotating cinematic phrases per stage — premium, calm, no hype.
+const PHASE_PHRASES: Record<string, string[]> = {
+  reading: ["Decoding footage", "Sampling frames", "Reading the tape"],
+  tracking: ["Locking the skeleton", "Tracking limbs under load", "Following the structure"],
+  detecting: ["Reading the body under load", "Finding the breakpoints", "Watching the guard", "Measuring composure"],
+  loading_ai: ["Framing what the system is doing", "Naming the pattern", "Writing the read"],
+};
+
+const PHASE_TITLE: Record<string, string> = {
+  reading: "Reading footage",
+  tracking: "Tracking movement",
+  detecting: "Detecting patterns",
+  loading_ai: "Building the read",
 };
 
 export default function AnalysePage() {
@@ -65,11 +77,14 @@ export default function AnalysePage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [kind, setKind] = useState<AnalysisKind>("sparring");
+  const [focus, setFocus] = useState("");
   const [phase, setPhase] = useState<Phase>({ stage: "idle" });
   const [result, setResult] = useState<VideoAnalysis | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
+  const pendingFile = useRef<File | null>(null);
 
   const busy = phase.stage !== "idle" && phase.stage !== "error";
+  const danger = result?.fragmentationRisk === "high" || result?.nervousSystemLoad === "high";
 
   async function runAnalysis(file: File) {
     setResult(null);
@@ -92,24 +107,38 @@ export default function AnalysePage() {
         );
       }
 
-      // capture key frames (skeleton baked in) for the report + the AI read
+      // capture key frames (skeleton baked in) for the report + the AI read,
+      // tagging each with its detected event type so the UI can label them.
       const keyframes: AnalysisKeyframe[] = [];
       for (const m of metrics.keyMoments) {
         const frame = extract.frames.find((f) => Math.abs(f.timestamp - m.timestamp) < 0.001);
         if (!frame) continue;
         const img = await captureKeyframe(extract, frame);
-        if (img) keyframes.push({ timestamp: m.timestamp, imageBase64: img, caption: m.reason });
+        if (img)
+          keyframes.push({
+            timestamp: m.timestamp,
+            imageBase64: img,
+            caption: m.reason,
+            eventType: m.type,
+          });
       }
+
+      const detectedEvents: DetectedEvent[] = metrics.events;
 
       setPhase({ stage: "loading_ai" });
       const res = await create.mutateAsync({
         kind,
+        focus: focus.trim(),
         load: metrics.load,
+        fragmentationRisk: metrics.fragmentationRisk,
         loadBasis: metrics.loadBasis,
+        sessionScore: metrics.sessionScore,
         durationSec: extract.durationSec,
         framesAnalysed: metrics.framesAnalysed,
         poseFrames: metrics.poseFrames,
         signals: metrics.signals,
+        scores: metrics.scores,
+        detectedEvents,
         keyframes,
       });
       setResult(res.analysis);
@@ -127,7 +156,10 @@ export default function AnalysePage() {
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (file) void runAnalysis(file);
+    if (file) {
+      pendingFile.current = file;
+      void runAnalysis(file);
+    }
   }
 
   return (
@@ -150,16 +182,16 @@ export default function AnalysePage() {
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
           {result ? (
-            <Report analysis={result} onClose={() => setResult(null)} />
+            <Report analysis={result} fighter={fighter} onClose={() => setResult(null)} />
           ) : openId != null ? (
-            <SavedReport id={openId} onClose={() => setOpenId(null)} />
+            <SavedReport id={openId} fighter={fighter} onClose={() => setOpenId(null)} />
           ) : (
             <>
               <section className="space-y-3">
                 <p className="text-sm text-foreground/80 leading-relaxed">
                   Upload a clip. The frame reads your movement directly — guard, base,
-                  shoulders, output rhythm — and tells you what your nervous system is doing
-                  under load. Processed on your device; only the read is kept.
+                  shoulders, output rhythm — scores it against itself, and tells you what your
+                  nervous system is doing under load. Processed on your device; only the read is kept.
                 </p>
               </section>
 
@@ -184,6 +216,21 @@ export default function AnalysePage() {
                     </button>
                   ))}
                 </div>
+              </section>
+
+              <section className="space-y-2">
+                <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                  Anything to focus on{" "}
+                  <span className="text-muted-foreground/50 normal-case tracking-normal">(optional)</span>
+                </div>
+                <input
+                  type="text"
+                  value={focus}
+                  onChange={(e) => setFocus(e.target.value.slice(0, 200))}
+                  disabled={busy}
+                  placeholder="e.g. my guard when I get tired, left-side pressure…"
+                  className="w-full bg-secondary/30 border border-border/50 focus:border-primary/50 outline-none px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/50 transition-colors disabled:opacity-40"
+                />
               </section>
 
               <button
@@ -226,7 +273,10 @@ export default function AnalysePage() {
 
       <BottomNav />
 
-      {busy && <CinematicOverlay phase={phase} kindLabel={KINDS.find((k) => k.value === kind)?.label ?? ""} />}
+      {busy && (
+        <CinematicOverlay phase={phase} kindLabel={KINDS.find((k) => k.value === kind)?.label ?? ""} />
+      )}
+      {danger && <div className="pointer-events-none fixed inset-0 z-0 frame-danger-glow" />}
     </div>
   );
 }
@@ -240,27 +290,45 @@ function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: strin
         : phase.stage === "detecting"
           ? "detecting"
           : "loading_ai";
-  const copy = PHASE_COPY[key]!;
+
+  const phrases = PHASE_PHRASES[key]!;
+  const [phraseIdx, setPhraseIdx] = useState(0);
+  useEffect(() => {
+    setPhraseIdx(0);
+    const t = setInterval(() => setPhraseIdx((i) => (i + 1) % phrases.length), 1600);
+    return () => clearInterval(t);
+  }, [key, phrases.length]);
 
   const steps = ["reading", "tracking", "detecting", "loading_ai"];
   const activeIdx = steps.indexOf(key);
+  const pct =
+    (phase.stage === "reading" || phase.stage === "tracking") && typeof phase.pct === "number"
+      ? phase.pct
+      : null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center px-8">
-      <FrameOctagon size={120} spin spinSeconds={5} glow />
-      <div className="mt-10 text-center space-y-2">
+    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center px-8 overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 frame-scanlines" />
+      <div className="pointer-events-none absolute inset-x-0 h-24 frame-scan-sweep" />
+
+      <div className="relative">
+        <FrameOctagon size={120} spin spinSeconds={5} glow />
+      </div>
+
+      <div className="mt-10 text-center space-y-2 relative">
         <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
           {kindLabel}
         </div>
         <div className="font-mono text-base uppercase tracking-[0.3em] text-foreground/95">
-          {copy.title}
+          {PHASE_TITLE[key]}
         </div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground/80">
-          {copy.sub}
+        <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/80 h-4 transition-opacity">
+          {phrases[phraseIdx]}
+          {pct != null ? ` · ${pct}%` : ""}
         </div>
       </div>
 
-      <div className="mt-10 flex items-center gap-2">
+      <div className="mt-10 flex items-center gap-2 relative">
         {steps.map((s, i) => (
           <div
             key={s}
@@ -274,23 +342,57 @@ function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: strin
   );
 }
 
-function Report({ analysis, onClose }: { analysis: VideoAnalysis; onClose: () => void }) {
+function deltaIcon(d: number) {
+  if (d > 1) return <ArrowUpRight className="w-3.5 h-3.5 text-emerald-300/90" strokeWidth={2} />;
+  if (d < -1) return <ArrowDownRight className="w-3.5 h-3.5 text-red-400/90" strokeWidth={2} />;
+  return <Minus className="w-3.5 h-3.5 text-muted-foreground/70" strokeWidth={2} />;
+}
+
+function Report({
+  analysis,
+  fighter,
+  onClose,
+}: {
+  analysis: VideoAnalysis;
+  fighter: Fighter | null;
+  onClose: () => void;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [activeKf, setActiveKf] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  async function saveCard() {
+    if (!cardRef.current) return;
+    setSaving(true);
+    try {
+      const dataUrl = await toPng(cardRef.current, {
+        pixelRatio: 2,
+        backgroundColor: "#060504",
+        cacheBust: true,
+      });
+      const link = document.createElement("a");
+      link.download = `frame-report-${analysis.id}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch {
+      // swallow — export is best-effort
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const kf = analysis.keyframes[activeKf];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
-            {analysis.kind} · {analysis.durationSec.toFixed(0)}s read
-          </div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/70 mt-1">
-            Nervous system load
-          </div>
-          <div
-            className={`inline-block mt-2 font-mono text-sm uppercase tracking-[0.3em] border px-3 py-1.5 ${LOAD_COLOR[analysis.nervousSystemLoad]}`}
-            title={analysis.metrics.loadBasis}
-          >
-            {LOAD_LABEL[analysis.nervousSystemLoad]}
-          </div>
+        <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
+          {analysis.kind} · {analysis.durationSec.toFixed(0)}s read
+          {analysis.focus && (
+            <span className="block normal-case tracking-normal text-muted-foreground/70 mt-1">
+              focus: {analysis.focus}
+            </span>
+          )}
         </div>
         <button
           type="button"
@@ -302,32 +404,93 @@ function Report({ analysis, onClose }: { analysis: VideoAnalysis; onClose: () =>
         </button>
       </div>
 
+      {/* shareable FRAME REPORT card */}
+      <div className="flex flex-col items-center gap-3">
+        <FrameReportCard ref={cardRef} analysis={analysis} fighter={fighter} />
+        <button
+          type="button"
+          onClick={saveCard}
+          disabled={saving}
+          className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 px-4 py-2.5 text-foreground/80 transition-colors disabled:opacity-50"
+        >
+          <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
+          {saving ? "Rendering…" : "Save card"}
+        </button>
+      </div>
+
       <p className="text-[0.95rem] text-foreground/90 leading-relaxed border-l-2 border-primary/60 pl-4">
         {analysis.summary}
       </p>
 
-      {analysis.keyframes.length > 0 && (
-        <section className="space-y-2">
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            Key frames
+      {/* comparison vs last session */}
+      {analysis.comparison && analysis.comparison.deltas.length > 0 && (
+        <section className="space-y-3">
+          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+            What changed
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            {analysis.comparison.deltas.map((d) => (
+              <div
+                key={d.key}
+                className="flex items-center justify-between gap-2 border border-border/50 px-3 py-2"
+              >
+                <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
+                  {d.label}
+                </span>
+                <span className="flex items-center gap-1 font-mono text-[11px] text-foreground/90">
+                  {deltaIcon(d.delta)}
+                  {d.delta > 0 ? `+${d.delta}` : d.delta}
+                </span>
+              </div>
+            ))}
+          </div>
+          {analysis.comparison.note && (
+            <p className="text-sm text-primary/85 leading-relaxed italic">
+              {analysis.comparison.note}
+            </p>
+          )}
+        </section>
+      )}
+
+      {/* detected events — clickable keyframes */}
+      {analysis.keyframes.length > 0 && (
+        <section className="space-y-3">
+          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+            Detected events
+          </div>
+          {kf && (
+            <figure className="space-y-2">
+              <img
+                src={kf.imageBase64}
+                alt={kf.caption}
+                className="w-full rounded border border-border/50"
+              />
+              <figcaption className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/85">
+                {kf.timestamp.toFixed(1)}s · {kf.caption}
+              </figcaption>
+            </figure>
+          )}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-            {analysis.keyframes.map((kf, i) => (
-              <figure key={i} className="flex-none w-40">
-                <img
-                  src={kf.imageBase64}
-                  alt={kf.caption}
-                  className="w-40 rounded border border-border/50"
-                />
-                <figcaption className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/80 mt-1">
-                  {kf.timestamp.toFixed(1)}s · {kf.caption}
-                </figcaption>
-              </figure>
+            {analysis.keyframes.map((k, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setActiveKf(i)}
+                className={`flex-none w-20 border transition-colors ${
+                  i === activeKf ? "border-primary/70" : "border-border/40 hover:border-primary/40"
+                }`}
+              >
+                <img src={k.imageBase64} alt={k.caption} className="w-full" />
+                <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/80 px-1 py-1 truncate">
+                  {k.caption}
+                </div>
+              </button>
             ))}
           </div>
         </section>
       )}
 
+      {/* findings */}
       <section className="space-y-4">
         <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
           What the body is doing
@@ -358,25 +521,24 @@ function Report({ analysis, onClose }: { analysis: VideoAnalysis; onClose: () =>
         ))}
       </section>
 
+      {/* score provenance — honest basis for every number */}
       <section className="space-y-2 pt-1">
         <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/80">
-          Tracked signals
+          How these scores were derived
         </div>
         <div className="space-y-1.5">
-          {analysis.metrics.signals.map((s) => (
-            <div
-              key={s.key}
-              className="flex items-baseline justify-between gap-3 font-mono text-[10px] uppercase tracking-widest"
-              title={s.detail}
-            >
-              <span className="text-muted-foreground/80">{s.label}</span>
-              <span className="text-foreground/85">{s.value}</span>
+          {analysis.scores.map((s) => (
+            <div key={s.key} className="font-mono text-[9px] tracking-wide" title={s.basis}>
+              <span className="uppercase tracking-widest text-foreground/85">
+                {s.label} {s.value}
+              </span>
+              <span className="text-muted-foreground/70"> — {s.basis}</span>
             </div>
           ))}
         </div>
         <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/60 pt-2 leading-relaxed">
           {analysis.metrics.poseFrames} of {analysis.metrics.framesAnalysed} frames locked a pose ·
-          load {analysis.metrics.loadBasis}
+          every number derived from measured movement, never invented
         </div>
       </section>
 
@@ -391,7 +553,15 @@ function Report({ analysis, onClose }: { analysis: VideoAnalysis; onClose: () =>
   );
 }
 
-function SavedReport({ id, onClose }: { id: number; onClose: () => void }) {
+function SavedReport({
+  id,
+  fighter,
+  onClose,
+}: {
+  id: number;
+  fighter: Fighter | null;
+  onClose: () => void;
+}) {
   const { data, isLoading, isError } = useAnalysis(id);
   if (isLoading) {
     return (
@@ -419,7 +589,7 @@ function SavedReport({ id, onClose }: { id: number; onClose: () => void }) {
       </div>
     );
   }
-  return <Report analysis={data.analysis} onClose={onClose} />;
+  return <Report analysis={data.analysis} fighter={fighter} onClose={onClose} />;
 }
 
 function History({
@@ -427,7 +597,15 @@ function History({
   loading,
   onOpen,
 }: {
-  items: { id: number; kind: string; nervousSystemLoad: NervousSystemLoad; summary: string; createdAt: string }[];
+  items: {
+    id: number;
+    kind: string;
+    nervousSystemLoad: NervousSystemLoad;
+    sessionScore: number;
+    styleProfile: string;
+    summary: string;
+    createdAt: string;
+  }[];
   loading: boolean;
   onOpen: (id: number) => void;
 }) {
@@ -451,9 +629,17 @@ function History({
               <div className="flex items-baseline justify-between gap-3">
                 <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/85">
                   {a.kind}
+                  {a.styleProfile ? ` · ${a.styleProfile}` : ""}
                 </span>
-                <span className={`font-mono text-[9px] uppercase tracking-widest ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}>
-                  {LOAD_LABEL[a.nervousSystemLoad]}
+                <span className="flex items-baseline gap-2">
+                  {a.sessionScore > 0 && (
+                    <span className="font-mono text-[11px] text-foreground/90">{a.sessionScore}</span>
+                  )}
+                  <span
+                    className={`font-mono text-[9px] uppercase tracking-widest ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}
+                  >
+                    {LOAD_LABEL[a.nervousSystemLoad]}
+                  </span>
                 </span>
               </div>
               <p className="text-sm text-foreground/70 leading-snug mt-1 line-clamp-2">
