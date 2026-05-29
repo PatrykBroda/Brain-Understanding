@@ -6,6 +6,7 @@ import { useMemory } from "@/hooks/use-memory";
 import { BottomNav } from "@/components/bottom-nav";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { Belt } from "@/components/belt";
+import { getArchetype } from "@workspace/archetypes";
 import { Link } from "wouter";
 import { ChevronLeft, LogOut } from "lucide-react";
 import { api, type FactCategory } from "@/lib/api";
@@ -160,6 +161,22 @@ export default function ProfilePage() {
                   </div>
                 )}
 
+                {/* Archetype mythology — the combat identity behind the emblem */}
+                {(() => {
+                  const arch = fighter.spiritAnimal ? getArchetype(fighter.spiritAnimal) : null;
+                  if (!arch) return null;
+                  return (
+                    <div className="border border-border/50 px-3 py-3 mb-5 space-y-3">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                        {arch.name} · archetype
+                      </div>
+                      <ArchLine label="Under pressure" text={arch.pressureSignature} />
+                      <ArchLine label="Gift" text={arch.gift} />
+                      <ArchLine label="Shadow" text={arch.shadow} />
+                    </div>
+                  );
+                })()}
+
                 {/* Belt / rank */}
                 <div className="mb-5">
                   <Belt level={fighter.level} />
@@ -197,7 +214,11 @@ export default function ProfilePage() {
                       />
                     ))}
                   </div>
-                  <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/85 mt-2">
+                  <div className="text-[11px] text-muted-foreground/90 leading-relaxed mt-2">
+                    How much of your structure survives when pressure spikes — composure under
+                    fragmentation, not a fitness score.
+                  </div>
+                  <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70 mt-1.5">
                     Sharpens with use. Built from observations, calibrations, recorded patterns.
                   </div>
                 </div>
@@ -352,6 +373,17 @@ function Stat({ label, value }: { label: string; value: string }) {
         {label}
       </div>
       <div className="text-sm text-foreground/95 font-mono">{value}</div>
+    </div>
+  );
+}
+
+function ArchLine({ label, text }: { label: string; text: string }) {
+  return (
+    <div>
+      <div className="font-mono text-[9px] uppercase tracking-widest text-primary/80 mb-1">
+        {label}
+      </div>
+      <p className="text-xs text-foreground/85 leading-relaxed">{text}</p>
     </div>
   );
 }

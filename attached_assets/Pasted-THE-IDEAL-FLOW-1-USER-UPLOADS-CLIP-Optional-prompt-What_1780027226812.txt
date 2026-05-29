@@ -1,0 +1,221 @@
+THE IDEAL FLOW
+1. USER UPLOADS CLIP
+
+Optional prompt:
+
+What do you want analysed?
+
+Examples:
+- pressure handling
+- boxing only
+- defensive reactions
+- aggression
+- composure under fatigue
+- takedown defence
+
+This is VERY important because:
+the AI now knows context.
+
+2. ANALYSIS FEELS CINEMATIC
+
+Current keyframe layout is actually good.
+
+Keep:
+
+black UI
+frame captures
+skeletal overlay
+timestamps
+
+But improve:
+
+spacing
+typography
+hierarchy
+stats presentation
+3. THE RESULTS CARD (MOST IMPORTANT)
+
+THIS is your viral/shareable mechanic.
+
+You want:
+
+“FRAME REPORT”
+
+Something users WANT to post.
+
+EXAMPLE CARD
+FRAME REPORT
+
+STYLE PROFILE:
+Pressure Counter Striker
+
+AGGRESSION ........ 74
+COMPOSURE ......... 68
+REACTION SPEED .... 81
+DEFENSIVE RECOVERY  59
+FRAGMENTATION RISK  HIGH
+
+NOTES:
+- Strong forward pressure
+- Hesitates after combinations
+- Guard recovery inconsistent
+
+STYLE PARALLELS:
+Early McGregor
+Petr Yan
+
+SESSION SCORE:
+72/100
+
+With:
+
+cinematic black background
+subtle grain
+red accents
+keyframe thumbnails
+belt color
+spirit animal maybe small in corner
+
+This becomes INCREDIBLY shareable.
+
+COMPARISON TO PREVIOUS SESSIONS
+
+This is where the app starts feeling intelligent.
+
+Example:
+
+COMPARED TO LAST SESSION
+
++12 aggression
++8 composure
+-4 defensive discipline
+
+Fragmentation reduced during later rounds.
+
+Now users feel progression.
+
+That creates retention.
+
+THE AI COMMENTS
+
+THIS is where the personality comes in.
+
+Not too meme-y.
+
+Example:
+
+You fight like someone who enjoys chaos slightly too much.
+
+Your pressure is improving though.
+People are reacting to your feints now.
+
+Or:
+
+That lead hand is causing problems.
+
+You’re starting to bait reactions instead of forcing them.
+Much smarter than your last upload.
+
+This feels HUMAN.
+
+STYLE COMPARISON SYSTEM
+
+Make it grounded.
+
+NOT:
+
+“You ARE Conor.”
+
+Instead:
+
+Your entry timing and stance-switching resembles early McGregor.
+
+Not identical —
+but the way you freeze before attacking is similar.
+
+This preserves credibility.
+
+THE KEYFRAME SCREEN
+
+The structure is good already.
+
+But you should evolve it into:
+
+DETECTED EVENTS
+guard dropped
+overextension
+successful slip
+delayed recovery
+stance collapse
+fragmentation
+successful feint
+
+Then users can click each frame.
+
+VERY addictive.
+
+IMPORTANT:
+THE APP SHOULD FEEL LIKE A PERFORMANCE DOCUMENTARY
+
+Not:
+
+gym app
+calorie tracker
+AI chatbot
+
+Think:
+
+tactical breakdown
+elite athlete system
+psychological combat analysis
+THE SHARE CARD IS YOUR GROWTH LOOP
+
+People WILL post:
+
+FRAME REPORT
+COMPOSURE: 81
+PRESSURE RATING: 77
+STYLE: COUNTER STRIKER
+
+Especially if it looks:
+
+dark
+cinematic
+elite
+
+That’s free marketing.
+
+UI IMPROVEMENTS
+
+The current screenshot still feels a bit:
+
+dev-tool-ish
+prototype-ish
+
+You need:
+
+stronger typography
+cleaner spacing
+better framing
+subtle motion
+premium presentation
+
+Add:
+
+animated scan lines
+loading phrases
+stat bars
+soft red glow for danger states
+HUGE FEATURE IDEA
+“WHAT CHANGED?”
+
+After each upload:
+
+SINCE LAST SESSION:
+
+You’re less reactive under pressure.
+Still overcommitting after combinations.
+Balance improved noticeably.
+
+THIS creates:
+identity evolution.

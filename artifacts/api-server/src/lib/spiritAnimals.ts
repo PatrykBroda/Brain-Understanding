@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Logger } from "pino";
 import type { Fighter } from "@workspace/db";
+import { ARCHETYPES, archetypeName, isArchetypeKey, type ArchetypeKey } from "@workspace/archetypes";
 
 const baseURL = process.env["AI_INTEGRATIONS_ANTHROPIC_BASE_URL"];
 const apiKey = process.env["AI_INTEGRATIONS_ANTHROPIC_API_KEY"];
@@ -9,30 +10,19 @@ if (!baseURL || !apiKey) {
 }
 const client = new Anthropic({ baseURL, apiKey });
 
-// Curated bestiary. The AI may only choose one of these keys; each maps to a
-// pre-rendered emblem in the coach app (public/spirit/<key>.png).
-export const SPIRIT_ANIMALS = [
-  { key: "wolf", name: "Wolf", essence: "relentless pressure, chains attacks, never lets the pace drop" },
-  { key: "falcon", name: "Falcon", essence: "precise and fast, strikes from sharp angles, hunts openings" },
-  { key: "bear", name: "Bear", essence: "heavy and immovable, smothering top pressure, grinds people down" },
-  { key: "cobra", name: "Cobra", essence: "patient and baiting, sits still then explodes into the finish" },
-  { key: "panther", name: "Panther", essence: "silent, fluid, deceptive — ambushes and slips frames" },
-  { key: "ox", name: "Ox", essence: "endurance and forward walk, outlasts and breaks the will" },
-  { key: "shark", name: "Shark", essence: "constant forward pressure, smells fatigue and swarms it" },
-  { key: "eagle", name: "Eagle", essence: "vision and control, manages range and distance, sees two moves ahead" },
-  { key: "mantis", name: "Mantis", essence: "technical trap-setter, builds frames and angles, springs the snare" },
-  { key: "ram", name: "Ram", essence: "head-on collision, pure will, walks through the storm" },
-] as const;
+// The bestiary is the shared FRAME archetype mythology. The AI may only choose
+// one of these keys; each maps to a pre-rendered emblem in the coach app
+// (public/spirit/<key>.png).
+const KEYS = ARCHETYPES.map((a) => a.key);
 
-export type SpiritAnimalKey = (typeof SPIRIT_ANIMALS)[number]["key"];
-const KEYS = SPIRIT_ANIMALS.map((a) => a.key);
+export type SpiritAnimalKey = ArchetypeKey;
 
 export function isSpiritAnimalKey(v: string): v is SpiritAnimalKey {
-  return (KEYS as string[]).includes(v);
+  return isArchetypeKey(v);
 }
 
 export function spiritAnimalName(key: string): string {
-  return SPIRIT_ANIMALS.find((a) => a.key === key)?.name ?? "";
+  return archetypeName(key);
 }
 
 const SYSTEM = `You read a martial artist's self-description and assign them a spirit animal from a fixed bestiary, the way a sharp old coach would size up a new athlete in one glance.
@@ -69,7 +59,9 @@ export async function deriveSpiritAnimal(
   log: Logger,
 ): Promise<{ animal: SpiritAnimalKey; tagline: string } | null> {
   try {
-    const bestiary = SPIRIT_ANIMALS.map((a) => `- ${a.key}: ${a.essence}`).join("\n");
+    const bestiary = ARCHETYPES.map(
+      (a) => `- ${a.key}: ${a.essence}. Under pressure: ${a.pressureSignature}`,
+    ).join("\n");
     const userMessage = `BESTIARY (choose one key):
 ${bestiary}
 

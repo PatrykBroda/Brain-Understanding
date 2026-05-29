@@ -1,4 +1,2 @@
-- [Framer-motion dual React in pnpm](framer-motion-dual-react.md) — motion.* components crash with "useContext on null" when pnpm hoists framer-motion's own React copy; prefer CSS keyframes.
-- [Inline style keyframes timing trap](inline-style-keyframes-timing.md) — `<style>` injected at end of JSX with `animation: ... both` + opacity:0 from-state can leave elements invisible during screenshot capture; static or short delays only.
-- [No fake percentages / biometrics](no-fake-percentages-constraint.md) — HARD brand rule: never numeric % readiness/integrity scores; express derived signal as categorical label + discrete segments.
-- [Competition Mode + vocabulary growth](competition-mode-and-vocabulary.md) — comp active through whole event day (eventDate>=startOfToday, don't "fix" to now); vocab tier derived from technical_knowledge facts, persisted as high-water mark.
+- [Shared literal-keyed data libs](shared-const-data-libs.md) — use `as const satisfies readonly T[]` (not `: readonly T[]`) so key unions survive for predicates/Record types across packages.
+- [No-fake-percentages pillar](no-fake-percentages-constraint.md) — FRAME never shows numeric scores/biometrics; honor "give me a number" requests via categorical/interpretive language and flag the tension.

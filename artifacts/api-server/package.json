@@ -15,6 +15,7 @@
     "@clerk/express": "^2.1.21",
     "@clerk/shared": "^4.13.1",
     "@workspace/api-zod": "workspace:*",
+    "@workspace/archetypes": "workspace:*",
     "@workspace/db": "workspace:*",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",

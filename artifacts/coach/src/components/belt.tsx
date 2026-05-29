@@ -1,36 +1,32 @@
-type BeltStyle = { body: string; bar: string; label: string };
+import { BELT_PSYCHOLOGY, BELT_ORDER, beltKeyOf, beltMeaning, type BeltKey } from "@workspace/archetypes";
 
-const BELTS: Record<string, BeltStyle> = {
-  white: { body: "#e7e2d2", bar: "#0d0d0d", label: "White belt" },
-  blue: { body: "#1f5fc4", bar: "#0a0a0a", label: "Blue belt" },
-  purple: { body: "#6b32c9", bar: "#0a0a0a", label: "Purple belt" },
-  brown: { body: "#5a3a22", bar: "#0a0a0a", label: "Brown belt" },
-  black: { body: "#0c0c0c", bar: "#b3261e", label: "Black belt" },
+type BeltColor = { body: string; bar: string };
+
+const COLORS: Record<BeltKey, BeltColor> = {
+  white: { body: "#e7e2d2", bar: "#0d0d0d" },
+  blue: { body: "#1f5fc4", bar: "#0a0a0a" },
+  purple: { body: "#6b32c9", bar: "#0a0a0a" },
+  brown: { body: "#5a3a22", bar: "#0a0a0a" },
+  black: { body: "#0c0c0c", bar: "#b3261e" },
 };
 
-const ORDER = ["white", "blue", "purple", "brown", "black"];
-
-export function beltKey(level: string): string | null {
-  const l = level.toLowerCase();
-  if (l.startsWith("white")) return "white";
-  if (l.startsWith("blue")) return "blue";
-  if (l.startsWith("purple")) return "purple";
-  if (l.startsWith("brown")) return "brown";
-  if (l.startsWith("black")) return "black";
-  return null;
+export function beltKey(level: string): BeltKey | null {
+  return beltKeyOf(level);
 }
 
-// A BJJ-style belt: the belt body in rank colour with the black (or red, at
-// black belt) rank bar near the tip. Below it, a quiet rank ladder shows
-// progression so the athlete can see where they are and what is next.
-export function Belt({ level }: { level: string }) {
+// A BJJ-style belt rendered in rank colour with the rank bar near the tip.
+// FRAME reinterprets the ladder psychologically: rank is not a technique
+// catalogue, it is how the nervous system behaves under load. Below the belt we
+// surface that psychological state + a quiet rank ladder for progression.
+export function Belt({ level, showMeaning = true }: { level: string; showMeaning?: boolean }) {
   const key = beltKey(level);
-  const style = key ? BELTS[key] : null;
+  const color = key ? COLORS[key] : null;
+  const meaning = key ? beltMeaning(key) : null;
 
-  if (!style || !key) {
+  if (!key || !color || !meaning) {
     return (
       <div>
-        <div className="h-6 w-full bg-secondary/60 border border-border/60" />
+        <div className="h-7 w-full bg-secondary/60 border border-border/60" />
         <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mt-2">
           Unranked / other
         </div>
@@ -38,40 +34,46 @@ export function Belt({ level }: { level: string }) {
     );
   }
 
-  const idx = ORDER.indexOf(key);
+  const idx = BELT_ORDER.indexOf(key);
 
   return (
     <div>
       <div
         className="relative h-7 w-full overflow-hidden border border-black/40"
-        style={{ background: style.body }}
-        aria-label={style.label}
+        style={{ background: color.body }}
+        aria-label={meaning.label}
       >
-        {/* rank bar near the tip */}
-        <div
-          className="absolute top-0 right-8 h-full w-14"
-          style={{ background: style.bar }}
-        />
+        <div className="absolute top-0 right-8 h-full w-14" style={{ background: color.bar }} />
       </div>
+
       <div className="flex items-center justify-between mt-2">
         <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
-          {style.label}
+          {meaning.label}
         </div>
         <div className="flex items-center gap-1.5">
-          {ORDER.map((b, i) => (
+          {BELT_ORDER.map((b, i) => (
             <span
               key={b}
               className="h-1.5 w-4"
               style={{
-                background: i <= idx ? BELTS[b].body : "transparent",
+                background: i <= idx ? COLORS[b].body : "transparent",
                 border: i <= idx ? "none" : "1px solid hsl(var(--border))",
                 opacity: i <= idx ? 1 : 0.6,
               }}
-              title={BELTS[b].label}
+              title={`${BELT_PSYCHOLOGY[i].label} — ${BELT_PSYCHOLOGY[i].state}`}
             />
           ))}
         </div>
       </div>
+
+      {showMeaning && (
+        <div className="mt-3 border-l border-primary/40 pl-3">
+          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/90">
+            {meaning.state}
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed mt-1">{meaning.meaning}</p>
+        </div>
+      )}
     </div>
   );
 }

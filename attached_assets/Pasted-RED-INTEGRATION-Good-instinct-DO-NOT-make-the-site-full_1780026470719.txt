@@ -1,0 +1,187 @@
+RED INTEGRATION
+
+Good instinct.
+
+DO NOT make the site fully red.
+
+Instead:
+red should represent:
+
+pressure
+danger
+competition mode
+fragmentation risk
+urgency
+
+So:
+
+normal UI = monochrome/dark
+comp mode slowly introduces red
+closer to fight = more red
+
+Psychologically powerful.
+
+COMPETITION MODE EVOLUTION
+
+This is where the app becomes insane.
+
+User enters:
+
+competition date
+weigh-in date
+target weight
+rule set
+opponent style maybe later
+
+Then:
+
+THE ENTIRE APP CHANGES.
+
+PHASE SYSTEM
+6+ weeks
+
+Controlled prep.
+
+4 weeks
+
+Pressure increasing.
+
+2 weeks
+
+Lock-in mode.
+
+Fight week
+
+Extreme minimal UI.
+Everything serious.
+
+AI PRESSURE ADAPTATION
+
+As fight approaches:
+
+notifications change tone
+AI gets stricter
+recovery warnings more serious
+distractions reduced
+UI darker/redder
+
+Example:
+
+14 DAYS
+
+You're still fragmenting after heavy exchanges.
+That needs solving now.
+
+This creates emotional immersion.
+
+ADAPTIVE LANGUAGE SYSTEM
+
+This is VERY important and honestly advanced product thinking.
+
+You want:
+
+intelligence mirroring.
+
+The AI adapts:
+
+vocabulary
+tone
+explanation depth
+emotional style
+
+Beginner:
+
+“Fragmented means mentally scattered.”
+
+Advanced:
+
+“Your nervous system becomes disorganized under pressure.”
+
+CLICKABLE TERM EXPLANATIONS
+
+Amazing idea.
+
+Example:
+
+You're becoming [ fragmented ] during exchanges.
+
+User clicks:
+
+“Fragmented = losing composure and structure under stress.”
+
+This makes users learn your philosophy over time.
+
+You’re basically building:
+
+FRAME language.
+
+That’s branding.
+
+ADAPTIVE FRICTION SCALING
+
+This might be your strongest idea.
+
+Most apps:
+
+static difficulty
+
+Yours:
+
+pressure-responsive
+
+Example:
+If user misses training:
+AI reduces overload temporarily.
+
+If user consistent:
+AI pushes harder.
+
+If competition close:
+AI increases accountability.
+
+This makes the AI feel ALIVE.
+
+FRAME INTEGRITY PROBLEM
+
+You’re right.
+
+Currently:
+“Frame integrity”
+sounds cool but lacks punch.
+
+You need clearer emotional meaning.
+
+Possible evolution:
+
+Weak	Better
+Frame Integrity	Nervous System Integrity
+Fragmentation	Pressure Collapse
+Stability	Composure
+Neural Readiness	Combat Readiness
+System Load	Fatigue Load
+
+OR:
+
+Keep FRAME as the brand…
+…but simplify the language underneath.
+
+Example:
+
+FRAME SCORE: 74
+
+Composure stable.
+Reaction timing degraded under fatigue.
+
+Much stronger.
+
+WHAT YOU’RE ACTUALLY BUILDING
+
+This is becoming:
+
+part combat OS
+part performance psychology engine
+part identity progression system
+part nervous system tracker
+part ritual/hype platform
+
+That’s FAR more interesting than:

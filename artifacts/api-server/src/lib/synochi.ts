@@ -1,6 +1,7 @@
 import { SYNOCHI_VAULT } from "./synochi.generated";
 import type { RetrievedNode } from "./vaultRetrieval";
 import type { Fighter, Calibration, AthleteFact } from "@workspace/db";
+import { getArchetype } from "@workspace/archetypes";
 
 export const COACH_SYSTEM_PROMPT_STATIC = `You are FRAME.
 
@@ -222,6 +223,13 @@ const CATEGORY_ORDER = [
   "context",
 ];
 
+function archetypeLine(fighter: Fighter): string | null {
+  if (!fighter.spiritAnimal) return null;
+  const arch = getArchetype(fighter.spiritAnimal);
+  if (!arch) return null;
+  return `Archetype: ${arch.name} — under pressure: ${arch.pressureSignature} Gift: ${arch.gift} Shadow: ${arch.shadow}${fighter.spiritAnimalTagline ? ` (read: ${fighter.spiritAnimalTagline})` : ""}`;
+}
+
 export function buildDynamicContext(
   fighter: Fighter,
   facts: AthleteFact[],
@@ -236,6 +244,7 @@ export function buildDynamicContext(
     `Level: ${fighter.level}`,
     `Training frequency: ${fighter.trainingFrequency}`,
     `Competes: ${fighter.competes ? "yes" : "no"}`,
+    archetypeLine(fighter),
     fighter.goals ? `Stated goals: ${fighter.goals}` : null,
     fighter.weaknesses ? `Stated weaknesses: ${fighter.weaknesses}` : null,
   ]
