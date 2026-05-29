@@ -7,6 +7,7 @@ import calibrationRouter from "./calibration";
 import memoryRouter from "./memory";
 import attachmentsRouter from "./attachments";
 import plannerRouter from "./planner";
+import analysisRouter from "./analysis";
 import { requireAuth } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
@@ -23,6 +24,7 @@ router.use(calibrationRouter);
 router.use(memoryRouter);
 router.use(attachmentsRouter);
 router.use(plannerRouter);
+router.use(analysisRouter);
 router.use(coachRouter);
 
 export default router;

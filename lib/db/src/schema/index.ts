@@ -7,3 +7,4 @@ export * from "./athlete_signals";
 export * from "./athlete_facts";
 export * from "./attachments";
 export * from "./weekly_plans";
+export * from "./video_analyses";

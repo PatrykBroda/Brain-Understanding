@@ -192,5 +192,87 @@ export const plannerApi = {
     }),
 };
 
+export type AnalysisKind =
+  | "sparring"
+  | "padwork"
+  | "shadowboxing"
+  | "drilling"
+  | "movement"
+  | "lifting";
+
+export type NervousSystemLoad = "low" | "moderate" | "elevated" | "high";
+
+export type AnalysisFinding = {
+  title: string;
+  observation: string;
+  nervousSystemFraming: string;
+  severity: "low" | "medium" | "high";
+  area: string;
+};
+
+export type AnalysisSignal = {
+  key: string;
+  label: string;
+  value: string;
+  detail: string;
+};
+
+export type AnalysisMetrics = {
+  framesAnalysed: number;
+  poseFrames: number;
+  durationSec: number;
+  loadBasis: string;
+  signals: AnalysisSignal[];
+};
+
+export type AnalysisKeyframe = {
+  timestamp: number;
+  imageBase64: string;
+  caption: string;
+};
+
+export type VideoAnalysis = {
+  id: number;
+  fighterId: number;
+  kind: AnalysisKind;
+  nervousSystemLoad: NervousSystemLoad;
+  summary: string;
+  findings: AnalysisFinding[];
+  metrics: AnalysisMetrics;
+  keyframes: AnalysisKeyframe[];
+  durationSec: number;
+  createdAt: string;
+};
+
+export type AnalysisListItem = {
+  id: number;
+  kind: AnalysisKind;
+  nervousSystemLoad: NervousSystemLoad;
+  summary: string;
+  durationSec: number;
+  createdAt: string;
+};
+
+export type CreateAnalysisInput = {
+  kind: AnalysisKind;
+  load: NervousSystemLoad;
+  loadBasis: string;
+  durationSec: number;
+  framesAnalysed: number;
+  poseFrames: number;
+  signals: AnalysisSignal[];
+  keyframes: AnalysisKeyframe[];
+};
+
+export const analysisApi = {
+  list: () => jsonFetch<{ analyses: AnalysisListItem[] }>("api/analysis"),
+  get: (id: number) => jsonFetch<{ analysis: VideoAnalysis }>(`api/analysis/${id}`),
+  create: (input: CreateAnalysisInput) =>
+    jsonFetch<{ analysis: VideoAnalysis }>("api/analysis", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+};
+
 export const coachChatUrl = `${base}api/coach/chat`;
 export const attachmentFileUrl = (id: number) => `${base}api/attachments/${id}/file`;

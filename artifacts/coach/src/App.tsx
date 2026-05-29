@@ -12,6 +12,7 @@ import OnboardingPage from "@/pages/onboarding";
 import HomePage from "@/pages/home";
 import ProfilePage from "@/pages/profile";
 import PlannerPage from "@/pages/planner";
+import AnalysePage from "@/pages/analyse";
 import SplashPage from "@/pages/splash";
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
@@ -219,6 +220,11 @@ function AppRoutes() {
             <Route path="/planner">
               <Authed>
                 <PlannerPage />
+              </Authed>
+            </Route>
+            <Route path="/analyse">
+              <Authed>
+                <AnalysePage />
               </Authed>
             </Route>
             <Route component={NotFound} />
