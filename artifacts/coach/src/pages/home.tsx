@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { Shield } from "lucide-react";
 import { CosmicOrb } from "@/components/cosmic-orb";
 import { BottomNav } from "@/components/bottom-nav";
+import { CompetitionBanner } from "@/components/competition-banner";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { useFrameState } from "@/hooks/use-frame-state";
@@ -17,7 +18,7 @@ export default function HomePage() {
     <div
       className="relative grid h-[100dvh] text-foreground overflow-hidden"
       style={{
-        gridTemplateRows: "auto minmax(0,1fr) auto auto",
+        gridTemplateRows: "auto auto minmax(0,1fr) auto auto",
         background: "#000",
       }}
     >
@@ -59,6 +60,10 @@ export default function HomePage() {
           <Shield className="w-[15px] h-[15px]" strokeWidth={1.2} />
         </Link>
       </header>
+
+      <div className="relative z-10">
+        <CompetitionBanner />
+      </div>
 
       <main className="relative z-10 min-h-0 grid place-items-center overflow-hidden px-6">
         <div className="frame-fade-in h-full w-full grid place-items-center">

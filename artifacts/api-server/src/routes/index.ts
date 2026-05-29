@@ -8,6 +8,7 @@ import memoryRouter from "./memory";
 import attachmentsRouter from "./attachments";
 import plannerRouter from "./planner";
 import analysisRouter from "./analysis";
+import competitionRouter from "./competition";
 import { requireAuth } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
@@ -25,6 +26,7 @@ router.use(memoryRouter);
 router.use(attachmentsRouter);
 router.use(plannerRouter);
 router.use(analysisRouter);
+router.use(competitionRouter);
 router.use(coachRouter);
 
 export default router;

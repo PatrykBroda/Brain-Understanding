@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { DrillCard, type Drill } from "./drill-card";
+import { GLOSSARY, GLOSSARY_KEYS } from "@/lib/glossary";
 
 type Segment =
   | { kind: "text"; text: string }
@@ -32,6 +34,66 @@ function segment(content: string): Segment[] {
   return out;
 }
 
+function escapeRe(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// One combined regex for all glossary terms, longest-first, word-bounded.
+const GLOSSARY_RE = new RegExp(
+  `\\b(${GLOSSARY_KEYS.map(escapeRe).join("|")})\\b`,
+  "gi",
+);
+
+function Glossable({ term, gloss }: { term: string; gloss: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-block">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="glossable"
+        aria-expanded={open}
+      >
+        {term}
+      </button>
+      {open && (
+        <span
+          role="tooltip"
+          className="absolute left-0 bottom-full z-20 mb-1 w-60 max-w-[70vw] rounded-sm border border-primary/30 bg-popover px-3 py-2 text-[0.78rem] leading-snug text-foreground/90 shadow-lg"
+        >
+          <span className="block font-mono text-[9px] uppercase tracking-widest text-primary/70 mb-1">
+            {term}
+          </span>
+          {gloss}
+        </span>
+      )}
+    </span>
+  );
+}
+
+// Split a plain text run into spans, wrapping any glossary term in a Glossable.
+function withGlossary(text: string, baseKey: string) {
+  const nodes: React.ReactNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  GLOSSARY_RE.lastIndex = 0;
+  let i = 0;
+  while ((m = GLOSSARY_RE.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index));
+    const matched = m[0];
+    const gloss = GLOSSARY[matched.toLowerCase()];
+    if (gloss) {
+      nodes.push(<Glossable key={`${baseKey}-g-${i}`} term={matched} gloss={gloss} />);
+    } else {
+      nodes.push(matched);
+    }
+    last = m.index + matched.length;
+    i += 1;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  return nodes;
+}
+
 function renderInline(text: string, baseKey: string) {
   // [[concept]] and **bold**
   const parts = text.split(/(\[\[[^\]]+\]\]|\*\*[^*]+\*\*)/g);
@@ -51,7 +113,7 @@ function renderInline(text: string, baseKey: string) {
         </strong>
       );
     }
-    return <span key={key}>{p}</span>;
+    return <span key={key}>{withGlossary(p, key)}</span>;
   });
 }
 

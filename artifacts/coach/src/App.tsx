@@ -13,6 +13,7 @@ import HomePage from "@/pages/home";
 import ProfilePage from "@/pages/profile";
 import PlannerPage from "@/pages/planner";
 import AnalysePage from "@/pages/analyse";
+import CompetitionPage from "@/pages/competition";
 import SplashPage from "@/pages/splash";
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
@@ -225,6 +226,11 @@ function AppRoutes() {
             <Route path="/analyse">
               <Authed>
                 <AnalysePage />
+              </Authed>
+            </Route>
+            <Route path="/competition">
+              <Authed>
+                <CompetitionPage />
               </Authed>
             </Route>
             <Route component={NotFound} />

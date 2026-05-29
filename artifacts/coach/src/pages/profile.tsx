@@ -5,6 +5,7 @@ import { useFighter } from "@/hooks/use-fighter";
 import { useMemory } from "@/hooks/use-memory";
 import { BottomNav } from "@/components/bottom-nav";
 import { FrameOctagon } from "@/components/frame-octagon";
+import { Belt } from "@/components/belt";
 import { Link } from "wouter";
 import { ChevronLeft, LogOut } from "lucide-react";
 import { api, type FactCategory } from "@/lib/api";
@@ -65,13 +66,31 @@ export default function ProfilePage() {
         ? 0
         : facts.reduce((s, f) => s + f.confidence, 0) / facts.length;
 
+    // Interpretive model density — how much real signal the frame is built on.
+    // Categorical, never a fake percentage. Derived from recorded facts + reps.
     const integrityRaw = Math.min(
       1,
       facts.length / 24 + Math.min(userTurns / 30, 0.4),
     );
-    const integrityPct = Math.round(integrityRaw * 100);
+    const integritySegments = Math.max(
+      facts.length === 0 ? 0 : 1,
+      Math.round(integrityRaw * 5),
+    );
+    let integrityLabel = "Dormant";
+    if (integritySegments >= 5) integrityLabel = "Tempered";
+    else if (integritySegments === 4) integrityLabel = "Solid";
+    else if (integritySegments === 3) integrityLabel = "Holding";
+    else if (integritySegments === 2) integrityLabel = "Taking shape";
+    else if (integritySegments === 1) integrityLabel = "Forming";
 
-    return { userTurns, coachTurns, sinceDays, avgConf, integrityPct };
+    return {
+      userTurns,
+      coachTurns,
+      sinceDays,
+      avgConf,
+      integritySegments,
+      integrityLabel,
+    };
   }, [messages, facts, fighter]);
 
   return (
@@ -99,19 +118,35 @@ export default function ProfilePage() {
           {fighter ? (
             <>
               <section>
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="relative">
-                    <FrameOctagon size={72} spinSeconds={120} glow />
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none font-mono text-base uppercase tracking-widest text-primary">
-                      {fighter.name.charAt(0)}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="relative flex-none">
+                    <FrameOctagon size={84} spinSeconds={120} glow />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      {fighter.spiritAnimal ? (
+                        <img
+                          src={`${basePath}/spirit/${fighter.spiritAnimal}.png`}
+                          alt={`${fighter.spiritAnimal} spirit`}
+                          className="w-[58%] h-[58%] object-cover rounded-full"
+                          draggable={false}
+                        />
+                      ) : (
+                        <span className="font-mono text-base uppercase tracking-widest text-primary">
+                          {fighter.name.charAt(0)}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div>
-                    <div className="font-mono text-base uppercase tracking-widest text-foreground/95">
+                  <div className="min-w-0">
+                    <div className="font-mono text-base uppercase tracking-widest text-foreground/95 truncate">
                       {fighter.name}
                     </div>
+                    {fighter.spiritAnimal && (
+                      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/85 mt-1">
+                        Spirit · {fighter.spiritAnimal}
+                      </div>
+                    )}
                     <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-                      {fighter.art} · {fighter.level}
+                      {fighter.art}
                     </div>
                     <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">
                       {fighter.trainingFrequency}
@@ -119,24 +154,51 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Frame integrity gauge */}
+                {fighter.spiritAnimalTagline && (
+                  <div className="border-l-2 border-primary/50 pl-3 py-1 mb-5 text-sm text-foreground/85 italic leading-snug">
+                    {fighter.spiritAnimalTagline}
+                  </div>
+                )}
+
+                {/* Belt / rank */}
+                <div className="mb-5">
+                  <Belt level={fighter.level} />
+                </div>
+
+                <Link
+                  href="/competition"
+                  className="flex items-center justify-between border border-white/[0.08] px-4 py-3 mb-5 hover:border-[hsl(var(--red-accent))]/50 transition-colors group"
+                >
+                  <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/70 group-hover:text-[hsl(var(--red-accent))] transition-colors">
+                    Competition mode
+                  </span>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/40">
+                    Schedule / countdown
+                  </span>
+                </Link>
+
+                {/* Frame integrity — interpretive, never a fake percentage */}
                 <div className="border border-border/50 px-3 py-3 mb-4">
                   <div className="flex items-baseline justify-between mb-2">
                     <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                       Frame integrity
                     </div>
                     <div className="font-mono text-[11px] uppercase tracking-widest text-primary">
-                      {stats.integrityPct}%
+                      {stats.integrityLabel}
                     </div>
                   </div>
-                  <div className="relative h-1 bg-border/60 overflow-hidden">
-                    <div
-                      className="absolute top-0 left-0 h-full bg-primary transition-all duration-700"
-                      style={{ width: `${stats.integrityPct}%` }}
-                    />
+                  <div className="flex gap-1">
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className={`h-1 flex-1 transition-colors duration-700 ${
+                          i < stats.integritySegments ? "bg-primary" : "bg-border/60"
+                        }`}
+                      />
+                    ))}
                   </div>
                   <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/85 mt-2">
-                    Sharpens with use. Resolves observations, calibrations, recorded patterns.
+                    Sharpens with use. Built from observations, calibrations, recorded patterns.
                   </div>
                 </div>
 
@@ -147,6 +209,13 @@ export default function ProfilePage() {
                   <Stat label="Transmissions" value={String(stats.userTurns)} />
                   <Stat label="Observations" value={String(facts.length)} />
                   <Stat label="Avg confidence" value={stats.avgConf > 0 ? `${stats.avgConf.toFixed(1)}/5` : "—"} />
+                  <Stat label="Vocabulary" value={`Tier ${fighter.vocabularyLevel}/5`} />
+                  <Stat
+                    label="Concepts held"
+                    value={String(
+                      facts.filter((f) => f.category === "technical_knowledge").length,
+                    )}
+                  />
                 </dl>
 
                 {fighter.goals && (

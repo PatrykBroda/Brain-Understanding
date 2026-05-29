@@ -10,6 +10,10 @@ export type Fighter = {
   goals: string;
   weaknesses: string;
   competes: boolean;
+  personality: string;
+  spiritAnimal: string;
+  spiritAnimalTagline: string;
+  vocabularyLevel: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -47,7 +51,17 @@ export type CalibrationQuestion = {
   options: string[];
 };
 
-export type FighterInput = Omit<Fighter, "id" | "createdAt" | "updatedAt">;
+export type FighterInput = {
+  name: string;
+  age: number;
+  art: string;
+  level: string;
+  trainingFrequency: string;
+  goals: string;
+  weaknesses: string;
+  competes: boolean;
+  personality: string;
+};
 
 export type FactCategory =
   | "strength"
@@ -272,6 +286,61 @@ export const analysisApi = {
       method: "POST",
       body: JSON.stringify(input),
     }),
+};
+
+export type Competition = {
+  id: number;
+  fighterId: number;
+  eventName: string;
+  discipline: string;
+  eventDate: string;
+  weighInDate: string | null;
+  targetWeight: string;
+  currentWeight: string;
+  notes: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PressureTier = "base" | "build" | "sharpen" | "peak" | "fight_week";
+
+export type CompetitionPressure = {
+  competition: Competition;
+  daysToEvent: number;
+  daysToWeighIn: number | null;
+  tier: PressureTier;
+  tierLabel: string;
+};
+
+export type CompetitionInput = {
+  eventName: string;
+  discipline?: string;
+  eventDate: string;
+  weighInDate?: string | null;
+  targetWeight?: string;
+  currentWeight?: string;
+  notes?: string;
+};
+
+export const competitionApi = {
+  active: () =>
+    jsonFetch<{ competition: Competition | null; pressure: CompetitionPressure | null }>(
+      "api/competition/active",
+    ),
+  list: () => jsonFetch<{ competitions: Competition[] }>("api/competition"),
+  create: (input: CompetitionInput) =>
+    jsonFetch<{ competition: Competition }>("api/competition", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  update: (id: number, input: Partial<CompetitionInput>) =>
+    jsonFetch<{ competition: Competition }>(`api/competition/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
+  cancel: (id: number) =>
+    jsonFetch<{ ok: true }>(`api/competition/${id}`, { method: "DELETE" }),
 };
 
 export const coachChatUrl = `${base}api/coach/chat`;

@@ -22,6 +22,7 @@ export default function OnboardingPage() {
     goals: "",
     weaknesses: "",
     competes: false,
+    personality: "",
   });
 
   const update = <K extends keyof FighterInput>(k: K, v: FighterInput[K]) =>
@@ -122,6 +123,21 @@ export default function OnboardingPage() {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className={FIELD_LABEL}>
+              Personality — who are you on and off the mat
+            </label>
+            <textarea
+              className={`${INPUT_CLASS} min-h-[80px] resize-y`}
+              value={form.personality}
+              onChange={(e) => update("personality", e.target.value)}
+              placeholder="A few honest lines. Calm or chaotic, patient or aggressive, methodical or instinctive. This sets your spirit animal."
+            />
+            <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70 mt-1.5">
+              The system reads this to assign your spirit animal.
+            </p>
           </div>
 
           <div>

@@ -6,6 +6,7 @@ import {
   messagesTable,
   calibrationsTable,
   attachmentsTable,
+  fightersTable,
   type Attachment,
 } from "@workspace/db";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
@@ -19,6 +20,12 @@ import { extractMemory } from "../lib/memoryExtractor";
 import { UPLOADS_DIR } from "./attachments";
 import { selectRelevantNodes, buildRetrievalQuery } from "../lib/vaultRetrieval";
 import { openai, OPENAI_COACH_MODEL } from "../lib/openaiClient";
+import {
+  getActiveCompetition,
+  pressureFor,
+  competitionPromptBlock,
+} from "../lib/competitionService";
+import { computeVocabulary, vocabularyPromptBlock } from "../lib/vocabulary";
 
 const OPENAI_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
@@ -103,10 +110,21 @@ router.post("/coach/welcome", async (req, res) => {
       6,
     );
 
-    const entryInstruction = `\n\n[ENTRY BRIEFING MODE]\nThe athlete just opened the frame. Produce a short opening (4-7 sentences, no preamble).\n- Open with their name in the first 1-3 words.\n- Reflect ONE specific signal you actually have on them (from their model, onboarding, or last calibration) so they feel seen.\n- Name where they appear to be right now (fresh, mid-cycle, deload, post-comp, etc. — only assert what you actually have evidence for; otherwise name the gap).\n- Offer 2 or 3 concrete entry points for this session (e.g. "debrief last roll", "tighten the half-guard pass", "regulate before tomorrow").\n- A single line of dry, earned banter about their archetype is permitted ONLY if you have a specific archetype signal. No generic motivation. No therapist energy. No questions back at the end — just open the floor.\nVoice: direct, structural, performance-grounded. End cleanly without sign-off.`;
+    const firstContact = facts.length === 0;
+    const entryInstruction = firstContact
+      ? `\n\n[ENTRY BRIEFING MODE — FIRST CONTACT]\nThis is the very first time this athlete has entered the frame. You have almost nothing on them yet — only their onboarding. Do NOT pretend to read them deeply; that would be a lie and they'll feel it.\n- Open with their name in the first 1-3 words.\n- Land ONE sharp, genuinely funny line that reads their archetype from the thin signal you DO have (their art, level, stated goal, their spirit animal "${fighter.spiritAnimal || "unassigned"}"${fighter.spiritAnimalTagline ? ` — ${fighter.spiritAnimalTagline}` : ""}). Dry, earned, specific to them — the kind of read that makes someone laugh because it's a little too accurate. Never generic, never mean, never a pun.\n- Then state plainly that you don't know them yet and the only way you sharpen is reps — every roll they bring you, every honest answer, tightens the read.\n- Offer 2 or 3 concrete first moves (e.g. "tell me your last roll", "name the position you hate", "calibrate where your game actually is").\nVoice: direct, structural, a blade with a sense of humor. No therapist energy. No questions stacked at the end — open the floor. End clean.`
+      : `\n\n[ENTRY BRIEFING MODE]\nThe athlete just opened the frame. Produce a short opening (4-7 sentences, no preamble).\n- Open with their name in the first 1-3 words.\n- Reflect ONE specific signal you actually have on them (from their model, onboarding, or last calibration) so they feel seen.\n- Name where they appear to be right now (fresh, mid-cycle, deload, post-comp, etc. — only assert what you actually have evidence for; otherwise name the gap).\n- Offer 2 or 3 concrete entry points for this session (e.g. "debrief last roll", "tighten the half-guard pass", "regulate before tomorrow").\n- A single line of dry, earned banter about their archetype is permitted ONLY if you have a specific archetype signal. No generic motivation. No therapist energy. No questions back at the end — just open the floor.\nVoice: direct, structural, performance-grounded. End cleanly without sign-off.`;
+
+    const activeComp = await getActiveCompetition(fighter.id);
+    const compBlock = activeComp
+      ? competitionPromptBlock(pressureFor(activeComp))
+      : null;
 
     const dynamicText =
-      buildDynamicContext(fighter, facts, calibrations, deepNodes) + entryInstruction;
+      buildDynamicContext(fighter, facts, calibrations, deepNodes, compBlock) +
+      "\n\n" +
+      vocabularyPromptBlock(computeVocabulary(facts)) +
+      entryInstruction;
 
     let text = "";
     if (conversation.aiProvider === "openai") {
@@ -370,8 +388,26 @@ router.post("/coach/chat", async (req, res) => {
 
   let assembled = "";
 
+  const activeComp = await getActiveCompetition(fighter.id);
+  const compBlock = activeComp
+    ? competitionPromptBlock(pressureFor(activeComp))
+    : null;
+
+  const vocab = computeVocabulary(facts);
+  // Persist the high-water mark so the profile can show real growth and the tier
+  // never regresses once earned.
+  if (vocab.tier > fighter.vocabularyLevel) {
+    db.update(fightersTable)
+      .set({ vocabularyLevel: vocab.tier })
+      .where(eq(fightersTable.id, fighter.id))
+      .catch((err) => req.log.error({ err }, "vocab level persist failed"));
+  }
+
   try {
-    const dynamicText = buildDynamicContext(fighter, facts, calibrations, deepNodes);
+    const dynamicText =
+      buildDynamicContext(fighter, facts, calibrations, deepNodes, compBlock) +
+      "\n\n" +
+      vocabularyPromptBlock(vocab);
 
     if (conversation.aiProvider === "openai") {
       const openaiMessages: ChatCompletionMessageParam[] = [

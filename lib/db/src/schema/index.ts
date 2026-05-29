@@ -8,3 +8,4 @@ export * from "./athlete_facts";
 export * from "./attachments";
 export * from "./weekly_plans";
 export * from "./video_analyses";
+export * from "./competitions";

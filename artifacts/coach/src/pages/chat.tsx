@@ -8,6 +8,7 @@ import { MessageContent } from "@/components/message-content";
 import { NervousSystemOrb } from "@/components/nervous-system-orb";
 import { EntrySequence } from "@/components/entry-sequence";
 import { BottomNav } from "@/components/bottom-nav";
+import { CompetitionBanner } from "@/components/competition-banner";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { Button } from "@/components/ui/button";
 import { api, attachmentFileUrl, type AttachmentDto } from "@/lib/api";
@@ -196,6 +197,10 @@ export default function ChatPage() {
             Reset
           </Button>
         </header>
+
+        <div className="flex-none">
+          <CompetitionBanner />
+        </div>
 
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">

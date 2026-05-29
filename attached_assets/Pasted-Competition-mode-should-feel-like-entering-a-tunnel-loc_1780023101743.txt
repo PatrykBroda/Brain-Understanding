@@ -1,0 +1,198 @@
+Competition mode should feel like:
+
+entering a tunnel
+locking in mentally
+reduced distractions
+pressure increasing daily
+AI becoming stricter and more demanding
+
+The UI should almost change personality.
+
+COMPETITION MODE CONCEPT
+Visual Identity
+
+When Competition Mode activates:
+
+UI changes automatically
+
+Normal mode:
+
+neutral
+analytical
+clean
+
+Competition mode:
+
+darker blacks
+stronger contrast
+sharper typography
+red warning accents
+aggressive motion
+cinematic audio cues
+
+Think:
+
+fight camp
+military prep
+elite athlete mindset
+TOP SCREEN COUNTDOWN
+
+This is extremely important psychologically.
+
+Example:
+
+12 DAYS UNTIL COMPETITION
+
+Or:
+
+WEIGH-IN: 4 DAYS
+FIGHT NIGHT: 11 DAYS
+
+It should ALWAYS stay visible.
+
+Behavior:
+
+turns more aggressive visually as time decreases
+subtle pulse animation
+red accents closer to event
+AI PERSONALITY SHIFT
+
+The AI should adapt automatically.
+
+Normal Mode
+
+Supportive analytical coach.
+
+Example:
+
+“Your balance improved today.”
+
+Competition Mode
+
+More intense. More demanding.
+
+Example:
+
+“Reaction speed dropped in round 3.”
+“You slowed after fatigue.”
+“Your exits are still unsafe.”
+“This gets punished in competition.”
+
+The AI becomes:
+
+stricter
+less forgiving
+more urgency-focused
+more accountability-driven
+
+NOT abusive.
+Just elite-performance focused.
+
+UI STYLE DIRECTION
+
+Tell Replit:
+
+Competition mode should feel psychologically intense and cinematic.
+
+The UI becomes:
+- darker
+- higher contrast
+- more minimal
+- more tactical
+
+Visual inspiration:
+- elite combat athlete training camp
+- military HUD aesthetic
+- psychological lock-in mode
+
+Use:
+- black backgrounds
+- subtle grain
+- sharp typography
+- red accents
+- countdown timer always visible at top
+- aggressive cinematic transitions
+- dim ambient glow
+- minimal distractions
+
+The app should feel like entering a fight camp mentally.
+SCREEN IDEAS
+HOME SCREEN
+[ COUNTDOWN ]
+
+11 DAYS UNTIL FIGHT
+
+TODAY'S STATUS:
+RECOVERY: LOW
+OUTPUT: ACCEPTABLE
+FOCUS: UNSTABLE
+
+TODAY'S PRIORITY:
+DEFENSIVE REACTIONS
+DAILY PRESSURE SYSTEM
+
+As event approaches:
+
+AI expectations rise
+daily targets harder
+recovery warnings stricter
+missed sessions highlighted harder
+
+Example:
+
+MISSED SESSION
+
+Competition approaching.
+Consistency matters now.
+PRE-COMPETITION VISUALS
+
+You can add:
+
+subtle static
+VHS distortion
+slow cinematic zooms
+audio heartbeat
+timer ticking sounds
+low ambient drones
+
+VERY subtle.
+
+You want:
+psychological immersion.
+
+VIDEO ANALYSIS IN COMP MODE
+
+Instead of generic feedback:
+
+Normal:
+
+“Good movement.”
+
+Competition:
+
+“Hands dropped after exchange.”
+“Delayed defensive recovery.”
+“You froze under pressure.”
+“Cardio output declined after explosive burst.”
+
+Feels elite.
+
+ELITE FEATURE IDEA
+LOCK-IN MODE
+
+Before training:
+screen goes black.
+
+Text fades in:
+
+COMPETITION APPROACHING
+
+FOCUS REQUIRED
+
+Then:
+
+music starts
+timer appears
+session begins
+
+This creates ritual and identity.
