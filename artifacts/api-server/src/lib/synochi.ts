@@ -180,6 +180,25 @@ When the user needs a drill, constraint round, or protocol, output it as a fence
 
 Only emit a drill block when the user actually needs a prescription. Don't pad with one. The block can be embedded inside normal prose.
 
+## Breathing protocols
+
+When the user needs to regulate their nervous system — down-regulate after a hard round, settle pre-competition nerves, reset between rounds, or recover vagal tone — prescribe an interactive guided breathing protocol as a fenced \`\`\`breath block of JSON the UI renders as a guided animation (an octagon that expands on inhale and contracts on exhale). Use this exact shape:
+
+\`\`\`breath
+{
+  "title": "string — short name, e.g. Box breathing, Down-regulation, Tactical reset",
+  "purpose": "string — one line on what this does to the nervous system and when to use it",
+  "inhale": 4,
+  "holdIn": 4,
+  "exhale": 4,
+  "holdOut": 4,
+  "rounds": 5,
+  "note": "string — optional one-line cue (e.g. nasal inhale, sighing exhale)"
+}
+\`\`\`
+
+All counts are in seconds. Set \`holdIn\` or \`holdOut\` to 0 when a phase has no hold (e.g. a 4-7-8 down-regulation has holdOut 0). Match the protocol to the goal: box breathing (4-4-4-4) for steady control, extended exhale (e.g. 4-0-8-0) for parasympathetic down-regulation, physiological sigh for acute spikes. Only emit a breath block when regulation is actually the prescription — it can sit inside normal prose alongside the coaching.
+
 # Hard rules
 
 - Never break character or refer to yourself as Claude / an AI / a language model.
@@ -223,6 +242,22 @@ const CATEGORY_ORDER = [
   "context",
 ];
 
+const SPORT_LABELS: Record<string, string> = {
+  mma: "MMA",
+  boxing: "Boxing",
+  muay_thai: "Muay Thai",
+  kickboxing: "Kickboxing",
+  bjj: "Brazilian Jiu-Jitsu",
+  wrestling: "Wrestling",
+  judo: "Judo",
+  karate: "Karate",
+  mixed: "Mixed / multiple",
+};
+
+function sportLabel(key: string): string {
+  return SPORT_LABELS[key] ?? key;
+}
+
 function archetypeLine(fighter: Fighter): string | null {
   if (!fighter.spiritAnimal) return null;
   const arch = getArchetype(fighter.spiritAnimal);
@@ -240,9 +275,13 @@ export function buildDynamicContext(
   const profile = [
     `Name: ${fighter.name}`,
     `Age: ${fighter.age}`,
+    fighter.primarySport ? `Primary combat sport: ${sportLabel(fighter.primarySport)}` : null,
     `Art: ${fighter.art}`,
     `Level: ${fighter.level}`,
     `Training frequency: ${fighter.trainingFrequency}`,
+    fighter.gym ? `Gym / team: ${fighter.gym}` : null,
+    fighter.heightCm ? `Height: ${fighter.heightCm} cm` : null,
+    fighter.weightKg ? `Walking weight: ${fighter.weightKg} kg` : null,
     `Competes: ${fighter.competes ? "yes" : "no"}`,
     archetypeLine(fighter),
     fighter.goals ? `Stated goals: ${fighter.goals}` : null,
@@ -250,6 +289,10 @@ export function buildDynamicContext(
   ]
     .filter(Boolean)
     .join("\n");
+
+  const sportBlock = fighter.primarySport
+    ? `\n\nThis athlete's primary combat sport is ${sportLabel(fighter.primarySport)}. FRAME is one nervous-system-under-pressure framework that applies across all combat sports — adapt your technical language, positions, and examples to ${sportLabel(fighter.primarySport)} (its ranges, stances, scoring, and failure modes) rather than defaulting to BJJ. The mechanisms (axis control, directional compression, threat sensitivity, breathing under load, fragmentation under pressure) are universal; the expression is sport-specific.`
+    : "";
 
   const grouped = groupFacts(facts);
   const factsBlock =
@@ -284,7 +327,7 @@ export function buildDynamicContext(
 
   return `# Athlete profile (baseline)
 
-${profile}
+${profile}${sportBlock}
 ${competitionBlock ? `\n${competitionBlock}\n` : ""}
 # Accumulated athlete model (working memory — treat as evidence, supersede when wrong)
 

@@ -4,9 +4,14 @@ export type Fighter = {
   id: number;
   name: string;
   age: number;
+  dateOfBirth: string | null;
   art: string;
+  primarySport: string;
   level: string;
   trainingFrequency: string;
+  gym: string;
+  heightCm: number | null;
+  weightKg: number | null;
   goals: string;
   weaknesses: string;
   competes: boolean;
@@ -53,15 +58,22 @@ export type CalibrationQuestion = {
 
 export type FighterInput = {
   name: string;
-  age: number;
+  // DOB is required and is the source of truth; the server derives `age` from it.
+  dateOfBirth: string;
   art: string;
+  primarySport?: string;
   level: string;
   trainingFrequency: string;
+  gym?: string;
+  heightCm?: number | null;
+  weightKg?: number | null;
   goals: string;
   weaknesses: string;
   competes: boolean;
   personality: string;
 };
+
+export type FighterUpdate = Partial<FighterInput>;
 
 export type FactCategory =
   | "strength"
@@ -116,6 +128,11 @@ export const api = {
   saveFighter: (input: FighterInput) =>
     jsonFetch<{ fighter: Fighter }>("api/fighter", {
       method: "POST",
+      body: JSON.stringify(input),
+    }),
+  updateFighter: (input: FighterUpdate) =>
+    jsonFetch<{ fighter: Fighter }>("api/fighter", {
+      method: "PATCH",
       body: JSON.stringify(input),
     }),
   getActiveConversation: () =>

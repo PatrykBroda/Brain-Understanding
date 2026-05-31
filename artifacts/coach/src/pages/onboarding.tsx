@@ -2,10 +2,7 @@ import { useState } from "react";
 import { useSaveFighter } from "@/hooks/use-fighter";
 import { Button } from "@/components/ui/button";
 import type { FighterInput } from "@/lib/api";
-
-const ARTS = ["BJJ", "BJJ + Striking", "MMA", "Wrestling", "Judo", "Other grappling"];
-const LEVELS = ["White", "Blue", "Purple", "Brown", "Black", "No belt / other"];
-const FREQUENCIES = ["1-2x / week", "3-4x / week", "5-6x / week", "Daily / pro"];
+import { ARTS, LEVELS, FREQUENCIES, SPORTS, ageFromDob } from "@/lib/fighter-options";
 
 const FIELD_LABEL = "block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2";
 const INPUT_CLASS =
@@ -66,8 +63,9 @@ export default function OnboardingPage() {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [form, setForm] = useState<FighterInput>({
     name: "",
-    age: 28,
+    dateOfBirth: "",
     art: "BJJ",
+    primarySport: "bjj",
     level: "Blue",
     trainingFrequency: "3-4x / week",
     goals: "",
@@ -100,6 +98,8 @@ export default function OnboardingPage() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || save.isPending) return;
+    // DOB is required and is the source of truth; the server derives age from it.
+    if (ageFromDob(form.dateOfBirth) == null) return;
     save.mutate({ ...form, personality: composePersonality() });
   };
 
@@ -221,16 +221,20 @@ export default function OnboardingPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={FIELD_LABEL}>Age</label>
+                <label className={FIELD_LABEL}>Date of birth</label>
                 <input
-                  type="number"
+                  type="date"
                   className={INPUT_CLASS}
-                  value={form.age}
-                  min={10}
-                  max={99}
-                  onChange={(e) => update("age", parseInt(e.target.value || "0", 10))}
+                  value={form.dateOfBirth ?? ""}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => update("dateOfBirth", e.target.value)}
                   required
                 />
+                {ageFromDob(form.dateOfBirth) != null && (
+                  <p className="mt-1.5 font-mono text-[10px] text-muted-foreground">
+                    {ageFromDob(form.dateOfBirth)} years old
+                  </p>
+                )}
               </div>
               <div>
                 <label className={FIELD_LABEL}>Training Frequency</label>
@@ -250,15 +254,15 @@ export default function OnboardingPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={FIELD_LABEL}>Primary Art</label>
+                <label className={FIELD_LABEL}>Primary Combat Sport</label>
                 <select
                   className={INPUT_CLASS}
-                  value={form.art}
-                  onChange={(e) => update("art", e.target.value)}
+                  value={form.primarySport}
+                  onChange={(e) => update("primarySport", e.target.value)}
                 >
-                  {ARTS.map((a) => (
-                    <option key={a} value={a}>
-                      {a}
+                  {SPORTS.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
                     </option>
                   ))}
                 </select>
@@ -277,6 +281,21 @@ export default function OnboardingPage() {
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label className={FIELD_LABEL}>Primary Art / Style</label>
+              <select
+                className={INPUT_CLASS}
+                value={form.art}
+                onChange={(e) => update("art", e.target.value)}
+              >
+                {ARTS.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

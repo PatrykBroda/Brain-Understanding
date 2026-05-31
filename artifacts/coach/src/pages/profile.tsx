@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useClerk, useUser } from "@clerk/react";
 import { useFighter } from "@/hooks/use-fighter";
@@ -6,9 +6,11 @@ import { useMemory } from "@/hooks/use-memory";
 import { BottomNav } from "@/components/bottom-nav";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { Belt } from "@/components/belt";
+import { ProfileEdit } from "@/components/profile-edit";
+import { sportLabel } from "@/lib/fighter-options";
 import { getArchetype } from "@workspace/archetypes";
 import { Link } from "wouter";
-import { ChevronLeft, LogOut } from "lucide-react";
+import { ChevronLeft, LogOut, Pencil } from "lucide-react";
 import { api, type FactCategory } from "@/lib/api";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -46,6 +48,7 @@ export default function ProfilePage() {
   const facts = memoryQuery.data?.facts ?? [];
   const { signOut } = useClerk();
   const { user } = useUser();
+  const [isEditing, setIsEditing] = useState(false);
 
   const convQuery = useQuery({
     queryKey: ["conversation", "active"],
@@ -111,12 +114,25 @@ export default function ProfilePage() {
             Profile
           </div>
         </div>
-        <div className="w-5" />
+        {fighter && !isEditing ? (
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="text-muted-foreground hover:text-primary transition-colors"
+            aria-label="Edit profile"
+          >
+            <Pencil className="w-4 h-4" strokeWidth={1.5} />
+          </button>
+        ) : (
+          <div className="w-5" />
+        )}
       </header>
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-md mx-auto px-5 py-6 space-y-8 pb-10">
-          {fighter ? (
+          {fighter && isEditing ? (
+            <ProfileEdit fighter={fighter} onClose={() => setIsEditing(false)} />
+          ) : fighter ? (
             <>
               <section>
                 <div className="flex items-center gap-4 mb-4">
@@ -147,11 +163,16 @@ export default function ProfilePage() {
                       </div>
                     )}
                     <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-                      {fighter.art}
+                      {fighter.primarySport ? sportLabel(fighter.primarySport) : fighter.art}
                     </div>
                     <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">
                       {fighter.trainingFrequency}
                     </div>
+                    {fighter.gym && (
+                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80 mt-0.5 truncate">
+                        {fighter.gym}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -226,6 +247,12 @@ export default function ProfilePage() {
                 <dl className="grid grid-cols-2 gap-2.5 text-sm">
                   <Stat label="Age" value={String(fighter.age)} />
                   <Stat label="Competes" value={fighter.competes ? "Yes" : "No"} />
+                  {fighter.heightCm != null && (
+                    <Stat label="Height" value={`${fighter.heightCm} cm`} />
+                  )}
+                  {fighter.weightKg != null && (
+                    <Stat label="Weight" value={`${fighter.weightKg} kg`} />
+                  )}
                   <Stat label="Days in frame" value={String(stats.sinceDays)} />
                   <Stat label="Transmissions" value={String(stats.userTurns)} />
                   <Stat label="Observations" value={String(facts.length)} />

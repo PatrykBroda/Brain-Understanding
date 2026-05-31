@@ -18,7 +18,7 @@ const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   { label: "Build drill", prompt: "Prescribe me a drill for my biggest current weakness. Use the drill block." },
   { label: "Fix my game", prompt: "Diagnose the recurring leak in my game right now and tell me the protocol to close it." },
   { label: "Competition prep", prompt: "Walk me through how to prepare my nervous system and tactics for an upcoming competition." },
-  { label: "Regulate", prompt: "I need a regulation protocol right now. Tell me what state I'm likely in and what to do." },
+  { label: "Regulate", prompt: "I need to regulate right now. Tell me what state I'm likely in, then give me a guided breathing protocol using the breath block." },
   { label: "Reflect", prompt: "Ask me one sharp question to surface what I'm not seeing about my training this week." },
 ];
 
@@ -273,7 +273,12 @@ export default function ChatPage() {
                           {msg.content}
                         </div>
                       ) : msg.content ? (
-                        <MessageContent content={msg.content} />
+                        <MessageContent
+                          content={msg.content}
+                          onTrain={(prompt) => {
+                            if (!isStreaming) sendMessage(prompt);
+                          }}
+                        />
                       ) : null}
                     </div>
                   </div>

@@ -1,32 +1,38 @@
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { DrillCard, type Drill } from "./drill-card";
-import { GLOSSARY, GLOSSARY_KEYS } from "@/lib/glossary";
+import { BreathCard, type Breath } from "./breath-card";
+import { GLOSSARY, GLOSSARY_KEYS, type GlossEntry } from "@/lib/glossary";
 
 type Segment =
   | { kind: "text"; text: string }
-  | { kind: "drill"; drill: Drill; raw: string };
+  | { kind: "drill"; drill: Drill; raw: string }
+  | { kind: "breath"; breath: Breath; raw: string };
+
+// Fenced blocks the UI renders as interactive cards (```drill / ```breath).
+const BLOCK_RE = /```(drill|breath)\s*\n([\s\S]*?)\n?```/g;
 
 function segment(content: string): Segment[] {
   const out: Segment[] = [];
-  const re = /```drill\s*\n([\s\S]*?)\n?```/g;
   let last = 0;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(content)) !== null) {
+  BLOCK_RE.lastIndex = 0;
+  while ((m = BLOCK_RE.exec(content)) !== null) {
     if (m.index > last) {
       out.push({ kind: "text", text: content.slice(last, m.index) });
     }
-    const raw = m[1] ?? "";
-    let drill: Drill = {};
+    const kind = m[1] as "drill" | "breath";
+    const raw = m[2] ?? "";
     try {
-      drill = JSON.parse(raw) as Drill;
+      const parsed = JSON.parse(raw);
+      if (kind === "drill") out.push({ kind: "drill", drill: parsed as Drill, raw });
+      else out.push({ kind: "breath", breath: parsed as Breath, raw });
     } catch {
       // not valid yet (mid-stream) — render as code-ish placeholder text
-      out.push({ kind: "text", text: "```drill\n" + raw + "\n```" });
-      last = re.lastIndex;
+      out.push({ kind: "text", text: "```" + kind + "\n" + raw + "\n```" });
+      last = BLOCK_RE.lastIndex;
       continue;
     }
-    out.push({ kind: "drill", drill, raw });
-    last = re.lastIndex;
+    last = BLOCK_RE.lastIndex;
   }
   if (last < content.length) {
     out.push({ kind: "text", text: content.slice(last) });
@@ -44,13 +50,24 @@ const GLOSSARY_RE = new RegExp(
   "gi",
 );
 
-function Glossable({ term, gloss }: { term: string; gloss: string }) {
+// Lets a glossary popover's "Train this" hand a prompt back to the chat input.
+const TrainContext = createContext<((prompt: string) => void) | null>(null);
+
+function Glossable({ term, entry }: { term: string; entry: GlossEntry }) {
   const [open, setOpen] = useState(false);
+  const [showWhy, setShowWhy] = useState(false);
+  const onTrain = useContext(TrainContext);
+
+  const close = () => {
+    setOpen(false);
+    setShowWhy(false);
+  };
+
   return (
     <span className="relative inline-block">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? close() : setOpen(true))}
         className="glossable"
         aria-expanded={open}
       >
@@ -59,12 +76,42 @@ function Glossable({ term, gloss }: { term: string; gloss: string }) {
       {open && (
         <span
           role="tooltip"
-          className="absolute left-0 bottom-full z-20 mb-1 w-60 max-w-[70vw] rounded-sm border border-primary/30 bg-popover px-3 py-2 text-[0.78rem] leading-snug text-foreground/90 shadow-lg"
+          className="absolute left-0 bottom-full z-20 mb-1 w-64 max-w-[78vw] rounded-sm border border-primary/30 bg-popover px-3 py-2.5 text-[0.78rem] leading-snug text-foreground/90 shadow-lg"
         >
           <span className="block font-mono text-[9px] uppercase tracking-widest text-primary/70 mb-1">
             {term}
           </span>
-          {gloss}
+          <span className="block">{entry.quick}</span>
+
+          {showWhy && entry.why && (
+            <span className="mt-2 block border-t border-border/40 pt-2 text-foreground/75">
+              {entry.why}
+            </span>
+          )}
+
+          <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            {entry.why && !showWhy && (
+              <button
+                type="button"
+                onClick={() => setShowWhy(true)}
+                className="font-mono text-[9px] uppercase tracking-widest text-primary/80 hover:text-primary transition-colors"
+              >
+                Why it matters
+              </button>
+            )}
+            {entry.train && onTrain && (
+              <button
+                type="button"
+                onClick={() => {
+                  onTrain(entry.train!);
+                  close();
+                }}
+                className="font-mono text-[9px] uppercase tracking-widest text-primary/80 hover:text-primary transition-colors"
+              >
+                Train this →
+              </button>
+            )}
+          </span>
         </span>
       )}
     </span>
@@ -81,9 +128,9 @@ function withGlossary(text: string, baseKey: string) {
   while ((m = GLOSSARY_RE.exec(text)) !== null) {
     if (m.index > last) nodes.push(text.slice(last, m.index));
     const matched = m[0];
-    const gloss = GLOSSARY[matched.toLowerCase()];
-    if (gloss) {
-      nodes.push(<Glossable key={`${baseKey}-g-${i}`} term={matched} gloss={gloss} />);
+    const entry = GLOSSARY[matched.toLowerCase()];
+    if (entry) {
+      nodes.push(<Glossable key={`${baseKey}-g-${i}`} term={matched} entry={entry} />);
     } else {
       nodes.push(matched);
     }
@@ -142,19 +189,31 @@ function renderText(text: string, baseKey: string) {
   });
 }
 
-export function MessageContent({ content }: { content: string }) {
+export function MessageContent({
+  content,
+  onTrain,
+}: {
+  content: string;
+  onTrain?: (prompt: string) => void;
+}) {
   const segs = segment(content);
   return (
-    <div className="space-y-4">
-      {segs.map((s, i) =>
-        s.kind === "text" ? (
-          <div key={i} className="space-y-3">
-            {renderText(s.text, `seg-${i}`)}
-          </div>
-        ) : (
-          <DrillCard key={i} drill={s.drill} />
-        ),
-      )}
-    </div>
+    <TrainContext.Provider value={onTrain ?? null}>
+      <div className="space-y-4">
+        {segs.map((s, i) => {
+          if (s.kind === "text") {
+            return (
+              <div key={i} className="space-y-3">
+                {renderText(s.text, `seg-${i}`)}
+              </div>
+            );
+          }
+          if (s.kind === "breath") {
+            return <BreathCard key={i} breath={s.breath} />;
+          }
+          return <DrillCard key={i} drill={s.drill} />;
+        })}
+      </div>
+    </TrainContext.Provider>
   );
 }

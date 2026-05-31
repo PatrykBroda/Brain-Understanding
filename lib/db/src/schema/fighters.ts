@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -11,9 +11,17 @@ export const fightersTable = pgTable("fighters", {
     .references(() => usersTable.clerkUserId, { onDelete: "cascade" }),
   name: text("name").notNull(),
   age: integer("age").notNull(),
+  // Source of truth for age going forward (ISO "YYYY-MM-DD"); `age` is kept in sync/back-compat.
+  dateOfBirth: date("date_of_birth"),
   art: text("art").notNull(),
+  // Structured primary combat sport (mma/boxing/muay_thai/kickboxing/bjj/wrestling/judo/karate/mixed).
+  // FRAME is a combat-performance system, not BJJ-only — this steers sport-specific language.
+  primarySport: text("primary_sport").notNull().default(""),
   level: text("level").notNull(),
   trainingFrequency: text("training_frequency").notNull(),
+  gym: text("gym").notNull().default(""),
+  heightCm: integer("height_cm"),
+  weightKg: integer("weight_kg"),
   goals: text("goals").notNull().default(""),
   weaknesses: text("weaknesses").notNull().default(""),
   competes: boolean("competes").notNull().default(false),
@@ -31,12 +39,35 @@ export const fightersTable = pgTable("fighters", {
     .$onUpdate(() => new Date()),
 });
 
-export const insertFighterSchema = createInsertSchema(fightersTable).omit({
-  id: true,
-  userId: true,
-  createdAt: true,
-  updatedAt: true,
-});
+// `age` is omitted everywhere the client can write: it is server-derived from
+// `dateOfBirth` (the single source of truth) so the two can never desync.
+export const insertFighterSchema = createInsertSchema(fightersTable)
+  .omit({
+    id: true,
+    userId: true,
+    age: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    dateOfBirth: z.string().date(),
+  });
+
+// Partial update for editing an existing athlete profile (PATCH /fighter).
+// Server-controlled fields stay omitted so they can't be overwritten by the client.
+export const updateFighterSchema = createInsertSchema(fightersTable)
+  .omit({
+    id: true,
+    userId: true,
+    age: true,
+    createdAt: true,
+    updatedAt: true,
+    spiritAnimal: true,
+    spiritAnimalTagline: true,
+    vocabularyLevel: true,
+  })
+  .partial();
 
 export type InsertFighter = z.infer<typeof insertFighterSchema>;
+export type UpdateFighter = z.infer<typeof updateFighterSchema>;
 export type Fighter = typeof fightersTable.$inferSelect;

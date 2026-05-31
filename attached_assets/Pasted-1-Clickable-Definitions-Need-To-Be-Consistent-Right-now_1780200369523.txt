@@ -1,0 +1,304 @@
+1. Clickable Definitions Need To Be Consistent
+
+Right now:
+
+✅ Composure works
+
+❌ Dense Calm Potential doesn't
+
+That's going to break trust immediately.
+
+Rule:
+
+Every underlined/highlighted term should either be clickable or not highlighted at all.
+
+Users shouldn't have to guess which words are interactive.
+
+I'd create 3 layers:
+
+Level 1 - Quick Definition
+
+Click:
+
+Dense Calm Potential
+
+The ability to stay mentally organized and physically relaxed under pressure.
+Level 2 - Expanded Explanation
+
+"Learn More"
+
+Why it matters:
+
+Athletes with high Dense Calm Potential
+make better decisions when tired,
+under attack, or emotionally stressed.
+Level 3 - Training Protocols
+How to improve it →
+
+Takes them straight into exercises.
+
+2. Replace Age With Birthday
+
+Absolutely.
+
+Current:
+
+Age: 27
+
+Problem:
+
+becomes wrong every year
+users forget
+
+Instead:
+
+Date of Birth
+
+Then calculate age automatically.
+
+3. Editable Athlete Profile
+
+Massive yes.
+
+You need:
+
+Athlete Profile
+
+Editable:
+
+Date of birth
+Height
+Weight
+Gym
+Belt rank
+Primary sport
+Competition status
+Competition date
+Weigh-in date
+Target weight
+Spirit animal/archetype
+
+Because people's situations change constantly.
+
+Someone might:
+
+stop competing
+start competing
+move gyms
+switch sports
+
+The AI needs to adapt.
+
+4. Interactive Breathing Protocols
+
+This is a HUGE upgrade.
+
+Current:
+
+Exhale for 6-8 counts.
+
+User reads it.
+
+Maybe does it.
+
+Maybe not.
+
+Instead:
+
+Highlight:
+
+6-8 counts
+
+User clicks:
+
+Practice Now
+
+Opens:
+
+Guided Breathing Screen
+INHALE
+
+3
+2
+1
+
+HOLD
+
+3
+2
+1
+
+EXHALE
+
+8
+7
+6
+5
+4
+3
+2
+1
+
+With animation.
+
+Ideas:
+
+Expanding Circle
+
+Breath in:
+circle expands
+
+Breath out:
+circle contracts
+
+Octagon Animation
+
+Since you're combat-focused:
+
+The octagon slowly expands and contracts.
+
+Very on-brand.
+
+And after:
+
+Protocol Complete
+
+2 minutes completed
+
+The AI can actually track adherence.
+
+5. Loops Should Visually Look Like Loops
+
+You're 100% right.
+
+If AI says:
+
+Pressure Loop
+
+and then shows:
+
+Trigger
+↓
+Reaction
+↓
+Mistake
+
+it doesn't FEEL like a loop.
+
+Use a circular diagram:
+
+Trigger
+ ↗     ↘
+Reaction   Relief
+ ↖     ↙
+Avoidance
+
+Or a rotating ring.
+
+Small footprint.
+
+Instantly understandable.
+
+For example:
+
+FRAGMENTATION LOOP
+
+Pressure
+↺
+Tension
+↺
+Poor Decisions
+↺
+More Pressure
+
+Visually circular.
+
+6. Combat Sport Expansion
+
+This is probably the biggest issue.
+
+The AI shouldn't behave like:
+
+"I'm a BJJ coach."
+
+It should behave like:
+
+"I'm a combat performance system."
+
+The onboarding should ask:
+
+Primary Sport
+MMA
+Boxing
+Muay Thai
+Kickboxing
+BJJ
+Wrestling
+Judo
+Karate
+Mixed
+
+Then adjust language.
+
+Example:
+
+Boxer uploads footage.
+
+Bad:
+
+Not my lane.
+Let's talk about grappling.
+
+Terrible experience.
+
+Good:
+
+Your lead hand is doing good work.
+
+The issue is your defensive recovery after combinations.
+
+Kickboxer:
+
+You're planting heavily before kicking.
+
+That makes your timing predictable.
+
+Wrestler:
+
+Your level change is visible too early.
+
+Same FRAME system.
+
+Different sport context.
+
+7. The Bigger Vision
+
+The AI should understand:
+
+SPORT
+↓
+STYLE
+↓
+PERSONALITY
+↓
+GOALS
+↓
+COMPETITION STATUS
+↓
+CURRENT STATE
+
+So instead of:
+
+generic chatbot
+
+it becomes:
+
+adaptive combat-performance operating system
+
+For me, the highest-priority fixes from your list are:
+
+Make all highlighted terms consistently clickable.
+Replace age with date of birth.
+Add editable athlete profile.
+Turn breathing protocols into guided interactive exercises.
+Expand from BJJ-first to all combat sports.
