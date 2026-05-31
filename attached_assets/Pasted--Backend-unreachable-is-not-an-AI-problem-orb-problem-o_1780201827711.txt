@@ -1,0 +1,161 @@
+"Backend unreachable" is not an AI problem, orb problem, or UI problem.
+
+It's an infrastructure problem.
+
+The frontend is loading, but it's failing to connect to whatever service is supposed to handle:
+
+AI chat
+video analysis
+user profiles
+uploads
+database calls
+API requests
+First thing I'd ask Replit to check
+
+Add proper diagnostics instead of:
+
+Backend unreachable
+
+Because that tells the user nothing.
+
+Show:
+
+Connection Error
+
+Unable to reach analysis service.
+
+Possible causes:
+• Server offline
+• API timeout
+• Invalid API key
+• Analysis service unavailable
+
+Retry
+
+And in development mode:
+
+Error:
+POST /api/analyze
+
+Status: 502
+Message: Function timeout
+Based on your earlier issue with video uploads hanging
+
+I suspect one of these:
+
+1. Video uploads are timing out
+
+User uploads:
+
+250MB sparring video
+
+Server tries to:
+
+upload
+extract frames
+run pose detection
+call AI
+
+And eventually dies.
+
+Result:
+
+Backend unreachable
+2. Replit server sleeping
+
+Very common.
+
+If you're using a Replit-hosted backend:
+
+server sleeps
+first request wakes it up
+request fails
+
+Looks like:
+
+Backend unreachable
+3. AI request crashing
+
+Could be:
+
+OpenAI
+Gemini
+Claude
+
+API key issue.
+
+Rate limit.
+
+Malformed request.
+
+Large payload.
+
+For video analysis specifically
+
+Don't make the user wait for the entire analysis.
+
+Instead:
+
+Upload Complete
+
+Extracting key frames...
+
+Then:
+
+15 key frames detected
+
+Then:
+
+Initial analysis available
+
+Then:
+
+Deep analysis still processing
+
+This prevents the app feeling broken.
+
+I'd also tell Replit
+Implement comprehensive backend health monitoring.
+
+Replace generic "Backend unreachable" with detailed error states.
+
+Create separate error handling for:
+
+- AI service unavailable
+- Video processing timeout
+- Upload failure
+- Authentication failure
+- Database failure
+- Rate limiting
+
+Provide retry functionality.
+
+Log all failures with timestamps and endpoint details.
+
+Never leave users staring at a blank screen with a single error message.
+Biggest concern from everything you've shown
+
+It's not the orb.
+
+It's not the design.
+
+It's not the archetypes.
+
+It's reliability.
+
+If users:
+
+Upload footage
+Wait 60 seconds
+Get "Backend unreachable"
+
+they'll assume the analyzer doesn't work.
+
+I'd prioritize:
+
+1. Upload reliability
+2. Faster analysis pipeline
+3. Better error reporting
+4. Progressive analysis results
+
+before spending more time on visual polish. A rough-looking analyzer that works will retain users better than a beautiful analyzer that fails on uploads.

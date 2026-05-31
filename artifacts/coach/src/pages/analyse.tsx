@@ -14,6 +14,7 @@ import {
   type ExtractResult,
 } from "@/lib/pose";
 import { computeMetrics } from "@/lib/analysis-metrics";
+import { ApiError } from "@/lib/api";
 import type {
   AnalysisKind,
   AnalysisKeyframe,
@@ -22,6 +23,10 @@ import type {
   VideoAnalysis,
   Fighter,
 } from "@/lib/api";
+
+// Largest clip we'll attempt to decode on-device. Pose tracking runs in the
+// browser, so an oversized file silently hangs the tab — guard up front.
+const MAX_VIDEO_BYTES = 250 * 1024 * 1024; // 250MB
 
 const KINDS: { value: AnalysisKind; label: string }[] = [
   { value: "sparring", label: "Sparring" },
@@ -52,7 +57,7 @@ type Phase =
   | { stage: "tracking"; pct: number }
   | { stage: "detecting" }
   | { stage: "loading_ai" }
-  | { stage: "error"; message: string };
+  | { stage: "error"; title: string; causes: string[]; retryable: boolean };
 
 // Rotating cinematic phrases per stage — premium, calm, no hype.
 const PHASE_PHRASES: Record<string, string[]> = {
@@ -68,6 +73,17 @@ const PHASE_TITLE: Record<string, string> = {
   detecting: "Detecting patterns",
   loading_ai: "Building the read",
 };
+
+// Turn any thrown value into a structured, user-readable error phase. ApiError
+// already carries title/causes/retryable; plain Errors (on-device pose failures)
+// become a single-cause card that's safe to retry.
+function toErrorPhase(err: unknown): Extract<Phase, { stage: "error" }> {
+  if (err instanceof ApiError) {
+    return { stage: "error", title: err.title, causes: err.causes, retryable: err.retryable };
+  }
+  const message = err instanceof Error ? err.message : "Analysis failed";
+  return { stage: "error", title: "Couldn't read this clip", causes: [message], retryable: true };
+}
 
 export default function AnalysePage() {
   const { data: fighterData } = useFighter();
@@ -89,6 +105,18 @@ export default function AnalysePage() {
   async function runAnalysis(file: File) {
     setResult(null);
     setOpenId(null);
+    if (file.size > MAX_VIDEO_BYTES) {
+      setPhase({
+        stage: "error",
+        title: "That clip is too large to process",
+        causes: [
+          `This file is ${(file.size / 1024 / 1024).toFixed(0)}MB — the limit is ${MAX_VIDEO_BYTES / 1024 / 1024}MB`,
+          "Trim it to a shorter segment and try again",
+        ],
+        retryable: false,
+      });
+      return;
+    }
     let extract: ExtractResult | null = null;
     try {
       setPhase({ stage: "reading", pct: 0 });
@@ -144,13 +172,15 @@ export default function AnalysePage() {
       setResult(res.analysis);
       setPhase({ stage: "idle" });
     } catch (err) {
-      setPhase({
-        stage: "error",
-        message: err instanceof Error ? err.message : "analysis failed",
-      });
+      setPhase(toErrorPhase(err));
     } finally {
       if (extract) disposeExtract(extract);
     }
+  }
+
+  function retry() {
+    const file = pendingFile.current;
+    if (file) void runAnalysis(file);
   }
 
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -256,8 +286,31 @@ export default function AnalysePage() {
               />
 
               {phase.stage === "error" && (
-                <div className="border border-destructive/40 bg-destructive/10 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
-                  {phase.message}
+                <div className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+                    {phase.title}
+                  </div>
+                  {phase.causes.length > 0 && (
+                    <ul className="space-y-1">
+                      {phase.causes.map((c, i) => (
+                        <li
+                          key={i}
+                          className="text-[11px] leading-relaxed text-destructive/70 before:content-['—'] before:mr-1.5"
+                        >
+                          {c}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {phase.retryable && pendingFile.current && (
+                    <button
+                      type="button"
+                      onClick={retry}
+                      className="mt-1 font-mono text-[10px] uppercase tracking-widest border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
+                    >
+                      Retry
+                    </button>
+                  )}
                 </div>
               )}
 

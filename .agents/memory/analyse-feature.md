@@ -50,3 +50,6 @@ The "Analyse" tab turns uploaded footage into a FRAME nervous-system read.
 - Express json body limit is 20mb (app.ts) — key frames fit; keep them bounded.
 - athlete_facts from an analysis use source `video:<analysisId>` and are only
   written for non-low-severity findings.
+
+## Frontend error contract (ApiError)
+`jsonFetch` throws a structured `ApiError` (kind/title/causes/retryable + timeout via AbortController). Its base `Error.message` is deliberately set to `title: causes` because legacy callers (onboarding, profile-edit, planner, chat upload) only read `err.message` — if you ever make `message` just the title, those screens lose actionable backend detail. Richer UIs (Analyse error card) read the structured fields directly.

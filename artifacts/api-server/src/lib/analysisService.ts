@@ -307,17 +307,22 @@ export async function generateAnalysis(args: {
     text: "Read this clip now. Use the emit_analysis tool. All numbers above are fixed — do not emit numbers, only the words around them.",
   });
 
-  const resp = await getAnthropic().messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 2200,
-    system: [
-      { type: "text", text: COACH_SYSTEM_PROMPT_STATIC, cache_control: { type: "ephemeral" } },
-      { type: "text", text: dynamic },
-    ],
-    tools: [REPORT_TOOL],
-    tool_choice: { type: "tool", name: "emit_analysis" },
-    messages: [{ role: "user", content }],
-  });
+  const resp = await getAnthropic().messages.create(
+    {
+      model: "claude-sonnet-4-6",
+      max_tokens: 2200,
+      system: [
+        { type: "text", text: COACH_SYSTEM_PROMPT_STATIC, cache_control: { type: "ephemeral" } },
+        { type: "text", text: dynamic },
+      ],
+      tools: [REPORT_TOOL],
+      tool_choice: { type: "tool", name: "emit_analysis" },
+      messages: [{ role: "user", content }],
+    },
+    // Bound the AI round-trip so a hung upstream call fails fast with a clear
+    // error instead of holding the request open until the client gives up.
+    { timeout: 75_000, maxRetries: 1 },
+  );
 
   for (const block of resp.content) {
     if (block.type === "tool_use" && block.name === "emit_analysis") {

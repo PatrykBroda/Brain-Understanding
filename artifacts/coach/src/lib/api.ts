@@ -98,14 +98,152 @@ export type AthleteFact = {
   updatedAt: string;
 };
 
-async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${base}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+// Structured, user-facing API failure. `title` + `causes` drive a readable
+// error card instead of a raw "Failed to fetch" / status string. `kind` lets
+// callers branch (e.g. only offer Retry on transient failures).
+export type ApiErrorKind =
+  | "network"
+  | "timeout"
+  | "auth"
+  | "payload"
+  | "rate_limit"
+  | "server"
+  | "unknown";
+
+export class ApiError extends Error {
+  kind: ApiErrorKind;
+  status: number | null;
+  title: string;
+  causes: string[];
+  retryable: boolean;
+  detail: string;
+
+  constructor(opts: {
+    kind: ApiErrorKind;
+    status?: number | null;
+    title: string;
+    causes: string[];
+    retryable: boolean;
+    detail?: string;
+  }) {
+    // Base `message` carries title + causes so legacy callers that only read
+    // `err.message` still surface actionable detail; structured fields below
+    // drive richer UIs (e.g. the Analyse error card).
+    super(opts.causes.length ? `${opts.title}: ${opts.causes.join("; ")}` : opts.title);
+    this.name = "ApiError";
+    this.kind = opts.kind;
+    this.status = opts.status ?? null;
+    this.title = opts.title;
+    this.causes = opts.causes;
+    this.retryable = opts.retryable;
+    this.detail = opts.detail ?? "";
+  }
+}
+
+function classifyStatus(status: number, body: string): ApiError {
+  if (status === 401 || status === 403) {
+    return new ApiError({
+      kind: "auth",
+      status,
+      title: "You're signed out",
+      causes: ["Your session expired", "You need to sign in again"],
+      retryable: false,
+      detail: body,
+    });
+  }
+  if (status === 413) {
+    return new ApiError({
+      kind: "payload",
+      status,
+      title: "That clip is too large to send",
+      causes: ["The video or its key frames exceeded the upload limit", "Try a shorter clip"],
+      retryable: false,
+      detail: body,
+    });
+  }
+  if (status === 429) {
+    return new ApiError({
+      kind: "rate_limit",
+      status,
+      title: "Too many requests",
+      causes: ["The AI service is rate-limited right now", "Wait a moment and try again"],
+      retryable: true,
+      detail: body,
+    });
+  }
+  if (status === 502 || status === 503 || status === 504) {
+    return new ApiError({
+      kind: "server",
+      status,
+      title: "The analysis service is unavailable",
+      causes: ["The server may be restarting", "The AI request may have timed out"],
+      retryable: true,
+      detail: body,
+    });
+  }
+  if (status >= 500) {
+    return new ApiError({
+      kind: "server",
+      status,
+      title: "Something broke on the server",
+      causes: [body.trim() || "The server hit an unexpected error"],
+      retryable: true,
+      detail: body,
+    });
+  }
+  return new ApiError({
+    kind: "unknown",
+    status,
+    title: "Request failed",
+    causes: [body.trim() || `Server responded ${status}`],
+    retryable: status >= 500,
+    detail: body,
   });
+}
+
+// Per-request timeout (ms). The on-device pose pass already happened by the time
+// we POST, so this only bounds the server round-trip (DB + Claude narrative).
+const REQUEST_TIMEOUT_MS = 90_000;
+
+async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${base}${path}`, {
+      ...init,
+      signal: init?.signal ?? controller.signal,
+      headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+    });
+  } catch (err) {
+    // fetch only rejects on network failure or abort — never on HTTP status.
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError({
+        kind: "timeout",
+        title: "The request timed out",
+        causes: [
+          "The analysis is taking longer than expected",
+          "The server may be busy or waking up",
+        ],
+        retryable: true,
+      });
+    }
+    throw new ApiError({
+      kind: "network",
+      title: "Can't reach the server",
+      causes: [
+        "You may be offline",
+        "The server may be offline or restarting",
+      ],
+      retryable: true,
+      detail: err instanceof Error ? err.message : String(err),
+    });
+  } finally {
+    window.clearTimeout(timer);
+  }
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
-    throw new Error(`${res.status} ${res.statusText}: ${txt}`);
+    throw classifyStatus(res.status, txt);
   }
   return res.json() as Promise<T>;
 }
