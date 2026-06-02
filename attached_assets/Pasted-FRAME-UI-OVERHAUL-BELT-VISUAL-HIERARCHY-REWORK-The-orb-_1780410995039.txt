@@ -1,0 +1,236 @@
+FRAME UI OVERHAUL — BELT + VISUAL HIERARCHY REWORK
+
+The orb redesign and planner redesign are strong. Keep those directions.
+
+The profile belt section is currently the weakest visual component in the entire product. It looks like a generic progress bar instead of a martial arts rank system. The goal is to make the belt feel like a symbol of status, progression, identity, and earned achievement.
+
+PRIMARY PROBLEM
+
+The current "White Belt" display:
+
+Looks flat
+Looks like a loading bar
+Has no prestige
+Doesn't visually communicate martial arts ranking
+Feels disconnected from the premium FRAME aesthetic
+Doesn't match the power of the orb screen
+
+When users see their rank, they should feel:
+
+Progress
+Discipline
+Identity
+Achievement
+Momentum
+
+Right now it feels like a placeholder UI element.
+
+NEW BELT DESIGN
+
+Replace the current rectangular progress bar.
+
+Instead create a realistic martial arts belt visualization.
+
+Visual direction:
+
+White belt remains WHITE
+Preserve belt authenticity
+Add premium gold FRAME accents
+Keep the black + gold visual language
+
+Structure:
+
+A horizontal martial arts belt.
+
+Features:
+
+Fabric texture
+Slight folds and stitching
+Belt knot visible in center or offset
+Realistic layered wrapping
+Soft lighting
+
+The belt itself should stay:
+
+WHITE
+
+Not gold.
+
+The rank color must remain obvious.
+
+GOLD FRAME ACCENTS
+
+Introduce subtle prestige effects.
+
+Examples:
+
+Thin gold edge stitching
+Gold ambient glow around belt
+Gold metallic corner markers
+Gold rank insignia
+Small gold FRAME emblem
+Gold energy particles floating near belt
+Soft golden halo behind belt
+
+Important:
+
+The belt is not becoming gold.
+
+The gold should enhance the belt.
+
+Think:
+
+"White Belt in a luxury performance system."
+
+Not:
+
+"Gold Belt."
+
+BELT PROGRESSION SYSTEM
+
+Create a visual progression ladder.
+
+White Belt
+Yellow Belt
+Orange Belt
+Green Belt
+Blue Belt
+Purple Belt
+Brown Belt
+Black Belt
+
+Display them as:
+
+○ ○ ○ ○ ○ ○ ○ ○
+
+Only current belt illuminated.
+
+Future belts visible but dormant.
+
+Creates aspiration.
+
+BELT STATUS CARD
+
+Redesign the entire card.
+
+Current:
+
+Flat profile section.
+
+New:
+
+FRAME RANK
+
+[3D White Belt]
+
+WHITE BELT
+
+Current State:
+Chaotic Movement
+
+Progress to Yellow:
+68%
+
+Frame Integrity:
+Forming
+
+Days Active:
+42
+
+Training Frequency:
+3–4x per week
+
+Everything should feel like a military performance dashboard mixed with elite combat sports.
+
+MICRO ANIMATIONS
+
+Add:
+
+Slow golden pulse
+Soft glow breathing effect
+Belt shimmer every 10–15 seconds
+Subtle particle drift
+Rank emblem glow
+
+Very restrained.
+
+Never flashy.
+
+Premium.
+
+ORB IMPROVEMENTS
+
+Keep current redesign direction.
+
+Additional upgrades:
+
+Higher detail wireframe
+More visible energy flow
+Greater depth perception
+Slight rotational drift
+Better volumetric glow
+Stronger center focal point
+
+The orb should feel like:
+
+"A living representation of system stability."
+
+Not a decorative sphere.
+
+PLANNER COMPLETE REDESIGN
+
+Current planner still feels like a productivity app.
+
+It should feel like mission control.
+
+Remove:
+
+Generic task list feeling
+Standard productivity layouts
+
+Replace with:
+
+FRAME WEEKLY MISSION
+
+Sections:
+
+MISSION FOCUS
+PRIMARY WEAKNESS
+CURRENT STATE
+STRUCTURAL OBJECTIVE
+DAILY EXECUTION
+RECOVERY PROTOCOL
+
+Every section should feel like a coach, strategist, and performance analyst generated it.
+
+VISUAL DIRECTION
+
+Reference aesthetic:
+
+Elite military HUD
+Fighter pilot systems
+Luxury watch interfaces
+Tactical command center
+High-end sci-fi operating systems
+
+Avoid:
+
+SaaS dashboards
+Notion-style layouts
+Productivity app aesthetics
+Generic cards
+Flat progress bars
+
+FRAME should feel like:
+
+"An operating system monitoring the evolution of a fighter."
+
+Every screen should communicate:
+
+Precision.
+Discipline.
+Progress.
+Control.
+Power.
+
+If any component feels generic, redesign it until it feels worthy of a premium performance intelligence platform.

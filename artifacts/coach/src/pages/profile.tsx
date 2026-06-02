@@ -198,9 +198,47 @@ export default function ProfilePage() {
                   );
                 })()}
 
-                {/* Belt / rank */}
-                <div className="mb-5">
-                  <Belt level={fighter.level} />
+                {/* FRAME RANK — prestige rank dashboard */}
+                <div
+                  className="relative mb-5 rounded-lg border border-white/[0.08] overflow-hidden"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, hsla(40,45%,55%,0.05), transparent 55%), hsl(0 0% 7%)",
+                  }}
+                >
+                  <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
+                      Frame rank
+                    </div>
+                    <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/70">
+                      Calibration ladder
+                    </div>
+                  </div>
+                  <div className="px-4 pb-4 pt-3">
+                    <Belt level={fighter.level} />
+                  </div>
+                  <div className="grid grid-cols-3 border-t border-white/[0.06] divide-x divide-white/[0.06]">
+                    <RankMeta label="Integrity" value={stats.integrityLabel} />
+                    <RankMeta label="Cadence" value={fighter.trainingFrequency} />
+                    <RankMeta label="Days in frame" value={String(stats.sinceDays)} />
+                  </div>
+                  <div className="px-4 py-4">
+                    <div className="flex gap-1">
+                      {[0, 1, 2, 3, 4].map((i) => (
+                        <div
+                          key={i}
+                          className={`h-1 flex-1 transition-colors duration-700 ${
+                            i < stats.integritySegments ? "bg-primary" : "bg-border/60"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/80 leading-relaxed mt-2">
+                      Frame integrity — how much of your structure survives when pressure spikes.
+                      Composure under fragmentation, not a fitness score. Sharpens with use; built
+                      from observations, calibrations, recorded patterns.
+                    </div>
+                  </div>
                 </div>
 
                 <Link
@@ -214,35 +252,6 @@ export default function ProfilePage() {
                     Schedule / countdown
                   </span>
                 </Link>
-
-                {/* Frame integrity — interpretive, never a fake percentage */}
-                <div className="border border-border/50 px-3 py-3 mb-4">
-                  <div className="flex items-baseline justify-between mb-2">
-                    <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                      Frame integrity
-                    </div>
-                    <div className="font-mono text-[11px] uppercase tracking-widest text-primary">
-                      {stats.integrityLabel}
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    {[0, 1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className={`h-1 flex-1 transition-colors duration-700 ${
-                          i < stats.integritySegments ? "bg-primary" : "bg-border/60"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground/90 leading-relaxed mt-2">
-                    How much of your structure survives when pressure spikes — composure under
-                    fragmentation, not a fitness score.
-                  </div>
-                  <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70 mt-1.5">
-                    Sharpens with use. Built from observations, calibrations, recorded patterns.
-                  </div>
-                </div>
 
                 <dl className="grid grid-cols-2 gap-2.5 text-sm">
                   <Stat label="Age" value={String(fighter.age)} />
@@ -389,6 +398,19 @@ export default function ProfilePage() {
       </main>
 
       <BottomNav />
+    </div>
+  );
+}
+
+function RankMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="px-3 py-2.5 text-center">
+      <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/80 mb-1">
+        {label}
+      </div>
+      <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/95 leading-tight">
+        {value}
+      </div>
     </div>
   );
 }

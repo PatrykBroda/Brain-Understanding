@@ -132,9 +132,13 @@ function Sphere({ cfg }: { cfg: Cfg }) {
     group.current.rotation.y += cfg.rotSpeed * dt;
     group.current.rotation.x += cfg.rotSpeed * 0.35 * dt;
 
-    const breath =
-      1 + Math.sin(performance.now() * 0.001 * cfg.breathSpeed) * cfg.breathAmt;
+    const t = performance.now() * 0.001;
+    const breath = 1 + Math.sin(t * cfg.breathSpeed) * cfg.breathAmt;
     group.current.scale.setScalar(breath);
+
+    // Slow positional drift — keeps the orb feeling alive, never static.
+    group.current.position.x = Math.sin(t * 0.13) * 0.035;
+    group.current.position.y = Math.cos(t * 0.10) * 0.028;
   });
 
   const rimColor = useMemo(() => hsl(cfg.hue, cfg.sat, cfg.light), [cfg.hue, cfg.sat, cfg.light]);
@@ -180,6 +184,36 @@ function Sphere({ cfg }: { cfg: Cfg }) {
   );
 }
 
+function Wireframe({ cfg }: { cfg: Cfg }) {
+  const ref = useRef<THREE.LineSegments>(null);
+  const geo = useMemo(
+    () => new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(1.09, 4)),
+    [],
+  );
+  useEffect(() => () => geo.dispose(), [geo]);
+  const color = useMemo(
+    () => hsl(cfg.hue, cfg.sat, cfg.light + 0.1),
+    [cfg.hue, cfg.sat, cfg.light],
+  );
+  useFrame((_, dt) => {
+    if (!ref.current) return;
+    // Counter-drift to the core for a sense of energy flowing over the surface.
+    ref.current.rotation.y -= (cfg.rotSpeed * 0.5 + 0.02) * dt;
+    ref.current.rotation.x += cfg.rotSpeed * 0.2 * dt;
+  });
+  return (
+    <lineSegments ref={ref} geometry={geo}>
+      <lineBasicMaterial
+        color={color}
+        transparent
+        opacity={0.07 + cfg.emissive * 0.55}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+      />
+    </lineSegments>
+  );
+}
+
 function Rings({ cfg }: { cfg: Cfg }) {
   const a = useRef<THREE.Mesh>(null);
   const b = useRef<THREE.Mesh>(null);
@@ -198,7 +232,7 @@ function Rings({ cfg }: { cfg: Cfg }) {
   });
 
   const color = useMemo(() => hsl(cfg.hue, cfg.sat, cfg.light + 0.05), [cfg.hue, cfg.sat, cfg.light]);
-  const opacity = 0.18 + cfg.emissive * 0.7;
+  const opacity = 0.24 + cfg.emissive * 0.8;
 
   return (
     <group>
@@ -227,9 +261,10 @@ function Scene({ state }: { state: OrbState }) {
       <ambientLight intensity={0.18} />
       <directionalLight position={[3, 4, 5]} intensity={0.55} color="#fff2dd" />
       <directionalLight position={[-4, -2, -3]} intensity={0.22} color="#3a4a66" />
-      <pointLight position={[0, 0, 2.2]} intensity={0.6} color={sparkleColor} distance={6} />
+      <pointLight position={[0, 0, 2.2]} intensity={0.85} color={sparkleColor} distance={6} />
 
       <Sphere cfg={cfg} />
+      <Wireframe cfg={cfg} />
       <Rings cfg={cfg} />
 
       <Sparkles

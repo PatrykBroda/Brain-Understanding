@@ -11,22 +11,22 @@ import {
 } from "@/hooks/use-planner";
 import type { PlanCategory, PlanItem } from "@/lib/api";
 
-const CATEGORY_ORDER: PlanCategory[] = ["fix", "train", "technique", "regulate", "goal_step"];
+const CATEGORY_ORDER: PlanCategory[] = ["fix", "goal_step", "train", "technique", "regulate"];
 
 const CATEGORY_LABEL: Record<PlanCategory, string> = {
-  fix: "Fix",
-  train: "Train",
-  technique: "Technique",
-  regulate: "Regulate",
-  goal_step: "Goal step",
+  fix: "Primary weakness",
+  goal_step: "Structural objective",
+  train: "Daily execution",
+  technique: "Technical drilling",
+  regulate: "Recovery protocol",
 };
 
 const CATEGORY_HINT: Record<PlanCategory, string> = {
-  fix: "Weaknesses you've named",
+  fix: "The leak being closed",
+  goal_step: "One step toward a stated goal",
   train: "Mat time + conditioning",
   technique: "Drills on weak topics",
   regulate: "Nervous-system work",
-  goal_step: "One step toward a stated goal",
 };
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -80,10 +80,10 @@ export default function PlannerPage() {
         </Link>
         <div className="text-center">
           <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
-            This week
+            Frame
           </div>
           <div className="font-mono text-sm uppercase tracking-[0.3em] text-foreground/95 mt-0.5">
-            Planner
+            Weekly mission
           </div>
         </div>
         <button
@@ -181,22 +181,40 @@ export default function PlannerPage() {
           ) : (
             <>
               {plan.rationale && (
-                <div className="border-l-2 border-primary/60 pl-4 py-1">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/85 mb-1.5">
-                    This week
+                <div
+                  className="relative border border-primary/25 px-4 py-4"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, hsla(40,45%,55%,0.05), transparent 60%)",
+                  }}
+                >
+                  <span className="absolute left-0 top-0 h-2.5 w-2.5 border-l border-t border-primary/60" />
+                  <span className="absolute right-0 top-0 h-2.5 w-2.5 border-r border-t border-primary/60" />
+                  <span className="absolute left-0 bottom-0 h-2.5 w-2.5 border-l border-b border-primary/60" />
+                  <span className="absolute right-0 bottom-0 h-2.5 w-2.5 border-r border-b border-primary/60" />
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/90">
+                      Mission focus
+                    </div>
                   </div>
                   <p className="text-sm text-foreground/90 leading-relaxed">{plan.rationale}</p>
                 </div>
               )}
 
               <div className="space-y-7">
-                {CATEGORY_ORDER.map((cat) => {
+                {CATEGORY_ORDER.map((cat, ci) => {
                   const items = grouped[cat];
                   return (
                     <section key={cat} className="space-y-3">
                       <div className="flex items-baseline justify-between border-b border-border/40 pb-1.5">
-                        <div className="font-mono text-[11px] uppercase tracking-[0.3em] text-foreground/95">
-                          {CATEGORY_LABEL[cat]}
+                        <div className="flex items-baseline gap-2.5">
+                          <span className="font-mono text-[10px] tracking-widest text-primary/55">
+                            {String(ci + 1).padStart(2, "0")}
+                          </span>
+                          <div className="font-mono text-[11px] uppercase tracking-[0.3em] text-foreground/95">
+                            {CATEGORY_LABEL[cat]}
+                          </div>
                         </div>
                         <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
                           {CATEGORY_HINT[cat]}
@@ -329,13 +347,13 @@ function HelpOverlay({ onClose }: { onClose: () => void }) {
           <X className="w-4 h-4" strokeWidth={1.5} />
         </button>
         <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
-          How the planner works
+          How the mission works
         </div>
         <div className="space-y-3 text-sm text-foreground/85 leading-relaxed">
           <p>
-            One plan per week. 5-7 actions for the next 7 days, grouped into Fix, Train,
-            Technique, Regulate, and Goal step. Empty categories say so — the system never
-            invents items to fill them.
+            One mission per week. 5-7 actions for the next 7 days, grouped into Primary weakness,
+            Structural objective, Daily execution, Technical drilling, and Recovery protocol. Empty
+            sections say so — the system never invents items to fill them.
           </p>
           <p>
             Every item is drawn from a real recorded signal — a fact in your athlete model, or a
