@@ -62,36 +62,39 @@ const clerkAppearance = {
   elements: {
     rootBox: "w-full flex justify-center",
     cardBox:
-      "bg-[hsl(0,0%,6%)] border border-white/[0.06] rounded-2xl w-[420px] max-w-full overflow-hidden",
+      "bg-[hsl(0,0%,6%)] border border-white/[0.06] rounded-2xl w-full max-w-[400px] overflow-hidden",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
     headerTitle:
       "text-foreground/95 font-light tracking-[0.18em] uppercase text-[15px]",
     headerSubtitle: "text-foreground/55 font-mono text-[11px] tracking-[0.18em] uppercase",
     socialButtonsBlockButton:
-      "bg-white/[0.02] border border-white/[0.08] hover:bg-white/[0.05] text-foreground/90",
-    socialButtonsBlockButtonText: "text-foreground/90 font-sans",
+      "bg-white/[0.02] border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.14] text-foreground/90 transition-colors duration-300 py-2.5",
+    socialButtonsBlockButtonText: "text-foreground/90 font-sans tracking-wide",
     formFieldLabel:
       "text-foreground/70 font-mono text-[10px] uppercase tracking-[0.25em]",
     formFieldInput:
-      "bg-[hsl(0,0%,9%)] border border-white/[0.08] text-foreground placeholder:text-foreground/30",
+      "bg-[hsl(0,0%,9%)] border border-white/[0.08] text-foreground placeholder:text-foreground/30 transition-colors duration-200 focus:border-primary/40 focus:ring-0 focus:outline-none py-2.5",
     formButtonPrimary:
-      "bg-primary text-black hover:bg-primary/90 font-mono uppercase tracking-[0.25em] text-[11px]",
-    footerActionLink: "text-primary hover:text-primary/80",
+      "bg-primary text-black hover:bg-primary/90 font-mono uppercase tracking-[0.25em] text-[11px] py-3 transition-colors duration-300 shadow-[0_8px_30px_-10px_hsla(35,65%,55%,0.4)]",
+    footerActionLink: "text-primary hover:text-primary/80 transition-colors",
     footerActionText: "text-foreground/55",
     footerAction: "bg-transparent",
     dividerLine: "bg-white/[0.08]",
     dividerText: "text-foreground/45 font-mono text-[10px] uppercase tracking-[0.3em]",
-    identityPreviewEditButton: "text-primary",
+    identityPreviewEditButton: "text-primary hover:text-primary/80",
     formFieldSuccessText: "text-primary",
+    formFieldErrorText: "text-[hsl(0,72%,62%)] font-mono text-[11px] tracking-wide",
+    formResendCodeLink: "text-primary hover:text-primary/80 font-mono text-[11px] tracking-wide",
     alertText: "text-foreground/90",
     alert:
       "bg-white/[0.03] border border-white/[0.08] text-foreground/90",
     otpCodeFieldInput:
-      "bg-[hsl(0,0%,9%)] border border-white/[0.08] text-foreground",
+      "bg-[hsl(0,0%,9%)] border border-white/[0.08] text-foreground rounded-lg transition-colors duration-200 focus:border-primary/50 focus:ring-0 focus:outline-none",
     logoBox: "flex justify-center pt-2 pb-1",
     logoImage: "h-10 w-auto",
-    main: "gap-4",
+    main: "gap-5",
+    form: "gap-4",
   },
 };
 
