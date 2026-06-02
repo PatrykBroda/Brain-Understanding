@@ -30,6 +30,30 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
       derivedPk = `ERR:${e instanceof Error ? e.message : String(e)}`;
     }
     const prefix = (s: string) => (s ? `${s.slice(0, 8)}…(${s.length})` : "<empty>");
+    let tokenClaims: unknown = null;
+    try {
+      const sessionMatch = /(?:^|;\s*)__session=([^;]+)/.exec(cookie);
+      const raw = sessionMatch?.[1] ? decodeURIComponent(sessionMatch[1]) : "";
+      const parts = raw.split(".");
+      if (parts.length === 3 && parts[1]) {
+        const payload = JSON.parse(
+          Buffer.from(parts[1], "base64url").toString("utf8"),
+        ) as Record<string, unknown>;
+        tokenClaims = {
+          iss: payload["iss"] ?? null,
+          sub: payload["sub"] ?? null,
+          azp: payload["azp"] ?? null,
+          exp: payload["exp"] ?? null,
+          nbf: payload["nbf"] ?? null,
+          iat: payload["iat"] ?? null,
+          nowEpoch: Math.floor(Date.now() / 1000),
+        };
+      } else {
+        tokenClaims = { note: `__session value not a JWT (parts=${parts.length}, len=${raw.length})` };
+      }
+    } catch (e) {
+      tokenClaims = { decodeError: e instanceof Error ? e.message : String(e) };
+    }
     req.log.warn(
       {
         authDebug: {
@@ -43,6 +67,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
           envPk: prefix(envPk),
           derivedPk: prefix(derivedPk),
           pkMatches: derivedPk === envPk,
+          tokenClaims,
           auth: auth ? JSON.stringify(auth) : null,
         },
       },
