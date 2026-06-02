@@ -120,7 +120,7 @@ function SplashGate({ children }: { children: React.ReactNode }) {
 }
 
 function Gate({ children }: { children: React.ReactNode }) {
-  const { data, isLoading, isError } = useFighter();
+  const { data, isLoading, isError, refetch, isFetching } = useFighter();
   if (isLoading) {
     return (
       <div className="flex h-[100dvh] items-center justify-center bg-background text-muted-foreground font-mono text-[10px] uppercase tracking-[0.3em]">
@@ -130,8 +130,21 @@ function Gate({ children }: { children: React.ReactNode }) {
   }
   if (isError) {
     return (
-      <div className="flex h-[100dvh] items-center justify-center bg-background text-destructive font-mono text-xs">
-        Backend unreachable
+      <div className="flex h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
+        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive">
+          Connection lost
+        </div>
+        <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+          The system couldn't reach the backend. It may still be coming online — try again in a moment.
+        </p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="border-y border-foreground/40 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/90 transition-colors hover:border-foreground/80 disabled:opacity-50"
+        >
+          {isFetching ? "Reconnecting" : "Retry"}
+        </button>
       </div>
     );
   }
