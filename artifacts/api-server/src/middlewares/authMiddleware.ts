@@ -30,30 +30,34 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
       derivedPk = `ERR:${e instanceof Error ? e.message : String(e)}`;
     }
     const prefix = (s: string) => (s ? `${s.slice(0, 8)}…(${s.length})` : "<empty>");
-    let tokenClaims: unknown = null;
-    try {
-      const sessionMatch = /(?:^|;\s*)__session=([^;]+)/.exec(cookie);
-      const raw = sessionMatch?.[1] ? decodeURIComponent(sessionMatch[1]) : "";
-      const parts = raw.split(".");
-      if (parts.length === 3 && parts[1]) {
-        const payload = JSON.parse(
+    const cookiePairs = cookie
+      .split(/;\s*/)
+      .map((c) => c.split("="))
+      .filter((p) => p[0]);
+    const cookieNames = cookiePairs.map((p) => p[0]);
+    const hasDbJwt = cookieNames.includes("__clerk_db_jwt");
+    const decodeJwt = (raw: string): unknown => {
+      try {
+        const parts = decodeURIComponent(raw).split(".");
+        if (parts.length !== 3 || !parts[1]) return { notJwt: true, len: raw.length };
+        const p = JSON.parse(
           Buffer.from(parts[1], "base64url").toString("utf8"),
         ) as Record<string, unknown>;
-        tokenClaims = {
-          iss: payload["iss"] ?? null,
-          sub: payload["sub"] ?? null,
-          azp: payload["azp"] ?? null,
-          exp: payload["exp"] ?? null,
-          nbf: payload["nbf"] ?? null,
-          iat: payload["iat"] ?? null,
-          nowEpoch: Math.floor(Date.now() / 1000),
-        };
-      } else {
-        tokenClaims = { note: `__session value not a JWT (parts=${parts.length}, len=${raw.length})` };
+        return { iss: p["iss"] ?? null, sub: p["sub"] ?? null, exp: p["exp"] ?? null, iat: p["iat"] ?? null };
+      } catch (e) {
+        return { decodeError: e instanceof Error ? e.message : String(e) };
       }
-    } catch (e) {
-      tokenClaims = { decodeError: e instanceof Error ? e.message : String(e) };
-    }
+    };
+    const sessionCookies = cookiePairs
+      .filter((p) => p[0] === "__session")
+      .map((p) => decodeJwt(p[1] ?? ""));
+    const tokenClaims = {
+      sessionCount: sessionCookies.length,
+      sessions: sessionCookies,
+      hasDbJwt,
+      cookieNames,
+      nowEpoch: Math.floor(Date.now() / 1000),
+    };
     req.log.warn(
       {
         authDebug: {
