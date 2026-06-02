@@ -1,7 +1,9 @@
 import { getAuth } from "@clerk/express";
+import { publishableKeyFromHost } from "@clerk/shared/keys";
 import type { Request, Response, NextFunction } from "express";
 import { db, fightersTable, usersTable, type Fighter } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { getClerkProxyHost } from "./clerkProxyMiddleware";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -19,6 +21,15 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   const userId = claimUserId ?? auth?.userId;
   if (!userId) {
     const cookie = req.headers.cookie ?? "";
+    const host = getClerkProxyHost(req) ?? "";
+    const envPk = process.env["CLERK_PUBLISHABLE_KEY"] ?? "";
+    let derivedPk = "";
+    try {
+      derivedPk = publishableKeyFromHost(host, envPk) ?? "";
+    } catch (e) {
+      derivedPk = `ERR:${e instanceof Error ? e.message : String(e)}`;
+    }
+    const prefix = (s: string) => (s ? `${s.slice(0, 8)}…(${s.length})` : "<empty>");
     req.log.warn(
       {
         authDebug: {
@@ -26,9 +37,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
           hasSessionCookie: cookie.includes("__session"),
           hasClientCookie: cookie.includes("__client"),
           hasAuthHeader: Boolean(req.headers.authorization),
-          sessionId: auth?.sessionId ?? null,
-          authUserId: auth?.userId ?? null,
-          reason: (auth as { reason?: string } | undefined)?.reason ?? null,
+          host,
+          forwardedHost: req.headers["x-forwarded-host"] ?? null,
+          forwardedProto: req.headers["x-forwarded-proto"] ?? null,
+          envPk: prefix(envPk),
+          derivedPk: prefix(derivedPk),
+          pkMatches: derivedPk === envPk,
+          auth: auth ? JSON.stringify(auth) : null,
         },
       },
       "requireAuth: rejected request (no userId)",
