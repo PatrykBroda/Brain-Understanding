@@ -2,7 +2,7 @@
 
 A personal Claude-wrapped BJJ + nervous-system coach that uses the user's own Obsidian vault ("SYNOCHI") as its knowledge base and builds an evolving, structured athlete model from every interaction.
 
-Multi-user via Replit-managed Clerk (email+password + Google/Apple/GitHub SSO). Each Clerk user owns one fighter row; all data is partitioned by `users.clerkUserId` (FK `fighters.userId`). Signed-out users see the public `PublicLandingPage`; signed-in users see the FRAME home → onboarding (JIT) → app. To rename the Clerk sign-in header / consent screen branding ("Sign in to <app name>"), use the workspace Auth pane.
+Multi-user via Replit-managed Clerk (email+password + Google/Apple/GitHub SSO). Each Clerk user owns one fighter row; all data is partitioned by `users.clerkUserId` (FK `fighters.userId`). Signed-out users see the public `PublicLandingPage`; signed-in users see the FRAME home → onboarding (JIT) → app. The in-app sign-in/sign-up card headers are branded "FRAME" via the `<ClerkProvider localization>` prop in `artifacts/coach/src/App.tsx` (overrides `signIn.start`/`signUp.start` titles + subtitles, so they no longer show the Clerk tenant display name). The OAuth consent screen ("continue to <app name>" on Google's own page) still derives from the Clerk tenant display name — rename that in the workspace Auth pane.
 
 ## Run & Operate
 

@@ -209,6 +209,20 @@ function AppRoutes() {
       appearance={clerkAppearance}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
+      localization={{
+        signIn: {
+          start: {
+            title: "Sign in to FRAME",
+            subtitle: "Welcome back",
+          },
+        },
+        signUp: {
+          start: {
+            title: "Create your FRAME account",
+            subtitle: "Calibration system",
+          },
+        },
+      }}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
