@@ -18,6 +18,21 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     (auth?.sessionClaims as { userId?: string } | null | undefined)?.userId;
   const userId = claimUserId ?? auth?.userId;
   if (!userId) {
+    const cookie = req.headers.cookie ?? "";
+    req.log.warn(
+      {
+        authDebug: {
+          hasCookieHeader: cookie.length > 0,
+          hasSessionCookie: cookie.includes("__session"),
+          hasClientCookie: cookie.includes("__client"),
+          hasAuthHeader: Boolean(req.headers.authorization),
+          sessionId: auth?.sessionId ?? null,
+          authUserId: auth?.userId ?? null,
+          reason: (auth as { reason?: string } | undefined)?.reason ?? null,
+        },
+      },
+      "requireAuth: rejected request (no userId)",
+    );
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
