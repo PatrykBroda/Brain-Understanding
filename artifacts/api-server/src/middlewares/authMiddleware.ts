@@ -1,4 +1,4 @@
-import { getAuth } from "@clerk/express";
+import { getAuth, verifyToken } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
 import type { Request, Response, NextFunction } from "express";
 import { db, fightersTable, usersTable, type Fighter } from "@workspace/db";
@@ -14,7 +14,7 @@ declare global {
   }
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const auth = getAuth(req);
   const claimUserId =
     (auth?.sessionClaims as { userId?: string } | null | undefined)?.userId;
@@ -48,12 +48,32 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
         return { decodeError: e instanceof Error ? e.message : String(e) };
       }
     };
-    const sessionCookies = cookiePairs
+    const sessionRaw = cookiePairs
       .filter((p) => p[0] === "__session")
-      .map((p) => decodeJwt(p[1] ?? ""));
+      .map((p) => p[1] ?? "");
+    const sessionCookies = sessionRaw.map((raw) => decodeJwt(raw));
+    const verifyResults: unknown[] = [];
+    for (const raw of sessionRaw) {
+      const token = decodeURIComponent(raw);
+      try {
+        const payload = await verifyToken(token, {
+          secretKey: process.env["CLERK_SECRET_KEY"] ?? "",
+          authorizedParties: undefined,
+        });
+        verifyResults.push({ ok: true, sub: payload.sub, sid: payload.sid, exp: payload.exp });
+      } catch (e) {
+        verifyResults.push({
+          ok: false,
+          name: e instanceof Error ? e.name : typeof e,
+          reason: (e as { reason?: unknown })?.reason ?? null,
+          message: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
     const tokenClaims = {
       sessionCount: sessionCookies.length,
       sessions: sessionCookies,
+      verifyResults,
       hasDbJwt,
       cookieNames,
       nowEpoch: Math.floor(Date.now() / 1000),
