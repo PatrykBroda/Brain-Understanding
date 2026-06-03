@@ -1,3 +1,4 @@
 - [Shared literal-keyed data libs](shared-const-data-libs.md) — use `as const satisfies readonly T[]` (not `: readonly T[]`) so key unions survive for predicates/Record types across packages.
 - [No-fabricated-numbers pillar](no-fake-percentages-constraint.md) — never invent numbers; the line is fabrication not numbers. Analyse FRAME REPORT may show REAL pose-measured scores (AI writes only narrative, server recomputes the composite).
 - [Analyse feature](analyse-feature.md) — footage→nervous-system read: pose runs on-device, server narrates + enforces the FRAME REPORT honesty contract.
+- [Clerk dev 401 / all-null getAuth](clerk-dev-cookie-pollution.md) — not a server bug: parent-domain stale cookies shadow fresh ones + dev FAPI is third-party (incognito invalid). Fix = clear replit.dev cookies / fresh browser.
