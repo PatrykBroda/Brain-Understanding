@@ -19,6 +19,13 @@ function toClient(msg: ServerMessage): ChatMessage {
   };
 }
 
+// How long to wait for the very first byte before declaring the turn hung.
+// Production first-token latency has been observed up to ~24s, so this is
+// deliberately generous — we only give up when the line has genuinely gone quiet.
+const FIRST_TOKEN_TIMEOUT_MS = 60_000;
+// Once bytes are flowing, a gap longer than this means the stream stalled.
+const STREAM_IDLE_TIMEOUT_MS = 30_000;
+
 export function useChat() {
   const qc = useQueryClient();
   const conversationQuery = useQuery({
@@ -32,6 +39,9 @@ export function useChat() {
   const [error, setError] = useState<string | null>(null);
   const [userTurnsThisSession, setUserTurnsThisSession] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  const lastAttemptRef = useRef<{ content: string; attachments: AttachmentDto[] } | null>(null);
+  const lastUserBubbleIdRef = useRef<string | null>(null);
+  const lastAssistantBubbleIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (conversationQuery.data) {
@@ -66,13 +76,20 @@ export function useChat() {
       stop();
       setError(null);
 
+      // Remember this attempt so a failed turn can be retried one-tap.
+      lastAttemptRef.current = { content: trimmed, attachments };
+
+      const userBubbleId = `u-${Date.now()}`;
+      const assistantId = `a-${Date.now()}`;
+      lastUserBubbleIdRef.current = userBubbleId;
+      lastAssistantBubbleIdRef.current = assistantId;
+
       const userMsg: ChatMessage = {
-        id: `u-${Date.now()}`,
+        id: userBubbleId,
         role: "user",
         content: trimmed,
         attachments,
       };
-      const assistantId = `a-${Date.now()}`;
       setLocalMessages((prev) => [
         ...prev,
         userMsg,
@@ -84,6 +101,38 @@ export function useChat() {
 
       const ctrl = new AbortController();
       abortRef.current = ctrl;
+
+      let timedOut = false;
+      let receivedContent = false;
+      let outcome: "done" | "server-error" | null = null;
+      let watchdog: ReturnType<typeof setTimeout> | undefined;
+      const armWatchdog = (ms: number) => {
+        if (watchdog) clearTimeout(watchdog);
+        watchdog = setTimeout(() => {
+          timedOut = true;
+          ctrl.abort();
+        }, ms);
+      };
+
+      // Settle the assistant bubble after a non-success: keep partial text but
+      // stop the spinner; if nothing streamed, drop the empty bubble entirely
+      // so we never leave a silent, stuck "sensing" placeholder.
+      const settleBubble = () => {
+        setLocalMessages((prev) => {
+          if (receivedContent) {
+            return prev.map((m) =>
+              m.id === assistantId ? { ...m, pending: false } : m,
+            );
+          }
+          return prev.filter((m) => m.id !== assistantId);
+        });
+      };
+      const failTurn = (message: string) => {
+        settleBubble();
+        setError(message);
+      };
+
+      armWatchdog(FIRST_TOKEN_TIMEOUT_MS);
 
       try {
         const res = await fetch(coachChatUrl, {
@@ -104,6 +153,8 @@ export function useChat() {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+          // Bytes are flowing — reset the (now shorter) idle watchdog.
+          armWatchdog(STREAM_IDLE_TIMEOUT_MS);
           buf += decoder.decode(value, { stream: true });
           const blocks = buf.split("\n\n");
           buf = blocks.pop() ?? "";
@@ -116,16 +167,15 @@ export function useChat() {
                 | { done: true }
                 | { error: string };
               if ("error" in evt) {
-                setError(evt.error);
+                outcome = "server-error";
                 continue;
               }
               if ("done" in evt) {
-                setIsStreaming(false);
-                qc.invalidateQueries({ queryKey: ["conversation"] });
-                qc.invalidateQueries({ queryKey: ["calibration", "next"] });
-                return;
+                outcome = "done";
+                continue;
               }
               if ("content" in evt) {
+                receivedContent = true;
                 setLocalMessages((prev) =>
                   prev.map((m) =>
                     m.id === assistantId
@@ -138,18 +188,53 @@ export function useChat() {
               // ignore partial / bad lines
             }
           }
+          if (outcome) break;
+        }
+
+        if (outcome === "done") {
+          lastAttemptRef.current = null;
+          qc.invalidateQueries({ queryKey: ["conversation"] });
+          qc.invalidateQueries({ queryKey: ["calibration", "next"] });
+        } else if (outcome === "server-error") {
+          failTurn("Something jammed on my end. Send that again.");
+        } else {
+          // Stream closed with no completion signal — interrupted, not done.
+          failTurn("Lost the thread. Send that again.");
         }
       } catch (err) {
-        if ((err as Error).name !== "AbortError") {
-          setError((err as Error).message || "stream failed");
+        const e = err as Error;
+        if (timedOut) {
+          failTurn("That hung — the line went quiet. Send it again.");
+        } else if (e.name === "AbortError") {
+          // User pressed stop: keep whatever streamed, surface no error.
+          settleBubble();
+        } else {
+          failTurn("Connection dropped. Send that again.");
         }
       } finally {
+        if (watchdog) clearTimeout(watchdog);
         setIsStreaming(false);
         abortRef.current = null;
       }
     },
     [isStreaming, qc, stop],
   );
+
+  const retry = useCallback(() => {
+    const last = lastAttemptRef.current;
+    if (!last || isStreaming) return;
+    setError(null);
+    // Drop the failed turn's bubbles; sendMessage re-adds them fresh. The
+    // server reuses the orphaned user row, so retry doesn't duplicate history.
+    setLocalMessages((prev) =>
+      prev.filter(
+        (m) =>
+          m.id !== lastUserBubbleIdRef.current &&
+          m.id !== lastAssistantBubbleIdRef.current,
+      ),
+    );
+    void sendMessage(last.content, last.attachments);
+  }, [isStreaming, sendMessage]);
 
   return {
     messages: localMessages,
@@ -160,6 +245,7 @@ export function useChat() {
     isLoading: conversationQuery.isLoading,
     conversationId: conversationQuery.data?.conversation?.id ?? null,
     sendMessage,
+    retry,
     stop,
     reset: () => resetMutation.mutate(),
     resetting: resetMutation.isPending,

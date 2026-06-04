@@ -81,6 +81,7 @@ export default function ChatPage() {
     isLoading,
     conversationId,
     sendMessage,
+    retry,
     stop,
     reset,
   } = useChat();
@@ -284,8 +285,17 @@ export default function ChatPage() {
                   </div>
                 ))}
                 {error && (
-                  <div className="p-4 border border-destructive/40 bg-destructive/10 text-destructive/90 font-mono text-xs text-center">
-                    {error}
+                  <div className="p-4 border border-destructive/40 bg-destructive/10 text-destructive/90 font-mono text-xs flex flex-col items-center gap-3 text-center">
+                    <span>{error}</span>
+                    <button
+                      type="button"
+                      onClick={() => retry()}
+                      disabled={isStreaming}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-destructive/50 text-destructive/90 hover:bg-destructive/15 uppercase tracking-widest disabled:opacity-40 transition-colors"
+                    >
+                      <RefreshCcw className="w-3 h-3" />
+                      Retry
+                    </button>
                   </div>
                 )}
                 <div ref={bottomRef} />

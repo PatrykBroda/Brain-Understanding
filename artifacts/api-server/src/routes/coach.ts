@@ -289,14 +289,33 @@ router.post("/coach/chat", async (req, res) => {
   }
   const conversation = await getOrCreateActiveConversation(fighter.id);
 
-  const [userMsg] = await db
-    .insert(messagesTable)
-    .values({
-      conversationId: conversation.id,
-      role: "user",
-      content: userContent,
-    })
-    .returning();
+  // Reuse an immediately-preceding identical, unanswered user message instead of
+  // inserting a duplicate. This makes a one-tap retry of a turn that failed
+  // mid-stream idempotent: the orphaned user row left by the failed attempt is
+  // reused rather than piling up duplicate history. Plain-text turns only —
+  // attachment turns always insert fresh so message/attachment linkage stays clean.
+  let userMsg: typeof messagesTable.$inferSelect | undefined;
+  if (attachmentIds.length === 0) {
+    const [recent] = await db
+      .select()
+      .from(messagesTable)
+      .where(eq(messagesTable.conversationId, conversation.id))
+      .orderBy(desc(messagesTable.createdAt), desc(messagesTable.id))
+      .limit(1);
+    if (recent && recent.role === "user" && recent.content === userContent) {
+      userMsg = recent;
+    }
+  }
+  if (!userMsg) {
+    [userMsg] = await db
+      .insert(messagesTable)
+      .values({
+        conversationId: conversation.id,
+        role: "user",
+        content: userContent,
+      })
+      .returning();
+  }
 
   if (attachmentIds.length > 0 && userMsg) {
     // Authorize: only attachments belonging to THIS conversation may be linked.
@@ -367,7 +386,10 @@ router.post("/coach/chat", async (req, res) => {
   }));
   const profileText = [fighter.goals, fighter.weaknesses].filter(Boolean).join(" ");
   const retrievalQuery = `${profileText}\n${buildRetrievalQuery(recentForRetrieval, userContent)}`;
-  const deepNodes = selectRelevantNodes(retrievalQuery, 8);
+  // Top-6 score-sorted nodes: the deepest depth lives in the highest-scoring
+  // matches, so trimming the two lowest-scored shrinks the uncached dynamic
+  // block (faster first token) without dropping what the coach actually draws on.
+  const deepNodes = selectRelevantNodes(retrievalQuery, 6);
   req.log.info(
     {
       deepNodeCount: deepNodes.length,
@@ -472,6 +494,24 @@ router.post("/coach/chat", async (req, res) => {
           assembled += event.delta.text;
           send({ content: event.delta.text });
         }
+      }
+
+      // Confirm prompt caching is actually being hit. A warm static block shows
+      // cache_read_input_tokens ~= the static prompt size and near-zero
+      // cache_creation; a cold/expired cache shows the inverse (slow first token).
+      try {
+        const finalMsg = await stream.finalMessage();
+        req.log.info(
+          {
+            cacheRead: finalMsg.usage.cache_read_input_tokens,
+            cacheCreate: finalMsg.usage.cache_creation_input_tokens,
+            inputTokens: finalMsg.usage.input_tokens,
+            outputTokens: finalMsg.usage.output_tokens,
+          },
+          "coach stream usage (claude)",
+        );
+      } catch {
+        // usage logging is best-effort; never let it break the turn
       }
     }
 
