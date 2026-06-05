@@ -19,6 +19,7 @@ import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
 import PublicLandingPage from "@/pages/landing";
 import { useFighter } from "@/hooks/use-fighter";
+import { ApiError } from "@/lib/api";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -120,7 +121,8 @@ function SplashGate({ children }: { children: React.ReactNode }) {
 }
 
 function Gate({ children }: { children: React.ReactNode }) {
-  const { data, isLoading, isError, refetch, isFetching } = useFighter();
+  const { data, isLoading, isError, error, refetch, isFetching } = useFighter();
+  const { signOut } = useClerk();
   if (isLoading) {
     return (
       <div className="flex h-[100dvh] items-center justify-center bg-background text-muted-foreground font-mono text-[10px] uppercase tracking-[0.3em]">
@@ -129,6 +131,41 @@ function Gate({ children }: { children: React.ReactNode }) {
     );
   }
   if (isError) {
+    // A 401/403 means the backend WAS reached — it just rejected the session
+    // (expired or, in dev, a stale duplicate Clerk cookie shadowing the fresh
+    // one). That is an auth problem, not a connectivity problem, so surface it
+    // as "sign in again" rather than the misleading "couldn't reach backend".
+    const isAuth = error instanceof ApiError && error.kind === "auth";
+    if (isAuth) {
+      return (
+        <div className="flex h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
+          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive">
+            Session not verified
+          </div>
+          <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+            The backend answered, but your sign-in couldn't be confirmed. Sign in
+            again to continue.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              void signOut({ redirectUrl: `${basePath}/sign-in` });
+            }}
+            className="border-y border-foreground/40 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/90 transition-colors hover:border-foreground/80"
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/70 transition-colors hover:text-foreground/80 disabled:opacity-50"
+          >
+            {isFetching ? "Retrying" : "Retry"}
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="flex h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
         <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive">
