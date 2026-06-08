@@ -1,0 +1,178 @@
+What I'd do for your AI BJJ Coach
+Hero Layout
+
+Left Side
+
+Large headline:
+
+Train Smarter. Improve Faster.
+
+Subheadline:
+
+AI-powered Brazilian Jiu-Jitsu coaching that analyzes your training, builds personalized plans, tracks progress, and helps you level up between classes.
+
+CTA Buttons:
+
+Start Free Trial
+Watch Demo
+
+Small trust row:
+
+✓ Personalized Training Plans
+✓ AI Technique Analysis
+✓ Progress Tracking
+✓ 24/7 Coach Access
+
+Right Side
+
+Large device mockup like screenshot #1.
+
+Desktop dashboard:
+
+Training calendar
+Belt progress tracker
+AI chat coach
+Technique recommendations
+
+Phone overlay:
+
+AI Coach conversation
+Daily training plan
+Progress score
+
+This creates the premium SaaS look.
+
+Background
+
+Dark.
+
+Not black.
+
+Something like:
+
+#071018
+
+with soft blue gradients.
+
+The trading screenshot already has the right atmosphere.
+
+Section 2
+
+Immediately answer:
+
+Why Athletes Use AI BJJ Coach
+
+Three cards:
+
+Personalized Plans
+
+Train based on your goals, schedule, and experience.
+
+Technique Analysis
+
+Identify weaknesses and improve faster.
+
+Progress Tracking
+
+See measurable improvement every week.
+
+Section 3
+How It Works
+
+Simple 3-step flow.
+
+1. Tell the AI your experience level
+
+↓
+
+2. Get a personalized training plan
+
+↓
+
+3. Track progress and improve
+
+No long explanations.
+
+Section 4
+
+Big visual.
+
+Phone mockup showing AI chat.
+
+Example:
+
+You:
+I keep getting stuck in side control.
+
+AI Coach:
+Focus on elbow-knee connection and
+practice these 3 escapes this week...
+
+People instantly understand the product.
+
+Section 5
+
+Social proof.
+
+Even before testimonials.
+
+Something like:
+
+1,200+
+Training Sessions Logged
+
+8,500+
+AI Coaching Interactions
+
+94%
+Reported Better Training Consistency
+Section 6
+
+Pricing
+
+Keep it extremely simple.
+
+Free
+
+Pro
+
+Team / Academy
+
+Nothing else.
+
+Section 7
+
+Final CTA
+
+Large.
+
+Ready to Level Up Your Jiu-Jitsu?
+
+Start Training With Your AI Coach Today
+
+[ Start Free Trial ]
+Design direction I'd choose
+
+Not Instagram.
+
+Not the trading platform.
+
+70% trading platform + 30% Apple.
+
+Meaning:
+
+Dark premium SaaS
+Huge product mockups
+Lots of whitespace
+Minimal text
+Large typography
+Subtle animations
+No marketing fluff
+
+The biggest mistake most AI startups make is explaining too much. The landing page should make someone understand the product in under 5 seconds:
+
+"This is an AI coach for BJJ that gives me personalized training guidance."
+
+If that's obvious above the fold, the page is doing its job.
+
+Create richer image sets

@@ -1,0 +1,253 @@
+Critical Issues
+1. Broker Verification Can Be Bypassed
+
+This is priority #1.
+
+If users can:
+
+Upload proof
+↓
+Get error
+↓
+Refresh page
+↓
+Gain access anyway
+
+Then your entire business model breaks.
+
+Tell Lovable:
+
+BROKER VERIFICATION SECURITY FIX
+
+Current verification flow can be bypassed by refreshing the page.
+
+This must be fixed immediately.
+
+Requirements:
+
+Users cannot access the dashboard until verification is approved.
+Verification status must be stored server-side.
+Never rely on frontend state.
+Refreshing the page must not unlock access.
+User role must be checked on every protected route.
+
+Statuses:
+
+pending
+approved
+rejected
+
+Only approved users can access:
+
+Dashboard
+Signals
+Academy
+Community
+AI Coach
+Risk Suite
+
+All verification logic must be enforced by Supabase Row Level Security and backend checks.
+
+2. Signal Page Doesn't Match The Platform
+
+You're right.
+
+The dashboard feels:
+
+Private Terminal
+Institutional
+Premium
+Gold
+
+The signals page feels:
+
+Telegram Channel
+
+Those are two completely different products.
+
+The signals page should become:
+
+Signal Command Center
+
+Not:
+
+Signal History
+
+Display:
+
+Active Signals
+Today's Results
+Weekly Results
+Monthly Results
+Signal Analytics
+Win Rate By Pair
+Pips By Pair
+Recent Closures
+
+Make it look like Bloomberg/TradingView.
+
+Not a Telegram feed.
+
+3. Homepage Results Not Showing
+
+The bottom card showing:
+
+--
+--
+--
+
+means data isn't loading.
+
+Possible causes:
+
+Supabase query failing
+Empty database
+Wrong table
+Wrong API route
+Component not mapped
+
+Tell Lovable:
+
+Investigate homepage statistics section.
+
+Current statistics cards display placeholder values (--).
+
+Requirements:
+
+Pull real signal data from database.
+Display:
+Total Signals
+Win Rate
+Total Pips
+Active Signals
+
+If database is empty, show fallback values and loading states.
+
+Do not render blank placeholders.
+
+4. Billing
+
+Remove billing entirely for now.
+
+Replace:
+
+Upgrade VIP
+Billing
+Payments
+
+with:
+
+Coming Soon
+
+Until the platform is stable.
+
+Growth Opportunities
+User Settings
+
+You absolutely need this.
+
+New sidebar section:
+
+ACCOUNT
+
+Pages:
+
+Profile
+Trading Accounts
+Verification
+Notifications
+Security
+AI Preferences
+Academy
+
+The Academy should become a major pillar.
+
+Structure:
+
+Beginner
+MT5 Setup
+Risk Management
+Lot Size
+Market Sessions
+Intermediate
+Market Structure
+Liquidity
+Supply & Demand
+Advanced
+Institutional Concepts
+Execution
+Psychology
+Elite
+Funded Accounts
+Scaling
+Portfolio Building
+AI Coach
+
+This is where I'd put most effort.
+
+Current AI Insights are good.
+
+But eventually:
+
+AI Coach
+
+Users can ask:
+
+Why am I losing money?
+Review my last 50 trades.
+What is my biggest weakness?
+How do I pass my prop challenge?
+
+The AI should use:
+
+Myfxbook data
+Signal history
+Journal entries
+Trading performance
+
+to answer.
+
+Biggest Missing Feature
+
+You mentioned chat.
+
+I wouldn't build a community chat first.
+
+I'd build:
+
+Trade Review Chat
+
+User uploads:
+
+Screenshot
+TradingView chart
+MT5 screenshot
+
+AI responds:
+
+Trade Grade: B+
+
+Entry quality: 8/10
+Risk management: 9/10
+Patience: 6/10
+
+Mistake:
+Entered before confirmation.
+
+Suggestion:
+Wait for market structure shift.
+
+That feature alone is worth more than another Telegram group.
+
+My recommendation for the next build order
+Fix verification bypass
+Fix homepage data loading
+Build Settings page
+Build Trading Account connection page
+Build Academy
+Improve Signal Command Center
+Build AI Coach
+Build Trade Review Chat
+Add payments later
+
+Right now the dashboard already looks premium. The biggest gap is making the underlying systems as solid as the UI.
