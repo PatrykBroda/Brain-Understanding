@@ -245,3 +245,40 @@
     opacity: 1;
   }
 }
+
+/* Boot loader — thin track with a gold segment sweeping across */
+.frame-loader-track {
+  position: relative;
+  width: 7rem;
+  height: 1px;
+  overflow: hidden;
+  background: hsl(var(--primary) / 0.12);
+}
+
+.frame-loader-bar {
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    hsl(var(--primary) / 0.9),
+    transparent
+  );
+  animation: frame-loader-sweep 1.5s ease-in-out infinite;
+}
+
+@keyframes frame-loader-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame-loader-bar {
+    animation-duration: 3s;
+  }
+}

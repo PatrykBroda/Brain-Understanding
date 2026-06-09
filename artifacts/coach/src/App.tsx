@@ -125,8 +125,11 @@ function Gate({ children }: { children: React.ReactNode }) {
   const { signOut } = useClerk();
   if (isLoading) {
     return (
-      <div className="flex h-[100dvh] items-center justify-center bg-background text-muted-foreground font-mono text-[10px] uppercase tracking-[0.3em]">
-        Booting system
+      <div className="flex h-[100dvh] flex-col items-center justify-center gap-4 bg-background text-muted-foreground font-mono text-[10px] uppercase tracking-[0.3em]">
+        <span>Booting system</span>
+        <div className="frame-loader-track" role="status" aria-label="Loading">
+          <div className="frame-loader-bar" />
+        </div>
       </div>
     );
   }
