@@ -115,13 +115,20 @@ export default function SplashPage() {
           </h1>
 
           <div
-            className="flex items-center justify-center gap-2 mt-10 frame-splash-line"
+            className="flex items-end justify-center gap-2 mt-10 frame-splash-line"
             style={{ animationDelay: "0.5s" }}
-            aria-hidden
+            role="status"
+            aria-label="Loading"
           >
-            <span className="w-1 h-1 rounded-full bg-foreground/30" />
-            <span className="w-1 h-1 rounded-full bg-foreground/30" />
-            <span className="w-1 h-1 rounded-full bg-foreground/30" />
+            <span className="w-1 h-1 rounded-full bg-foreground/40 frame-splash-dot" />
+            <span
+              className="w-1 h-1 rounded-full bg-foreground/40 frame-splash-dot"
+              style={{ animationDelay: "0.18s" }}
+            />
+            <span
+              className="w-1 h-1 rounded-full bg-foreground/40 frame-splash-dot"
+              style={{ animationDelay: "0.36s" }}
+            />
           </div>
         </div>
       </main>
@@ -179,9 +186,17 @@ export default function SplashPage() {
         .frame-splash-hero {
           animation: frame-splash-drift 14s ease-in-out infinite;
         }
+        @keyframes frame-splash-bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+          40%           { transform: translateY(-5px); opacity: 1; }
+        }
+        .frame-splash-dot {
+          animation: frame-splash-bounce 1.2s ease-in-out infinite;
+        }
         @media (prefers-reduced-motion: reduce) {
           .frame-splash-line { animation-duration: 0.01s; }
           .frame-splash-hero { animation: none; }
+          .frame-splash-dot { animation: none; }
         }
       `}</style>
     </div>
