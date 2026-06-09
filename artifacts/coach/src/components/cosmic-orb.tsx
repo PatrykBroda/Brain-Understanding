@@ -1,4 +1,4 @@
-import { Component, Suspense, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type ErrorInfo, type MutableRefObject, type ReactNode } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { MeshDistortMaterial, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
@@ -65,6 +65,45 @@ function hsl(h: number, s: number, l: number): THREE.Color {
   return new THREE.Color().setHSL(h / 360, s, l);
 }
 
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+// Shortest-path interpolation around the 360° hue wheel so colour transitions
+// never sweep the long way through unrelated hues.
+function lerpHue(a: number, b: number, t: number) {
+  const d = ((b - a + 540) % 360) - 180;
+  return a + d * t;
+}
+
+/**
+ * Smoothly drives a live Cfg toward the target every frame. State changes glide
+ * instead of snapping — every numeric channel (incl. colour) eases over, which
+ * is what makes the orb feel smooth rather than stepped. Frame-rate independent
+ * via an exponential approach (1 - e^(-k·dt)).
+ */
+function useLiveCfg(target: Cfg): MutableRefObject<Cfg> {
+  const live = useRef<Cfg>({ ...target });
+  const targetRef = useRef<Cfg>(target);
+  targetRef.current = target;
+  useFrame((_, dt) => {
+    const k = 1 - Math.exp(-dt * 2.4);
+    const l = live.current;
+    const t = targetRef.current;
+    l.hue = lerpHue(l.hue, t.hue, k);
+    l.sat = lerp(l.sat, t.sat, k);
+    l.light = lerp(l.light, t.light, k);
+    l.rotSpeed = lerp(l.rotSpeed, t.rotSpeed, k);
+    l.distortSpeed = lerp(l.distortSpeed, t.distortSpeed, k);
+    l.distort = lerp(l.distort, t.distort, k);
+    l.emissive = lerp(l.emissive, t.emissive, k);
+    l.breathSpeed = lerp(l.breathSpeed, t.breathSpeed, k);
+    l.breathAmt = lerp(l.breathAmt, t.breathAmt, k);
+    l.sparkleSpeed = lerp(l.sparkleSpeed, t.sparkleSpeed, k);
+    l.ringSpeed = lerp(l.ringSpeed, t.ringSpeed, k);
+    // count is discrete — snap it (Sparkles can't tween instance count)
+    l.sparkleCount = t.sparkleCount;
+  });
+  return live;
+}
+
 /* --------------------------- Fresnel rim shader --------------------------- */
 
 const fresnelVertex = /* glsl */ `
@@ -91,135 +130,190 @@ const fresnelFragment = /* glsl */ `
   }
 `;
 
-function useFresnelMaterial(color: THREE.Color, intensity: number, power = 2.4) {
-  const mat = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
-        uniforms: {
-          uColor: { value: color.clone() },
-          uIntensity: { value: intensity },
-          uPower: { value: power },
-        },
-        vertexShader: fresnelVertex,
-        fragmentShader: fresnelFragment,
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      }),
-    [],
-  );
-  useEffect(() => {
-    mat.uniforms.uColor.value.copy(color);
-    mat.uniforms.uIntensity.value = intensity;
-    mat.uniforms.uPower.value = power;
-  }, [color, intensity, power, mat]);
-  useEffect(() => () => mat.dispose(), [mat]);
-  return mat;
+function makeFresnelMaterial(power: number) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      uColor: { value: new THREE.Color() },
+      uIntensity: { value: 1 },
+      uPower: { value: power },
+    },
+    vertexShader: fresnelVertex,
+    fragmentShader: fresnelFragment,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
 }
 
 /* ------------------------------- Scene parts ------------------------------ */
 
-function Sphere({ cfg }: { cfg: Cfg }) {
+function Sphere({ live }: { live: MutableRefObject<Cfg> }) {
   const group = useRef<THREE.Group>(null);
-  const distortRef = useRef<{ distort: number; speed: number }>({
-    distort: cfg.distort,
-    speed: cfg.distortSpeed,
-  });
+  const distortMat = useRef<THREE.MeshStandardMaterial | null>(null);
 
-  // Smoothly interpolate distortion params on state change to avoid pops.
-  useFrame((_, dt) => {
-    if (!group.current) return;
-    group.current.rotation.y += cfg.rotSpeed * dt;
-    group.current.rotation.x += cfg.rotSpeed * 0.35 * dt;
-
-    const t = performance.now() * 0.001;
-    const breath = 1 + Math.sin(t * cfg.breathSpeed) * cfg.breathAmt;
-    group.current.scale.setScalar(breath);
-
-    // Slow positional drift — keeps the orb feeling alive, never static.
-    group.current.position.x = Math.sin(t * 0.13) * 0.035;
-    group.current.position.y = Math.cos(t * 0.10) * 0.028;
-  });
-
-  const rimColor = useMemo(() => hsl(cfg.hue, cfg.sat, cfg.light), [cfg.hue, cfg.sat, cfg.light]);
-  const emissiveColor = useMemo(
-    () => hsl(cfg.hue, cfg.sat * 0.9, Math.min(0.5, cfg.light * 0.8)),
-    [cfg.hue, cfg.sat, cfg.light],
+  // Long-lived materials + scratch colours (no per-frame allocation).
+  const innerGlowMat = useMemo(() => makeFresnelMaterial(1.6), []);
+  const rimMat = useMemo(() => makeFresnelMaterial(2.6), []);
+  const haloMat = useMemo(() => makeFresnelMaterial(3.4), []);
+  const scratchRim = useMemo(() => new THREE.Color(), []);
+  const scratchEm = useMemo(() => new THREE.Color(), []);
+  useEffect(
+    () => () => {
+      innerGlowMat.dispose();
+      rimMat.dispose();
+      haloMat.dispose();
+    },
+    [innerGlowMat, rimMat, haloMat],
   );
-  const rimMat = useFresnelMaterial(rimColor, 1.6 + cfg.emissive * 2.0, 2.6);
-  const innerGlowMat = useFresnelMaterial(rimColor, 0.55 + cfg.emissive * 0.8, 1.6);
 
-  // Effective distort = base * (0.3 + breath swing) — gentle "pulse" without redoing material.
-  useEffect(() => {
-    distortRef.current.distort = cfg.distort;
-    distortRef.current.speed = cfg.distortSpeed;
-  }, [cfg.distort, cfg.distortSpeed]);
+  useFrame((_, dt) => {
+    const cfg = live.current;
+    if (group.current) {
+      // Graceful base rotation keeps even dormant feeling alive and majestic.
+      group.current.rotation.y += (cfg.rotSpeed + 0.015) * dt;
+      group.current.rotation.x += (cfg.rotSpeed * 0.32 + 0.004) * dt;
+
+      const t = performance.now() * 0.001;
+      const breath = 1 + Math.sin(t * cfg.breathSpeed) * cfg.breathAmt;
+      group.current.scale.setScalar(breath);
+      group.current.position.x = Math.sin(t * 0.11) * 0.03;
+      group.current.position.y = Math.cos(t * 0.085) * 0.024;
+    }
+
+    scratchRim.setHSL(cfg.hue / 360, cfg.sat, Math.min(0.85, cfg.light + 0.1));
+    scratchEm.setHSL(cfg.hue / 360, cfg.sat * 0.9, Math.min(0.5, cfg.light * 0.8));
+
+    if (distortMat.current) {
+      distortMat.current.emissive.copy(scratchEm);
+      distortMat.current.emissiveIntensity = cfg.emissive;
+      // drei's MeshDistortMaterial exposes distort/speed as plain number setters.
+      const u = distortMat.current as unknown as { distort: number; speed: number };
+      u.distort = cfg.distort;
+      u.speed = cfg.distortSpeed;
+    }
+
+    innerGlowMat.uniforms.uColor.value.copy(scratchRim);
+    innerGlowMat.uniforms.uIntensity.value = 0.55 + cfg.emissive * 0.8;
+    rimMat.uniforms.uColor.value.copy(scratchRim);
+    rimMat.uniforms.uIntensity.value = 1.6 + cfg.emissive * 2.0;
+    haloMat.uniforms.uColor.value.copy(scratchRim);
+    haloMat.uniforms.uIntensity.value = 0.5 + cfg.emissive * 1.1;
+  });
 
   return (
     <group ref={group}>
       {/* Core sphere — organic, slightly displaced, low-emissive amber.
-          Detail kept modest: MeshDistortMaterial mutates vertices each frame,
-          so high subdivision balloons CPU + GPU cost on mobile. */}
+          MeshDistortMaterial mutates vertices each frame, so detail is kept
+          modest to stay cheap on mobile. */}
       <mesh>
         <icosahedronGeometry args={[1, 6]} />
         <MeshDistortMaterial
-          color={new THREE.Color("#0a0a0a")}
-          emissive={emissiveColor}
-          emissiveIntensity={cfg.emissive}
-          roughness={0.55}
-          metalness={0.35}
-          distort={cfg.distort}
-          speed={cfg.distortSpeed}
+          ref={distortMat as never}
+          color={new THREE.Color("#080808")}
+          roughness={0.5}
+          metalness={0.4}
         />
       </mesh>
-      {/* Inner soft glow (small rim outside surface) */}
+      {/* Inner soft glow */}
       <mesh scale={1.015} material={innerGlowMat}>
         <icosahedronGeometry args={[1, 3]} />
       </mesh>
-      {/* Outer fresnel rim — the signature amber halo */}
+      {/* Signature amber rim */}
       <mesh scale={1.06} material={rimMat}>
         <icosahedronGeometry args={[1, 3]} />
+      </mesh>
+      {/* Grand outer halo — wide, faint atmosphere for the majestic feel */}
+      <mesh scale={1.3} material={haloMat}>
+        <icosahedronGeometry args={[1, 2]} />
       </mesh>
     </group>
   );
 }
 
-function Wireframe({ cfg }: { cfg: Cfg }) {
-  const ref = useRef<THREE.LineSegments>(null);
-  const geo = useMemo(
-    () => new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(1.09, 4)),
+/**
+ * Two layered geodesic wireframes: a dense fine triangulation (the "more lines"
+ * mesh) and a bolder structural shell that drifts the other way. Layering the
+ * two builds depth and the sense of a structure energy is flowing across.
+ */
+function Wireframe({ live }: { live: MutableRefObject<Cfg> }) {
+  const fine = useRef<THREE.LineSegments>(null);
+  const bold = useRef<THREE.LineSegments>(null);
+
+  const fineGeo = useMemo(
+    () => new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(1.09, 5)),
     [],
   );
-  useEffect(() => () => geo.dispose(), [geo]);
-  const color = useMemo(
-    () => hsl(cfg.hue, cfg.sat, cfg.light + 0.1),
-    [cfg.hue, cfg.sat, cfg.light],
+  const boldGeo = useMemo(
+    () => new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(1.16, 2)),
+    [],
   );
+  const fineMat = useMemo(
+    () =>
+      new THREE.LineBasicMaterial({
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }),
+    [],
+  );
+  const boldMat = useMemo(
+    () =>
+      new THREE.LineBasicMaterial({
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }),
+    [],
+  );
+  const scratch = useMemo(() => new THREE.Color(), []);
+  useEffect(
+    () => () => {
+      fineGeo.dispose();
+      boldGeo.dispose();
+      fineMat.dispose();
+      boldMat.dispose();
+    },
+    [fineGeo, boldGeo, fineMat, boldMat],
+  );
+
   useFrame((_, dt) => {
-    if (!ref.current) return;
-    // Counter-drift to the core for a sense of energy flowing over the surface.
-    ref.current.rotation.y -= (cfg.rotSpeed * 0.5 + 0.02) * dt;
-    ref.current.rotation.x += cfg.rotSpeed * 0.2 * dt;
+    const cfg = live.current;
+    scratch.setHSL(cfg.hue / 360, cfg.sat, Math.min(0.85, cfg.light + 0.12));
+    fineMat.color.copy(scratch);
+    // Keep the geodesic structure legible even at rest, brightening with load.
+    fineMat.opacity = 0.13 + cfg.emissive * 0.6;
+    boldMat.color.copy(scratch);
+    boldMat.opacity = 0.2 + cfg.emissive * 0.8;
+
+    if (fine.current) {
+      fine.current.rotation.y -= (cfg.rotSpeed * 0.5 + 0.018) * dt;
+      fine.current.rotation.x += cfg.rotSpeed * 0.18 * dt;
+    }
+    if (bold.current) {
+      bold.current.rotation.y += (cfg.rotSpeed * 0.22 + 0.01) * dt;
+      bold.current.rotation.z -= cfg.rotSpeed * 0.12 * dt;
+    }
   });
+
   return (
-    <lineSegments ref={ref} geometry={geo}>
-      <lineBasicMaterial
-        color={color}
-        transparent
-        opacity={0.07 + cfg.emissive * 0.55}
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-      />
-    </lineSegments>
+    <group>
+      <lineSegments ref={fine} geometry={fineGeo} material={fineMat} />
+      <lineSegments ref={bold} geometry={boldGeo} material={boldMat} />
+    </group>
   );
 }
 
-function Rings({ cfg }: { cfg: Cfg }) {
+function Rings({ live }: { live: MutableRefObject<Cfg> }) {
   const a = useRef<THREE.Mesh>(null);
   const b = useRef<THREE.Mesh>(null);
   const c = useRef<THREE.Mesh>(null);
+  const matA = useRef<THREE.MeshBasicMaterial>(null);
+  const matB = useRef<THREE.MeshBasicMaterial>(null);
+  const matC = useRef<THREE.MeshBasicMaterial>(null);
+  const scratch = useMemo(() => new THREE.Color(), []);
 
   useFrame((_, dt) => {
+    const cfg = live.current;
     if (a.current) a.current.rotation.z += cfg.ringSpeed * dt;
     if (b.current) {
       b.current.rotation.x += cfg.ringSpeed * 0.7 * dt;
@@ -229,53 +323,74 @@ function Rings({ cfg }: { cfg: Cfg }) {
       c.current.rotation.y += cfg.ringSpeed * -0.55 * dt;
       c.current.rotation.z += cfg.ringSpeed * 0.3 * dt;
     }
+    scratch.setHSL(cfg.hue / 360, cfg.sat, Math.min(0.85, cfg.light + 0.05));
+    const op = 0.24 + cfg.emissive * 0.8;
+    if (matA.current) { matA.current.color.copy(scratch); matA.current.opacity = op; }
+    if (matB.current) { matB.current.color.copy(scratch); matB.current.opacity = op * 0.75; }
+    if (matC.current) { matC.current.color.copy(scratch); matC.current.opacity = op * 0.55; }
   });
-
-  const color = useMemo(() => hsl(cfg.hue, cfg.sat, cfg.light + 0.05), [cfg.hue, cfg.sat, cfg.light]);
-  const opacity = 0.24 + cfg.emissive * 0.8;
 
   return (
     <group>
       <mesh ref={a} rotation={[Math.PI / 2.2, 0, 0]}>
-        <torusGeometry args={[1.45, 0.0035, 8, 200]} />
-        <meshBasicMaterial color={color} transparent opacity={opacity} />
+        <torusGeometry args={[1.45, 0.0035, 8, 240]} />
+        <meshBasicMaterial ref={matA} transparent />
       </mesh>
       <mesh ref={b} rotation={[Math.PI / 3.5, Math.PI / 5, 0]}>
-        <torusGeometry args={[1.62, 0.0028, 8, 200]} />
-        <meshBasicMaterial color={color} transparent opacity={opacity * 0.75} />
+        <torusGeometry args={[1.62, 0.0028, 8, 240]} />
+        <meshBasicMaterial ref={matB} transparent />
       </mesh>
       <mesh ref={c} rotation={[Math.PI / 2.8, Math.PI / 3, 0]}>
-        <torusGeometry args={[1.82, 0.0022, 8, 200]} />
-        <meshBasicMaterial color={color} transparent opacity={opacity * 0.55} />
+        <torusGeometry args={[1.82, 0.0022, 8, 240]} />
+        <meshBasicMaterial ref={matC} transparent />
       </mesh>
     </group>
   );
 }
 
-function Scene({ state }: { state: OrbState }) {
+function SparkleField({ live, state }: { live: MutableRefObject<Cfg>; state: OrbState }) {
   const cfg = VISUALS[state];
   const sparkleColor = useMemo(() => hsl(cfg.hue, cfg.sat, cfg.light + 0.05), [cfg.hue, cfg.sat, cfg.light]);
+  // Sparkle count/speed can't tween smoothly, so read the target for those but
+  // keep the colour following the live (smoothed) palette via a parent light.
+  return (
+    <Sparkles
+      count={cfg.sparkleCount}
+      scale={4.4}
+      size={1.6}
+      speed={cfg.sparkleSpeed}
+      opacity={0.5}
+      color={sparkleColor}
+      noise={1.4}
+    />
+  );
+}
+
+function Scene({ state }: { state: OrbState }) {
+  const live = useLiveCfg(VISUALS[state]);
+  const keyLight = useRef<THREE.PointLight>(null);
+  const scratch = useMemo(() => new THREE.Color(), []);
+
+  useFrame(() => {
+    const cfg = live.current;
+    if (keyLight.current) {
+      scratch.setHSL(cfg.hue / 360, cfg.sat, cfg.light + 0.05);
+      keyLight.current.color.copy(scratch);
+      keyLight.current.intensity = 0.7 + cfg.emissive * 1.2;
+    }
+  });
 
   return (
     <>
       <ambientLight intensity={0.18} />
       <directionalLight position={[3, 4, 5]} intensity={0.55} color="#fff2dd" />
       <directionalLight position={[-4, -2, -3]} intensity={0.22} color="#3a4a66" />
-      <pointLight position={[0, 0, 2.2]} intensity={0.85} color={sparkleColor} distance={6} />
+      <pointLight ref={keyLight} position={[0, 0, 2.2]} intensity={0.85} distance={6} />
 
-      <Sphere cfg={cfg} />
-      <Wireframe cfg={cfg} />
-      <Rings cfg={cfg} />
-
-      <Sparkles
-        count={cfg.sparkleCount}
-        scale={4.2}
-        size={1.6}
-        speed={cfg.sparkleSpeed}
-        opacity={0.55}
-        color={sparkleColor}
-        noise={1.4}
-      />
+      <Sphere live={live} />
+      <Wireframe live={live} />
+      <Rings live={live} />
+      <SparkleField live={live} state={state} />
     </>
   );
 }
