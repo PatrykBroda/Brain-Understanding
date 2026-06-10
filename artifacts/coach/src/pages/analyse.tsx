@@ -13,7 +13,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { FrameReportCard } from "@/components/frame-report-card";
 import { useFighter } from "@/hooks/use-fighter";
-import { useAnalyses, useAnalysis, useCreateAnalysis } from "@/hooks/use-analysis";
+import { useAnalyses, useAnalysis, useCreateAnalysis, useUpdateKeyframeNotes } from "@/hooks/use-analysis";
 import {
   extractPoseFrames,
   captureKeyframe,
@@ -624,7 +624,9 @@ function WorkstationLeft({
   onClose: () => void;
 }) {
   const [activeKf, setActiveKf] = useState(0);
+  const [localNotes, setLocalNotes] = useState<Record<number, string>>(analysis.keyframeNotes ?? {});
   const videoRef = useRef<HTMLVideoElement>(null);
+  const updateNotes = useUpdateKeyframeNotes(analysis.id);
   const kf = analysis.keyframes[activeKf];
 
   function seekTo(ts: number, idx: number) {
@@ -632,6 +634,10 @@ function WorkstationLeft({
     if (videoRef.current) {
       videoRef.current.currentTime = ts;
     }
+  }
+
+  function commitNote(notes: Record<number, string>) {
+    void updateNotes.mutate(notes);
   }
 
   return (
@@ -681,6 +687,11 @@ function WorkstationLeft({
                 <figcaption className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/85 px-1">
                   {kf.timestamp.toFixed(1)}s · {kf.caption}
                 </figcaption>
+                {localNotes[activeKf] && (
+                  <div className="font-mono text-[9px] text-primary/85 px-1 leading-snug">
+                    {localNotes[activeKf]}
+                  </div>
+                )}
               </figure>
             ) : (
               <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
@@ -691,14 +702,19 @@ function WorkstationLeft({
         )}
       </div>
 
-      {/* filmstrip — click to seek (or just highlight for saved reports) */}
+      {/* filmstrip — click to seek + annotate */}
       {analysis.keyframes.length > 0 && (
-        <div className="flex-none border-t border-border/30 bg-black/60 px-4 py-3">
-          <div className="font-mono text-[8px] uppercase tracking-[0.35em] text-muted-foreground/70 mb-2">
+        <div className="flex-none border-t border-border/30 bg-black/60 px-4 py-3 space-y-2">
+          <div className="font-mono text-[8px] uppercase tracking-[0.35em] text-muted-foreground/70">
             Detected events
             {videoUrl && (
               <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
-                · click to seek
+                · click to seek · click again to annotate
+              </span>
+            )}
+            {!videoUrl && (
+              <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
+                · click to annotate
               </span>
             )}
           </div>
@@ -721,8 +737,37 @@ function WorkstationLeft({
                 <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/70 px-1 pb-1 truncate">
                   {k.caption}
                 </div>
+                {localNotes[i] && (
+                  <div className="font-mono text-[7px] text-primary/80 px-1 pb-1 truncate leading-tight border-t border-border/20 pt-0.5">
+                    {localNotes[i]}
+                  </div>
+                )}
               </button>
             ))}
+          </div>
+          {/* inline note editor for the active keyframe */}
+          <div className="flex items-center gap-2 pt-1">
+            <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/60 flex-none">
+              Note
+            </div>
+            <input
+              key={activeKf}
+              type="text"
+              maxLength={150}
+              value={localNotes[activeKf] ?? ""}
+              onChange={(e) => setLocalNotes((prev) => ({ ...prev, [activeKf]: e.target.value }))}
+              onBlur={(e) => {
+                const updated = { ...localNotes, [activeKf]: e.target.value.trim() };
+                if (!updated[activeKf]) delete updated[activeKf];
+                setLocalNotes(updated);
+                commitNote(updated);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              }}
+              placeholder={`Add a note for frame ${activeKf + 1}…`}
+              className="flex-1 bg-transparent border-b border-border/40 focus:border-primary/50 outline-none font-mono text-[10px] text-foreground/90 placeholder:text-muted-foreground/35 py-0.5 pb-1 transition-colors"
+            />
           </div>
         </div>
       )}
@@ -1101,7 +1146,13 @@ function Report({
     }
   }
 
+  const [localNotes, setLocalNotes] = useState<Record<number, string>>(analysis.keyframeNotes ?? {});
+  const updateNotes = useUpdateKeyframeNotes(analysis.id);
   const kf = analysis.keyframes[activeKf];
+
+  function commitNote(notes: Record<number, string>) {
+    void updateNotes.mutate(notes);
+  }
 
   return (
     <div className="space-y-7">
@@ -1147,7 +1198,7 @@ function Report({
         <ComparisonSection comparison={analysis.comparison} />
       )}
 
-      {/* detected events — clickable keyframes */}
+      {/* detected events — clickable keyframes + note annotation */}
       {analysis.keyframes.length > 0 && (
         <section className="space-y-3">
           <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
@@ -1163,6 +1214,11 @@ function Report({
               <figcaption className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/85">
                 {kf.timestamp.toFixed(1)}s · {kf.caption}
               </figcaption>
+              {localNotes[activeKf] && (
+                <div className="font-mono text-[9px] text-primary/85 leading-snug">
+                  {localNotes[activeKf]}
+                </div>
+              )}
             </figure>
           )}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
@@ -1179,8 +1235,37 @@ function Report({
                 <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/80 px-1 py-1 truncate">
                   {k.caption}
                 </div>
+                {localNotes[i] && (
+                  <div className="font-mono text-[7px] text-primary/75 px-1 pb-1 truncate leading-tight border-t border-border/20 pt-0.5">
+                    {localNotes[i]}
+                  </div>
+                )}
               </button>
             ))}
+          </div>
+          {/* inline note editor for active keyframe */}
+          <div className="flex items-center gap-2">
+            <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/60 flex-none">
+              Note
+            </div>
+            <input
+              key={activeKf}
+              type="text"
+              maxLength={150}
+              value={localNotes[activeKf] ?? ""}
+              onChange={(e) => setLocalNotes((prev) => ({ ...prev, [activeKf]: e.target.value }))}
+              onBlur={(e) => {
+                const updated = { ...localNotes, [activeKf]: e.target.value.trim() };
+                if (!updated[activeKf]) delete updated[activeKf];
+                setLocalNotes(updated);
+                commitNote(updated);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              }}
+              placeholder={`Add a note for frame ${activeKf + 1}…`}
+              className="flex-1 bg-transparent border-b border-border/40 focus:border-primary/50 outline-none font-mono text-[10px] text-foreground/90 placeholder:text-muted-foreground/35 py-0.5 pb-1 transition-colors"
+            />
           </div>
         </section>
       )}

@@ -94,6 +94,7 @@ export const videoAnalysesTable = pgTable("video_analyses", {
   comparison: jsonb("comparison").$type<AnalysisComparison | null>(),
   metrics: jsonb("metrics").$type<AnalysisMetrics>().notNull(),
   keyframes: jsonb("keyframes").$type<AnalysisKeyframe[]>().notNull(),
+  keyframeNotes: jsonb("keyframe_notes").$type<Record<number, string>>().notNull().default({}),
   durationSec: real("duration_sec").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -26,3 +26,13 @@ export function useCreateAnalysis() {
     },
   });
 }
+
+export function useUpdateKeyframeNotes(analysisId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (notes: Record<number, string>) => analysisApi.updateNotes(analysisId, notes),
+    onSuccess: (data) => {
+      qc.setQueryData(["analysis", analysisId], data);
+    },
+  });
+}

@@ -443,6 +443,7 @@ export type VideoAnalysis = {
   comparison: AnalysisComparison | null;
   metrics: AnalysisMetrics;
   keyframes: AnalysisKeyframe[];
+  keyframeNotes: Record<number, string>;
   durationSec: number;
   createdAt: string;
 };
@@ -482,6 +483,11 @@ export const analysisApi = {
     jsonFetch<{ analysis: VideoAnalysis }>("api/analysis", {
       method: "POST",
       body: JSON.stringify(input),
+    }),
+  updateNotes: (id: number, notes: Record<number, string>) =>
+    jsonFetch<{ analysis: VideoAnalysis }>(`api/analysis/${id}/notes`, {
+      method: "PATCH",
+      body: JSON.stringify({ notes }),
     }),
 };
 

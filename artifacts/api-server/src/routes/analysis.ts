@@ -9,7 +9,7 @@ import {
   type DetectedEvent,
   type NervousSystemLoad,
 } from "@workspace/db";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { getActiveFacts, addFact } from "../lib/factsService";
 import {
@@ -298,6 +298,44 @@ router.get("/analysis/:id", async (req, res) => {
     return;
   }
   res.json({ analysis: row });
+});
+
+router.patch("/analysis/:id/notes", async (req, res) => {
+  const fighter = await getUserFighter(req);
+  if (!fighter) {
+    res.status(400).json({ error: "no fighter" });
+    return;
+  }
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    res.status(400).json({ error: "bad id" });
+    return;
+  }
+  const body = req.body as { notes?: unknown };
+  if (typeof body.notes !== "object" || body.notes === null || Array.isArray(body.notes)) {
+    res.status(400).json({ error: "notes must be an object" });
+    return;
+  }
+  const raw = body.notes as Record<string, unknown>;
+  const sanitised: Record<number, string> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    const idx = Number(k);
+    if (!Number.isFinite(idx) || idx < 0 || idx > 99) continue;
+    if (typeof v !== "string") continue;
+    sanitised[idx] = v.trim().slice(0, 150);
+  }
+
+  const [updated] = await db
+    .update(videoAnalysesTable)
+    .set({ keyframeNotes: sanitised })
+    .where(and(eq(videoAnalysesTable.id, id), eq(videoAnalysesTable.fighterId, fighter.id)))
+    .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  res.json({ analysis: updated });
 });
 
 export default router;
