@@ -282,3 +282,24 @@
     animation-duration: 3s;
   }
 }
+
+/* Mic button — soft pulse while actively listening */
+.frame-mic-live {
+  animation: frame-mic-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes frame-mic-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame-mic-live {
+    animation: none;
+  }
+}

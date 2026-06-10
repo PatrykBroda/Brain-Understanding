@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
-import { Send, Square, RefreshCcw, ChevronLeft, Paperclip, X } from "lucide-react";
+import { Send, Square, RefreshCcw, ChevronLeft, Paperclip, X, Mic } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { MessageContent } from "@/components/message-content";
@@ -160,6 +161,17 @@ export default function ChatPage() {
       doSend();
     }
   };
+
+  const {
+    supported: voiceSupported,
+    listening,
+    toggle: toggleVoice,
+    stop: stopVoice,
+  } = useSpeechRecognition({ onTranscript: setInput });
+
+  useEffect(() => {
+    if (isStreaming && listening) stopVoice();
+  }, [isStreaming, listening, stopVoice]);
 
   const canSend = (input.trim().length > 0 || drafts.length > 0) && !isStreaming;
 
@@ -362,12 +374,31 @@ export default function ChatPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Enter transmission..."
-                  className="w-full bg-secondary/50 border border-border/60 text-foreground placeholder:text-muted-foreground/70 placeholder:font-mono focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 resize-none min-h-[52px] max-h-[200px] py-3.5 pl-4 pr-12 text-sm"
+                  placeholder={listening ? "Listening..." : "Enter transmission..."}
+                  className={`w-full bg-secondary/50 border border-border/60 text-foreground placeholder:text-muted-foreground/70 placeholder:font-mono focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 resize-none min-h-[52px] max-h-[200px] py-3.5 pl-4 text-sm ${
+                    voiceSupported ? "pr-[5.25rem]" : "pr-12"
+                  }`}
                   rows={1}
                   disabled={isStreaming}
                 />
-                <div className="absolute right-1.5 bottom-1.5">
+                <div className="absolute right-1.5 bottom-1.5 flex items-center gap-0.5">
+                  {voiceSupported && !isStreaming && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={toggleVoice}
+                      aria-label={listening ? "Stop voice input" : "Speak your message"}
+                      aria-pressed={listening}
+                      className={`h-9 w-9 transition-colors ${
+                        listening
+                          ? "text-destructive hover:text-destructive hover:bg-destructive/10 frame-mic-live"
+                          : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                      }`}
+                    >
+                      <Mic className="w-4 h-4" strokeWidth={1.5} />
+                    </Button>
+                  )}
                   {isStreaming ? (
                     <Button
                       type="button"
