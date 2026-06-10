@@ -18,6 +18,15 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     (auth?.sessionClaims as { userId?: string } | null | undefined)?.userId;
   const userId = claimUserId ?? auth?.userId;
   if (!userId) {
+    req.log.warn(
+      {
+        hasSessionId: !!auth?.sessionId,
+        hasUserId: !!auth?.userId,
+        sessionClaims: auth?.sessionClaims ? "[present]" : "[absent]",
+        url: req.url,
+      },
+      "requireAuth: rejected — no userId resolved",
+    );
     res.status(401).json({ error: "Unauthorized" });
     return;
   }

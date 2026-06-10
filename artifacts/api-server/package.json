@@ -12,8 +12,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
-    "@clerk/express": "^2.1.21",
-    "@clerk/shared": "^4.13.1",
+    "@clerk/express": "^2.1.23",
+    "@clerk/shared": "^4.15.0",
     "@workspace/api-zod": "workspace:*",
     "@workspace/archetypes": "workspace:*",
     "@workspace/db": "workspace:*",
