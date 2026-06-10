@@ -6,7 +6,7 @@ import { ARTS, LEVELS, FREQUENCIES, SPORTS, ageFromDob } from "@/lib/fighter-opt
 
 const FIELD_LABEL = "block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2";
 const INPUT_CLASS =
-  "w-full bg-secondary/40 border border-border/70 text-foreground text-sm px-3 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 placeholder:text-muted-foreground/60";
+  "w-full bg-transparent border border-border/70 text-foreground text-sm px-3 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 placeholder:text-muted-foreground/60";
 
 type FormState = {
   name: string;

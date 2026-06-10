@@ -15,7 +15,7 @@ export function CalibrationCard({
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   return (
-    <div className="border border-primary/30 bg-secondary/40 backdrop-blur">
+    <div className="border border-primary/30 backdrop-blur">
       <div className="flex items-center justify-between px-4 py-2 border-b border-primary/20">
         <div className="font-mono text-[10px] uppercase tracking-widest text-primary/80">
           Calibration

@@ -200,10 +200,10 @@ export default function ProfilePage() {
 
                 {/* FRAME RANK — prestige rank dashboard */}
                 <div
-                  className="relative mb-5 rounded-lg border border-white/[0.08] overflow-hidden"
+                  className="relative mb-5 border border-white/[0.08] overflow-hidden"
                   style={{
                     background:
-                      "linear-gradient(180deg, hsla(40,45%,55%,0.05), transparent 55%), hsl(0 0% 7%)",
+                      "linear-gradient(180deg, hsla(40,45%,55%,0.04), transparent 55%)",
                   }}
                 >
                   <div className="flex items-center justify-between px-4 pt-3.5 pb-1">

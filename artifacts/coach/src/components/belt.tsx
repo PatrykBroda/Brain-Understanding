@@ -186,7 +186,7 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
   if (!info) {
     return (
       <div>
-        <div className="h-[68px] w-full rounded-[3px] bg-secondary/40 border border-border/50 flex items-center justify-center">
+        <div className="h-[68px] w-full border border-border/50 flex items-center justify-center">
           <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
             Unranked / other
           </span>

@@ -41,7 +41,7 @@ function AttachmentThumb({
 }) {
   const url = attachmentFileUrl(att.id);
   return (
-    <div className="relative inline-block border border-border/60 bg-secondary/40 overflow-hidden">
+    <div className="relative inline-block border border-border/60 bg-black overflow-hidden">
       {att.kind === "image" ? (
         <img
           src={url}
@@ -236,7 +236,7 @@ export default function ChatPage() {
                     <button
                       key={prompt}
                       onClick={() => sendMessage(prompt)}
-                      className="text-left p-3.5 border border-border/60 bg-secondary/30 hover:bg-secondary/70 hover:border-primary/50 transition-colors font-mono text-xs tracking-wide text-muted-foreground hover:text-foreground"
+                      className="text-left p-3.5 border border-border/60 hover:border-primary/50 transition-colors font-mono text-xs tracking-wide text-muted-foreground hover:text-foreground"
                     >
                       {prompt}
                     </button>
@@ -282,7 +282,7 @@ export default function ChatPage() {
                           `}</style>
                         </div>
                       ) : msg.role === "user" && msg.content ? (
-                        <div className="bg-secondary/70 text-secondary-foreground px-4 py-3 border-l-2 border-primary/40 whitespace-pre-wrap text-[0.95rem] leading-relaxed">
+                        <div className="text-foreground/90 px-4 py-3 border-l-2 border-border/70 whitespace-pre-wrap text-[0.95rem] leading-relaxed">
                           {msg.content}
                         </div>
                       ) : msg.content ? (
@@ -360,7 +360,7 @@ export default function ChatPage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading || isStreaming || !conversationId}
-                className="flex-none h-[52px] w-11 flex items-center justify-center border border-border/60 bg-secondary/50 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-40"
+                className="flex-none h-[52px] w-11 flex items-center justify-center border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-40"
                 aria-label="Attach image or video"
               >
                 {uploading ? (
@@ -375,7 +375,7 @@ export default function ChatPage() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={listening ? "Listening..." : "Enter transmission..."}
-                  className={`w-full bg-secondary/50 border border-border/60 text-foreground placeholder:text-muted-foreground/70 placeholder:font-mono focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 resize-none min-h-[52px] max-h-[200px] py-3.5 pl-4 text-sm ${
+                  className={`w-full bg-transparent border border-border/60 text-foreground placeholder:text-muted-foreground/70 placeholder:font-mono focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 resize-none min-h-[52px] max-h-[200px] py-3.5 pl-4 text-sm ${
                     voiceSupported ? "pr-[5.25rem]" : "pr-12"
                   }`}
                   rows={1}
