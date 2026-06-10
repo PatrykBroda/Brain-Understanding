@@ -80,7 +80,8 @@ export default function HomePage() {
             State
           </div>
           <div
-            className="font-sans font-extralight uppercase text-[clamp(1.7rem,7vw,2.4rem)] tracking-[0.4em] text-foreground leading-none"
+            key={frameState.label}
+            className="frame-state-label font-sans font-extralight uppercase text-[clamp(1.7rem,7vw,2.4rem)] tracking-[0.4em] text-foreground leading-none"
             style={{ textShadow: "0 0 48px hsla(35, 65%, 60%, 0.28), 0 2px 12px rgba(0,0,0,0.6)" }}
             title={frameState.source}
           >
@@ -139,6 +140,17 @@ export default function HomePage() {
         }
         .frame-fade-in {
           animation: frame-fade-in 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+        }
+
+        @keyframes frame-state-in {
+          from { opacity: 0; letter-spacing: 0.18em; }
+          to   { opacity: 1; letter-spacing: 0.4em; }
+        }
+        .frame-state-label {
+          animation: frame-state-in 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .frame-state-label { animation: none; }
         }
       `}</style>
     </div>
