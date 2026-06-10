@@ -355,7 +355,7 @@ export default function AnalysePage() {
                   onChange={(e) => setFocus(e.target.value.slice(0, 200))}
                   disabled={busy}
                   placeholder="e.g. my guard when I get tired, left-side pressure…"
-                  className="w-full bg-secondary/30 border border-border/50 focus:border-primary/50 outline-none px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/50 transition-colors disabled:opacity-40"
+                  className="w-full bg-transparent border border-border/50 focus:border-primary/50 outline-none px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/50 transition-colors disabled:opacity-40"
                 />
               </section>
 
@@ -493,7 +493,7 @@ function UploadControls({
           onChange={(e) => setFocus(e.target.value.slice(0, 200))}
           disabled={busy}
           placeholder="e.g. my guard when I get tired, left-side pressure…"
-          className="w-full bg-secondary/30 border border-border/50 focus:border-primary/50 outline-none px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/50 transition-colors disabled:opacity-40"
+          className="w-full bg-transparent border border-border/50 focus:border-primary/50 outline-none px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/50 transition-colors disabled:opacity-40"
         />
       </section>
 
@@ -816,7 +816,7 @@ function FindingsTable({
       <div className="w-full border border-border/40 overflow-hidden">
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="border-b border-border/40 bg-secondary/20">
+            <tr className="border-b border-border/40">
               <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[90px]">
                 Area
               </th>
@@ -832,9 +832,7 @@ function FindingsTable({
             {findings.map((f, i) => (
               <tr
                 key={i}
-                className={`border-b border-border/30 last:border-0 ${
-                  i % 2 === 0 ? "" : "bg-secondary/10"
-                }`}
+                className="border-b border-border/30 last:border-0"
               >
                 <td className="px-3 py-2.5 align-top">
                   <span
