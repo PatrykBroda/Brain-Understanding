@@ -24,9 +24,7 @@ import type {
   Fighter,
 } from "@/lib/api";
 
-// Largest clip we'll attempt to decode on-device. Pose tracking runs in the
-// browser, so an oversized file silently hangs the tab — guard up front.
-const MAX_VIDEO_BYTES = 250 * 1024 * 1024; // 250MB
+const MAX_VIDEO_BYTES = 250 * 1024 * 1024;
 
 const KINDS: { value: AnalysisKind; label: string }[] = [
   { value: "sparring", label: "Sparring" },
@@ -59,7 +57,6 @@ type Phase =
   | { stage: "loading_ai" }
   | { stage: "error"; title: string; causes: string[]; retryable: boolean };
 
-// Rotating cinematic phrases per stage — premium, calm, no hype.
 const PHASE_PHRASES: Record<string, string[]> = {
   reading: ["Decoding footage", "Sampling frames", "Reading the tape"],
   tracking: ["Locking the skeleton", "Tracking limbs under load", "Following the structure"],
@@ -74,9 +71,6 @@ const PHASE_TITLE: Record<string, string> = {
   loading_ai: "Building the read",
 };
 
-// Turn any thrown value into a structured, user-readable error phase. ApiError
-// already carries title/causes/retryable; plain Errors (on-device pose failures)
-// become a single-cause card that's safe to retry.
 function toErrorPhase(err: unknown): Extract<Phase, { stage: "error" }> {
   if (err instanceof ApiError) {
     return { stage: "error", title: err.title, causes: err.causes, retryable: err.retryable };
@@ -97,7 +91,16 @@ export default function AnalysePage() {
   const [phase, setPhase] = useState<Phase>({ stage: "idle" });
   const [result, setResult] = useState<VideoAnalysis | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const pendingFile = useRef<File | null>(null);
+  const videoUrlRef = useRef<string | null>(null);
+
+  // Revoke any outstanding blob URL when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
+    };
+  }, []);
 
   const busy = phase.stage !== "idle" && phase.stage !== "error";
   const danger = result?.fragmentationRisk === "high" || result?.nervousSystemLoad === "high";
@@ -135,8 +138,6 @@ export default function AnalysePage() {
         );
       }
 
-      // capture key frames (skeleton baked in) for the report + the AI read,
-      // tagging each with its detected event type so the UI can label them.
       const keyframes: AnalysisKeyframe[] = [];
       for (const m of metrics.keyMoments) {
         const frame = extract.frames.find((f) => Math.abs(f.timestamp - m.timestamp) < 0.001);
@@ -171,11 +172,27 @@ export default function AnalysePage() {
       });
       setResult(res.analysis);
       setPhase({ stage: "idle" });
+      // Create a blob URL for the desktop video player — revoke the previous one first
+      if (pendingFile.current) {
+        if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
+        const url = URL.createObjectURL(pendingFile.current);
+        videoUrlRef.current = url;
+        setVideoUrl(url);
+      }
     } catch (err) {
       setPhase(toErrorPhase(err));
     } finally {
       if (extract) disposeExtract(extract);
     }
+  }
+
+  function clearResult() {
+    setResult(null);
+    if (videoUrlRef.current) {
+      URL.revokeObjectURL(videoUrlRef.current);
+      videoUrlRef.current = null;
+    }
+    setVideoUrl(null);
   }
 
   function retry() {
@@ -191,6 +208,8 @@ export default function AnalysePage() {
       void runAnalysis(file);
     }
   }
+
+  const showingReport = result != null || openId != null;
 
   return (
     <div className="flex flex-col h-[100dvh] bg-background text-foreground">
@@ -209,22 +228,99 @@ export default function AnalysePage() {
         <div className="w-5" />
       </header>
 
-      <main className="flex-1 overflow-y-auto">
+      {/* ------------------------------------------------------------------ */}
+      {/* MOBILE layout — stacked, single scroll column                       */}
+      {/* ------------------------------------------------------------------ */}
+      <main className="flex-1 min-h-0 overflow-y-auto md:hidden">
         <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
           {result ? (
-            <Report analysis={result} fighter={fighter} onClose={() => setResult(null)} />
+            <Report analysis={result} fighter={fighter} onClose={clearResult} />
           ) : openId != null ? (
             <SavedReport id={openId} fighter={fighter} onClose={() => setOpenId(null)} />
           ) : (
-            <>
-              <section className="space-y-3">
+            <UploadControls
+              kind={kind}
+              setKind={setKind}
+              focus={focus}
+              setFocus={setFocus}
+              busy={busy}
+              phase={phase}
+              pendingFile={pendingFile}
+              fileRef={fileRef}
+              onPick={onPick}
+              retry={retry}
+              analyses={analyses.data?.analyses ?? []}
+              analysesLoading={analyses.isLoading}
+              onOpen={(id) => setOpenId(id)}
+            />
+          )}
+        </div>
+      </main>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* DESKTOP workstation layout — two panels, side by side               */}
+      {/* ------------------------------------------------------------------ */}
+      <main className="flex-1 min-h-0 hidden md:flex divide-x divide-border/30">
+        {showingReport ? (
+          <>
+            {/* LEFT — video player + filmstrip */}
+            <div className="flex flex-col w-[46%] min-w-0 overflow-y-auto bg-black/20">
+              {result ? (
+                <WorkstationLeft
+                  analysis={result}
+                  videoUrl={videoUrl}
+                  onClose={clearResult}
+                />
+              ) : openId != null ? (
+                <SavedWorkstationLeft id={openId} onClose={() => setOpenId(null)} />
+              ) : null}
+            </div>
+
+            {/* RIGHT — FRAME REPORT card + findings + scores */}
+            <div className="flex-1 overflow-y-auto px-7 py-6">
+              {result ? (
+                <WorkstationRight analysis={result} fighter={fighter} onClose={clearResult} />
+              ) : openId != null ? (
+                <SavedWorkstationRight id={openId} fighter={fighter} onClose={() => setOpenId(null)} />
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* LEFT — description + upload zone */}
+            <div className="flex flex-col justify-center items-center w-[46%] min-w-0 px-10 py-10 gap-8">
+              <div className="w-full max-w-sm space-y-4">
+                <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
+                  Analyst Workstation
+                </div>
                 <p className="text-sm text-foreground/80 leading-relaxed">
                   Upload a clip. The frame reads your movement directly — guard, base,
                   shoulders, output rhythm — scores it against itself, and tells you what your
-                  nervous system is doing under load. Processed on your device; only the read is kept.
+                  nervous system is doing under load.
                 </p>
-              </section>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
+                  Processed on your device · only the read is kept
+                </p>
+              </div>
 
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={busy}
+                className="w-full max-w-sm border border-dashed border-border/60 hover:border-primary/50 transition-colors py-14 flex flex-col items-center justify-center gap-4 disabled:opacity-50"
+              >
+                <Upload className="w-9 h-9 text-muted-foreground" strokeWidth={1.25} />
+                <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/80">
+                  Select footage
+                </div>
+                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
+                  mp4 / mov · first 75s read
+                </div>
+              </button>
+            </div>
+
+            {/* RIGHT — controls + history */}
+            <div className="flex-1 overflow-y-auto px-7 py-6 space-y-6">
               <section className="space-y-2">
                 <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                   What is this clip
@@ -263,28 +359,6 @@ export default function AnalysePage() {
                 />
               </section>
 
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={busy}
-                className="w-full border border-dashed border-border/60 hover:border-primary/50 transition-colors py-10 flex flex-col items-center justify-center gap-3 disabled:opacity-50"
-              >
-                <Upload className="w-7 h-7 text-muted-foreground" strokeWidth={1.25} />
-                <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/80">
-                  Select footage
-                </div>
-                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
-                  mp4 / mov · first 75s read
-                </div>
-              </button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="video/*"
-                className="hidden"
-                onChange={onPick}
-              />
-
               {phase.stage === "error" && (
                 <div className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
                   <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
@@ -319,10 +393,18 @@ export default function AnalysePage() {
                 loading={analyses.isLoading}
                 onOpen={(id) => setOpenId(id)}
               />
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </main>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={onPick}
+      />
 
       <BottomNav />
 
@@ -334,72 +416,531 @@ export default function AnalysePage() {
   );
 }
 
-function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: string }) {
-  const key =
-    phase.stage === "reading"
-      ? "reading"
-      : phase.stage === "tracking"
-        ? "tracking"
-        : phase.stage === "detecting"
-          ? "detecting"
-          : "loading_ai";
+// ---------------------------------------------------------------------------
+// Upload controls (mobile only — desktop renders inline)
+// ---------------------------------------------------------------------------
 
-  const phrases = PHASE_PHRASES[key]!;
-  const [phraseIdx, setPhraseIdx] = useState(0);
-  useEffect(() => {
-    setPhraseIdx(0);
-    const t = setInterval(() => setPhraseIdx((i) => (i + 1) % phrases.length), 1600);
-    return () => clearInterval(t);
-  }, [key, phrases.length]);
+function UploadControls({
+  kind,
+  setKind,
+  focus,
+  setFocus,
+  busy,
+  phase,
+  pendingFile,
+  fileRef,
+  onPick,
+  retry,
+  analyses,
+  analysesLoading,
+  onOpen,
+}: {
+  kind: AnalysisKind;
+  setKind: (k: AnalysisKind) => void;
+  focus: string;
+  setFocus: (v: string) => void;
+  busy: boolean;
+  phase: Phase;
+  pendingFile: React.RefObject<File | null>;
+  fileRef: React.RefObject<HTMLInputElement | null>;
+  onPick: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  retry: () => void;
+  analyses: { id: number; kind: string; nervousSystemLoad: NervousSystemLoad; sessionScore: number; styleProfile: string; summary: string; createdAt: string }[];
+  analysesLoading: boolean;
+  onOpen: (id: number) => void;
+}) {
+  return (
+    <>
+      <section className="space-y-3">
+        <p className="text-sm text-foreground/80 leading-relaxed">
+          Upload a clip. The frame reads your movement directly — guard, base,
+          shoulders, output rhythm — scores it against itself, and tells you what your
+          nervous system is doing under load. Processed on your device; only the read is kept.
+        </p>
+      </section>
 
-  const steps = ["reading", "tracking", "detecting", "loading_ai"];
-  const activeIdx = steps.indexOf(key);
-  const pct =
-    (phase.stage === "reading" || phase.stage === "tracking") && typeof phase.pct === "number"
-      ? phase.pct
-      : null;
+      <section className="space-y-2">
+        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          What is this clip
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {KINDS.map((k) => (
+            <button
+              key={k.value}
+              type="button"
+              onClick={() => setKind(k.value)}
+              disabled={busy}
+              className={`font-mono text-[10px] uppercase tracking-widest border py-2.5 transition-colors disabled:opacity-40 ${
+                kind === k.value
+                  ? "border-primary/70 bg-primary/10 text-primary"
+                  : "border-border/50 text-foreground/70 hover:border-primary/40"
+              }`}
+            >
+              {k.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          Anything to focus on{" "}
+          <span className="text-muted-foreground/50 normal-case tracking-normal">(optional)</span>
+        </div>
+        <input
+          type="text"
+          value={focus}
+          onChange={(e) => setFocus(e.target.value.slice(0, 200))}
+          disabled={busy}
+          placeholder="e.g. my guard when I get tired, left-side pressure…"
+          className="w-full bg-secondary/30 border border-border/50 focus:border-primary/50 outline-none px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/50 transition-colors disabled:opacity-40"
+        />
+      </section>
+
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={busy}
+        className="w-full border border-dashed border-border/60 hover:border-primary/50 transition-colors py-10 flex flex-col items-center justify-center gap-3 disabled:opacity-50"
+      >
+        <Upload className="w-7 h-7 text-muted-foreground" strokeWidth={1.25} />
+        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/80">
+          Select footage
+        </div>
+        <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
+          mp4 / mov · first 75s read
+        </div>
+      </button>
+
+      {phase.stage === "error" && (
+        <div className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
+          <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+            {phase.title}
+          </div>
+          {phase.causes.length > 0 && (
+            <ul className="space-y-1">
+              {phase.causes.map((c, i) => (
+                <li
+                  key={i}
+                  className="text-[11px] leading-relaxed text-destructive/70 before:content-['—'] before:mr-1.5"
+                >
+                  {c}
+                </li>
+              ))}
+            </ul>
+          )}
+          {phase.retryable && pendingFile.current && (
+            <button
+              type="button"
+              onClick={retry}
+              className="mt-1 font-mono text-[10px] uppercase tracking-widest border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      )}
+
+      <History
+        items={analyses}
+        loading={analysesLoading}
+        onOpen={onOpen}
+      />
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Desktop workstation panels
+// ---------------------------------------------------------------------------
+
+function WorkstationLeft({
+  analysis,
+  videoUrl,
+  onClose,
+}: {
+  analysis: VideoAnalysis;
+  videoUrl: string | null;
+  onClose: () => void;
+}) {
+  const [activeKf, setActiveKf] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const kf = analysis.keyframes[activeKf];
+
+  function seekTo(ts: number, idx: number) {
+    setActiveKf(idx);
+    if (videoRef.current) {
+      videoRef.current.currentTime = ts;
+    }
+  }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center px-8 overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 frame-scanlines" />
-      <div className="pointer-events-none absolute inset-x-0 h-24 frame-scan-sweep" />
-
-      <div className="relative">
-        <FrameOctagon size={120} spin spinSeconds={5} glow />
+    <div className="flex flex-col h-full">
+      {/* meta bar */}
+      <div className="flex-none flex items-center justify-between px-5 py-3 border-b border-border/30 bg-black/30">
+        <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
+          {analysis.kind} · {analysis.durationSec.toFixed(0)}s read
+          {analysis.focus && (
+            <span className="ml-2 normal-case tracking-normal text-muted-foreground/70">
+              · {analysis.focus}
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="New analysis"
+          className="text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <X className="w-4 h-4" strokeWidth={1.5} />
+        </button>
       </div>
 
-      <div className="mt-10 text-center space-y-2 relative">
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
-          {kindLabel}
-        </div>
-        <div className="font-mono text-base uppercase tracking-[0.3em] text-foreground/95">
-          {PHASE_TITLE[key]}
-        </div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/80 h-4 transition-opacity">
-          {phrases[phraseIdx]}
-          {pct != null ? ` · ${pct}%` : ""}
-        </div>
+      {/* main area — video player when available, keyframe fallback for saved reports */}
+      <div className="flex-1 min-h-0 flex flex-col bg-black">
+        {videoUrl ? (
+          <div className="flex-1 min-h-0 flex items-center justify-center p-3">
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              controls
+              playsInline
+              className="w-full max-h-full border border-border/30 object-contain"
+              style={{ maxHeight: "calc(100% - 1rem)" }}
+            />
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 flex items-center justify-center p-4 bg-black/40">
+            {kf ? (
+              <figure className="w-full space-y-2">
+                <img
+                  src={kf.imageBase64}
+                  alt={kf.caption}
+                  className="w-full border border-border/40 object-contain max-h-[50vh]"
+                />
+                <figcaption className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/85 px-1">
+                  {kf.timestamp.toFixed(1)}s · {kf.caption}
+                </figcaption>
+              </figure>
+            ) : (
+              <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
+                No keyframes
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="mt-10 flex items-center gap-2 relative">
-        {steps.map((s, i) => (
-          <div
-            key={s}
-            className={`h-px transition-all duration-500 ${
-              i <= activeIdx ? "w-10 bg-primary/80" : "w-6 bg-border/50"
-            }`}
-          />
-        ))}
-      </div>
+      {/* filmstrip — click to seek (or just highlight for saved reports) */}
+      {analysis.keyframes.length > 0 && (
+        <div className="flex-none border-t border-border/30 bg-black/60 px-4 py-3">
+          <div className="font-mono text-[8px] uppercase tracking-[0.35em] text-muted-foreground/70 mb-2">
+            Detected events
+            {videoUrl && (
+              <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
+                · click to seek
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {analysis.keyframes.map((k, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => seekTo(k.timestamp, i)}
+                className={`flex-none flex flex-col border transition-colors ${
+                  i === activeKf ? "border-primary/70" : "border-border/40 hover:border-primary/40"
+                }`}
+                style={{ width: 88 }}
+                title={`${k.timestamp.toFixed(1)}s — ${k.caption}`}
+              >
+                <img src={k.imageBase64} alt={k.caption} className="w-full" />
+                <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/80 px-1 py-1 truncate bg-black/60">
+                  {k.timestamp.toFixed(1)}s
+                </div>
+                <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/70 px-1 pb-1 truncate">
+                  {k.caption}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function deltaIcon(d: number) {
-  if (d > 1) return <ArrowUpRight className="w-3.5 h-3.5 text-emerald-300/90" strokeWidth={2} />;
-  if (d < -1) return <ArrowDownRight className="w-3.5 h-3.5 text-red-400/90" strokeWidth={2} />;
-  return <Minus className="w-3.5 h-3.5 text-muted-foreground/70" strokeWidth={2} />;
+function WorkstationRight({
+  analysis,
+  fighter,
+  onClose,
+}: {
+  analysis: VideoAnalysis;
+  fighter: Fighter | null;
+  onClose: () => void;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function saveCard() {
+    if (!cardRef.current) return;
+    setSaving(true);
+    try {
+      const dataUrl = await toPng(cardRef.current, {
+        pixelRatio: 2,
+        backgroundColor: "#060504",
+        cacheBust: true,
+      });
+      const link = document.createElement("a");
+      link.download = `frame-report-${analysis.id}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch {
+      // swallow — export is best-effort
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-7">
+      {/* FRAME REPORT card */}
+      <div className="flex flex-col items-center gap-3">
+        <FrameReportCard ref={cardRef} analysis={analysis} fighter={fighter} />
+        <button
+          type="button"
+          onClick={saveCard}
+          disabled={saving}
+          className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 px-4 py-2.5 text-foreground/80 transition-colors disabled:opacity-50"
+        >
+          <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
+          {saving ? "Rendering…" : "Save card"}
+        </button>
+      </div>
+
+      {/* summary */}
+      <p className="text-[0.95rem] text-foreground/90 leading-relaxed border-l-2 border-primary/60 pl-4">
+        {analysis.summary}
+      </p>
+
+      {/* findings table */}
+      {analysis.findings.length > 0 && (
+        <FindingsTable findings={analysis.findings} />
+      )}
+
+      {/* comparison vs last session */}
+      {analysis.comparison && analysis.comparison.deltas.length > 0 && (
+        <ComparisonSection comparison={analysis.comparison} />
+      )}
+
+      {/* score provenance */}
+      <ScoreProvenance analysis={analysis} />
+
+      <button
+        type="button"
+        onClick={onClose}
+        className="w-full font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 py-3 text-foreground/80 transition-colors"
+      >
+        Analyse another
+      </button>
+    </div>
+  );
 }
+
+function SavedWorkstationLeft({
+  id,
+  onClose,
+}: {
+  id: number;
+  onClose: () => void;
+}) {
+  const { data, isLoading, isError } = useAnalysis(id);
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 py-16">
+        <FrameOctagon size={56} spin spinSeconds={4} glow={false} />
+        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          Loading read
+        </div>
+      </div>
+    );
+  }
+  if (isError || !data?.analysis) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="border border-destructive/40 bg-destructive/10 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+          could not load this read
+        </div>
+        <button type="button" onClick={onClose} className="w-full font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 py-3 text-foreground/80">
+          Back
+        </button>
+      </div>
+    );
+  }
+  return <WorkstationLeft analysis={data.analysis} videoUrl={null} onClose={onClose} />;
+}
+
+function SavedWorkstationRight({
+  id,
+  fighter,
+  onClose,
+}: {
+  id: number;
+  fighter: Fighter | null;
+  onClose: () => void;
+}) {
+  const { data, isLoading, isError } = useAnalysis(id);
+  if (isLoading || isError || !data?.analysis) return null;
+  return <WorkstationRight analysis={data.analysis} fighter={fighter} onClose={onClose} />;
+}
+
+// ---------------------------------------------------------------------------
+// Shared sub-components (used in both mobile Report and desktop Workstation)
+// ---------------------------------------------------------------------------
+
+function FindingsTable({
+  findings,
+}: {
+  findings: VideoAnalysis["findings"];
+}) {
+  return (
+    <section className="space-y-3">
+      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+        What the body is doing
+      </div>
+      <div className="w-full border border-border/40 overflow-hidden">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="border-b border-border/40 bg-secondary/20">
+              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[90px]">
+                Area
+              </th>
+              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2">
+                Finding
+              </th>
+              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[72px]">
+                Signal
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {findings.map((f, i) => (
+              <tr
+                key={i}
+                className={`border-b border-border/30 last:border-0 ${
+                  i % 2 === 0 ? "" : "bg-secondary/10"
+                }`}
+              >
+                <td className="px-3 py-2.5 align-top">
+                  <span
+                    className={`font-mono text-[8px] uppercase tracking-widest px-1.5 py-0.5 border inline-block ${
+                      f.severity === "high"
+                        ? "text-red-400/90 border-red-400/40"
+                        : f.severity === "medium"
+                          ? "text-amber-300/90 border-amber-300/40"
+                          : "text-muted-foreground border-border/50"
+                    }`}
+                  >
+                    {f.area}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 align-top space-y-1">
+                  <div className="text-[0.9rem] text-foreground/95 leading-snug">
+                    {f.title}
+                  </div>
+                  <div className="text-xs text-foreground/75 leading-relaxed">
+                    {f.observation}
+                  </div>
+                  {f.nervousSystemFraming && (
+                    <div className="text-xs text-primary/80 leading-relaxed italic">
+                      {f.nervousSystemFraming}
+                    </div>
+                  )}
+                </td>
+                <td className="px-3 py-2.5 align-top">
+                  <span
+                    className={`font-mono text-[8px] uppercase tracking-widest ${
+                      f.severity === "high"
+                        ? "text-red-400/80"
+                        : f.severity === "medium"
+                          ? "text-amber-300/80"
+                          : "text-muted-foreground/70"
+                    }`}
+                  >
+                    {f.severity}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function ComparisonSection({
+  comparison,
+}: {
+  comparison: NonNullable<VideoAnalysis["comparison"]>;
+}) {
+  return (
+    <section className="space-y-3">
+      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+        What changed
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {comparison.deltas.map((d) => (
+          <div
+            key={d.key}
+            className="flex items-center justify-between gap-2 border border-border/50 px-3 py-2"
+          >
+            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
+              {d.label}
+            </span>
+            <span className="flex items-center gap-1 font-mono text-[11px] text-foreground/90">
+              {deltaIcon(d.delta)}
+              {d.delta > 0 ? `+${d.delta}` : d.delta}
+            </span>
+          </div>
+        ))}
+      </div>
+      {comparison.note && (
+        <p className="text-sm text-primary/85 leading-relaxed italic">
+          {comparison.note}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function ScoreProvenance({ analysis }: { analysis: VideoAnalysis }) {
+  return (
+    <section className="space-y-2 pt-1">
+      <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/80">
+        How these scores were derived
+      </div>
+      <div className="space-y-1.5">
+        {analysis.scores.map((s) => (
+          <div key={s.key} className="font-mono text-[9px] tracking-wide" title={s.basis}>
+            <span className="uppercase tracking-widest text-foreground/85">
+              {s.label} {s.value}
+            </span>
+            <span className="text-muted-foreground/70"> — {s.basis}</span>
+          </div>
+        ))}
+      </div>
+      <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/60 pt-2 leading-relaxed">
+        {analysis.metrics.poseFrames} of {analysis.metrics.framesAnalysed} frames locked a pose ·
+        every number derived from measured movement, never invented
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Mobile-only Report component (identical to original, uses shared sub-components)
+// ---------------------------------------------------------------------------
 
 function Report({
   analysis,
@@ -477,32 +1018,7 @@ function Report({
 
       {/* comparison vs last session */}
       {analysis.comparison && analysis.comparison.deltas.length > 0 && (
-        <section className="space-y-3">
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
-            What changed
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {analysis.comparison.deltas.map((d) => (
-              <div
-                key={d.key}
-                className="flex items-center justify-between gap-2 border border-border/50 px-3 py-2"
-              >
-                <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
-                  {d.label}
-                </span>
-                <span className="flex items-center gap-1 font-mono text-[11px] text-foreground/90">
-                  {deltaIcon(d.delta)}
-                  {d.delta > 0 ? `+${d.delta}` : d.delta}
-                </span>
-              </div>
-            ))}
-          </div>
-          {analysis.comparison.note && (
-            <p className="text-sm text-primary/85 leading-relaxed italic">
-              {analysis.comparison.note}
-            </p>
-          )}
-        </section>
+        <ComparisonSection comparison={analysis.comparison} />
       )}
 
       {/* detected events — clickable keyframes */}
@@ -543,57 +1059,13 @@ function Report({
         </section>
       )}
 
-      {/* findings */}
-      <section className="space-y-4">
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
-          What the body is doing
-        </div>
-        {analysis.findings.map((f, i) => (
-          <div key={i} className="border border-border/50 px-4 py-3 space-y-2">
-            <div className="flex items-baseline justify-between gap-3">
-              <div className="text-[0.95rem] text-foreground/95 leading-snug">{f.title}</div>
-              <div
-                className={`flex-none font-mono text-[8px] uppercase tracking-widest px-1.5 py-0.5 border ${
-                  f.severity === "high"
-                    ? "text-red-400/90 border-red-400/40"
-                    : f.severity === "medium"
-                      ? "text-amber-300/90 border-amber-300/40"
-                      : "text-muted-foreground border-border/50"
-                }`}
-              >
-                {f.area}
-              </div>
-            </div>
-            <p className="text-sm text-foreground/80 leading-relaxed">{f.observation}</p>
-            {f.nervousSystemFraming && (
-              <p className="text-sm text-primary/85 leading-relaxed italic">
-                {f.nervousSystemFraming}
-              </p>
-            )}
-          </div>
-        ))}
-      </section>
+      {/* findings table */}
+      {analysis.findings.length > 0 && (
+        <FindingsTable findings={analysis.findings} />
+      )}
 
-      {/* score provenance — honest basis for every number */}
-      <section className="space-y-2 pt-1">
-        <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/80">
-          How these scores were derived
-        </div>
-        <div className="space-y-1.5">
-          {analysis.scores.map((s) => (
-            <div key={s.key} className="font-mono text-[9px] tracking-wide" title={s.basis}>
-              <span className="uppercase tracking-widest text-foreground/85">
-                {s.label} {s.value}
-              </span>
-              <span className="text-muted-foreground/70"> — {s.basis}</span>
-            </div>
-          ))}
-        </div>
-        <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/60 pt-2 leading-relaxed">
-          {analysis.metrics.poseFrames} of {analysis.metrics.framesAnalysed} frames locked a pose ·
-          every number derived from measured movement, never invented
-        </div>
-      </section>
+      {/* score provenance */}
+      <ScoreProvenance analysis={analysis} />
 
       <button
         type="button"
@@ -643,6 +1115,77 @@ function SavedReport({
     );
   }
   return <Report analysis={data.analysis} fighter={fighter} onClose={onClose} />;
+}
+
+// ---------------------------------------------------------------------------
+// Shared utility components
+// ---------------------------------------------------------------------------
+
+function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: string }) {
+  const key =
+    phase.stage === "reading"
+      ? "reading"
+      : phase.stage === "tracking"
+        ? "tracking"
+        : phase.stage === "detecting"
+          ? "detecting"
+          : "loading_ai";
+
+  const phrases = PHASE_PHRASES[key]!;
+  const [phraseIdx, setPhraseIdx] = useState(0);
+  useEffect(() => {
+    setPhraseIdx(0);
+    const t = setInterval(() => setPhraseIdx((i) => (i + 1) % phrases.length), 1600);
+    return () => clearInterval(t);
+  }, [key, phrases.length]);
+
+  const steps = ["reading", "tracking", "detecting", "loading_ai"];
+  const activeIdx = steps.indexOf(key);
+  const pct =
+    (phase.stage === "reading" || phase.stage === "tracking") && typeof phase.pct === "number"
+      ? phase.pct
+      : null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center px-8 overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 frame-scanlines" />
+      <div className="pointer-events-none absolute inset-x-0 h-24 frame-scan-sweep" />
+
+      <div className="relative">
+        <FrameOctagon size={120} spin spinSeconds={5} glow />
+      </div>
+
+      <div className="mt-10 text-center space-y-2 relative">
+        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
+          {kindLabel}
+        </div>
+        <div className="font-mono text-base uppercase tracking-[0.3em] text-foreground/95">
+          {PHASE_TITLE[key]}
+        </div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/80 h-4 transition-opacity">
+          {phrases[phraseIdx]}
+          {pct != null ? ` · ${pct}%` : ""}
+        </div>
+      </div>
+
+      <div className="mt-10 flex items-center gap-2 relative">
+        {steps.map((s, i) => (
+          <div
+            key={s}
+            className={`h-px transition-all duration-500 ${
+              i <= activeIdx ? "w-10 bg-primary/80" : "w-6 bg-border/50"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function deltaIcon(d: number) {
+  if (d > 1) return <ArrowUpRight className="w-3.5 h-3.5 text-emerald-300/90" strokeWidth={2} />;
+  if (d < -1) return <ArrowDownRight className="w-3.5 h-3.5 text-red-400/90" strokeWidth={2} />;
+  return <Minus className="w-3.5 h-3.5 text-muted-foreground/70" strokeWidth={2} />;
 }
 
 function History({
