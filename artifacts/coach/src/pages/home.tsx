@@ -49,7 +49,7 @@ export default function HomePage() {
             FRAME
           </div>
           <div className="font-mono text-[10px] tracking-[0.5em] text-foreground/55 mt-1.5 font-light">
-            MMA · CALIBRATION SYSTEM
+            {(fighter?.primarySport ?? "COMBAT").toUpperCase()} · CALIBRATION SYSTEM
           </div>
         </div>
         <Link

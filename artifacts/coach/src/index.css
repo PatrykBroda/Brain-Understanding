@@ -111,47 +111,47 @@
   --radius: 0rem; 
 }
 
-/* DARK MODE PRIMARY */
+/* DARK MODE PRIMARY — pure black foundation, no blue-grey tint */
 .dark, :root {
   color-scheme: dark;
-  --background: 210 12% 6%; /* Deep ink / almost black green-blue */
-  --foreground: 210 10% 85%;
-  
-  --border: 210 10% 12%;
-  
-  --card: 210 12% 8%;
-  --card-foreground: 210 10% 85%;
-  --card-border: 210 10% 12%;
-  
-  --popover: 210 12% 8%;
-  --popover-foreground: 210 10% 85%;
-  --popover-border: 210 10% 12%;
+  --background: 0 0% 2%;     /* #050505 — true black foundation */
+  --foreground: 0 0% 88%;    /* clean near-white, no hue cast */
 
-  --primary: 35 65% 55%; /* Dim warm accent, amber/bronze */
+  --border: 0 0% 10%;        /* #1a1a1a — crisp neutral separation */
+
+  --card: 0 0% 4%;           /* #0a0a0a — slightly lifted surface */
+  --card-foreground: 0 0% 88%;
+  --card-border: 0 0% 10%;
+
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 88%;
+  --popover-border: 0 0% 10%;
+
+  --primary: 35 65% 55%;     /* gold — earned, not decorative */
   --primary-h: 35;
-  --primary-foreground: 210 12% 6%;
-  
-  --secondary: 210 10% 12%;
-  --secondary-foreground: 210 10% 75%;
-  
-  --muted: 210 10% 10%;
-  --muted-foreground: 210 10% 55%;
-  
-  --accent: 35 65% 55%;
-  --accent-foreground: 210 12% 6%;
-  
-  --destructive: 0 62% 30%;
-  --destructive-foreground: 210 10% 85%;
+  --primary-foreground: 0 0% 2%;
 
-  --red-accent: 0 75% 55%;
+  --secondary: 0 0% 9%;      /* #171717 */
+  --secondary-foreground: 0 0% 68%;
+
+  --muted: 0 0% 7%;          /* #121212 */
+  --muted-foreground: 0 0% 40%; /* neutral mid-grey */
+
+  --accent: 35 65% 55%;
+  --accent-foreground: 0 0% 2%;
+
+  --destructive: 0 74% 43%;  /* crimson — #BF1D1D — pressure / warnings */
+  --destructive-foreground: 0 0% 92%;
+
+  --red-accent: 0 74% 52%;   /* brighter crimson for danger states */
   --red-accent-foreground: 0 0% 100%;
 
-  --input: 210 10% 16%;
+  --input: 0 0% 11%;
   --ring: 35 65% 55%;
-  
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
-  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.5);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.7);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.7), 0 1px 2px -1px rgb(0 0 0 / 0.7);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.7), 0 2px 4px -2px rgb(0 0 0 / 0.7);
 }
 
 @layer base {

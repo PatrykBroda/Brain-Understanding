@@ -28,7 +28,16 @@ const clerkPubKey = publishableKeyFromHost(
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
 );
 
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+// Compute the Clerk proxy URL at runtime from window.location so it always
+// resolves to the correct domain without requiring VITE_CLERK_PROXY_URL to be
+// set as a build-time secret. The proxy middleware is a no-op in dev instances,
+// so only activate it on production domains (*.replit.app / custom domains).
+const isDevDomain =
+  window.location.hostname === "localhost" ||
+  window.location.hostname.endsWith(".replit.dev");
+const clerkProxyUrl = isDevDomain
+  ? undefined
+  : `${window.location.origin}/api/__clerk`;
 
 if (!clerkPubKey) {
   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
@@ -53,8 +62,8 @@ const clerkAppearance = {
     colorForeground: "hsl(0, 0%, 92%)",
     colorMutedForeground: "hsl(0, 0%, 58%)",
     colorDanger: "hsl(0, 72%, 55%)",
-    colorBackground: "hsl(0, 0%, 6%)",
-    colorInput: "hsl(0, 0%, 9%)",
+    colorBackground: "hsl(0, 0%, 4%)",
+    colorInput: "hsl(0, 0%, 7%)",
     colorInputForeground: "hsl(0, 0%, 95%)",
     colorNeutral: "hsl(0, 0%, 18%)",
     fontFamily: "'Outfit', system-ui, sans-serif",

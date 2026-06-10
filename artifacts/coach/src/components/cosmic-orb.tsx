@@ -1,4 +1,4 @@
-import { Component, Suspense, useEffect, useMemo, useRef, useState, type ErrorInfo, type MutableRefObject, type ReactNode } from "react";
+import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type MutableRefObject, type ReactNode } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { MeshDistortMaterial, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
@@ -366,9 +366,12 @@ function SparkleField({ live, state }: { live: MutableRefObject<Cfg>; state: Orb
   );
 }
 
-function Scene({ state }: { state: OrbState }) {
+interface MouseXY { x: number; y: number }
+
+function Scene({ state, mouseRef }: { state: OrbState; mouseRef: MutableRefObject<MouseXY> }) {
   const live = useLiveCfg(VISUALS[state]);
   const keyLight = useRef<THREE.PointLight>(null);
+  const tiltGroup = useRef<THREE.Group>(null);
   const scratch = useMemo(() => new THREE.Color(), []);
 
   useFrame(() => {
@@ -378,19 +381,27 @@ function Scene({ state }: { state: OrbState }) {
       keyLight.current.color.copy(scratch);
       keyLight.current.intensity = 0.7 + cfg.emissive * 1.2;
     }
+    // Subtle mouse-reactive parallax tilt — max ≈8°, smooth follow
+    if (tiltGroup.current) {
+      const targetX = mouseRef.current.y * 0.14;
+      const targetY = mouseRef.current.x * 0.18;
+      tiltGroup.current.rotation.x += (targetX - tiltGroup.current.rotation.x) * 0.035;
+      tiltGroup.current.rotation.y += (targetY - tiltGroup.current.rotation.y) * 0.035;
+    }
   });
 
   return (
     <>
       <ambientLight intensity={0.18} />
       <directionalLight position={[3, 4, 5]} intensity={0.55} color="#fff2dd" />
-      <directionalLight position={[-4, -2, -3]} intensity={0.22} color="#3a4a66" />
+      <directionalLight position={[-4, -2, -3]} intensity={0.22} color="#1a1a1a" />
       <pointLight ref={keyLight} position={[0, 0, 2.2]} intensity={0.85} distance={6} />
-
-      <Sphere live={live} />
-      <Wireframe live={live} />
-      <Rings live={live} />
-      <SparkleField live={live} state={state} />
+      <group ref={tiltGroup}>
+        <Sphere live={live} />
+        <Wireframe live={live} />
+        <Rings live={live} />
+        <SparkleField live={live} state={state} />
+      </group>
     </>
   );
 }
@@ -430,15 +441,40 @@ function FallbackOrb({ state }: { state: OrbState }) {
 
 export function CosmicOrb({ state = "dormant", className = "" }: CosmicOrbProps) {
   const [webglOk, setWebglOk] = useState<boolean | null>(null);
+  const mouseRef = useRef<MouseXY>({ x: 0, y: 0 });
+
   useEffect(() => {
     setWebglOk(detectWebGL());
   }, []);
+
+  // Global mouse tracking — doesn't need pointer-events on this element
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    mouseRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouseRef.current.y = -((e.clientY / window.innerHeight) * 2 - 1);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("mousemove", onMouseMove, { passive: true });
+    return () => window.removeEventListener("mousemove", onMouseMove);
+  }, [onMouseMove]);
 
   return (
     <div
       className={`relative aspect-square select-none pointer-events-none ${className}`}
       aria-hidden
     >
+      {/* Deep shadow beneath — brand requirement: shadow, not glow */}
+      <div
+        className="absolute left-1/2 bottom-[8%] pointer-events-none"
+        style={{
+          width: "55%",
+          height: "16%",
+          transform: "translate(-50%, 50%) scaleY(0.35)",
+          background:
+            "radial-gradient(ellipse at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.75) 40%, transparent 70%)",
+          filter: "blur(22px)",
+        }}
+      />
       {webglOk === false ? (
         <FallbackOrb state={state} />
       ) : webglOk === true ? (
@@ -449,12 +485,11 @@ export function CosmicOrb({ state = "dormant", className = "" }: CosmicOrbProps)
             camera={{ position: [0, 0, 3.6], fov: 38 }}
             style={{ background: "transparent" }}
             onCreated={({ gl }) => {
-              // Prevent context-lost events from bubbling as runtime errors.
               gl.domElement.addEventListener("webglcontextlost", (e) => e.preventDefault());
             }}
           >
             <Suspense fallback={null}>
-              <Scene state={state} />
+              <Scene state={state} mouseRef={mouseRef} />
             </Suspense>
           </Canvas>
         </CanvasErrorBoundary>
