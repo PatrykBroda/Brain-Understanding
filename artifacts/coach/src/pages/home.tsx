@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Shield } from "lucide-react";
-import { CosmicOrb } from "@/components/cosmic-orb";
+import { CosmicOrb, ORB_PALETTE } from "@/components/cosmic-orb";
 import { BottomNav } from "@/components/bottom-nav";
 import { CompetitionBanner } from "@/components/competition-banner";
 import { useFighter } from "@/hooks/use-fighter";
@@ -15,6 +15,11 @@ export default function HomePage() {
 
   useAutoWelcome();
   const frameState = useFrameState();
+
+  const { hue, sat, light } = ORB_PALETTE[frameState.orb];
+  const labelColor = `hsl(${hue}, ${Math.round(sat * 35)}%, 91%)`;
+  const labelGlow = `0 0 48px hsla(${hue}, ${Math.round(sat * 100)}%, ${Math.round(light * 100)}%, 0.38), 0 2px 12px rgba(0,0,0,0.6)`;
+
 
   return (
     <div
@@ -94,8 +99,12 @@ export default function HomePage() {
           </div>
           <div
             key={frameState.label}
-            className="frame-state-label font-sans font-extralight uppercase text-[clamp(1.7rem,7vw,2.4rem)] tracking-[0.4em] text-foreground leading-none"
-            style={{ textShadow: "0 0 48px hsla(35, 65%, 60%, 0.28), 0 2px 12px rgba(0,0,0,0.6)" }}
+            className="frame-state-label font-sans font-extralight uppercase text-[clamp(1.7rem,7vw,2.4rem)] tracking-[0.4em] leading-none"
+            style={{
+              color: labelColor,
+              textShadow: labelGlow,
+              transition: "color 1.6s cubic-bezier(0.22, 0.61, 0.36, 1), text-shadow 1.6s cubic-bezier(0.22, 0.61, 0.36, 1)",
+            }}
             title={frameState.source}
           >
             {frameState.label}

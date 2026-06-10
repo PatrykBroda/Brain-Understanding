@@ -62,6 +62,12 @@ const VISUALS: Record<OrbState, Cfg> = {
   streaming:    { hue: 35,  sat: 0.62, light: 0.48, rotSpeed: 0.28, distortSpeed: 1.8, distort: 0.18, emissive: 0.25, breathSpeed: 1.50, breathAmt: 0.022, sparkleCount: 76, sparkleSpeed: 0.72, ringSpeed: 0.44 },
 };
 
+/** Hue/sat/light for each orb state — exported so sibling UI (e.g. the state
+ *  label on Home) can tint itself to match the orb's current palette. */
+export const ORB_PALETTE: Record<OrbState, { hue: number; sat: number; light: number }> = Object.fromEntries(
+  (Object.entries(VISUALS) as [OrbState, Cfg][]).map(([k, v]) => [k, { hue: v.hue, sat: v.sat, light: v.light }])
+) as Record<OrbState, { hue: number; sat: number; light: number }>;
+
 function hsl(h: number, s: number, l: number): THREE.Color {
   return new THREE.Color().setHSL(h / 360, s, l);
 }
