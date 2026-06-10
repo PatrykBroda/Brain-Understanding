@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 import { ChevronLeft, HelpCircle, RefreshCcw, X } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
 import { FrameOctagon } from "@/components/frame-octagon";
@@ -27,6 +29,14 @@ const CATEGORY_HINT: Record<PlanCategory, string> = {
   train: "Mat time + conditioning",
   technique: "Drills on weak topics",
   regulate: "Nervous-system work",
+};
+
+const CATEGORY_COLOR: Record<PlanCategory, { bar: string; glow: string; label: string }> = {
+  fix:       { bar: "hsla(0,68%,46%,0.95)",    glow: "hsla(0,68%,46%,0.07)",   label: "hsl(0,55%,62%)" },
+  goal_step: { bar: "hsla(32,54%,48%,0.9)",    glow: "hsla(32,54%,48%,0.07)",  label: "hsl(32,52%,58%)" },
+  train:     { bar: "hsla(0,0%,55%,0.7)",      glow: "hsla(0,0%,55%,0.04)",    label: "hsl(0,0%,70%)" },
+  technique: { bar: "hsla(210,38%,52%,0.8)",   glow: "hsla(210,38%,52%,0.06)", label: "hsl(210,35%,68%)" },
+  regulate:  { bar: "hsla(160,28%,38%,0.8)",   glow: "hsla(160,28%,38%,0.06)", label: "hsl(160,28%,56%)" },
 };
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -78,13 +88,16 @@ export default function PlannerPage() {
         <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
         </Link>
-        <div className="text-center flex flex-col items-center gap-1">
-          <svg viewBox="0 0 64 64" fill="none" width="18" height="18" aria-hidden>
-            <polygon points="32,4 54,16 54,48 32,60 10,48 10,16" stroke="hsl(35,65%,58%)" strokeWidth="2" opacity="0.85" />
-            <polygon points="32,14 46,22 46,42 32,50 18,42 18,22" stroke="hsl(35,65%,58%)" strokeWidth="1" opacity="0.48" />
-            <circle cx="32" cy="32" r="3" fill="hsl(35,65%,58%)" opacity="0.75" />
-          </svg>
-          <div className="font-mono text-sm uppercase tracking-[0.3em] text-foreground/95">
+        <div className="text-center flex flex-col items-center gap-1.5">
+          <img
+            src={`${basePath}/frame-logo.png`}
+            alt=""
+            aria-hidden
+            width={24}
+            height={24}
+            className="object-contain opacity-80"
+          />
+          <div className="font-mono text-[11px] uppercase tracking-[0.4em] text-foreground/90">
             Weekly mission
           </div>
         </div>
@@ -99,13 +112,15 @@ export default function PlannerPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
-          <section className="flex items-baseline justify-between">
+        <div className="max-w-md mx-auto px-5 py-5 space-y-5 pb-10">
+
+          {/* Fighter + regenerate row */}
+          <div className="flex items-center justify-between">
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/60">
                 {fighter?.name ?? "Athlete"}
               </div>
-              <div className="font-mono text-[11px] uppercase tracking-widest text-foreground/85 mt-1">
+              <div className="font-sans text-[13px] font-light tracking-[0.12em] text-foreground/80 mt-0.5">
                 {formatWeekRange(weekStart)}
               </div>
             </div>
@@ -113,7 +128,7 @@ export default function PlannerPage() {
               type="button"
               onClick={() => regen.mutate()}
               disabled={regen.isPending}
-              className="font-mono text-[10px] uppercase tracking-widest border border-border/60 px-3 py-2 text-foreground/80 hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+              className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40 flex items-center gap-1.5"
             >
               {regen.isPending ? (
                 <>
@@ -127,28 +142,42 @@ export default function PlannerPage() {
                 </>
               )}
             </button>
-          </section>
+          </div>
 
-          <section
-            aria-label="This week's days, today highlighted"
-            className="grid grid-cols-7 gap-1"
-          >
+          {/* Day grid — operational timeline */}
+          <section aria-label="This week's days, today highlighted" className="grid grid-cols-7 gap-[3px]">
             {DAY_LABELS.map((label, idx) => {
               const isToday = idx === todayIdx;
+              const isPast = todayIdx >= 0 && idx < todayIdx;
               return (
                 <div
                   key={label}
-                  className={`text-center py-1.5 border ${
-                    isToday
-                      ? "border-primary/70 bg-primary/10 text-primary"
-                      : "border-border/40 text-muted-foreground/80"
-                  }`}
+                  className="relative text-center py-2.5 transition-all duration-300"
+                  style={{
+                    background: isToday
+                      ? "hsla(0,68%,46%,0.12)"
+                      : isPast
+                      ? "hsla(0,0%,100%,0.02)"
+                      : "hsla(0,0%,100%,0.025)",
+                    borderBottom: isToday
+                      ? "2px solid hsla(0,68%,46%,0.8)"
+                      : "2px solid hsla(0,0%,100%,0.07)",
+                  }}
                 >
-                  <div className="font-mono text-[9px] uppercase tracking-widest">{label}</div>
                   {isToday && (
-                    <div className="font-mono text-[8px] uppercase tracking-widest mt-0.5">
-                      Today
-                    </div>
+                    <div
+                      className="absolute inset-0 pointer-events-none"
+                      style={{ boxShadow: "inset 0 0 12px hsla(0,68%,46%,0.08)" }}
+                    />
+                  )}
+                  <div
+                    className="font-mono text-[9px] uppercase tracking-widest"
+                    style={{ color: isToday ? "hsl(0,55%,62%)" : isPast ? "hsla(0,0%,100%,0.25)" : "hsla(0,0%,100%,0.45)" }}
+                  >
+                    {label}
+                  </div>
+                  {isToday && (
+                    <div className="w-1 h-1 rounded-full bg-destructive/80 mx-auto mt-1 animate-pulse" />
                   )}
                 </div>
               );
@@ -156,99 +185,137 @@ export default function PlannerPage() {
           </section>
 
           {regen.isError && (
-            <div className="border border-destructive/40 bg-destructive/10 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+            <div className="border-l-2 border-destructive/70 bg-destructive/8 px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
               {(regen.error as Error).message || "generation failed"}
             </div>
           )}
 
           {planner.isLoading ? (
-            <div className="text-muted-foreground font-mono text-[10px] uppercase tracking-widest py-10 text-center">
+            <div className="text-muted-foreground font-mono text-[10px] uppercase tracking-widest py-16 text-center opacity-60">
               Loading
             </div>
           ) : !plan ? (
-            <div className="border border-border/40 p-5 space-y-3">
-              <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                No plan for this week yet
+            /* Empty state — dramatic */
+            <div
+              className="relative border border-border/30 p-6 space-y-4 mt-4"
+              style={{ background: "linear-gradient(160deg, hsla(0,60%,30%,0.04), transparent 60%)" }}
+            >
+              <span className="absolute left-0 top-0 h-3 w-3 border-l-2 border-t-2 border-destructive/40" />
+              <span className="absolute right-0 top-0 h-3 w-3 border-r-2 border-t-2 border-destructive/40" />
+              <span className="absolute left-0 bottom-0 h-3 w-3 border-l-2 border-b-2 border-destructive/40" />
+              <span className="absolute right-0 bottom-0 h-3 w-3 border-r-2 border-b-2 border-destructive/40" />
+              <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/70">
+                No directive issued
               </div>
-              <p className="text-sm text-foreground/85 leading-relaxed">
+              <p className="text-sm text-foreground/80 leading-relaxed">
                 The planner reads your accumulated model, recent calibrations, and chat signals,
-                then drafts 5-7 actions for the next 7 days. Every item cites the recorded signal
-                it came from. No padding, no streaks, no fake biometrics — only what the system
-                can actually see.
+                then builds 5-7 actions for the week. Every item is anchored to a real recorded signal.
+                No padding, no streaks, no invented work.
               </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Generate when you're ready. Regenerate any time the picture shifts.
+              <p className="text-sm text-muted-foreground/70 leading-relaxed">
+                Generate when you're ready.
               </p>
             </div>
           ) : (
             <>
+              {/* Mission directive card */}
               {plan.rationale && (
                 <div
-                  className="relative border border-primary/25 px-4 py-4"
+                  className="relative mt-1"
                   style={{
-                    background:
-                      "linear-gradient(180deg, hsla(40,45%,55%,0.05), transparent 60%)",
+                    background: "linear-gradient(170deg, hsla(0,60%,30%,0.1) 0%, hsla(0,0%,0%,0) 55%)",
+                    borderLeft: "2px solid hsla(0,68%,46%,0.6)",
+                    borderTop: "1px solid hsla(0,68%,46%,0.2)",
+                    borderRight: "1px solid hsla(0,0%,100%,0.05)",
+                    borderBottom: "1px solid hsla(0,0%,100%,0.05)",
                   }}
                 >
-                  <span className="absolute left-0 top-0 h-2.5 w-2.5 border-l border-t border-primary/60" />
-                  <span className="absolute right-0 top-0 h-2.5 w-2.5 border-r border-t border-primary/60" />
-                  <span className="absolute left-0 bottom-0 h-2.5 w-2.5 border-l border-b border-primary/60" />
-                  <span className="absolute right-0 bottom-0 h-2.5 w-2.5 border-r border-b border-primary/60" />
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/90">
-                      Mission focus
+                  <div className="px-4 pt-3 pb-4">
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <span className="h-[5px] w-[5px] rounded-full bg-destructive animate-pulse" />
+                      <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/80">
+                        Mission directive
+                      </div>
                     </div>
+                    <p className="text-[0.9rem] text-foreground/90 leading-relaxed font-light">{plan.rationale}</p>
                   </div>
-                  <p className="text-sm text-foreground/90 leading-relaxed">{plan.rationale}</p>
                 </div>
               )}
 
-              {/* Completion counter */}
+              {/* Completion tracker */}
               {plan.items.length > 0 && (
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 relative h-[2px] bg-border/40 overflow-hidden">
+                <div className="flex items-center gap-3 py-1">
+                  <div className="flex-1 relative h-[1px] bg-white/8 overflow-hidden">
                     <div
-                      className="absolute top-0 left-0 h-full bg-primary/70 transition-all duration-700"
-                      style={{ width: `${Math.round((completions.size / plan.items.length) * 100)}%` }}
+                      className="absolute top-0 left-0 h-full transition-all duration-700"
+                      style={{
+                        width: `${Math.round((completions.size / plan.items.length) * 100)}%`,
+                        background: completions.size === plan.items.length
+                          ? "hsl(32,54%,46%)"
+                          : "hsl(0,68%,46%)",
+                      }}
                     />
                   </div>
-                  <div className="flex-none font-mono text-[10px] uppercase tracking-widest text-foreground/65">
+                  <div
+                    className="flex-none font-mono text-[9px] uppercase tracking-widest"
+                    style={{
+                      color: completions.size === plan.items.length
+                        ? "hsl(32,52%,58%)"
+                        : "hsla(0,0%,100%,0.45)",
+                    }}
+                  >
                     {completions.size}/{plan.items.length}
                   </div>
                 </div>
               )}
 
-              <div className="space-y-8">
+              {/* Category sections */}
+              <div className="space-y-10 pt-2">
                 {CATEGORY_ORDER.map((cat, ci) => {
                   const items = grouped[cat];
+                  if (items.length === 0) return null;
+                  const col = CATEGORY_COLOR[cat];
                   return (
-                    <section key={cat} className="space-y-2.5 plan-section" style={{ animationDelay: `${ci * 0.07}s` }}>
-                      <div
-                        className="relative flex items-center gap-3 pb-2"
-                        style={{ borderBottom: "1px solid hsla(35,55%,50%,0.14)" }}
-                      >
-                        <span className="font-mono text-[9px] tracking-[0.3em] text-primary/45">
-                          {String(ci + 1).padStart(2, "0")}
-                        </span>
-                        <div className="flex-1">
-                          <div className="font-mono text-[11px] uppercase tracking-[0.35em] text-foreground/95">
-                            {CATEGORY_LABEL[cat]}
+                    <section
+                      key={cat}
+                      className="plan-section"
+                      style={{ animationDelay: `${ci * 0.09}s` }}
+                    >
+                      {/* Zone header */}
+                      <div className="mb-4">
+                        <div className="flex items-center gap-3">
+                          <span
+                            className="font-mono text-[9px] tracking-widest px-2 py-0.5"
+                            style={{
+                              color: col.label,
+                              borderLeft: `2px solid ${col.bar}`,
+                              background: col.glow,
+                            }}
+                          >
+                            {String(ci + 1).padStart(2, "0")}
+                          </span>
+                          <div>
+                            <div
+                              className="font-mono text-[12px] uppercase tracking-[0.35em]"
+                              style={{ color: col.label }}
+                            >
+                              {CATEGORY_LABEL[cat]}
+                            </div>
                           </div>
+                          <div className="flex-1 ml-2" style={{ height: 1, background: `linear-gradient(90deg, ${col.bar} 0%, transparent 100%)`, opacity: 0.4 }} />
                         </div>
-                        <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/65">
+                        <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/45 mt-1.5 pl-10">
                           {CATEGORY_HINT[cat]}
                         </div>
                       </div>
-                      {items.length === 0 ? (
-                        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50 px-1 py-2">
-                          no anchoring signal yet
-                        </div>
-                      ) : (
-                        items.map((item, ii) => (
+
+                      {/* Items */}
+                      <div className="space-y-3">
+                        {items.map((item, ii) => (
                           <PlanItemCard
                             key={item.key}
                             item={item}
+                            cat={cat}
                             index={ii}
                             done={completions.has(item.key)}
                             disabled={toggle.isPending}
@@ -256,23 +323,24 @@ export default function PlannerPage() {
                               toggle.mutate({ key: item.key, completed: done })
                             }
                           />
-                        ))
-                      )}
+                        ))}
+                      </div>
                     </section>
                   );
                 })}
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-border/20">
-                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/55">
-                  Built {new Date(plan.createdAt).toLocaleString(undefined, {
+              {/* Footer metadata */}
+              <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40">
+                  Issued {new Date(plan.createdAt).toLocaleString(undefined, {
                     month: "short",
                     day: "numeric",
                     hour: "numeric",
                     minute: "2-digit",
                   })}
                 </div>
-                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40">
+                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/30">
                   {plan.aiProvider}
                 </div>
               </div>
@@ -291,91 +359,100 @@ export default function PlannerPage() {
 
 function PlanItemCard({
   item,
+  cat,
   index,
   done,
   disabled,
   onToggle,
 }: {
   item: PlanItem;
+  cat: PlanCategory;
   index: number;
   done: boolean;
   disabled: boolean;
   onToggle: (done: boolean) => void;
 }) {
+  const col = CATEGORY_COLOR[cat];
+  const doneBar = "hsla(32,54%,46%,0.85)";
   return (
     <div
-      className="plan-item relative border transition-all duration-400"
+      className="plan-item relative transition-all duration-400"
       style={{
-        borderColor: done ? "hsla(35,65%,55%,0.35)" : "hsla(0,0%,100%,0.09)",
+        borderLeft: `3px solid ${done ? doneBar : col.bar}`,
+        borderTop: "1px solid hsla(0,0%,100%,0.07)",
+        borderRight: "1px solid hsla(0,0%,100%,0.04)",
+        borderBottom: "1px solid hsla(0,0%,100%,0.04)",
         background: done
-          ? "linear-gradient(90deg, hsla(35,55%,45%,0.06), transparent)"
-          : undefined,
-        animationDelay: `${index * 0.06}s`,
+          ? "linear-gradient(95deg, hsla(32,54%,46%,0.06), transparent 70%)"
+          : `linear-gradient(95deg, ${col.glow}, transparent 70%)`,
+        animationDelay: `${index * 0.07}s`,
       }}
     >
-      {/* Left accent bar — primary when done, crimson-dim when pending */}
+      {/* Background index watermark */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-[2px] transition-colors duration-400"
-        style={{
-          background: done
-            ? "hsl(35,65%,55%)"
-            : "hsla(0,50%,30%,0.5)",
-        }}
-      />
+        className="absolute right-4 top-1/2 -translate-y-1/2 font-mono font-bold select-none pointer-events-none"
+        style={{ fontSize: "2.8rem", opacity: 0.04, color: done ? "hsl(32,54%,46%)" : col.label }}
+        aria-hidden
+      >
+        {String(index + 1).padStart(2, "0")}
+      </div>
 
-      <div className="flex items-start gap-3 px-4 py-3.5 pl-5">
+      <div className="flex items-start gap-3.5 px-5 py-4">
+        {/* Toggle */}
         <button
           type="button"
           onClick={() => onToggle(!done)}
           disabled={disabled}
           aria-pressed={done}
           aria-label={done ? "Mark not done" : "Mark done"}
-          className="flex-none mt-0.5 w-5 h-5 border flex items-center justify-center transition-all duration-300"
+          className="flex-none mt-0.5 w-[18px] h-[18px] border flex items-center justify-center transition-all duration-300"
           style={{
-            borderColor: done ? "hsl(35,65%,55%)" : "hsla(0,0%,100%,0.22)",
-            background: done ? "hsla(35,65%,55%,0.18)" : undefined,
-            color: done ? "hsl(35,65%,58%)" : "transparent",
+            borderColor: done ? "hsl(32,54%,46%)" : col.bar,
+            background: done ? "hsla(32,54%,46%,0.15)" : "transparent",
+            color: done ? "hsl(32,54%,50%)" : "transparent",
           }}
         >
-          <svg viewBox="0 0 20 20" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <svg viewBox="0 0 20 20" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.8">
             <path d="M4 10.5 L8 14.5 L16 6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline justify-between gap-3 mb-1">
-            <div
-              className="text-[0.93rem] leading-snug transition-colors duration-300"
-              style={{ color: done ? "hsla(0,0%,100%,0.4)" : "hsla(0,0%,100%,0.92)", textDecoration: done ? "line-through" : "none" }}
-            >
-              {item.title}
-            </div>
-            <div className="flex-none font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
-              {item.suggestedDays}
-            </div>
+          {/* Directive title */}
+          <div
+            className="text-[0.95rem] leading-snug font-light transition-colors duration-300 mb-2"
+            style={{
+              color: done ? "hsla(0,0%,100%,0.32)" : "hsla(0,0%,100%,0.94)",
+              textDecoration: done ? "line-through" : "none",
+            }}
+          >
+            {item.title}
           </div>
 
+          {/* Execution detail */}
           <p
-            className="text-sm leading-relaxed transition-colors duration-300"
-            style={{ color: done ? "hsla(0,0%,100%,0.38)" : "hsla(0,0%,100%,0.72)" }}
+            className="text-[0.82rem] leading-relaxed transition-colors duration-300"
+            style={{ color: done ? "hsla(0,0%,100%,0.28)" : "hsla(0,0%,100%,0.60)" }}
           >
             {item.detail}
           </p>
 
+          {/* Source + days footer */}
           <div
-            className="flex items-center gap-2 mt-2.5"
+            className="flex items-center justify-between mt-3"
             title={[
-              item.sourceFactIds.length ? `fact ids: ${item.sourceFactIds.join(", ")}` : "",
-              item.sourceCalibrationKeys.length
-                ? `calibrations: ${item.sourceCalibrationKeys.join(", ")}`
-                : "",
-            ]
-              .filter(Boolean)
-              .join(" · ")}
+              item.sourceFactIds.length ? `facts: ${item.sourceFactIds.join(", ")}` : "",
+              item.sourceCalibrationKeys.length ? `calibrations: ${item.sourceCalibrationKeys.join(", ")}` : "",
+            ].filter(Boolean).join(" · ")}
           >
-            <span className="h-px w-3 bg-primary/30 flex-none" />
-            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
-              {item.sourceLabel}
+            <div className="flex items-center gap-2">
+              <span className="flex-none" style={{ display: "inline-block", width: 14, height: 1, background: done ? "hsla(32,54%,46%,0.5)" : col.bar, opacity: 0.7 }} />
+              <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/55">
+                {item.sourceLabel}
+              </span>
+            </div>
+            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40">
+              {item.suggestedDays}
             </span>
           </div>
         </div>

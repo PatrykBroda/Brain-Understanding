@@ -24,6 +24,8 @@ import type {
   Fighter,
 } from "@/lib/api";
 
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 const MAX_VIDEO_BYTES = 250 * 1024 * 1024;
 
 const KINDS: { value: AnalysisKind; label: string }[] = [
@@ -217,11 +219,16 @@ export default function AnalysePage() {
         <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
         </Link>
-        <div className="text-center">
-          <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
-            {fighter?.name ?? "Athlete"}
-          </div>
-          <div className="font-mono text-sm uppercase tracking-[0.3em] text-foreground/95 mt-0.5">
+        <div className="text-center flex flex-col items-center gap-1.5">
+          <img
+            src={`${basePath}/frame-logo.png`}
+            alt=""
+            aria-hidden
+            width={22}
+            height={22}
+            className="object-contain opacity-75"
+          />
+          <div className="font-mono text-[11px] uppercase tracking-[0.4em] text-foreground/90">
             Analyse
           </div>
         </div>
@@ -289,32 +296,44 @@ export default function AnalysePage() {
           <>
             {/* LEFT — description + upload zone */}
             <div className="flex flex-col justify-center items-center w-[46%] min-w-0 px-10 py-10 gap-8">
-              <div className="w-full max-w-sm space-y-4">
-                <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
-                  Analyst Workstation
+              <div className="w-full max-w-sm space-y-3">
+                <div
+                  className="border-l-2 border-destructive/50 pl-4 py-1"
+                  style={{ background: "linear-gradient(90deg, hsla(0,68%,46%,0.05), transparent 80%)" }}
+                >
+                  <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/70 mb-1.5">
+                    Analyst Workstation
+                  </div>
+                  <p className="text-sm text-foreground/75 leading-relaxed">
+                    Upload a clip. The system reads your movement directly — guard, base,
+                    shoulders, output rhythm — scores it against itself, and tells you what
+                    your nervous system is doing under load.
+                  </p>
+                  <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45 mt-2">
+                    Processed on device · only the read is kept
+                  </p>
                 </div>
-                <p className="text-sm text-foreground/80 leading-relaxed">
-                  Upload a clip. The frame reads your movement directly — guard, base,
-                  shoulders, output rhythm — scores it against itself, and tells you what your
-                  nervous system is doing under load.
-                </p>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
-                  Processed on your device · only the read is kept
-                </p>
               </div>
 
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={busy}
-                className="w-full max-w-sm border border-dashed border-border/60 hover:border-primary/50 transition-colors py-14 flex flex-col items-center justify-center gap-4 disabled:opacity-50"
+                className="relative w-full max-w-sm overflow-hidden transition-all duration-300 disabled:opacity-50 py-16 flex flex-col items-center justify-center gap-4"
+                style={{ border: "1px solid hsla(0,68%,46%,0.25)", background: "linear-gradient(160deg, hsla(0,68%,46%,0.04) 0%, transparent 60%)" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.55)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.25)"; }}
               >
-                <Upload className="w-9 h-9 text-muted-foreground" strokeWidth={1.25} />
-                <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/80">
-                  Select footage
+                <span className="absolute left-0 top-0 h-3 w-3 border-l border-t border-destructive/40" />
+                <span className="absolute right-0 top-0 h-3 w-3 border-r border-t border-destructive/40" />
+                <span className="absolute left-0 bottom-0 h-3 w-3 border-l border-b border-destructive/40" />
+                <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-destructive/40" />
+                <Upload className="w-10 h-10" strokeWidth={1} style={{ color: "hsla(0,68%,46%,0.6)" }} />
+                <div className="font-mono text-[11px] uppercase tracking-[0.45em] text-foreground/80">
+                  Drop footage
                 </div>
-                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
-                  mp4 / mov · first 75s read
+                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45">
+                  mp4 · mov · first 75s processed
                 </div>
               </button>
             </div>
@@ -322,21 +341,25 @@ export default function AnalysePage() {
             {/* RIGHT — controls + history */}
             <div className="flex-1 overflow-y-auto px-7 py-6 space-y-6">
               <section className="space-y-2">
-                <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                  What is this clip
+                <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+                  Clip type
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-[3px]">
                   {KINDS.map((k) => (
                     <button
                       key={k.value}
                       type="button"
                       onClick={() => setKind(k.value)}
                       disabled={busy}
-                      className={`font-mono text-[10px] uppercase tracking-widest border py-2.5 transition-colors disabled:opacity-40 ${
-                        kind === k.value
-                          ? "border-primary/70 bg-primary/10 text-primary"
-                          : "border-border/50 text-foreground/70 hover:border-primary/40"
-                      }`}
+                      className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
+                      style={{
+                        borderLeft: `2px solid ${kind === k.value ? "hsla(0,68%,46%,0.9)" : "hsla(0,0%,100%,0.1)"}`,
+                        borderTop: `1px solid ${kind === k.value ? "hsla(0,68%,46%,0.2)" : "hsla(0,0%,100%,0.06)"}`,
+                        borderRight: "1px solid hsla(0,0%,100%,0.04)",
+                        borderBottom: "1px solid hsla(0,0%,100%,0.04)",
+                        background: kind === k.value ? "hsla(0,68%,46%,0.08)" : "transparent",
+                        color: kind === k.value ? "hsl(0,55%,65%)" : "hsla(0,0%,100%,0.55)",
+                      }}
                     >
                       {k.label}
                     </button>
@@ -451,30 +474,45 @@ function UploadControls({
 }) {
   return (
     <>
-      <section className="space-y-3">
-        <p className="text-sm text-foreground/80 leading-relaxed">
-          Upload a clip. The frame reads your movement directly — guard, base,
-          shoulders, output rhythm — scores it against itself, and tells you what your
-          nervous system is doing under load. Processed on your device; only the read is kept.
+      {/* Atmospheric intro block */}
+      <section
+        className="relative border-l-2 border-destructive/50 pl-4 py-1"
+        style={{ background: "linear-gradient(90deg, hsla(0,68%,46%,0.05), transparent 80%)" }}
+      >
+        <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/70 mb-2">
+          Movement read
+        </div>
+        <p className="text-sm text-foreground/75 leading-relaxed">
+          Upload a clip. The system reads your movement directly — guard, base, shoulders,
+          output rhythm — scores it against itself, and tells you what your nervous system
+          is doing under load.
+        </p>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45 mt-2">
+          Processed on device · only the read is kept
         </p>
       </section>
 
+      {/* Clip type selector */}
       <section className="space-y-2">
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          What is this clip
+        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+          Clip type
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-[3px]">
           {KINDS.map((k) => (
             <button
               key={k.value}
               type="button"
               onClick={() => setKind(k.value)}
               disabled={busy}
-              className={`font-mono text-[10px] uppercase tracking-widest border py-2.5 transition-colors disabled:opacity-40 ${
-                kind === k.value
-                  ? "border-primary/70 bg-primary/10 text-primary"
-                  : "border-border/50 text-foreground/70 hover:border-primary/40"
-              }`}
+              className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
+              style={{
+                borderLeft: `2px solid ${kind === k.value ? "hsla(0,68%,46%,0.9)" : "hsla(0,0%,100%,0.1)"}`,
+                borderTop: `1px solid ${kind === k.value ? "hsla(0,68%,46%,0.2)" : "hsla(0,0%,100%,0.06)"}`,
+                borderRight: `1px solid hsla(0,0%,100%,0.04)`,
+                borderBottom: `1px solid hsla(0,0%,100%,0.04)`,
+                background: kind === k.value ? "hsla(0,68%,46%,0.08)" : "transparent",
+                color: kind === k.value ? "hsl(0,55%,65%)" : "hsla(0,0%,100%,0.55)",
+              }}
             >
               {k.label}
             </button>
@@ -482,33 +520,47 @@ function UploadControls({
         </div>
       </section>
 
+      {/* Focus input */}
       <section className="space-y-2">
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          Anything to focus on{" "}
-          <span className="text-muted-foreground/50 normal-case tracking-normal">(optional)</span>
+        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+          Focus area{" "}
+          <span className="font-sans normal-case tracking-normal text-muted-foreground/40 text-[11px]">optional</span>
         </div>
         <input
           type="text"
           value={focus}
           onChange={(e) => setFocus(e.target.value.slice(0, 200))}
           disabled={busy}
-          placeholder="e.g. my guard when I get tired, left-side pressure…"
-          className="w-full bg-transparent border border-border/50 focus:border-primary/50 outline-none px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/50 transition-colors disabled:opacity-40"
+          placeholder="guard under fatigue, left shoulder, pressure after a miss…"
+          className="w-full bg-transparent border-b border-border/40 focus:border-destructive/40 outline-none py-2.5 text-sm text-foreground/85 placeholder:text-muted-foreground/35 transition-colors disabled:opacity-40"
         />
       </section>
 
+      {/* Upload zone — atmospheric */}
       <button
         type="button"
         onClick={() => fileRef.current?.click()}
         disabled={busy}
-        className="w-full border border-dashed border-border/60 hover:border-primary/50 transition-colors py-10 flex flex-col items-center justify-center gap-3 disabled:opacity-50"
+        className="group w-full relative overflow-hidden transition-all duration-300 disabled:opacity-50 py-12 flex flex-col items-center justify-center gap-4"
+        style={{
+          border: "1px solid hsla(0,68%,46%,0.25)",
+          background: "linear-gradient(160deg, hsla(0,68%,46%,0.04) 0%, transparent 60%)",
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.55)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.25)"; }}
       >
-        <Upload className="w-7 h-7 text-muted-foreground" strokeWidth={1.25} />
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/80">
-          Select footage
+        {/* Subtle corner brackets */}
+        <span className="absolute left-0 top-0 h-3 w-3 border-l border-t border-destructive/40" />
+        <span className="absolute right-0 top-0 h-3 w-3 border-r border-t border-destructive/40" />
+        <span className="absolute left-0 bottom-0 h-3 w-3 border-l border-b border-destructive/40" />
+        <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-destructive/40" />
+
+        <Upload className="w-8 h-8" strokeWidth={1} style={{ color: "hsla(0,68%,46%,0.6)" }} />
+        <div className="font-mono text-[11px] uppercase tracking-[0.45em] text-foreground/80">
+          Drop footage
         </div>
-        <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
-          mp4 / mov · first 75s read
+        <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45">
+          mp4 · mov · first 75s processed
         </div>
       </button>
 
@@ -1274,45 +1326,57 @@ function History({
   if (items.length === 0) return null;
   return (
     <section className="space-y-3 pt-2">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
-        Past reads
+      <div className="flex items-center gap-3 pb-1.5" style={{ borderBottom: "1px solid hsla(0,0%,100%,0.07)" }}>
+        <span className="h-[5px] w-[5px] rounded-full bg-destructive/60 flex-none" />
+        <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-muted-foreground/70">
+          Session log
+        </div>
       </div>
-      <div className="space-y-2">
-        {items.map((a) => (
+      <div className="space-y-[3px]">
+        {items.map((a, idx) => (
           <button
             key={a.id}
             type="button"
             onClick={() => onOpen(a.id)}
-            className="w-full text-left border border-border/50 hover:border-primary/40 transition-colors px-4 py-3 flex items-start gap-3"
+            className="w-full text-left transition-all duration-200 px-4 py-3.5"
+            style={{
+              borderLeft: "2px solid hsla(0,0%,100%,0.08)",
+              borderTop: "1px solid hsla(0,0%,100%,0.05)",
+              borderRight: "1px solid transparent",
+              borderBottom: "1px solid transparent",
+              background: idx % 2 === 0 ? "hsla(0,0%,100%,0.015)" : "transparent",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderLeftColor = "hsla(0,68%,46%,0.5)"; (e.currentTarget as HTMLElement).style.background = "hsla(0,68%,46%,0.04)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderLeftColor = "hsla(0,0%,100%,0.08)"; (e.currentTarget as HTMLElement).style.background = idx % 2 === 0 ? "hsla(0,0%,100%,0.015)" : "transparent"; }}
           >
-            <Film className="w-4 h-4 mt-0.5 flex-none text-muted-foreground" strokeWidth={1.5} />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/85">
-                  {a.kind}
-                  {a.styleProfile ? ` · ${a.styleProfile}` : ""}
-                </span>
-                <span className="flex items-baseline gap-2">
-                  {a.sessionScore > 0 && (
-                    <span className="font-mono text-[11px] text-foreground/90">{a.sessionScore}</span>
-                  )}
-                  <span
-                    className={`font-mono text-[9px] uppercase tracking-widest ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}
-                  >
-                    {LOAD_LABEL[a.nervousSystemLoad]}
+            <div className="flex items-start gap-3">
+              <Film className="w-[14px] h-[14px] mt-0.5 flex-none" style={{ color: "hsla(0,68%,46%,0.55)" }} strokeWidth={1.5} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-3 mb-1">
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/80">
+                    {a.kind}
+                    {a.styleProfile ? <span className="text-muted-foreground/50"> · {a.styleProfile}</span> : null}
                   </span>
-                </span>
-              </div>
-              <p className="text-sm text-foreground/70 leading-snug mt-1 line-clamp-2">
-                {a.summary}
-              </p>
-              <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/60 mt-1.5">
-                {new Date(a.createdAt).toLocaleString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
+                  <span className="flex items-baseline gap-2">
+                    {a.sessionScore > 0 && (
+                      <span className="font-mono text-[12px] font-light text-foreground/90">{a.sessionScore}</span>
+                    )}
+                    <span className={`font-mono text-[9px] uppercase tracking-widest ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}>
+                      {LOAD_LABEL[a.nervousSystemLoad]}
+                    </span>
+                  </span>
+                </div>
+                <p className="text-[0.78rem] text-foreground/55 leading-snug line-clamp-2">
+                  {a.summary}
+                </p>
+                <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/35 mt-1.5">
+                  {new Date(a.createdAt).toLocaleString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </div>
               </div>
             </div>
           </button>
