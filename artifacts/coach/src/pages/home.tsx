@@ -94,7 +94,7 @@ export default function HomePage() {
 
       <section className="relative z-10 flex flex-col items-center text-center px-6 gap-6 pb-3">
         <div className="space-y-3">
-          <div className="font-mono text-[10px] uppercase tracking-[0.55em] text-foreground/65 font-light">
+          <div className="frame-state-caption-top font-mono text-[10px] uppercase tracking-[0.55em] text-foreground/65 font-light">
             State
           </div>
           <div
@@ -109,7 +109,7 @@ export default function HomePage() {
           >
             {frameState.label}
           </div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.45em] text-foreground/65 font-light pt-2">
+          <div className="frame-state-caption-bottom font-mono text-[10px] uppercase tracking-[0.45em] text-foreground/65 font-light pt-2">
             Narrow the decision tree.
           </div>
         </div>
@@ -164,15 +164,30 @@ export default function HomePage() {
           animation: frame-fade-in 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
         }
 
+        @keyframes frame-caption-in {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        .frame-state-caption-top {
+          animation: frame-caption-in 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) 0.1s both;
+        }
+
         @keyframes frame-state-in {
           from { opacity: 0; letter-spacing: 0.18em; }
           to   { opacity: 1; letter-spacing: 0.4em; }
         }
         .frame-state-label {
-          animation: frame-state-in 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+          animation: frame-state-in 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) 0.35s both;
         }
+
+        .frame-state-caption-bottom {
+          animation: frame-caption-in 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) 0.9s both;
+        }
+
         @media (prefers-reduced-motion: reduce) {
-          .frame-state-label { animation: none; }
+          .frame-state-caption-top,
+          .frame-state-label,
+          .frame-state-caption-bottom { animation: none; }
         }
       `}</style>
     </div>
