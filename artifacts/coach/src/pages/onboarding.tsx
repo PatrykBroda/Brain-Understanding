@@ -6,7 +6,7 @@ import { ARTS, LEVELS, FREQUENCIES, SPORTS, ageFromDob } from "@/lib/fighter-opt
 
 const FIELD_LABEL = "block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2";
 const INPUT_CLASS =
-  "w-full bg-transparent border border-border/70 text-foreground text-sm px-3 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 placeholder:text-muted-foreground/60";
+  "w-full bg-transparent border border-border/70 text-foreground text-sm px-3 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 placeholder:text-muted-foreground/60 hover:border-border/90 transition-colors duration-150";
 
 // Behavioral calibration. Each answer carries a short "read" sentence that gets
 // composed into the personality signal the system uses to assign an archetype.
