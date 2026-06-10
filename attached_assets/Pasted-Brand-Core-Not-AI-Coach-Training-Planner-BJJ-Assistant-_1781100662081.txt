@@ -1,0 +1,347 @@
+Brand Core
+
+Not:
+
+AI Coach
+Training Planner
+BJJ Assistant
+
+But:
+
+A living model of the athlete.
+
+The athlete enters FRAME.
+
+FRAME observes.
+
+FRAME calibrates.
+
+FRAME evolves.
+
+Logo Meaning
+
+The logo is actually stronger than you may realize.
+
+Octagon
+
+Represents:
+
+Combat
+Constraint
+Structure
+Arena
+Discipline
+Spiral
+
+Represents:
+
+Growth
+Recursion
+Learning
+Data accumulation
+The portal inward
+
+The spiral should feel like:
+
+A descent into your own game.
+
+Not a cheerful tech spiral.
+
+Not a startup swirl.
+
+More like:
+
+An intelligent abyss.
+
+A controlled void.
+
+Visual Direction
+Remove
+Grey cards
+Grey backgrounds
+Grey overlays
+Grey gradients
+
+Grey is killing the contrast.
+
+Foundation
+#000000
+#030303
+#080808
+#FFFFFF
+
+Everything should emerge from black.
+
+Not charcoal.
+
+Black.
+
+Accent Hierarchy
+Crimson
+
+Used for:
+
+warnings
+weaknesses
+unfinished work
+pressure
+competition
+
+Example:
+
+#8F1010
+#A31414
+#BF1D1D
+Gold
+
+Used for:
+
+mastery
+achievements
+calibration complete
+streaks
+milestones
+
+Never used as a general accent.
+
+Gold should feel earned.
+
+The Orb
+
+Currently it sounds decorative.
+
+You want it to become:
+
+The Performance Core
+
+Every major area of the platform should visually connect back to it.
+
+Example
+
+Athlete profile opens:
+
+Orb expands
+↓
+Connections appear
+↓
+Metrics emerge
+
+Not:
+
+Dashboard card
+Dashboard card
+Dashboard card
+Movement
+
+The orb should:
+
+breathe
+pulse
+subtly rotate
+react to mouse movement
+distort slightly
+
+Like it contains intelligence.
+
+Not like a loading animation.
+
+Shadow
+
+The shadow should be significant.
+
+Not glow.
+
+Shadow.
+
+Imagine:
+
+Black sphere
+Floating
+Deep shadow beneath
+
+Almost impossible to tell where it ends.
+
+Like a black hole.
+
+Negative Space
+
+This is one of the biggest improvements.
+
+Currently it sounds like too much information appears too early.
+
+For athletes:
+
+Landing Page
+
+Reveal:
+
+Mission
+Identity
+Purpose
+New User
+
+Reveal:
+
+Today's Focus
+
+Only.
+
+After Usage
+
+Reveal:
+
+Performance Trends
+Later
+
+Reveal:
+
+Planning
+Analysis
+Forecasting
+
+The user should earn complexity.
+
+Adaptive Friction Scaling
+
+This is actually a very strong idea.
+
+Most coaches fail because they use the same pressure on every athlete.
+
+FRAME shouldn't.
+
+Low Commitment User
+
+FRAME becomes:
+
+Supportive
+Easy wins
+Small actions
+
+Example:
+
+Just do 5 minutes today.
+
+Consistent User
+
+FRAME becomes:
+
+More demanding
+More specific
+
+Example:
+
+You said competition matters. Missing sessions is now costing you progress.
+
+Serious Competitor
+
+FRAME becomes:
+
+Extremely direct
+
+Example:
+
+Guard retention has plateaued for 18 days. Continue current approach or change the system.
+
+The pressure scales with demonstrated commitment.
+
+Not with arbitrary rules.
+
+AI Personality
+
+You're describing something very specific.
+
+Not:
+
+Drill Sergeant
+
+Not:
+
+Best Friend
+
+But:
+
+Mission-Oriented Companion
+
+FRAME can joke.
+
+FRAME can play.
+
+FRAME can match energy.
+
+But it remembers.
+
+Example:
+
+User:
+
+I'm retiring and becoming a professional pizza reviewer.
+
+FRAME:
+
+A bold career pivot. Your guard retention will likely suffer from increased mozzarella exposure.
+
+Then:
+
+Speaking of things collapsing, are we still hitting the three training sessions this week?
+
+The joke serves the mission.
+
+The mission never serves the joke.
+
+Footage Analyzer
+
+This is probably where the biggest visual upgrade should happen.
+
+Avoid:
+
+Video
+Timeline
+Chat box
+
+That's generic AI tooling.
+
+Instead think:
+
+Analyst Workstation
+
+Video left.
+
+Insights right.
+
+Professional review system.
+
+Example:
+
+MATCH REVIEW
+
+Pass Attempts ........ 14
+Successful Passes .... 5
+
+Guard Recovery ....... 62%
+Escape Success ....... 74%
+
+AI Findings
+
+• Right-side guard exposed repeatedly
+• Late hip movement
+• Triangle setup available twice
+
+Clean.
+
+Structured.
+
+Coach-grade.
+
+The overall feeling should be:
+
+A private performance intelligence system built for combat athletes.
+
+Not luxury.
+
+Not gaming.
+
+Not productivity.
+
+Not AI chatbot.
+
+A dark, precise, evolving system that feels like it is quietly building a more complete model of the athlete every time they interact with it.
