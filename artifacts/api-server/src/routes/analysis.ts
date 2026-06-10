@@ -268,6 +268,7 @@ router.get("/analysis", async (req, res) => {
       summary: videoAnalysesTable.summary,
       durationSec: videoAnalysesTable.durationSec,
       createdAt: videoAnalysesTable.createdAt,
+      scores: videoAnalysesTable.scores,
     })
     .from(videoAnalysesTable)
     .where(eq(videoAnalysesTable.fighterId, fighter.id))

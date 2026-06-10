@@ -456,6 +456,7 @@ export type AnalysisListItem = {
   summary: string;
   durationSec: number;
   createdAt: string;
+  scores: AnalysisScore[];
 };
 
 export type CreateAnalysisInput = {

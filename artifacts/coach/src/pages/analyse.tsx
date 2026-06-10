@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { ChevronLeft, Upload, Film, X, Download, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
 import { toPng } from "html-to-image";
+import {
+  LineChart,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  YAxis,
+} from "recharts";
 import { BottomNav } from "@/components/bottom-nav";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { FrameReportCard } from "@/components/frame-report-card";
@@ -18,6 +25,7 @@ import { ApiError } from "@/lib/api";
 import type {
   AnalysisKind,
   AnalysisKeyframe,
+  AnalysisListItem,
   DetectedEvent,
   NervousSystemLoad,
   VideoAnalysis,
@@ -733,6 +741,7 @@ function WorkstationRight({
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
+  const { data: analysesData } = useAnalyses();
 
   async function saveCard() {
     if (!cardRef.current) return;
@@ -788,6 +797,11 @@ function WorkstationRight({
       {/* comparison vs last session */}
       {analysis.comparison && analysis.comparison.deltas.length > 0 && (
         <ComparisonSection comparison={analysis.comparison} />
+      )}
+
+      {/* session-over-session trend chart — desktop only, needs 3+ sessions */}
+      {(analysesData?.analyses?.length ?? 0) >= 3 && (
+        <TrendSection analyses={analysesData!.analyses} currentId={analysis.id} />
       )}
 
       {/* score provenance */}
@@ -1232,6 +1246,125 @@ function SavedReport({
     );
   }
   return <Report analysis={data.analysis} fighter={fighter} onClose={onClose} />;
+}
+
+// ---------------------------------------------------------------------------
+// Trend section — session-over-session sparklines (desktop right panel only)
+// ---------------------------------------------------------------------------
+
+const SCORE_KEYS = [
+  { key: "aggression", label: "Aggression", color: "#ef4444" },
+  { key: "composure", label: "Composure", color: "#d97706" },
+  { key: "reaction_speed", label: "Reaction", color: "#3b82f6" },
+  { key: "defensive_recovery", label: "Defense", color: "#10b981" },
+] as const;
+
+function TrendSection({
+  analyses,
+  currentId,
+}: {
+  analyses: AnalysisListItem[];
+  currentId: number;
+}) {
+  const ordered = [...analyses].reverse();
+
+  const chartData = ordered.map((a, i) => {
+    const point: Record<string, number | string> = {
+      session: `S${i + 1}`,
+      id: a.id,
+    };
+    if (Array.isArray(a.scores)) {
+      for (const s of a.scores) {
+        point[s.key] = s.value;
+      }
+    }
+    return point;
+  });
+
+  if (chartData.length < 3) return null;
+
+  const currentIdx = ordered.findIndex((a) => a.id === currentId);
+
+  return (
+    <section className="space-y-3">
+      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+        Trend
+        <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
+          · {chartData.length} sessions
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-5">
+        {SCORE_KEYS.map(({ key, label, color }) => {
+          const values = chartData.map((d) => d[key] as number | undefined).filter((v) => v != null);
+          const hasData = values.length >= 3;
+          return (
+            <div key={key} className="space-y-1.5">
+              <div className="flex items-baseline justify-between">
+                <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
+                  {label}
+                </span>
+                {hasData && (
+                  <span className="font-mono text-[9px] text-foreground/60">
+                    {values[values.length - 1]}
+                  </span>
+                )}
+              </div>
+              {hasData ? (
+                <ResponsiveContainer width="100%" height={44}>
+                  <LineChart data={chartData} margin={{ top: 2, right: 2, bottom: 2, left: 0 }}>
+                    <YAxis domain={[0, 100]} hide />
+                    <Tooltip
+                      content={({ active, payload, label: lbl }) => {
+                        if (!active || !payload?.length) return null;
+                        const val = payload[0]?.value as number | undefined;
+                        return (
+                          <div className="bg-background/95 border border-border/60 px-2 py-1 font-mono text-[9px] text-foreground/90">
+                            {lbl} · {val ?? "—"}
+                          </div>
+                        );
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey={key}
+                      stroke={color}
+                      strokeWidth={1.5}
+                      dot={(props) => {
+                        const { cx, cy, index } = props;
+                        const isCurrent = index === currentIdx;
+                        return (
+                          <circle
+                            key={`dot-${index}`}
+                            cx={cx}
+                            cy={cy}
+                            r={isCurrent ? 3.5 : 2}
+                            fill={isCurrent ? color : "transparent"}
+                            stroke={color}
+                            strokeWidth={isCurrent ? 0 : 1.5}
+                            strokeOpacity={isCurrent ? 1 : 0.6}
+                          />
+                        );
+                      }}
+                      activeDot={{ r: 4, fill: color, stroke: "transparent" }}
+                      connectNulls
+                      opacity={0.9}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div
+                  className="flex items-center justify-center font-mono text-[8px] uppercase tracking-widest text-muted-foreground/40 border border-border/20"
+                  style={{ height: 44 }}
+                >
+                  No data
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
 
 // ---------------------------------------------------------------------------
