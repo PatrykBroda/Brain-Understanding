@@ -728,6 +728,11 @@ function WorkstationRight({
         <FindingsTable findings={analysis.findings} />
       )}
 
+      {/* raw signals */}
+      {analysis.metrics.signals.length > 0 && (
+        <RawSignalsTable signals={analysis.metrics.signals} />
+      )}
+
       {/* comparison vs last session */}
       {analysis.comparison && analysis.comparison.deltas.length > 0 && (
         <ComparisonSection comparison={analysis.comparison} />
@@ -868,6 +873,63 @@ function FindingsTable({
                     }`}
                   >
                     {f.severity}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function RawSignalsTable({
+  signals,
+}: {
+  signals: VideoAnalysis["metrics"]["signals"];
+}) {
+  return (
+    <section className="space-y-3">
+      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+        Raw signals
+      </div>
+      <div className="w-full border border-border/40 overflow-hidden">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="border-b border-border/40 bg-secondary/20">
+              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[130px]">
+                Signal
+              </th>
+              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[70px]">
+                Value
+              </th>
+              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2">
+                Detail
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {signals.map((s, i) => (
+              <tr
+                key={s.key}
+                className={`border-b border-border/30 last:border-0 ${
+                  i % 2 === 0 ? "" : "bg-secondary/10"
+                }`}
+              >
+                <td className="px-3 py-2 align-top">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-foreground/80">
+                    {s.label}
+                  </span>
+                </td>
+                <td className="px-3 py-2 align-top">
+                  <span className="font-mono text-[11px] text-foreground/90">
+                    {s.value}
+                  </span>
+                </td>
+                <td className="px-3 py-2 align-top">
+                  <span className="text-xs text-muted-foreground/80 leading-relaxed">
+                    {s.detail}
                   </span>
                 </td>
               </tr>
@@ -1062,6 +1124,11 @@ function Report({
       {/* findings table */}
       {analysis.findings.length > 0 && (
         <FindingsTable findings={analysis.findings} />
+      )}
+
+      {/* raw signals */}
+      {analysis.metrics.signals.length > 0 && (
+        <RawSignalsTable signals={analysis.metrics.signals} />
       )}
 
       {/* score provenance */}
