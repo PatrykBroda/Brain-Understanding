@@ -76,18 +76,25 @@ export default function HomePage() {
 
       <section className="relative z-10 flex flex-col items-center text-center px-6 gap-6 pb-3">
         <div className="space-y-3">
-          <div className="font-mono text-[10px] uppercase tracking-[0.55em] text-foreground/55 font-light">
+          <div className="font-mono text-[10px] uppercase tracking-[0.55em] text-foreground/65 font-light">
             State
           </div>
           <div
-            className="font-sans font-extralight uppercase text-[clamp(1.7rem,7vw,2.4rem)] tracking-[0.32em] text-foreground/95 leading-none"
+            className="font-sans font-extralight uppercase text-[clamp(1.7rem,7vw,2.4rem)] tracking-[0.4em] text-foreground leading-none"
+            style={{ textShadow: "0 0 48px hsla(35, 65%, 60%, 0.28), 0 2px 12px rgba(0,0,0,0.6)" }}
             title={frameState.source}
           >
             {frameState.label}
           </div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.45em] text-foreground/55 font-light pt-2">
+          <div className="font-mono text-[10px] uppercase tracking-[0.45em] text-foreground/65 font-light pt-2">
             Narrow the decision tree.
           </div>
+        </div>
+
+        <div className="w-full max-w-[10rem] flex items-center gap-3 px-1" aria-hidden>
+          <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, hsla(35,55%,55%,0.18))" }} />
+          <div className="w-1 h-1 rounded-full" style={{ background: "hsla(35,55%,55%,0.22)" }} />
+          <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, hsla(35,55%,55%,0.18))" }} />
         </div>
 
         <div className="w-full max-w-sm">
