@@ -48,17 +48,18 @@ interface Cfg {
   ringSpeed: number;
 }
 
-// Per-state nervous-system temperatures. Restrained palette, never neon.
+// Per-state nervous-system temperatures. Dark and sinister — crimson void for
+// dormant/recovering/overextended, faded gold for active states. No blue-grey.
 const VISUALS: Record<OrbState, Cfg> = {
-  dormant:      { hue: 215, sat: 0.10, light: 0.35, rotSpeed: 0.06, distortSpeed: 0.6, distort: 0.10, emissive: 0.04, breathSpeed: 0.6,  breathAmt: 0.015, sparkleCount: 24, sparkleSpeed: 0.2,  ringSpeed: 0.10 },
-  stable:       { hue: 32,  sat: 0.30, light: 0.50, rotSpeed: 0.10, distortSpeed: 0.8, distort: 0.12, emissive: 0.10, breathSpeed: 0.85, breathAmt: 0.020, sparkleCount: 36, sparkleSpeed: 0.30, ringSpeed: 0.18 },
-  loaded:       { hue: 22,  sat: 0.55, light: 0.55, rotSpeed: 0.18, distortSpeed: 1.4, distort: 0.18, emissive: 0.18, breathSpeed: 1.20, breathAmt: 0.028, sparkleCount: 60, sparkleSpeed: 0.55, ringSpeed: 0.32 },
-  recovering:   { hue: 205, sat: 0.30, light: 0.48, rotSpeed: 0.05, distortSpeed: 0.5, distort: 0.09, emissive: 0.06, breathSpeed: 0.55, breathAmt: 0.014, sparkleCount: 22, sparkleSpeed: 0.20, ringSpeed: 0.08 },
-  tight:        { hue: 38,  sat: 0.30, light: 0.46, rotSpeed: 0.22, distortSpeed: 1.8, distort: 0.07, emissive: 0.08, breathSpeed: 1.35, breathAmt: 0.010, sparkleCount: 30, sparkleSpeed: 0.35, ringSpeed: 0.40 },
-  volatile:     { hue: 14,  sat: 0.55, light: 0.54, rotSpeed: 0.28, distortSpeed: 2.6, distort: 0.24, emissive: 0.24, breathSpeed: 1.40, breathAmt: 0.030, sparkleCount: 78, sparkleSpeed: 0.75, ringSpeed: 0.45 },
-  composed:     { hue: 35,  sat: 0.55, light: 0.55, rotSpeed: 0.12, distortSpeed: 0.9, distort: 0.13, emissive: 0.13, breathSpeed: 0.95, breathAmt: 0.018, sparkleCount: 44, sparkleSpeed: 0.35, ringSpeed: 0.20 },
-  overextended: { hue: 220, sat: 0.12, light: 0.32, rotSpeed: 0.03, distortSpeed: 0.4, distort: 0.06, emissive: 0.03, breathSpeed: 0.45, breathAmt: 0.009, sparkleCount: 16, sparkleSpeed: 0.15, ringSpeed: 0.05 },
-  streaming:    { hue: 35,  sat: 0.70, light: 0.60, rotSpeed: 0.32, distortSpeed: 2.0, distort: 0.20, emissive: 0.30, breathSpeed: 1.60, breathAmt: 0.024, sparkleCount: 90, sparkleSpeed: 0.80, ringSpeed: 0.50 },
+  dormant:      { hue: 0,   sat: 0.12, light: 0.16, rotSpeed: 0.04, distortSpeed: 0.5, distort: 0.08, emissive: 0.03, breathSpeed: 0.55, breathAmt: 0.012, sparkleCount: 10, sparkleSpeed: 0.14, ringSpeed: 0.06 },
+  stable:       { hue: 32,  sat: 0.24, light: 0.36, rotSpeed: 0.08, distortSpeed: 0.7, distort: 0.10, emissive: 0.08, breathSpeed: 0.80, breathAmt: 0.018, sparkleCount: 26, sparkleSpeed: 0.24, ringSpeed: 0.14 },
+  loaded:       { hue: 22,  sat: 0.48, light: 0.40, rotSpeed: 0.15, distortSpeed: 1.2, distort: 0.16, emissive: 0.14, breathSpeed: 1.10, breathAmt: 0.025, sparkleCount: 48, sparkleSpeed: 0.46, ringSpeed: 0.26 },
+  recovering:   { hue: 358, sat: 0.20, light: 0.20, rotSpeed: 0.04, distortSpeed: 0.4, distort: 0.07, emissive: 0.04, breathSpeed: 0.50, breathAmt: 0.012, sparkleCount: 14, sparkleSpeed: 0.14, ringSpeed: 0.06 },
+  tight:        { hue: 38,  sat: 0.28, light: 0.34, rotSpeed: 0.20, distortSpeed: 1.6, distort: 0.07, emissive: 0.07, breathSpeed: 1.30, breathAmt: 0.009, sparkleCount: 22, sparkleSpeed: 0.28, ringSpeed: 0.36 },
+  volatile:     { hue: 4,   sat: 0.62, light: 0.38, rotSpeed: 0.26, distortSpeed: 2.4, distort: 0.22, emissive: 0.22, breathSpeed: 1.35, breathAmt: 0.028, sparkleCount: 65, sparkleSpeed: 0.68, ringSpeed: 0.42 },
+  composed:     { hue: 35,  sat: 0.46, light: 0.40, rotSpeed: 0.10, distortSpeed: 0.8, distort: 0.11, emissive: 0.10, breathSpeed: 0.90, breathAmt: 0.016, sparkleCount: 34, sparkleSpeed: 0.28, ringSpeed: 0.18 },
+  overextended: { hue: 0,   sat: 0.08, light: 0.12, rotSpeed: 0.02, distortSpeed: 0.3, distort: 0.05, emissive: 0.02, breathSpeed: 0.40, breathAmt: 0.008, sparkleCount: 8,  sparkleSpeed: 0.10, ringSpeed: 0.04 },
+  streaming:    { hue: 35,  sat: 0.62, light: 0.48, rotSpeed: 0.28, distortSpeed: 1.8, distort: 0.18, emissive: 0.25, breathSpeed: 1.50, breathAmt: 0.022, sparkleCount: 76, sparkleSpeed: 0.72, ringSpeed: 0.44 },
 };
 
 function hsl(h: number, s: number, l: number): THREE.Color {
@@ -193,11 +194,11 @@ function Sphere({ live }: { live: MutableRefObject<Cfg> }) {
     }
 
     innerGlowMat.uniforms.uColor.value.copy(scratchRim);
-    innerGlowMat.uniforms.uIntensity.value = 0.55 + cfg.emissive * 0.8;
+    innerGlowMat.uniforms.uIntensity.value = 0.28 + cfg.emissive * 0.65;
     rimMat.uniforms.uColor.value.copy(scratchRim);
-    rimMat.uniforms.uIntensity.value = 1.6 + cfg.emissive * 2.0;
+    rimMat.uniforms.uIntensity.value = 1.0 + cfg.emissive * 1.7;
     haloMat.uniforms.uColor.value.copy(scratchRim);
-    haloMat.uniforms.uIntensity.value = 0.5 + cfg.emissive * 1.1;
+    haloMat.uniforms.uIntensity.value = 0.22 + cfg.emissive * 0.85;
   });
 
   return (
@@ -209,9 +210,9 @@ function Sphere({ live }: { live: MutableRefObject<Cfg> }) {
         <icosahedronGeometry args={[1, 6]} />
         <MeshDistortMaterial
           ref={distortMat as never}
-          color={new THREE.Color("#080808")}
-          roughness={0.5}
-          metalness={0.4}
+          color={new THREE.Color("#020202")}
+          roughness={0.55}
+          metalness={0.35}
         />
       </mesh>
       {/* Inner soft glow */}
@@ -392,10 +393,12 @@ function Scene({ state, mouseRef }: { state: OrbState; mouseRef: MutableRefObjec
 
   return (
     <>
-      <ambientLight intensity={0.18} />
-      <directionalLight position={[3, 4, 5]} intensity={0.55} color="#fff2dd" />
-      <directionalLight position={[-4, -2, -3]} intensity={0.22} color="#1a1a1a" />
-      <pointLight ref={keyLight} position={[0, 0, 2.2]} intensity={0.85} distance={6} />
+      <ambientLight intensity={0.05} />
+      <directionalLight position={[3, 4, 5]} intensity={0.18} color="#ffead0" />
+      <directionalLight position={[-4, -2, -3]} intensity={0.10} color="#1a1a1a" />
+      <pointLight ref={keyLight} position={[0, 0, 2.2]} intensity={0.48} distance={6} />
+      {/* Sinister crimson underlight — gives the void its depth */}
+      <pointLight position={[0, -2.2, 0.6]} intensity={0.14} color="#3d0000" distance={5} />
       <group ref={tiltGroup}>
         <Sphere live={live} />
         <Wireframe live={live} />

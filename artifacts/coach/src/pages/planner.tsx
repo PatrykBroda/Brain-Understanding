@@ -78,11 +78,13 @@ export default function PlannerPage() {
         <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
         </Link>
-        <div className="text-center">
-          <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
-            Frame
-          </div>
-          <div className="font-mono text-sm uppercase tracking-[0.3em] text-foreground/95 mt-0.5">
+        <div className="text-center flex flex-col items-center gap-1">
+          <svg viewBox="0 0 64 64" fill="none" width="18" height="18" aria-hidden>
+            <polygon points="32,4 54,16 54,48 32,60 10,48 10,16" stroke="hsl(35,65%,58%)" strokeWidth="2" opacity="0.85" />
+            <polygon points="32,14 46,22 46,42 32,50 18,42 18,22" stroke="hsl(35,65%,58%)" strokeWidth="1" opacity="0.48" />
+            <circle cx="32" cy="32" r="3" fill="hsl(35,65%,58%)" opacity="0.75" />
+          </svg>
+          <div className="font-mono text-sm uppercase tracking-[0.3em] text-foreground/95">
             Weekly mission
           </div>
         </div>
@@ -202,33 +204,52 @@ export default function PlannerPage() {
                 </div>
               )}
 
-              <div className="space-y-7">
+              {/* Completion counter */}
+              {plan.items.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 relative h-[2px] bg-border/40 overflow-hidden">
+                    <div
+                      className="absolute top-0 left-0 h-full bg-primary/70 transition-all duration-700"
+                      style={{ width: `${Math.round((completions.size / plan.items.length) * 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex-none font-mono text-[10px] uppercase tracking-widest text-foreground/65">
+                    {completions.size}/{plan.items.length}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-8">
                 {CATEGORY_ORDER.map((cat, ci) => {
                   const items = grouped[cat];
                   return (
-                    <section key={cat} className="space-y-3">
-                      <div className="flex items-baseline justify-between border-b border-border/40 pb-1.5">
-                        <div className="flex items-baseline gap-2.5">
-                          <span className="font-mono text-[10px] tracking-widest text-primary/55">
-                            {String(ci + 1).padStart(2, "0")}
-                          </span>
-                          <div className="font-mono text-[11px] uppercase tracking-[0.3em] text-foreground/95">
+                    <section key={cat} className="space-y-2.5 plan-section" style={{ animationDelay: `${ci * 0.07}s` }}>
+                      <div
+                        className="relative flex items-center gap-3 pb-2"
+                        style={{ borderBottom: "1px solid hsla(35,55%,50%,0.14)" }}
+                      >
+                        <span className="font-mono text-[9px] tracking-[0.3em] text-primary/45">
+                          {String(ci + 1).padStart(2, "0")}
+                        </span>
+                        <div className="flex-1">
+                          <div className="font-mono text-[11px] uppercase tracking-[0.35em] text-foreground/95">
                             {CATEGORY_LABEL[cat]}
                           </div>
                         </div>
-                        <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
+                        <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/65">
                           {CATEGORY_HINT[cat]}
                         </div>
                       </div>
                       {items.length === 0 ? (
-                        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70 px-1 py-2">
-                          no anchoring signal yet — keep talking to the coach
+                        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50 px-1 py-2">
+                          no anchoring signal yet
                         </div>
                       ) : (
-                        items.map((item) => (
+                        items.map((item, ii) => (
                           <PlanItemCard
                             key={item.key}
                             item={item}
+                            index={ii}
                             done={completions.has(item.key)}
                             disabled={toggle.isPending}
                             onToggle={(done) =>
@@ -242,14 +263,18 @@ export default function PlannerPage() {
                 })}
               </div>
 
-              <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70 pt-2 border-t border-border/30">
-                last built {new Date(plan.createdAt).toLocaleString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}{" "}
-                · via {plan.aiProvider}
+              <div className="flex items-center justify-between pt-3 border-t border-border/20">
+                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/55">
+                  Built {new Date(plan.createdAt).toLocaleString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </div>
+                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40">
+                  {plan.aiProvider}
+                </div>
               </div>
             </>
           )}
@@ -257,6 +282,7 @@ export default function PlannerPage() {
       </main>
 
       <BottomNav />
+      <PlannerAnimations />
 
       {help && <HelpOverlay onClose={() => setHelp(false)} />}
     </div>
@@ -265,52 +291,79 @@ export default function PlannerPage() {
 
 function PlanItemCard({
   item,
+  index,
   done,
   disabled,
   onToggle,
 }: {
   item: PlanItem;
+  index: number;
   done: boolean;
   disabled: boolean;
   onToggle: (done: boolean) => void;
 }) {
   return (
     <div
-      className={`border px-4 py-3 transition-colors ${
-        done ? "border-primary/40 bg-primary/[0.04]" : "border-border/60"
-      }`}
+      className="plan-item relative border transition-all duration-400"
+      style={{
+        borderColor: done ? "hsla(35,65%,55%,0.35)" : "hsla(0,0%,100%,0.09)",
+        background: done
+          ? "linear-gradient(90deg, hsla(35,55%,45%,0.06), transparent)"
+          : undefined,
+        animationDelay: `${index * 0.06}s`,
+      }}
     >
-      <div className="flex items-start gap-3">
+      {/* Left accent bar — primary when done, crimson-dim when pending */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-[2px] transition-colors duration-400"
+        style={{
+          background: done
+            ? "hsl(35,65%,55%)"
+            : "hsla(0,50%,30%,0.5)",
+        }}
+      />
+
+      <div className="flex items-start gap-3 px-4 py-3.5 pl-5">
         <button
           type="button"
           onClick={() => onToggle(!done)}
           disabled={disabled}
           aria-pressed={done}
           aria-label={done ? "Mark not done" : "Mark done"}
-          className={`flex-none mt-0.5 w-5 h-5 border flex items-center justify-center transition-colors ${
-            done
-              ? "border-primary bg-primary/20 text-primary"
-              : "border-border hover:border-primary/60 text-transparent hover:text-primary/40"
-          }`}
+          className="flex-none mt-0.5 w-5 h-5 border flex items-center justify-center transition-all duration-300"
+          style={{
+            borderColor: done ? "hsl(35,65%,55%)" : "hsla(0,0%,100%,0.22)",
+            background: done ? "hsla(35,65%,55%,0.18)" : undefined,
+            color: done ? "hsl(35,65%,58%)" : "transparent",
+          }}
         >
           <svg viewBox="0 0 20 20" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M4 10.5 L8 14.5 L16 6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
+
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-3 mb-1">
-            <div className={`text-[0.95rem] leading-snug ${done ? "text-foreground/55 line-through decoration-1" : "text-foreground/95"}`}>
+            <div
+              className="text-[0.93rem] leading-snug transition-colors duration-300"
+              style={{ color: done ? "hsla(0,0%,100%,0.4)" : "hsla(0,0%,100%,0.92)", textDecoration: done ? "line-through" : "none" }}
+            >
               {item.title}
             </div>
-            <div className="flex-none font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+            <div className="flex-none font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
               {item.suggestedDays}
             </div>
           </div>
-          <p className={`text-sm leading-relaxed ${done ? "text-muted-foreground/70" : "text-foreground/80"}`}>
+
+          <p
+            className="text-sm leading-relaxed transition-colors duration-300"
+            style={{ color: done ? "hsla(0,0%,100%,0.38)" : "hsla(0,0%,100%,0.72)" }}
+          >
             {item.detail}
           </p>
+
           <div
-            className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/85 mt-2"
+            className="flex items-center gap-2 mt-2.5"
             title={[
               item.sourceFactIds.length ? `fact ids: ${item.sourceFactIds.join(", ")}` : "",
               item.sourceCalibrationKeys.length
@@ -320,11 +373,38 @@ function PlanItemCard({
               .filter(Boolean)
               .join(" · ")}
           >
-            source · {item.sourceLabel}
+            <span className="h-px w-3 bg-primary/30 flex-none" />
+            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
+              {item.sourceLabel}
+            </span>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function PlannerAnimations() {
+  return (
+    <style>{`
+      @keyframes plan-section-in {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .plan-section {
+        animation: plan-section-in 0.5s ease-out both;
+      }
+      @keyframes plan-item-in {
+        from { opacity: 0; transform: translateX(-4px); }
+        to   { opacity: 1; transform: translateX(0); }
+      }
+      .plan-item {
+        animation: plan-item-in 0.4s ease-out both;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .plan-section, .plan-item { animation: none; }
+      }
+    `}</style>
   );
 }
 

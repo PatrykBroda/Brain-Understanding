@@ -44,12 +44,20 @@ export default function HomePage() {
       </svg>
 
       <header className="relative z-10 flex items-center justify-between px-6 pt-[max(1.1rem,env(safe-area-inset-top))] pb-3">
-        <div>
-          <div className="font-sans font-extralight text-[15px] tracking-[0.55em] text-foreground/95 leading-none">
-            FRAME
-          </div>
-          <div className="font-mono text-[10px] tracking-[0.5em] text-foreground/55 mt-1.5 font-light">
-            {(fighter?.primarySport ?? "COMBAT").toUpperCase()} · CALIBRATION SYSTEM
+        <div className="flex items-center gap-3">
+          {/* FRAME mark — outer + inner hexagon, signature gold */}
+          <svg viewBox="0 0 64 64" fill="none" width="28" height="28" aria-hidden>
+            <polygon points="32,4 54,16 54,48 32,60 10,48 10,16" stroke="hsl(35,65%,58%)" strokeWidth="2" opacity="0.95" />
+            <polygon points="32,14 46,22 46,42 32,50 18,42 18,22" stroke="hsl(35,65%,58%)" strokeWidth="1" opacity="0.52" />
+            <circle cx="32" cy="32" r="3" fill="hsl(35,65%,58%)" opacity="0.85" />
+          </svg>
+          <div>
+            <div className="font-sans font-extralight text-[15px] tracking-[0.55em] text-foreground/95 leading-none">
+              FRAME
+            </div>
+            <div className="font-mono text-[10px] tracking-[0.5em] text-foreground/55 mt-1.5 font-light">
+              {(fighter?.primarySport ?? "COMBAT").toUpperCase()} · CALIBRATION SYSTEM
+            </div>
           </div>
         </div>
         <Link
