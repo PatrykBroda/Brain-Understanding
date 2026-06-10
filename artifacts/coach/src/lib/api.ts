@@ -446,6 +446,7 @@ export type VideoAnalysis = {
   keyframeNotes: Record<number, string>;
   durationSec: number;
   createdAt: string;
+  prevSignals?: AnalysisSignal[] | null;
 };
 
 export type AnalysisListItem = {

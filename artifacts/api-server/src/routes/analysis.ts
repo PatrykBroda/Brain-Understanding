@@ -9,7 +9,7 @@ import {
   type DetectedEvent,
   type NervousSystemLoad,
 } from "@workspace/db";
-import { desc, eq, and } from "drizzle-orm";
+import { and, desc, eq, lt } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { getActiveFacts, addFact } from "../lib/factsService";
 import {
@@ -181,15 +181,19 @@ router.post("/analysis", async (req, res) => {
   try {
     const facts = await getActiveFacts(fighter.id);
 
-    // previous session (for "what changed") — most recent prior analysis with scores
+    // previous session (for "what changed") — most recent prior analysis with scores + signals
     const [prev] = await db
-      .select({ scores: videoAnalysesTable.scores })
+      .select({ scores: videoAnalysesTable.scores, metrics: videoAnalysesTable.metrics })
       .from(videoAnalysesTable)
       .where(eq(videoAnalysesTable.fighterId, fighter.id))
       .orderBy(desc(videoAnalysesTable.createdAt))
       .limit(1);
     const prevScores =
       prev && Array.isArray(prev.scores) && prev.scores.length ? prev.scores : null;
+    const prevSignals =
+      prev?.metrics && Array.isArray(prev.metrics.signals) && prev.metrics.signals.length
+        ? prev.metrics.signals
+        : null;
 
     const narrative = await generateAnalysis({
       fighter,
@@ -245,7 +249,7 @@ router.post("/analysis", async (req, res) => {
       }
     }
 
-    res.json({ analysis: row });
+    res.json({ analysis: { ...row, prevSignals } });
   } catch (err) {
     req.log.error({ err }, "analysis generation failed");
     res.status(500).json({ error: err instanceof Error ? err.message : "analysis failed" });
@@ -297,7 +301,25 @@ router.get("/analysis/:id", async (req, res) => {
     res.status(404).json({ error: "not found" });
     return;
   }
-  res.json({ analysis: row });
+
+  // fetch signals from the analysis that immediately preceded this one
+  const [prevRow] = await db
+    .select({ metrics: videoAnalysesTable.metrics })
+    .from(videoAnalysesTable)
+    .where(
+      and(
+        eq(videoAnalysesTable.fighterId, row.fighterId),
+        lt(videoAnalysesTable.createdAt, row.createdAt),
+      ),
+    )
+    .orderBy(desc(videoAnalysesTable.createdAt))
+    .limit(1);
+  const prevSignals =
+    prevRow?.metrics && Array.isArray(prevRow.metrics.signals) && prevRow.metrics.signals.length
+      ? prevRow.metrics.signals
+      : null;
+
+  res.json({ analysis: { ...row, prevSignals } });
 });
 
 router.patch("/analysis/:id/notes", async (req, res) => {

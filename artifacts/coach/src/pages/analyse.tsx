@@ -836,7 +836,7 @@ function WorkstationRight({
 
       {/* raw signals */}
       {analysis.metrics.signals.length > 0 && (
-        <RawSignalsTable signals={analysis.metrics.signals} />
+        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} />
       )}
 
       {/* comparison vs last session */}
@@ -993,11 +993,83 @@ function FindingsTable({
   );
 }
 
+// Per-signal orderings: index 0 = best, ascending = worse.
+// A lower index (current vs prev) means improvement.
+const SIGNAL_RANK: Record<string, string[]> = {
+  guard_height: ["high", "mostly held", "drifting low", "dropped"],
+  shoulder_brace: ["settled", "braced/high"],
+  balance_sway: ["anchored", "drifting"],
+  stance_width: ["balanced", "narrow", "wide"],
+  rotation: ["connected", "stacked (little separation)", "heavily wound"],
+  output_rhythm: ["even", "bursty / uneven"],
+};
+
+function signalDelta(
+  key: string,
+  current: string,
+  prev: string,
+): "up" | "down" | "same" | "changed" {
+  if (current === prev) return "same";
+  const rank = SIGNAL_RANK[key];
+  if (!rank) return "changed";
+  const ci = rank.indexOf(current);
+  const pi = rank.indexOf(prev);
+  if (ci === -1 || pi === -1) return "changed";
+  return ci < pi ? "up" : "down";
+}
+
+function SignalDeltaBadge({
+  dir,
+  prevValue,
+}: {
+  dir: "up" | "down" | "same" | "changed";
+  prevValue: string;
+}) {
+  if (dir === "same") {
+    return (
+      <span title="No change vs last session">
+        <Minus className="w-3 h-3 text-muted-foreground/50 inline-block" strokeWidth={2} />
+      </span>
+    );
+  }
+  if (dir === "up") {
+    return (
+      <span title={`Improved — was: ${prevValue}`}>
+        <ArrowUpRight className="w-3.5 h-3.5 text-emerald-300/90 inline-block" strokeWidth={2} />
+      </span>
+    );
+  }
+  if (dir === "down") {
+    return (
+      <span title={`Declined — was: ${prevValue}`}>
+        <ArrowDownRight className="w-3.5 h-3.5 text-red-400/90 inline-block" strokeWidth={2} />
+      </span>
+    );
+  }
+  // changed but no known ordering
+  return (
+    <span
+      className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/60"
+      title={`Changed — was: ${prevValue}`}
+    >
+      ~
+    </span>
+  );
+}
+
 function RawSignalsTable({
   signals,
+  prevSignals,
 }: {
   signals: VideoAnalysis["metrics"]["signals"];
+  prevSignals?: VideoAnalysis["prevSignals"];
 }) {
+  const prevByKey = prevSignals
+    ? new Map(prevSignals.map((s) => [s.key, s]))
+    : null;
+
+  const hasPrev = prevByKey != null && prevByKey.size > 0;
+
   return (
     <section className="space-y-3">
       <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
@@ -1010,39 +1082,57 @@ function RawSignalsTable({
               <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[130px]">
                 Signal
               </th>
-              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[70px]">
+              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[80px]">
                 Value
               </th>
+              {hasPrev && (
+                <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[28px]" title="Change vs previous session">
+                  vs
+                </th>
+              )}
               <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2">
                 Detail
               </th>
             </tr>
           </thead>
           <tbody>
-            {signals.map((s, i) => (
-              <tr
-                key={s.key}
-                className={`border-b border-border/30 last:border-0 ${
-                  i % 2 === 0 ? "" : "bg-secondary/10"
-                }`}
-              >
-                <td className="px-3 py-2 align-top">
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-foreground/80">
-                    {s.label}
-                  </span>
-                </td>
-                <td className="px-3 py-2 align-top">
-                  <span className="font-mono text-[11px] text-foreground/90">
-                    {s.value}
-                  </span>
-                </td>
-                <td className="px-3 py-2 align-top">
-                  <span className="text-xs text-muted-foreground/80 leading-relaxed">
-                    {s.detail}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {signals.map((s, i) => {
+              const prev = prevByKey?.get(s.key);
+              const dir = prev ? signalDelta(s.key, s.value, prev.value) : null;
+              return (
+                <tr
+                  key={s.key}
+                  className={`border-b border-border/30 last:border-0 ${
+                    i % 2 === 0 ? "" : "bg-secondary/10"
+                  }`}
+                >
+                  <td className="px-3 py-2 align-top">
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-foreground/80">
+                      {s.label}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 align-top">
+                    <span className="font-mono text-[11px] text-foreground/90">
+                      {s.value}
+                    </span>
+                  </td>
+                  {hasPrev && (
+                    <td className="px-3 py-2 align-middle">
+                      {dir != null ? (
+                        <SignalDeltaBadge dir={dir} prevValue={prev?.value ?? ""} />
+                      ) : (
+                        <span className="font-mono text-[8px] text-muted-foreground/30">—</span>
+                      )}
+                    </td>
+                  )}
+                  <td className="px-3 py-2 align-top">
+                    <span className="text-xs text-muted-foreground/80 leading-relaxed">
+                      {s.detail}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -1277,7 +1367,7 @@ function Report({
 
       {/* raw signals */}
       {analysis.metrics.signals.length > 0 && (
-        <RawSignalsTable signals={analysis.metrics.signals} />
+        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} />
       )}
 
       {/* score provenance */}
