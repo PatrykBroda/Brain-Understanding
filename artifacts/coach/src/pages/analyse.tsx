@@ -847,7 +847,7 @@ function WorkstationRight({
 
       {/* raw signals */}
       {analysis.metrics.signals.length > 0 && (
-        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} hasCustomCompare={!!analysis.liveComparison} />
+        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} signalHistory={analysis.signalHistory} hasCustomCompare={!!analysis.liveComparison} />
       )}
 
       {/* comparison vs selected or last session */}
@@ -1073,13 +1073,79 @@ function SignalDeltaBadge({
   );
 }
 
+type SignalHistoryEntry = { id: number; createdAt: string; signals: VideoAnalysis["metrics"]["signals"] };
+
+function buildSignalTrail(
+  signalKey: string,
+  currentValue: string,
+  history: SignalHistoryEntry[],
+): string[] {
+  const allValues: string[] = [];
+  for (const h of history) {
+    const sig = h.signals.find((s) => s.key === signalKey);
+    if (sig?.value) allValues.push(sig.value);
+  }
+  allValues.push(currentValue);
+  const deduped: string[] = [];
+  for (const v of allValues) {
+    if (deduped.length === 0 || deduped[deduped.length - 1] !== v) {
+      deduped.push(v);
+    }
+  }
+  return deduped.slice(-5);
+}
+
+function SignalHistoryTrail({
+  signalKey,
+  currentValue,
+  history,
+}: {
+  signalKey: string;
+  currentValue: string;
+  history: SignalHistoryEntry[];
+}) {
+  const trail = buildSignalTrail(signalKey, currentValue, history);
+  if (trail.length < 3) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-0.5 gap-y-0.5 mt-1">
+      {trail.map((v, i) => {
+        const isCurrent = i === trail.length - 1;
+        const prev = trail[i - 1];
+        const dir = i > 0 && prev != null ? signalDelta(signalKey, v, prev) : null;
+        const arrowColor =
+          dir === "up"
+            ? "text-emerald-300/60"
+            : dir === "down"
+              ? "text-red-400/60"
+              : "text-muted-foreground/30";
+        return (
+          <span key={i} className="flex items-center gap-x-0.5">
+            {i > 0 && (
+              <span className={`font-mono text-[8px] leading-none select-none ${arrowColor}`}>›</span>
+            )}
+            <span
+              className={`font-mono text-[8px] uppercase tracking-wider leading-none ${
+                isCurrent ? "text-foreground/80" : "text-muted-foreground/45"
+              }`}
+            >
+              {v}
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function RawSignalsTable({
   signals,
   prevSignals,
+  signalHistory,
   hasCustomCompare,
 }: {
   signals: VideoAnalysis["metrics"]["signals"];
   prevSignals?: VideoAnalysis["prevSignals"];
+  signalHistory?: VideoAnalysis["signalHistory"];
   hasCustomCompare?: boolean;
 }) {
   const prevByKey = prevSignals
@@ -1087,6 +1153,7 @@ function RawSignalsTable({
     : null;
 
   const hasPrev = prevByKey != null && prevByKey.size > 0;
+  const history: SignalHistoryEntry[] = signalHistory ?? [];
 
   return (
     <section className="space-y-3">
@@ -1124,6 +1191,8 @@ function RawSignalsTable({
             {signals.map((s, i) => {
               const prev = prevByKey?.get(s.key);
               const dir = prev ? signalDelta(s.key, s.value, prev.value) : null;
+              const trail = buildSignalTrail(s.key, s.value, history);
+              const showTrail = !hasCustomCompare && trail.length >= 3;
               return (
                 <tr
                   key={s.key}
@@ -1140,10 +1209,18 @@ function RawSignalsTable({
                     <span className="font-mono text-[11px] text-foreground/90">
                       {s.value}
                     </span>
-                    {prev && dir !== "same" && (
-                      <div className="font-mono text-[9px] text-muted-foreground/50 mt-0.5 leading-snug">
-                        was: {prev.value}
-                      </div>
+                    {showTrail ? (
+                      <SignalHistoryTrail
+                        signalKey={s.key}
+                        currentValue={s.value}
+                        history={history}
+                      />
+                    ) : (
+                      prev && dir !== "same" && (
+                        <div className="font-mono text-[9px] text-muted-foreground/50 mt-0.5 leading-snug">
+                          was: {prev.value}
+                        </div>
+                      )
                     )}
                   </td>
                   {hasPrev && (
@@ -1409,7 +1486,7 @@ function Report({
 
       {/* raw signals */}
       {analysis.metrics.signals.length > 0 && (
-        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} hasCustomCompare={!!analysis.liveComparison} />
+        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} signalHistory={analysis.signalHistory} hasCustomCompare={!!analysis.liveComparison} />
       )}
 
       {/* score provenance */}

@@ -181,18 +181,27 @@ router.post("/analysis", async (req, res) => {
   try {
     const facts = await getActiveFacts(fighter.id);
 
-    // previous session (for "what changed") — most recent prior analysis with scores + signals
-    const [prev] = await db
-      .select({ scores: videoAnalysesTable.scores, metrics: videoAnalysesTable.metrics })
+    // Up to 5 prior sessions — used for "what changed" and the signal history trail
+    const prevRows = await db
+      .select({
+        id: videoAnalysesTable.id,
+        createdAt: videoAnalysesTable.createdAt,
+        scores: videoAnalysesTable.scores,
+        metrics: videoAnalysesTable.metrics,
+      })
       .from(videoAnalysesTable)
       .where(eq(videoAnalysesTable.fighterId, fighter.id))
       .orderBy(desc(videoAnalysesTable.createdAt))
-      .limit(1);
+      .limit(5);
     const prevScores =
-      prev && Array.isArray(prev.scores) && prev.scores.length ? prev.scores : null;
+      prevRows[0] && Array.isArray(prevRows[0].scores) && prevRows[0].scores.length
+        ? prevRows[0].scores
+        : null;
     const prevSignals =
-      prev?.metrics && Array.isArray(prev.metrics.signals) && prev.metrics.signals.length
-        ? prev.metrics.signals
+      prevRows[0]?.metrics &&
+      Array.isArray(prevRows[0].metrics.signals) &&
+      prevRows[0].metrics.signals.length
+        ? prevRows[0].metrics.signals
         : null;
 
     const narrative = await generateAnalysis({
@@ -249,7 +258,19 @@ router.post("/analysis", async (req, res) => {
       }
     }
 
-    res.json({ analysis: { ...row, prevSignals } });
+    // Signal history trail: prior sessions oldest-first so the client can render a path
+    const signalHistory = prevRows
+      .slice()
+      .reverse()
+      .map((r) => ({
+        id: r.id,
+        createdAt: r.createdAt.toISOString(),
+        signals:
+          r.metrics && Array.isArray(r.metrics.signals) ? (r.metrics.signals as AnalysisSignal[]) : [],
+      }))
+      .filter((r) => r.signals.length > 0);
+
+    res.json({ analysis: { ...row, prevSignals, signalHistory } });
   } catch (err) {
     req.log.error({ err }, "analysis generation failed");
     res.status(500).json({ error: err instanceof Error ? err.message : "analysis failed" });
@@ -335,9 +356,13 @@ router.get("/analysis/:id", async (req, res) => {
     return;
   }
 
-  // Default: fetch signals from the analysis that immediately preceded this one
-  const [prevRow] = await db
-    .select({ metrics: videoAnalysesTable.metrics })
+  // Default: fetch up to 5 prior sessions for the signal history trail
+  const priorRows = await db
+    .select({
+      id: videoAnalysesTable.id,
+      createdAt: videoAnalysesTable.createdAt,
+      metrics: videoAnalysesTable.metrics,
+    })
     .from(videoAnalysesTable)
     .where(
       and(
@@ -346,13 +371,24 @@ router.get("/analysis/:id", async (req, res) => {
       ),
     )
     .orderBy(desc(videoAnalysesTable.createdAt))
-    .limit(1);
-  const prevSignals =
-    prevRow?.metrics && Array.isArray(prevRow.metrics.signals) && prevRow.metrics.signals.length
-      ? prevRow.metrics.signals
-      : null;
+    .limit(5);
 
-  res.json({ analysis: { ...row, prevSignals } });
+  // Oldest-first for the client trail
+  const signalHistory = priorRows
+    .slice()
+    .reverse()
+    .map((r) => ({
+      id: r.id,
+      createdAt: r.createdAt.toISOString(),
+      signals:
+        r.metrics && Array.isArray(r.metrics.signals) ? (r.metrics.signals as AnalysisSignal[]) : [],
+    }))
+    .filter((r) => r.signals.length > 0);
+
+  const prevSignals =
+    signalHistory.length > 0 ? (signalHistory[signalHistory.length - 1]?.signals ?? null) : null;
+
+  res.json({ analysis: { ...row, prevSignals, signalHistory } });
 });
 
 router.patch("/analysis/:id/notes", async (req, res) => {

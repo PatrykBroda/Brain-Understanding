@@ -447,6 +447,7 @@ export type VideoAnalysis = {
   durationSec: number;
   createdAt: string;
   prevSignals?: AnalysisSignal[] | null;
+  signalHistory?: { id: number; createdAt: string; signals: AnalysisSignal[] }[] | null;
   liveComparison?: AnalysisComparison | null;
 };
 
