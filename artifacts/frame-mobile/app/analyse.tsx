@@ -460,9 +460,22 @@ export default function AnalyseScreen() {
 
   function handleBackFromHistory() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setHistoryMode(false);
-    setPastSessions([]);
-    setHistoryError(null);
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      const commit = () => {
+        setHistoryMode(false);
+        setPastSessions([]);
+        setHistoryError(null);
+      };
+      if (reduced) {
+        commit();
+      } else {
+        Animated.timing(historyOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start(() => commit());
+      }
+    });
   }
 
   function handleBackFromResult() {
