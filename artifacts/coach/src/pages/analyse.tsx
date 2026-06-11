@@ -98,6 +98,11 @@ export default function AnalysePage() {
 
   const [kind, setKind] = useState<AnalysisKind>("sparring");
   const [focus, setFocus] = useState("");
+
+  function onSelectSession(id: number) {
+    clearResult();
+    setOpenId(id);
+  }
   const [phase, setPhase] = useState<Phase>({ stage: "idle" });
   const [result, setResult] = useState<VideoAnalysis | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
@@ -250,9 +255,9 @@ export default function AnalysePage() {
       <main className="flex-1 min-h-0 overflow-y-auto md:hidden">
         <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
           {result ? (
-            <Report analysis={result} fighter={fighter} onClose={clearResult} />
+            <Report analysis={result} fighter={fighter} onClose={clearResult} onSelectSession={onSelectSession} />
           ) : openId != null ? (
-            <SavedReport id={openId} compareId={compareId} fighter={fighter} onClose={() => setOpenId(null)} />
+            <SavedReport id={openId} compareId={compareId} fighter={fighter} onClose={() => setOpenId(null)} onSelectSession={onSelectSession} />
           ) : (
             <UploadControls
               kind={kind}
@@ -297,9 +302,9 @@ export default function AnalysePage() {
             {/* RIGHT — FRAME REPORT card + findings + scores */}
             <div className="flex-1 overflow-y-auto px-7 py-6">
               {result ? (
-                <WorkstationRight analysis={result} fighter={fighter} onClose={clearResult} />
+                <WorkstationRight analysis={result} fighter={fighter} onClose={clearResult} onSelectSession={onSelectSession} />
               ) : openId != null ? (
-                <SavedWorkstationRight id={openId} compareId={compareId} fighter={fighter} onClose={() => setOpenId(null)} />
+                <SavedWorkstationRight id={openId} compareId={compareId} fighter={fighter} onClose={() => setOpenId(null)} onSelectSession={onSelectSession} />
               ) : null}
             </div>
           </>
@@ -790,10 +795,12 @@ function WorkstationRight({
   analysis,
   fighter,
   onClose,
+  onSelectSession,
 }: {
   analysis: VideoAnalysis;
   fighter: Fighter | null;
   onClose: () => void;
+  onSelectSession?: (id: number) => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
@@ -847,7 +854,7 @@ function WorkstationRight({
 
       {/* raw signals */}
       {analysis.metrics.signals.length > 0 && (
-        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} signalHistory={analysis.signalHistory} hasCustomCompare={!!analysis.liveComparison} />
+        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} signalHistory={analysis.signalHistory} hasCustomCompare={!!analysis.liveComparison} onSelectSession={onSelectSession} />
       )}
 
       {/* comparison vs selected or last session */}
@@ -915,15 +922,17 @@ function SavedWorkstationRight({
   compareId,
   fighter,
   onClose,
+  onSelectSession,
 }: {
   id: number;
   compareId: number | null;
   fighter: Fighter | null;
   onClose: () => void;
+  onSelectSession?: (id: number) => void;
 }) {
   const { data, isLoading, isError } = useAnalysis(id, compareId);
   if (isLoading || isError || !data?.analysis) return null;
-  return <WorkstationRight analysis={data.analysis} fighter={fighter} onClose={onClose} />;
+  return <WorkstationRight analysis={data.analysis} fighter={fighter} onClose={onClose} onSelectSession={onSelectSession} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -1075,21 +1084,25 @@ function SignalDeltaBadge({
 
 type SignalHistoryEntry = { id: number; createdAt: string; signals: VideoAnalysis["metrics"]["signals"] };
 
+type TrailStep = { value: string; id: number | null };
+
 function buildSignalTrail(
   signalKey: string,
   currentValue: string,
   history: SignalHistoryEntry[],
-): string[] {
-  const allValues: string[] = [];
+): TrailStep[] {
+  const allEntries: TrailStep[] = [];
   for (const h of history) {
     const sig = h.signals.find((s) => s.key === signalKey);
-    if (sig?.value) allValues.push(sig.value);
+    if (sig?.value) allEntries.push({ value: sig.value, id: h.id });
   }
-  allValues.push(currentValue);
-  const deduped: string[] = [];
-  for (const v of allValues) {
-    if (deduped.length === 0 || deduped[deduped.length - 1] !== v) {
-      deduped.push(v);
+  allEntries.push({ value: currentValue, id: null });
+  const deduped: TrailStep[] = [];
+  for (const entry of allEntries) {
+    if (deduped.length === 0 || deduped[deduped.length - 1].value !== entry.value) {
+      deduped.push({ ...entry });
+    } else {
+      deduped[deduped.length - 1] = { ...entry };
     }
   }
   return deduped.slice(-5);
@@ -1099,37 +1112,51 @@ function SignalHistoryTrail({
   signalKey,
   currentValue,
   history,
+  onSelectSession,
 }: {
   signalKey: string;
   currentValue: string;
   history: SignalHistoryEntry[];
+  onSelectSession?: (id: number) => void;
 }) {
   const trail = buildSignalTrail(signalKey, currentValue, history);
   if (trail.length < 3) return null;
   return (
     <div className="flex flex-wrap items-center gap-x-0.5 gap-y-0.5 mt-1">
-      {trail.map((v, i) => {
+      {trail.map((step, i) => {
         const isCurrent = i === trail.length - 1;
         const prev = trail[i - 1];
-        const dir = i > 0 && prev != null ? signalDelta(signalKey, v, prev) : null;
+        const dir = i > 0 && prev != null ? signalDelta(signalKey, step.value, prev.value) : null;
         const arrowColor =
           dir === "up"
             ? "text-emerald-300/60"
             : dir === "down"
               ? "text-red-400/60"
               : "text-muted-foreground/30";
+        const tappable = !isCurrent && step.id != null && onSelectSession != null;
         return (
           <span key={i} className="flex items-center gap-x-0.5">
             {i > 0 && (
               <span className={`font-mono text-[8px] leading-none select-none ${arrowColor}`}>›</span>
             )}
-            <span
-              className={`font-mono text-[8px] uppercase tracking-wider leading-none ${
-                isCurrent ? "text-foreground/80" : "text-muted-foreground/45"
-              }`}
-            >
-              {v}
-            </span>
+            {tappable ? (
+              <button
+                type="button"
+                onClick={() => onSelectSession!(step.id!)}
+                title="View this session's full read"
+                className={`font-mono text-[8px] uppercase tracking-wider leading-none text-muted-foreground/45 underline decoration-dotted underline-offset-2 hover:text-foreground/70 active:text-foreground/90 transition-colors cursor-pointer`}
+              >
+                {step.value}
+              </button>
+            ) : (
+              <span
+                className={`font-mono text-[8px] uppercase tracking-wider leading-none ${
+                  isCurrent ? "text-foreground/80" : "text-muted-foreground/45"
+                }`}
+              >
+                {step.value}
+              </span>
+            )}
           </span>
         );
       })}
@@ -1142,11 +1169,13 @@ function RawSignalsTable({
   prevSignals,
   signalHistory,
   hasCustomCompare,
+  onSelectSession,
 }: {
   signals: VideoAnalysis["metrics"]["signals"];
   prevSignals?: VideoAnalysis["prevSignals"];
   signalHistory?: VideoAnalysis["signalHistory"];
   hasCustomCompare?: boolean;
+  onSelectSession?: (id: number) => void;
 }) {
   const prevByKey = prevSignals
     ? new Map(prevSignals.map((s) => [s.key, s]))
@@ -1214,6 +1243,7 @@ function RawSignalsTable({
                         signalKey={s.key}
                         currentValue={s.value}
                         history={history}
+                        onSelectSession={onSelectSession}
                       />
                     ) : (
                       prev && dir !== "same" && (
@@ -1323,10 +1353,12 @@ function Report({
   analysis,
   fighter,
   onClose,
+  onSelectSession,
 }: {
   analysis: VideoAnalysis;
   fighter: Fighter | null;
   onClose: () => void;
+  onSelectSession?: (id: number) => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [activeKf, setActiveKf] = useState(0);
@@ -1486,7 +1518,7 @@ function Report({
 
       {/* raw signals */}
       {analysis.metrics.signals.length > 0 && (
-        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} signalHistory={analysis.signalHistory} hasCustomCompare={!!analysis.liveComparison} />
+        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} signalHistory={analysis.signalHistory} hasCustomCompare={!!analysis.liveComparison} onSelectSession={onSelectSession} />
       )}
 
       {/* score provenance */}
@@ -1508,11 +1540,13 @@ function SavedReport({
   compareId,
   fighter,
   onClose,
+  onSelectSession,
 }: {
   id: number;
   compareId: number | null;
   fighter: Fighter | null;
   onClose: () => void;
+  onSelectSession?: (id: number) => void;
 }) {
   const { data, isLoading, isError } = useAnalysis(id, compareId);
   if (isLoading) {
@@ -1541,7 +1575,7 @@ function SavedReport({
       </div>
     );
   }
-  return <Report analysis={data.analysis} fighter={fighter} onClose={onClose} />;
+  return <Report analysis={data.analysis} fighter={fighter} onClose={onClose} onSelectSession={onSelectSession} />;
 }
 
 // ---------------------------------------------------------------------------
