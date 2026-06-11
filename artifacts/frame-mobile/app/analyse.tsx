@@ -339,6 +339,7 @@ export default function AnalyseScreen() {
   const [historyError, setHistoryError] = useState<string | null>(null);
 
   const reportOpacity = useRef(new Animated.Value(1)).current;
+  const historyOpacity = useRef(new Animated.Value(0)).current;
   const resultScrollRef = useRef<ScrollView>(null);
 
   function fadeIn() {
@@ -432,6 +433,25 @@ export default function AnalyseScreen() {
       setOpenId(id);
     });
   }
+
+  useEffect(() => {
+    if (!historyMode) {
+      historyOpacity.setValue(0);
+      return;
+    }
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      if (reduced) {
+        historyOpacity.setValue(1);
+      } else {
+        historyOpacity.setValue(0);
+        Animated.timing(historyOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }
+    });
+  }, [historyMode]);
 
   function handleEnterHistory() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -555,7 +575,7 @@ export default function AnalyseScreen() {
 
   if (historyMode && !result) {
     return (
-      <View style={[styles.root, { paddingTop: topPad }]}>
+      <Animated.View style={[styles.root, { paddingTop: topPad, opacity: historyOpacity }]}>
         <View style={[styles.header, { paddingHorizontal: 20 }]}>
           <Pressable onPress={handleBackFromHistory} hitSlop={12}>
             <Feather name="chevron-left" size={20} color="#666" />
@@ -615,7 +635,7 @@ export default function AnalyseScreen() {
             )}
           />
         )}
-      </View>
+      </Animated.View>
     );
   }
 
