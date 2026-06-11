@@ -4,7 +4,6 @@ import { useClerk, useUser } from "@clerk/react";
 import { useFighter } from "@/hooks/use-fighter";
 import { useMemory } from "@/hooks/use-memory";
 import { BottomNav } from "@/components/bottom-nav";
-import { FrameOctagon } from "@/components/frame-octagon";
 import { Belt } from "@/components/belt";
 import { ProfileEdit } from "@/components/profile-edit";
 import { sportLabel } from "@/lib/fighter-options";
@@ -136,103 +135,97 @@ export default function ProfilePage() {
             <>
               <section>
                 {/* ─── COMBAT IDENTITY HERO ─────────────────────────────── */}
-                <div
-                  className="relative border border-border/30 overflow-hidden mb-5 profile-id-card"
-                  style={{
-                    background:
-                      "radial-gradient(ellipse 90% 140% at 30% 0%, hsla(0,55%,10%,0.55), transparent 65%)",
-                  }}
-                >
-                  <span className="absolute left-0 top-0 h-3.5 w-3.5 border-l-2 border-t-2 border-primary/50" />
-                  <span className="absolute right-0 top-0 h-3.5 w-3.5 border-r-2 border-t-2 border-primary/50" />
-                  <span className="absolute left-0 bottom-0 h-3.5 w-3.5 border-l-2 border-b-2 border-primary/50" />
-                  <span className="absolute right-0 bottom-0 h-3.5 w-3.5 border-r-2 border-b-2 border-primary/50" />
-
-                  <div className="flex items-center gap-4 px-4 pt-4 pb-3">
-                    <div className="relative flex-none">
-                      <FrameOctagon size={108} spinSeconds={100} glow />
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        {fighter.spiritAnimal ? (
-                          <img
-                            src={`${basePath}/spirit/${fighter.spiritAnimal}.png`}
-                            alt={`${fighter.spiritAnimal} spirit`}
-                            className="w-[68%] h-[68%] object-contain"
-                            style={{ filter: "drop-shadow(0 0 12px hsla(35,65%,45%,0.5))" }}
-                            draggable={false}
-                          />
-                        ) : (
-                          <span className="font-mono text-lg uppercase tracking-widest text-primary">
-                            {fighter.name.charAt(0)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-primary/60 mb-1.5">
-                        Combat identity
-                      </div>
-                      <div className="font-mono text-base uppercase tracking-widest text-foreground/95 truncate">
-                        {fighter.name}
-                      </div>
-                      {fighter.spiritAnimal && (
-                        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/80 mt-1.5">
-                          {fighter.spiritAnimal}
-                        </div>
-                      )}
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-                        {fighter.primarySport ? sportLabel(fighter.primarySport) : fighter.art}
-                      </div>
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">
-                        {fighter.trainingFrequency}
-                      </div>
-                      {fighter.gym && (
-                        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70 mt-0.5 truncate">
-                          {fighter.gym}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {fighter.spiritAnimalTagline && (
-                    <div className="px-4 pb-4 border-t border-white/[0.05] pt-3">
-                      <p className="font-mono text-[11px] italic text-foreground/70 leading-relaxed">
-                        {fighter.spiritAnimalTagline}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Archetype mythology — cinematic combat dossier */}
                 {(() => {
                   const arch = fighter.spiritAnimal ? getArchetype(fighter.spiritAnimal) : null;
-                  if (!arch) return null;
                   return (
-                    <div
-                      className="relative border border-primary/18 px-4 py-4 mb-5 profile-arch-card"
-                      style={{
-                        background:
-                          "linear-gradient(135deg, hsla(0,55%,8%,0.45) 0%, transparent 60%)",
-                      }}
-                    >
-                      <span className="absolute left-0 top-0 h-3 w-3 border-l-2 border-t-2 border-primary/55" />
-                      <span className="absolute right-0 top-0 h-3 w-3 border-r-2 border-t-2 border-primary/55" />
-                      <span className="absolute left-0 bottom-0 h-3 w-3 border-l-2 border-b-2 border-primary/55" />
-                      <span className="absolute right-0 bottom-0 h-3 w-3 border-r-2 border-b-2 border-primary/55" />
-
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="h-px flex-1 bg-primary/20" />
-                        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-primary/65">
-                          {arch.name} · archetype
+                    <div className="mb-5 profile-id-card" style={{ border: "1px solid hsla(32,54%,46%,0.35)" }}>
+                      {/* Top section — animal + identity */}
+                      <div className="flex gap-0">
+                        {/* Animal square */}
+                        <div
+                          className="flex-none flex items-center justify-center"
+                          style={{
+                            width: 110,
+                            minHeight: 110,
+                            borderRight: "1px solid hsla(32,54%,46%,0.2)",
+                            background: "hsla(0,0%,0%,0.35)",
+                          }}
+                        >
+                          {fighter.spiritAnimal ? (
+                            <img
+                              src={`${basePath}/spirit/${fighter.spiritAnimal}.png`}
+                              alt={fighter.spiritAnimal}
+                              className="w-[72px] h-[72px] object-contain"
+                              style={{ opacity: 0.88 }}
+                              draggable={false}
+                            />
+                          ) : (
+                            <span className="font-mono text-2xl uppercase tracking-widest text-primary/60">
+                              {fighter.name.charAt(0)}
+                            </span>
+                          )}
                         </div>
-                        <div className="h-px flex-1 bg-primary/20" />
+
+                        {/* Identity text */}
+                        <div className="flex-1 min-w-0 px-4 py-4 flex flex-col justify-center">
+                          <div className="font-mono text-[8px] uppercase tracking-[0.55em] text-muted-foreground/50 mb-2">
+                            Combat identity
+                          </div>
+                          <div className="font-mono text-2xl uppercase tracking-[0.12em] text-foreground/95 leading-none mb-2 truncate">
+                            {fighter.name}
+                          </div>
+                          {fighter.spiritAnimal && (
+                            <div className="font-mono text-[11px] uppercase tracking-[0.4em] mb-2.5" style={{ color: "hsl(32,54%,50%)" }}>
+                              {fighter.spiritAnimal}
+                            </div>
+                          )}
+                          <div className="space-y-0.5">
+                            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/65">
+                              {fighter.primarySport ? sportLabel(fighter.primarySport) : fighter.art}
+                            </div>
+                            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/45">
+                              {fighter.trainingFrequency}
+                              {fighter.gym ? ` · ${fighter.gym}` : ""}
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="space-y-3.5">
-                        <ArchLine label="Under pressure" text={arch.pressureSignature} delay={0} />
-                        <ArchLine label="Gift" text={arch.gift} delay={1} />
-                        <ArchLine label="Shadow" text={arch.shadow} delay={2} />
-                      </div>
+                      {/* Tagline */}
+                      {fighter.spiritAnimalTagline && (
+                        <div
+                          className="px-4 py-3"
+                          style={{ borderTop: "1px solid hsla(32,54%,46%,0.14)" }}
+                        >
+                          <p className="text-[12px] italic text-foreground/55 leading-relaxed">
+                            {fighter.spiritAnimalTagline}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Archetype section — inline in the same card */}
+                      {arch && (
+                        <div style={{ borderTop: "1px solid hsla(32,54%,46%,0.2)" }}>
+                          {/* Section label */}
+                          <div
+                            className="flex items-center gap-3 px-4 py-3"
+                            style={{ borderBottom: "1px solid hsla(0,0%,100%,0.05)" }}
+                          >
+                            <div className="h-px flex-1" style={{ background: "hsla(32,54%,46%,0.25)" }} />
+                            <div className="font-mono text-[8px] uppercase tracking-[0.55em]" style={{ color: "hsl(32,54%,50%)" }}>
+                              {arch.name} Archetype
+                            </div>
+                            <div className="h-px flex-1" style={{ background: "hsla(32,54%,46%,0.25)" }} />
+                          </div>
+
+                          {/* Three archetype rows */}
+                          <div className="divide-y" style={{ borderColor: "hsla(0,0%,100%,0.04)" }}>
+                            <ArchRow label="Under pressure" text={arch.pressureSignature} />
+                            <ArchRow label="Gift" text={arch.gift} />
+                            <ArchRow label="Shadow" text={arch.shadow} />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
@@ -466,16 +459,16 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ArchLine({ label, text, delay = 0 }: { label: string; text: string; delay?: number }) {
+function ArchRow({ label, text }: { label: string; text: string }) {
   return (
-    <div
-      className="profile-arch-line"
-      style={{ animationDelay: `${0.2 + delay * 0.12}s` }}
-    >
-      <div className="font-mono text-[9px] uppercase tracking-widest text-primary/80 mb-1">
+    <div className="px-4 py-3.5">
+      <div
+        className="font-mono text-[8px] uppercase tracking-[0.55em] mb-1.5"
+        style={{ color: "hsl(32,54%,50%)" }}
+      >
         {label}
       </div>
-      <p className="text-xs text-foreground/85 leading-relaxed">{text}</p>
+      <p className="text-[12px] text-foreground/75 leading-relaxed">{text}</p>
     </div>
   );
 }
@@ -490,22 +483,8 @@ function ProfileAnimations() {
       .profile-id-card {
         animation: profile-id-in 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) 0.05s both;
       }
-      @keyframes profile-arch-in {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
-      }
-      .profile-arch-card {
-        animation: profile-arch-in 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) 0.15s both;
-      }
-      @keyframes profile-arch-line-in {
-        from { opacity: 0; transform: translateX(-6px); }
-        to   { opacity: 1; transform: translateX(0); }
-      }
-      .profile-arch-line {
-        animation: profile-arch-line-in 0.45s ease-out both;
-      }
       @media (prefers-reduced-motion: reduce) {
-        .profile-id-card, .profile-arch-card, .profile-arch-line { animation: none; }
+        .profile-id-card { animation: none; }
       }
     `}</style>
   );
