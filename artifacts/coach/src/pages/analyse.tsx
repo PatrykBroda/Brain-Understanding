@@ -1140,6 +1140,11 @@ function RawSignalsTable({
                     <span className="font-mono text-[11px] text-foreground/90">
                       {s.value}
                     </span>
+                    {prev && dir !== "same" && (
+                      <div className="font-mono text-[9px] text-muted-foreground/50 mt-0.5 leading-snug">
+                        was: {prev.value}
+                      </div>
+                    )}
                   </td>
                   {hasPrev && (
                     <td className="px-3 py-2 align-middle">
