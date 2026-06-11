@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -15,7 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
-import { apiPost } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
 
 type AnalysisKind =
   | "sparring"
@@ -149,21 +149,25 @@ const ss = StyleSheet.create({
   },
 });
 
+type TrailStep = { value: string; id: number | null };
+
 function buildSignalTrail(
   signalKey: string,
   currentValue: string,
   history: SignalHistoryEntry[],
-): string[] {
-  const allValues: string[] = [];
+): TrailStep[] {
+  const allEntries: TrailStep[] = [];
   for (const h of history) {
     const sig = h.signals.find((s) => s.key === signalKey);
-    if (sig?.value) allValues.push(sig.value);
+    if (sig?.value) allEntries.push({ value: sig.value, id: h.id });
   }
-  allValues.push(currentValue);
-  const deduped: string[] = [];
-  for (const v of allValues) {
-    if (deduped.length === 0 || deduped[deduped.length - 1] !== v) {
-      deduped.push(v);
+  allEntries.push({ value: currentValue, id: null });
+  const deduped: TrailStep[] = [];
+  for (const entry of allEntries) {
+    if (deduped.length === 0 || deduped[deduped.length - 1]!.value !== entry.value) {
+      deduped.push({ ...entry });
+    } else {
+      deduped[deduped.length - 1] = { ...entry };
     }
   }
   return deduped.slice(-5);
@@ -173,25 +177,46 @@ function SignalHistoryTrail({
   signalKey,
   currentValue,
   history,
+  onSelectSession,
 }: {
   signalKey: string;
   currentValue: string;
   history: SignalHistoryEntry[];
+  onSelectSession?: (id: number) => void;
 }) {
   const trail = buildSignalTrail(signalKey, currentValue, history);
   if (trail.length < 3) return null;
   return (
     <View style={trailSs.row}>
-      {trail.map((v, i) => {
+      {trail.map((step, i) => {
         const isCurrent = i === trail.length - 1;
+        const tappable = !isCurrent && step.id != null && onSelectSession != null;
         return (
           <View key={i} style={trailSs.entry}>
             {i > 0 && (
               <Text style={trailSs.sep}>›</Text>
             )}
-            <Text style={[trailSs.val, isCurrent && trailSs.valCurrent]}>
-              {v}
-            </Text>
+            {tappable ? (
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onSelectSession!(step.id!);
+                }}
+                hitSlop={8}
+                accessibilityLabel={`View session read: ${step.value}`}
+                accessibilityRole="button"
+              >
+                {({ pressed }) => (
+                  <Text style={[trailSs.val, trailSs.valTappable, pressed && trailSs.valPressed]}>
+                    {step.value}
+                  </Text>
+                )}
+              </Pressable>
+            ) : (
+              <Text style={[trailSs.val, isCurrent && trailSs.valCurrent]}>
+                {step.value}
+              </Text>
+            )}
           </View>
         );
       })}
@@ -205,6 +230,8 @@ const trailSs = StyleSheet.create({
   sep: { fontFamily: "SpaceMono", fontSize: 8, color: "#333", lineHeight: 12 },
   val: { fontFamily: "SpaceMono", fontSize: 8, color: "#3a3a3a", textTransform: "uppercase", letterSpacing: 1, lineHeight: 12 },
   valCurrent: { color: "#888" },
+  valTappable: { color: "#555", textDecorationLine: "underline" },
+  valPressed: { color: "#C9883A" },
 });
 
 function formatDuration(ms: number): string {
@@ -280,6 +307,31 @@ export default function AnalyseScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [loadingSession, setLoadingSession] = useState(false);
+
+  useEffect(() => {
+    if (openId == null) return;
+    let cancelled = false;
+    setLoadingSession(true);
+    setResult(null);
+    setError(null);
+    apiGet<{ analysis: AnalysisResult }>(`/analysis/${openId}`)
+      .then((res) => {
+        if (!cancelled) setResult(res.analysis);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError((e as Error).message ?? "Failed to load session.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSession(false);
+      });
+    return () => { cancelled = true; };
+  }, [openId]);
+
+  function handleSelectSession(id: number) {
+    setOpenId(id);
+  }
 
   async function pickVideo() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -362,6 +414,16 @@ export default function AnalyseScreen() {
     setLoad("moderate");
     setScores(initialScores);
     setFocusPrompt("");
+    setOpenId(null);
+  }
+
+  if (loadingSession) {
+    return (
+      <View style={[styles.root, styles.centered, { paddingTop: topPad }]}>
+        <ActivityIndicator color="#C9883A" />
+        <Text style={styles.loadingText}>LOADING SESSION</Text>
+      </View>
+    );
   }
 
   if (result) {
@@ -415,6 +477,7 @@ export default function AnalyseScreen() {
                         signalKey={s.key}
                         currentValue={s.value}
                         history={history}
+                        onSelectSession={handleSelectSession}
                       />
                     )}
                   </View>
@@ -602,6 +665,14 @@ export default function AnalyseScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#050505" },
+  centered: { alignItems: "center", justifyContent: "center", gap: 12 },
+  loadingText: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 3,
+    color: "#444",
+    marginTop: 8,
+  },
   inner: { paddingHorizontal: 20, paddingTop: 4 },
   header: {
     flexDirection: "row",
