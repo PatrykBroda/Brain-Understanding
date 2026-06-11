@@ -1,9 +1,11 @@
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
+  Animated,
   FlatList,
   Platform,
   Pressable,
@@ -336,6 +338,30 @@ export default function AnalyseScreen() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
 
+  const reportOpacity = useRef(new Animated.Value(1)).current;
+  const resultScrollRef = useRef<ScrollView>(null);
+
+  function fadeIn() {
+    Animated.timing(reportOpacity, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  async function fadeOutThen(callback: () => void): Promise<void> {
+    const reduced = await AccessibilityInfo.isReduceMotionEnabled();
+    if (reduced) {
+      callback();
+      return;
+    }
+    Animated.timing(reportOpacity, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => callback());
+  }
+
   useEffect(() => {
     if (!historyMode) return;
     let cancelled = false;
@@ -373,8 +399,28 @@ export default function AnalyseScreen() {
     return () => { cancelled = true; };
   }, [openId]);
 
+  useEffect(() => {
+    if (result == null) return;
+    resultScrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      if (reduced) {
+        reportOpacity.setValue(1);
+      } else {
+        reportOpacity.setValue(0);
+        fadeIn();
+      }
+    });
+  }, [result]);
+
   function handleSelectSession(id: number) {
-    setOpenId(id);
+    if (result == null) {
+      setOpenId(id);
+      return;
+    }
+    void fadeOutThen(() => {
+      setResult(null);
+      setOpenId(id);
+    });
   }
 
   function handleOpenFromHistory(id: number) {
@@ -570,8 +616,10 @@ export default function AnalyseScreen() {
 
   if (result) {
     return (
+      <Animated.View style={[styles.root, { opacity: reportOpacity }]}>
       <ScrollView
-        style={[styles.root, { paddingTop: topPad }]}
+        ref={resultScrollRef}
+        style={{ paddingTop: topPad }}
         contentContainerStyle={[styles.inner, { paddingBottom: insets.bottom + 40 }]}
       >
         <View style={styles.header}>
@@ -660,6 +708,7 @@ export default function AnalyseScreen() {
           <Text style={styles.submitBtnText}>NEW SESSION</Text>
         </Pressable>
       </ScrollView>
+      </Animated.View>
     );
   }
 
