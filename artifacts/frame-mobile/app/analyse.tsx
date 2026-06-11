@@ -425,7 +425,12 @@ export default function AnalyseScreen() {
 
   function handleOpenFromHistory(id: number) {
     setResultSource("history");
-    setOpenId(id);
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      if (!reduced) {
+        reportOpacity.setValue(0);
+      }
+      setOpenId(id);
+    });
   }
 
   function handleEnterHistory() {
