@@ -101,11 +101,25 @@ export default function AnalysePage() {
   const [kind, setKind] = useState<AnalysisKind>("sparring");
   const [focus, setFocus] = useState("");
 
+  const [reportVisible, setReportVisible] = useState(true);
+
   function onSelectSession(id: number) {
-    clearResult();
-    setOpenId(id);
-    mobileScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
-    desktopRightScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      clearResult();
+      setOpenId(id);
+      mobileScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
+      desktopRightScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
+      return;
+    }
+    setReportVisible(false);
+    setTimeout(() => {
+      clearResult();
+      setOpenId(id);
+      mobileScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
+      desktopRightScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
+      requestAnimationFrame(() => setReportVisible(true));
+    }, 150);
   }
   const [phase, setPhase] = useState<Phase>({ stage: "idle" });
   const [result, setResult] = useState<VideoAnalysis | null>(null);
@@ -259,9 +273,13 @@ export default function AnalysePage() {
       <main ref={mobileScrollRef} className="flex-1 min-h-0 overflow-y-auto md:hidden">
         <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
           {result ? (
-            <Report analysis={result} fighter={fighter} onClose={clearResult} onSelectSession={onSelectSession} />
+            <div style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
+              <Report analysis={result} fighter={fighter} onClose={clearResult} onSelectSession={onSelectSession} />
+            </div>
           ) : openId != null ? (
-            <SavedReport id={openId} compareId={compareId} fighter={fighter} onClose={() => setOpenId(null)} onSelectSession={onSelectSession} />
+            <div style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
+              <SavedReport id={openId} compareId={compareId} fighter={fighter} onClose={() => setOpenId(null)} onSelectSession={onSelectSession} />
+            </div>
           ) : (
             <UploadControls
               kind={kind}
@@ -291,7 +309,7 @@ export default function AnalysePage() {
         {showingReport ? (
           <>
             {/* LEFT — video player + filmstrip */}
-            <div className="flex flex-col w-[46%] min-w-0 overflow-y-auto bg-black/20">
+            <div className="flex flex-col w-[46%] min-w-0 overflow-y-auto bg-black/20" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
               {result ? (
                 <WorkstationLeft
                   analysis={result}
@@ -304,7 +322,7 @@ export default function AnalysePage() {
             </div>
 
             {/* RIGHT — FRAME REPORT card + findings + scores */}
-            <div ref={desktopRightScrollRef} className="flex-1 overflow-y-auto px-7 py-6">
+            <div ref={desktopRightScrollRef} className="flex-1 overflow-y-auto px-7 py-6" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
               {result ? (
                 <WorkstationRight analysis={result} fighter={fighter} onClose={clearResult} onSelectSession={onSelectSession} />
               ) : openId != null ? (
