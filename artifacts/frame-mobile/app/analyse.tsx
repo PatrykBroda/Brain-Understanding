@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Platform,
   Pressable,
   ScrollView,
@@ -41,6 +42,16 @@ interface AnalysisSignal {
 }
 
 type SignalHistoryEntry = { id: number; createdAt: string; signals: AnalysisSignal[] };
+
+interface AnalysisSummary {
+  id: number;
+  kind: string;
+  nervousSystemLoad: string | null;
+  sessionScore: number | null;
+  styleProfile: string | null;
+  summary: string | null;
+  createdAt: string;
+}
 
 interface AnalysisResult {
   id: number;
@@ -293,6 +304,15 @@ function buildSignals(
   return signals;
 }
 
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function capitalise(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 export default function AnalyseScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -309,6 +329,30 @@ export default function AnalyseScreen() {
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
   const [loadingSession, setLoadingSession] = useState(false);
+
+  const [historyMode, setHistoryMode] = useState(false);
+  const [resultSource, setResultSource] = useState<"form" | "history">("form");
+  const [pastSessions, setPastSessions] = useState<AnalysisSummary[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!historyMode) return;
+    let cancelled = false;
+    setLoadingHistory(true);
+    setHistoryError(null);
+    apiGet<{ analyses: AnalysisSummary[] }>("/analysis")
+      .then((res) => {
+        if (!cancelled) setPastSessions(res.analyses);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setHistoryError((e as Error).message ?? "Failed to load history.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingHistory(false);
+      });
+    return () => { cancelled = true; };
+  }, [historyMode]);
 
   useEffect(() => {
     if (openId == null) return;
@@ -331,6 +375,34 @@ export default function AnalyseScreen() {
 
   function handleSelectSession(id: number) {
     setOpenId(id);
+  }
+
+  function handleOpenFromHistory(id: number) {
+    setResultSource("history");
+    setOpenId(id);
+  }
+
+  function handleEnterHistory() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setHistoryMode(true);
+  }
+
+  function handleBackFromHistory() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setHistoryMode(false);
+    setPastSessions([]);
+    setHistoryError(null);
+  }
+
+  function handleBackFromResult() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (resultSource === "history") {
+      setResult(null);
+      setOpenId(null);
+      setError(null);
+    } else {
+      handleReset();
+    }
   }
 
   async function pickVideo() {
@@ -415,6 +487,10 @@ export default function AnalyseScreen() {
     setScores(initialScores);
     setFocusPrompt("");
     setOpenId(null);
+    setResultSource("form");
+    setHistoryMode(false);
+    setPastSessions([]);
+    setHistoryError(null);
   }
 
   if (loadingSession) {
@@ -426,6 +502,72 @@ export default function AnalyseScreen() {
     );
   }
 
+  if (historyMode && !result) {
+    return (
+      <View style={[styles.root, { paddingTop: topPad }]}>
+        <View style={[styles.header, { paddingHorizontal: 20 }]}>
+          <Pressable onPress={handleBackFromHistory} hitSlop={12}>
+            <Feather name="chevron-left" size={20} color="#666" />
+          </Pressable>
+          <Text style={styles.headerTitle}>PAST SESSIONS</Text>
+          <View style={{ width: 28 }} />
+        </View>
+        {loadingHistory ? (
+          <View style={[styles.centered, { flex: 1 }]}>
+            <ActivityIndicator color="#C9883A" />
+            <Text style={styles.loadingText}>LOADING</Text>
+          </View>
+        ) : historyError ? (
+          <View style={[styles.centered, { flex: 1, paddingHorizontal: 24 }]}>
+            <Text style={styles.errorText}>{historyError}</Text>
+          </View>
+        ) : pastSessions.length === 0 ? (
+          <View style={[styles.centered, { flex: 1, paddingHorizontal: 24 }]}>
+            <Text style={histSs.emptyText}>No sessions recorded yet.</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={pastSessions}
+            keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 40 }}
+            ItemSeparatorComponent={() => <View style={histSs.separator} />}
+            renderItem={({ item }) => (
+              <Pressable
+                style={({ pressed }) => [histSs.row, pressed && histSs.rowPressed]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  handleOpenFromHistory(item.id);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Open session from ${formatDate(item.createdAt)}`}
+              >
+                <View style={histSs.rowLeft}>
+                  <Text style={histSs.rowDate}>{formatDate(item.createdAt)}</Text>
+                  <Text style={histSs.rowKind}>
+                    {capitalise(item.kind)}
+                    {item.nervousSystemLoad ? ` · ${capitalise(item.nervousSystemLoad)}` : ""}
+                  </Text>
+                  {item.styleProfile ? (
+                    <Text style={histSs.rowProfile} numberOfLines={1}>{item.styleProfile}</Text>
+                  ) : null}
+                </View>
+                <View style={histSs.rowRight}>
+                  {item.sessionScore != null ? (
+                    <>
+                      <Text style={histSs.rowScore}>{item.sessionScore}</Text>
+                      <Text style={histSs.rowScoreUnit}>/100</Text>
+                    </>
+                  ) : null}
+                  <Feather name="chevron-right" size={14} color="#333" style={{ marginTop: 4 }} />
+                </View>
+              </Pressable>
+            )}
+          />
+        )}
+      </View>
+    );
+  }
+
   if (result) {
     return (
       <ScrollView
@@ -433,7 +575,7 @@ export default function AnalyseScreen() {
         contentContainerStyle={[styles.inner, { paddingBottom: insets.bottom + 40 }]}
       >
         <View style={styles.header}>
-          <Pressable onPress={handleReset} hitSlop={12}>
+          <Pressable onPress={handleBackFromResult} hitSlop={12}>
             <Feather name="chevron-left" size={20} color="#666" />
           </Pressable>
           <Text style={styles.headerTitle}>FRAME REPORT</Text>
@@ -532,7 +674,9 @@ export default function AnalyseScreen() {
           <Feather name="chevron-left" size={20} color="#666" />
         </Pressable>
         <Text style={styles.headerTitle}>SESSION DEBRIEF</Text>
-        <View style={{ width: 28 }} />
+        <Pressable onPress={handleEnterHistory} hitSlop={12} accessibilityLabel="View past sessions" accessibilityRole="button">
+          <Feather name="clock" size={18} color="#555" />
+        </Pressable>
       </View>
 
       {/* Footage picker */}
@@ -925,6 +1069,58 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit",
     fontSize: 14,
     color: "#c0c0c0",
+    lineHeight: 22,
+  },
+});
+
+const histSs = StyleSheet.create({
+  separator: { height: 1, backgroundColor: "#111" },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
+  },
+  rowPressed: { opacity: 0.6 },
+  rowLeft: { flex: 1, marginRight: 12 },
+  rowDate: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 2,
+    color: "#888",
+    marginBottom: 4,
+  },
+  rowKind: {
+    fontFamily: "Outfit",
+    fontSize: 13,
+    color: "#c0c0c0",
+    marginBottom: 2,
+  },
+  rowProfile: {
+    fontFamily: "Outfit",
+    fontSize: 11,
+    color: "#555",
+    lineHeight: 16,
+  },
+  rowRight: {
+    alignItems: "flex-end",
+    gap: 2,
+  },
+  rowScore: {
+    fontFamily: "SpaceMono",
+    fontSize: 22,
+    color: "#e0e0e0",
+    lineHeight: 26,
+  },
+  rowScoreUnit: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    color: "#444",
+  },
+  emptyText: {
+    fontFamily: "Outfit",
+    fontSize: 14,
+    color: "#444",
+    textAlign: "center",
     lineHeight: 22,
   },
 });
