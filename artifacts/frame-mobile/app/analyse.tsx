@@ -40,6 +40,8 @@ interface AnalysisSignal {
   detail: string;
 }
 
+type SignalHistoryEntry = { id: number; createdAt: string; signals: AnalysisSignal[] };
+
 interface AnalysisResult {
   id: number;
   scores: FrameReportScore[];
@@ -48,6 +50,8 @@ interface AnalysisResult {
   styleProfile: string;
   aiComment: string;
   summary: string;
+  metrics?: { signals: AnalysisSignal[] };
+  signalHistory?: SignalHistoryEntry[] | null;
 }
 
 const KINDS: { value: AnalysisKind; label: string }[] = [
@@ -143,6 +147,64 @@ const ss = StyleSheet.create({
     width: 28,
     textAlign: "right",
   },
+});
+
+function buildSignalTrail(
+  signalKey: string,
+  currentValue: string,
+  history: SignalHistoryEntry[],
+): string[] {
+  const allValues: string[] = [];
+  for (const h of history) {
+    const sig = h.signals.find((s) => s.key === signalKey);
+    if (sig?.value) allValues.push(sig.value);
+  }
+  allValues.push(currentValue);
+  const deduped: string[] = [];
+  for (const v of allValues) {
+    if (deduped.length === 0 || deduped[deduped.length - 1] !== v) {
+      deduped.push(v);
+    }
+  }
+  return deduped.slice(-5);
+}
+
+function SignalHistoryTrail({
+  signalKey,
+  currentValue,
+  history,
+}: {
+  signalKey: string;
+  currentValue: string;
+  history: SignalHistoryEntry[];
+}) {
+  const trail = buildSignalTrail(signalKey, currentValue, history);
+  if (trail.length < 3) return null;
+  return (
+    <View style={trailSs.row}>
+      {trail.map((v, i) => {
+        const isCurrent = i === trail.length - 1;
+        return (
+          <View key={i} style={trailSs.entry}>
+            {i > 0 && (
+              <Text style={trailSs.sep}>›</Text>
+            )}
+            <Text style={[trailSs.val, isCurrent && trailSs.valCurrent]}>
+              {v}
+            </Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+const trailSs = StyleSheet.create({
+  row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", marginTop: 4, gap: 2 },
+  entry: { flexDirection: "row", alignItems: "center", gap: 2 },
+  sep: { fontFamily: "SpaceMono", fontSize: 8, color: "#333", lineHeight: 12 },
+  val: { fontFamily: "SpaceMono", fontSize: 8, color: "#3a3a3a", textTransform: "uppercase", letterSpacing: 1, lineHeight: 12 },
+  valCurrent: { color: "#888" },
 });
 
 function formatDuration(ms: number): string {
@@ -334,6 +396,33 @@ export default function AnalyseScreen() {
             </View>
           ))}
         </View>
+
+        {(() => {
+          const signals = result.metrics?.signals ?? [];
+          const history: SignalHistoryEntry[] = result.signalHistory ?? [];
+          if (signals.length === 0) return null;
+          const hasTrail = signals.some((s) => buildSignalTrail(s.key, s.value, history).length >= 3);
+          return (
+            <View style={styles.rawSignalsSection}>
+              <Text style={styles.rawSignalsLabel}>RAW SIGNALS</Text>
+              {signals.map((s) => (
+                <View key={s.key} style={styles.rawSignalRow}>
+                  <Text style={styles.rawSignalName} numberOfLines={1}>{s.label}</Text>
+                  <View style={styles.rawSignalRight}>
+                    <Text style={styles.rawSignalValue}>{s.value}</Text>
+                    {hasTrail && (
+                      <SignalHistoryTrail
+                        signalKey={s.key}
+                        currentValue={s.value}
+                        history={history}
+                      />
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          );
+        })()}
 
         {(result.styleProfile || result.aiComment) && (
           <View style={styles.narrativeCard}>
@@ -690,6 +779,54 @@ const styles = StyleSheet.create({
   scoreBar: { height: 2, backgroundColor: "#1a1a1a", marginBottom: 8 },
   scoreBarFill: { height: 2, backgroundColor: "#C9883A" },
   scoreBasis: { fontFamily: "Outfit", fontSize: 11, color: "#444" },
+  rawSignalsSection: {
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+  },
+  rawSignalsLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 3,
+    color: "#444",
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1a1a1a",
+  },
+  rawSignalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#111",
+  },
+  rawSignalName: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 1,
+    color: "#555",
+    flex: 1,
+    marginRight: 12,
+    textTransform: "uppercase",
+    lineHeight: 14,
+    paddingTop: 1,
+  },
+  rawSignalRight: {
+    alignItems: "flex-end",
+    flexShrink: 0,
+    maxWidth: "55%",
+  },
+  rawSignalValue: {
+    fontFamily: "SpaceMono",
+    fontSize: 11,
+    color: "#c0c0c0",
+    lineHeight: 14,
+    textAlign: "right",
+  },
   narrativeCard: {
     backgroundColor: "#0a0a0a",
     borderWidth: 1,
