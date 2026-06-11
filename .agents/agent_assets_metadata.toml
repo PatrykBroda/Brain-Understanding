@@ -60,3 +60,9 @@ id = "WoR1yJiwpB65QVN3ZtDAs"
 uri = "file://artifacts/coach/public/spirit/ram.png"
 type = "image"
 title = "ram spirit emblem"
+
+[[generated]]
+id = "PRsSdEoNCfSR0GFgcflLa"
+uri = "file://artifacts/frame-mobile/assets/images/icon.png"
+type = "image"
+title = "generated_image"
