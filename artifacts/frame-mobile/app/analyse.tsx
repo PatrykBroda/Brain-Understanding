@@ -430,7 +430,15 @@ export default function AnalyseScreen() {
       if (!reduced) {
         reportOpacity.setValue(0);
       }
-      setOpenId(id);
+      if (reduced) {
+        setOpenId(id);
+      } else {
+        Animated.timing(historyOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start(() => setOpenId(id));
+      }
     });
   }
 
