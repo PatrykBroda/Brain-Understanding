@@ -447,6 +447,7 @@ export type VideoAnalysis = {
   durationSec: number;
   createdAt: string;
   prevSignals?: AnalysisSignal[] | null;
+  liveComparison?: AnalysisComparison | null;
 };
 
 export type AnalysisListItem = {
@@ -479,7 +480,10 @@ export type CreateAnalysisInput = {
 
 export const analysisApi = {
   list: () => jsonFetch<{ analyses: AnalysisListItem[] }>("api/analysis"),
-  get: (id: number) => jsonFetch<{ analysis: VideoAnalysis }>(`api/analysis/${id}`),
+  get: (id: number, compareId?: number | null) => {
+    const qs = compareId != null ? `?compareId=${compareId}` : "";
+    return jsonFetch<{ analysis: VideoAnalysis }>(`api/analysis/${id}${qs}`);
+  },
   create: (input: CreateAnalysisInput) =>
     jsonFetch<{ analysis: VideoAnalysis }>("api/analysis", {
       method: "POST",

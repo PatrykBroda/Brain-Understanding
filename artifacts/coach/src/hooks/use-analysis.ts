@@ -8,10 +8,10 @@ export function useAnalyses() {
   });
 }
 
-export function useAnalysis(id: number | null) {
+export function useAnalysis(id: number | null, compareId?: number | null) {
   return useQuery({
-    queryKey: ["analysis", id],
-    queryFn: () => analysisApi.get(id as number),
+    queryKey: ["analysis", id, compareId ?? null],
+    queryFn: () => analysisApi.get(id as number, compareId),
     enabled: id != null,
   });
 }

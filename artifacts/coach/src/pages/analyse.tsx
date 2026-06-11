@@ -101,6 +101,7 @@ export default function AnalysePage() {
   const [phase, setPhase] = useState<Phase>({ stage: "idle" });
   const [result, setResult] = useState<VideoAnalysis | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
+  const [compareId, setCompareId] = useState<number | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const pendingFile = useRef<File | null>(null);
   const videoUrlRef = useRef<string | null>(null);
@@ -251,7 +252,7 @@ export default function AnalysePage() {
           {result ? (
             <Report analysis={result} fighter={fighter} onClose={clearResult} />
           ) : openId != null ? (
-            <SavedReport id={openId} fighter={fighter} onClose={() => setOpenId(null)} />
+            <SavedReport id={openId} compareId={compareId} fighter={fighter} onClose={() => setOpenId(null)} />
           ) : (
             <UploadControls
               kind={kind}
@@ -267,6 +268,8 @@ export default function AnalysePage() {
               analyses={analyses.data?.analyses ?? []}
               analysesLoading={analyses.isLoading}
               onOpen={(id) => setOpenId(id)}
+              compareId={compareId}
+              onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
             />
           )}
         </div>
@@ -296,7 +299,7 @@ export default function AnalysePage() {
               {result ? (
                 <WorkstationRight analysis={result} fighter={fighter} onClose={clearResult} />
               ) : openId != null ? (
-                <SavedWorkstationRight id={openId} fighter={fighter} onClose={() => setOpenId(null)} />
+                <SavedWorkstationRight id={openId} compareId={compareId} fighter={fighter} onClose={() => setOpenId(null)} />
               ) : null}
             </div>
           </>
@@ -423,6 +426,8 @@ export default function AnalysePage() {
                 items={analyses.data?.analyses ?? []}
                 loading={analyses.isLoading}
                 onOpen={(id) => setOpenId(id)}
+                compareId={compareId}
+                onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
               />
             </div>
           </>
@@ -465,6 +470,8 @@ function UploadControls({
   analyses,
   analysesLoading,
   onOpen,
+  compareId,
+  onSetCompare,
 }: {
   kind: AnalysisKind;
   setKind: (k: AnalysisKind) => void;
@@ -479,6 +486,8 @@ function UploadControls({
   analyses: { id: number; kind: string; nervousSystemLoad: NervousSystemLoad; sessionScore: number; styleProfile: string; summary: string; createdAt: string }[];
   analysesLoading: boolean;
   onOpen: (id: number) => void;
+  compareId: number | null;
+  onSetCompare: (id: number) => void;
 }) {
   return (
     <>
@@ -605,6 +614,8 @@ function UploadControls({
         items={analyses}
         loading={analysesLoading}
         onOpen={onOpen}
+        compareId={compareId}
+        onSetCompare={onSetCompare}
       />
     </>
   );
@@ -836,13 +847,16 @@ function WorkstationRight({
 
       {/* raw signals */}
       {analysis.metrics.signals.length > 0 && (
-        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} />
+        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} hasCustomCompare={!!analysis.liveComparison} />
       )}
 
-      {/* comparison vs last session */}
-      {analysis.comparison && analysis.comparison.deltas.length > 0 && (
-        <ComparisonSection comparison={analysis.comparison} />
-      )}
+      {/* comparison vs selected or last session */}
+      {(() => {
+        const cmp = analysis.liveComparison ?? analysis.comparison;
+        return cmp && cmp.deltas.length > 0 ? (
+          <ComparisonSection comparison={cmp} isCustomBaseline={!!analysis.liveComparison} />
+        ) : null;
+      })()}
 
       {/* session-over-session trend chart — desktop only, needs 3+ sessions */}
       {(analysesData?.analyses?.length ?? 0) >= 3 && (
@@ -898,14 +912,16 @@ function SavedWorkstationLeft({
 
 function SavedWorkstationRight({
   id,
+  compareId,
   fighter,
   onClose,
 }: {
   id: number;
+  compareId: number | null;
   fighter: Fighter | null;
   onClose: () => void;
 }) {
-  const { data, isLoading, isError } = useAnalysis(id);
+  const { data, isLoading, isError } = useAnalysis(id, compareId);
   if (isLoading || isError || !data?.analysis) return null;
   return <WorkstationRight analysis={data.analysis} fighter={fighter} onClose={onClose} />;
 }
@@ -1060,9 +1076,11 @@ function SignalDeltaBadge({
 function RawSignalsTable({
   signals,
   prevSignals,
+  hasCustomCompare,
 }: {
   signals: VideoAnalysis["metrics"]["signals"];
   prevSignals?: VideoAnalysis["prevSignals"];
+  hasCustomCompare?: boolean;
 }) {
   const prevByKey = prevSignals
     ? new Map(prevSignals.map((s) => [s.key, s]))
@@ -1072,8 +1090,15 @@ function RawSignalsTable({
 
   return (
     <section className="space-y-3">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
-        Raw signals
+      <div className="flex items-baseline gap-2 border-b border-border/40 pb-1.5">
+        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          Raw signals
+        </span>
+        {hasPrev && hasCustomCompare && (
+          <span className="font-mono text-[8px] uppercase tracking-widest text-primary/60">
+            vs selected baseline
+          </span>
+        )}
       </div>
       <div className="w-full border border-border/40 overflow-hidden">
         <table className="w-full text-sm border-collapse">
@@ -1086,7 +1111,7 @@ function RawSignalsTable({
                 Value
               </th>
               {hasPrev && (
-                <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[28px]" title="Change vs previous session">
+                <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[28px]" title={hasCustomCompare ? "Change vs selected baseline" : "Change vs previous session"}>
                   vs
                 </th>
               )}
@@ -1142,13 +1167,22 @@ function RawSignalsTable({
 
 function ComparisonSection({
   comparison,
+  isCustomBaseline,
 }: {
   comparison: NonNullable<VideoAnalysis["comparison"]>;
+  isCustomBaseline?: boolean;
 }) {
   return (
     <section className="space-y-3">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
-        What changed
+      <div className="flex items-baseline gap-2 border-b border-border/40 pb-1.5">
+        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          What changed
+        </span>
+        {isCustomBaseline && (
+          <span className="font-mono text-[8px] uppercase tracking-widest text-primary/60">
+            vs selected baseline
+          </span>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-2">
         {comparison.deltas.map((d) => (
@@ -1283,10 +1317,13 @@ function Report({
         {analysis.summary}
       </p>
 
-      {/* comparison vs last session */}
-      {analysis.comparison && analysis.comparison.deltas.length > 0 && (
-        <ComparisonSection comparison={analysis.comparison} />
-      )}
+      {/* comparison vs selected or last session */}
+      {(() => {
+        const cmp = analysis.liveComparison ?? analysis.comparison;
+        return cmp && cmp.deltas.length > 0 ? (
+          <ComparisonSection comparison={cmp} isCustomBaseline={!!analysis.liveComparison} />
+        ) : null;
+      })()}
 
       {/* detected events — clickable keyframes + note annotation */}
       {analysis.keyframes.length > 0 && (
@@ -1367,7 +1404,7 @@ function Report({
 
       {/* raw signals */}
       {analysis.metrics.signals.length > 0 && (
-        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} />
+        <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} hasCustomCompare={!!analysis.liveComparison} />
       )}
 
       {/* score provenance */}
@@ -1386,14 +1423,16 @@ function Report({
 
 function SavedReport({
   id,
+  compareId,
   fighter,
   onClose,
 }: {
   id: number;
+  compareId: number | null;
   fighter: Fighter | null;
   onClose: () => void;
 }) {
-  const { data, isLoading, isError } = useAnalysis(id);
+  const { data, isLoading, isError } = useAnalysis(id, compareId);
   if (isLoading) {
     return (
       <div className="py-16 flex flex-col items-center gap-4">
@@ -1617,6 +1656,8 @@ function History({
   items,
   loading,
   onOpen,
+  compareId,
+  onSetCompare,
 }: {
   items: {
     id: number;
@@ -1629,66 +1670,127 @@ function History({
   }[];
   loading: boolean;
   onOpen: (id: number) => void;
+  compareId: number | null;
+  onSetCompare: (id: number) => void;
 }) {
   if (loading) return null;
   if (items.length === 0) return null;
+
+  const baselineItem = compareId != null ? items.find((a) => a.id === compareId) : null;
+
   return (
     <section className="space-y-3 pt-2">
-      <div className="flex items-center gap-3 pb-1.5" style={{ borderBottom: "1px solid hsla(0,0%,100%,0.07)" }}>
-        <span className="h-[5px] w-[5px] rounded-full bg-destructive/60 flex-none" />
-        <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-muted-foreground/70">
-          Session log
+      <div className="flex items-center justify-between gap-3 pb-1.5" style={{ borderBottom: "1px solid hsla(0,0%,100%,0.07)" }}>
+        <div className="flex items-center gap-3">
+          <span className="h-[5px] w-[5px] rounded-full bg-destructive/60 flex-none" />
+          <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-muted-foreground/70">
+            Session log
+          </div>
         </div>
+        {baselineItem && (
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[8px] uppercase tracking-widest text-primary/70">
+              Baseline: {baselineItem.kind} ·{" "}
+              {new Date(baselineItem.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            </span>
+            <button
+              type="button"
+              onClick={() => onSetCompare(compareId!)}
+              className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/50 hover:text-foreground/70 transition-colors"
+              title="Clear baseline"
+            >
+              <X className="w-3 h-3" strokeWidth={1.5} />
+            </button>
+          </div>
+        )}
       </div>
       <div className="space-y-[3px]">
-        {items.map((a, idx) => (
-          <button
-            key={a.id}
-            type="button"
-            onClick={() => onOpen(a.id)}
-            className="w-full text-left transition-all duration-200 px-4 py-3.5"
-            style={{
-              borderLeft: "2px solid hsla(0,0%,100%,0.08)",
-              borderTop: "1px solid hsla(0,0%,100%,0.05)",
-              borderRight: "1px solid transparent",
-              borderBottom: "1px solid transparent",
-              background: idx % 2 === 0 ? "hsla(0,0%,100%,0.015)" : "transparent",
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderLeftColor = "hsla(0,68%,46%,0.5)"; (e.currentTarget as HTMLElement).style.background = "hsla(0,68%,46%,0.04)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderLeftColor = "hsla(0,0%,100%,0.08)"; (e.currentTarget as HTMLElement).style.background = idx % 2 === 0 ? "hsla(0,0%,100%,0.015)" : "transparent"; }}
-          >
-            <div className="flex items-start gap-3">
-              <Film className="w-[14px] h-[14px] mt-0.5 flex-none" style={{ color: "hsla(0,68%,46%,0.55)" }} strokeWidth={1.5} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline justify-between gap-3 mb-1">
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/80">
-                    {a.kind}
-                    {a.styleProfile ? <span className="text-muted-foreground/50"> · {a.styleProfile}</span> : null}
-                  </span>
-                  <span className="flex items-baseline gap-2">
-                    {a.sessionScore > 0 && (
-                      <span className="font-mono text-[12px] font-light text-foreground/90">{a.sessionScore}</span>
-                    )}
-                    <span className={`font-mono text-[9px] uppercase tracking-widest ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}>
-                      {LOAD_LABEL[a.nervousSystemLoad]}
-                    </span>
-                  </span>
+        {items.map((a, idx) => {
+          const isBaseline = a.id === compareId;
+          return (
+            <div
+              key={a.id}
+              className="relative group"
+            >
+              <button
+                type="button"
+                onClick={() => onOpen(a.id)}
+                className="w-full text-left transition-all duration-200 px-4 py-3.5 pr-16"
+                style={{
+                  borderLeft: isBaseline ? "2px solid hsla(var(--primary)/0.7)" : "2px solid hsla(0,0%,100%,0.08)",
+                  borderTop: "1px solid hsla(0,0%,100%,0.05)",
+                  borderRight: "1px solid transparent",
+                  borderBottom: "1px solid transparent",
+                  background: isBaseline
+                    ? "hsla(var(--primary)/0.06)"
+                    : idx % 2 === 0 ? "hsla(0,0%,100%,0.015)" : "transparent",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isBaseline) {
+                    (e.currentTarget as HTMLElement).style.borderLeftColor = "hsla(0,68%,46%,0.5)";
+                    (e.currentTarget as HTMLElement).style.background = "hsla(0,68%,46%,0.04)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isBaseline) {
+                    (e.currentTarget as HTMLElement).style.borderLeftColor = "hsla(0,0%,100%,0.08)";
+                    (e.currentTarget as HTMLElement).style.background = idx % 2 === 0 ? "hsla(0,0%,100%,0.015)" : "transparent";
+                  }
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <Film className="w-[14px] h-[14px] mt-0.5 flex-none" style={{ color: isBaseline ? "hsl(var(--primary))" : "hsla(0,68%,46%,0.55)" }} strokeWidth={1.5} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-3 mb-1">
+                      <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/80">
+                        {a.kind}
+                        {a.styleProfile ? <span className="text-muted-foreground/50"> · {a.styleProfile}</span> : null}
+                        {isBaseline && (
+                          <span className="ml-2 font-mono text-[8px] uppercase tracking-widest text-primary/70 border border-primary/30 px-1 py-0.5">
+                            baseline
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex items-baseline gap-2">
+                        {a.sessionScore > 0 && (
+                          <span className="font-mono text-[12px] font-light text-foreground/90">{a.sessionScore}</span>
+                        )}
+                        <span className={`font-mono text-[9px] uppercase tracking-widest ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}>
+                          {LOAD_LABEL[a.nervousSystemLoad]}
+                        </span>
+                      </span>
+                    </div>
+                    <p className="text-[0.78rem] text-foreground/55 leading-snug line-clamp-2">
+                      {a.summary}
+                    </p>
+                    <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/35 mt-1.5">
+                      {new Date(a.createdAt).toLocaleString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[0.78rem] text-foreground/55 leading-snug line-clamp-2">
-                  {a.summary}
-                </p>
-                <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/35 mt-1.5">
-                  {new Date(a.createdAt).toLocaleString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </div>
-              </div>
+              </button>
+
+              {/* "Set as baseline" button — appears on hover */}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onSetCompare(a.id); }}
+                title={isBaseline ? "Clear baseline" : "Set as comparison baseline"}
+                className={`absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[8px] uppercase tracking-widest px-1.5 py-1 border transition-all duration-150 ${
+                  isBaseline
+                    ? "opacity-100 border-primary/40 text-primary/70 bg-primary/5 hover:bg-primary/10"
+                    : "opacity-0 group-hover:opacity-100 border-border/40 text-muted-foreground/60 hover:border-primary/40 hover:text-primary/70"
+                }`}
+              >
+                vs
+              </button>
             </div>
-          </button>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

@@ -302,7 +302,40 @@ router.get("/analysis/:id", async (req, res) => {
     return;
   }
 
-  // fetch signals from the analysis that immediately preceded this one
+  const compareIdRaw = req.query["compareId"];
+  const compareId = typeof compareIdRaw === "string" ? Number(compareIdRaw) : NaN;
+
+  if (Number.isFinite(compareId) && compareId !== id) {
+    // User-specified baseline: fetch signals + scores from that specific analysis
+    const [compareRow] = await db
+      .select({ metrics: videoAnalysesTable.metrics, scores: videoAnalysesTable.scores, fighterId: videoAnalysesTable.fighterId })
+      .from(videoAnalysesTable)
+      .where(eq(videoAnalysesTable.id, compareId))
+      .limit(1);
+
+    // Security: only allow comparisons within the same fighter's data
+    if (!compareRow || compareRow.fighterId !== fighter.id) {
+      res.status(404).json({ error: "compare target not found" });
+      return;
+    }
+
+    const prevSignals =
+      compareRow.metrics && Array.isArray(compareRow.metrics.signals) && compareRow.metrics.signals.length
+        ? compareRow.metrics.signals
+        : null;
+    const compareScores =
+      Array.isArray(compareRow.scores) && compareRow.scores.length ? compareRow.scores : null;
+    const liveComparison = buildComparison(
+      Array.isArray(row.scores) ? row.scores : [],
+      compareScores,
+      "",
+    );
+
+    res.json({ analysis: { ...row, prevSignals, liveComparison } });
+    return;
+  }
+
+  // Default: fetch signals from the analysis that immediately preceded this one
   const [prevRow] = await db
     .select({ metrics: videoAnalysesTable.metrics })
     .from(videoAnalysesTable)
