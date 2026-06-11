@@ -95,6 +95,8 @@ export default function AnalysePage() {
   const analyses = useAnalyses();
   const create = useCreateAnalysis();
   const fileRef = useRef<HTMLInputElement>(null);
+  const mobileScrollRef = useRef<HTMLElement>(null);
+  const desktopRightScrollRef = useRef<HTMLDivElement>(null);
 
   const [kind, setKind] = useState<AnalysisKind>("sparring");
   const [focus, setFocus] = useState("");
@@ -102,6 +104,8 @@ export default function AnalysePage() {
   function onSelectSession(id: number) {
     clearResult();
     setOpenId(id);
+    mobileScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
+    desktopRightScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
   }
   const [phase, setPhase] = useState<Phase>({ stage: "idle" });
   const [result, setResult] = useState<VideoAnalysis | null>(null);
@@ -252,7 +256,7 @@ export default function AnalysePage() {
       {/* ------------------------------------------------------------------ */}
       {/* MOBILE layout — stacked, single scroll column                       */}
       {/* ------------------------------------------------------------------ */}
-      <main className="flex-1 min-h-0 overflow-y-auto md:hidden">
+      <main ref={mobileScrollRef} className="flex-1 min-h-0 overflow-y-auto md:hidden">
         <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
           {result ? (
             <Report analysis={result} fighter={fighter} onClose={clearResult} onSelectSession={onSelectSession} />
@@ -300,7 +304,7 @@ export default function AnalysePage() {
             </div>
 
             {/* RIGHT — FRAME REPORT card + findings + scores */}
-            <div className="flex-1 overflow-y-auto px-7 py-6">
+            <div ref={desktopRightScrollRef} className="flex-1 overflow-y-auto px-7 py-6">
               {result ? (
                 <WorkstationRight analysis={result} fighter={fighter} onClose={clearResult} onSelectSession={onSelectSession} />
               ) : openId != null ? (
