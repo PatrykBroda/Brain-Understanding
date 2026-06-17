@@ -27,6 +27,8 @@ export const fightersTable = pgTable("fighters", {
   competes: boolean("competes").notNull().default(false),
   // Free-text self-description captured at onboarding; seeds the spirit-animal read.
   personality: text("personality").notNull().default(""),
+  // Persistent athlete bio — shown on profile and injected into every coach session.
+  bio: text("bio").notNull().default(""),
   // Spirit animal is chosen by the AI from a fixed curated bestiary (see spiritAnimals.ts).
   spiritAnimal: text("spirit_animal").notNull().default(""),
   spiritAnimalTagline: text("spirit_animal_tagline").notNull().default(""),

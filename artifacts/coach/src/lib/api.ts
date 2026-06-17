@@ -16,6 +16,7 @@ export type Fighter = {
   weaknesses: string;
   competes: boolean;
   personality: string;
+  bio: string;
   spiritAnimal: string;
   spiritAnimalTagline: string;
   vocabularyLevel: number;
@@ -71,6 +72,7 @@ export type FighterInput = {
   weaknesses: string;
   competes: boolean;
   personality: string;
+  bio?: string;
 };
 
 export type FighterUpdate = Partial<FighterInput>;
@@ -157,6 +159,21 @@ function classifyStatus(status: number, body: string): ApiError {
       status,
       title: "That clip is too large to send",
       causes: ["The video or its key frames exceeded the upload limit", "Try a shorter clip"],
+      retryable: false,
+      detail: body,
+    });
+  }
+  if (status === 422) {
+    let msg = body.trim();
+    try {
+      const parsed = JSON.parse(body);
+      if (parsed.error) msg = parsed.error;
+    } catch {}
+    return new ApiError({
+      kind: "unknown",
+      status,
+      title: "FRAME REPORT requires combat sports footage",
+      causes: [msg || "The clip did not show recognisable combat sports training."],
       retryable: false,
       detail: body,
     });

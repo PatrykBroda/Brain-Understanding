@@ -342,6 +342,7 @@ export function buildDynamicContext(
     archetypeLine(fighter),
     fighter.goals ? `Stated goals: ${fighter.goals}` : null,
     fighter.weaknesses ? `Stated weaknesses: ${fighter.weaknesses}` : null,
+    fighter.bio ? `Athlete bio: ${fighter.bio}` : null,
   ]
     .filter(Boolean)
     .join("\n");

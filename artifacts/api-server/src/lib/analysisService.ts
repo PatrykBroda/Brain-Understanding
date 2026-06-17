@@ -31,6 +31,9 @@ const CLAUDE_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const ANALYSIS_INSTRUCTIONS = `You are FRAME reviewing footage of the athlete. The browser already ran pose tracking on the clip and computed real movement signals AND a set of 0-100 attribute scores (below). You are NOT guessing — every observation must tie back to a computed signal, a computed score, or something visible in the supplied key frames.
 
+CONTENT VALIDATION — MANDATORY FIRST STEP:
+Before writing anything else, look at the key frames. Ask: does this footage show a person performing combat sports training? Valid content includes: BJJ, MMA, boxing, Muay Thai, kickboxing, wrestling, judo, sparring, padwork, shadowboxing, drilling, clinchwork, bag work. If the footage clearly shows something else — dancing, general fitness, yoga, stretching without a partner/bag/pads, everyday activity, or no person at all — set contentValid=false. When contentValid=false, write a 1-sentence factual description in summary of what you actually see, leave all other narrative fields empty or minimal, and do not attempt a performance read. The pose signals are meaningless outside a combat sports context and fabricating a read would violate FRAME's honesty contract.
+
 This is a nervous-system reading shaped into a shareable performance breakdown — think tactical fight-analysis, not a gym app. The signature move: take a mechanical observation (guard drops, shoulders rise, balance drifts, output comes in frantic bursts then stalls) and FRAME it as nervous-system behaviour — what the body is doing under load, what it's bracing for or leaking.
 
 You are given the athlete's computed numbers. DO NOT invent or change any number. Your job is the WORDS around them.
@@ -79,8 +82,12 @@ const REPORT_TOOL: Anthropic.Tool = {
         },
       },
       comparisonNote: { type: "string" },
+      contentValid: {
+        type: "boolean",
+        description: "true if the footage shows combat sports training, false otherwise",
+      },
     },
-    required: ["styleProfile", "aiComment", "summary", "findings"],
+    required: ["contentValid", "styleProfile", "aiComment", "summary", "findings"],
   },
 };
 
@@ -105,7 +112,20 @@ export type AnalysisNarrative = {
   comparisonNote: string;
 };
 
+export class ContentValidationError extends Error {
+  constructor(description: string) {
+    super(description || "FRAME REPORT requires combat sports footage.");
+    this.name = "ContentValidationError";
+  }
+}
+
 function normalise(raw: Record<string, unknown>): AnalysisNarrative {
+  if (raw["contentValid"] === false) {
+    const desc = typeof raw["summary"] === "string" && raw["summary"]
+      ? raw["summary"]
+      : "The footage does not appear to show combat sports training.";
+    throw new ContentValidationError(desc);
+  }
   const findings: AnalysisFinding[] = [];
   if (Array.isArray(raw["findings"])) {
     for (const f of (raw["findings"] as unknown[]).slice(0, 5)) {

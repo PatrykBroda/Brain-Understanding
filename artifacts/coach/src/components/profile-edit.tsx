@@ -20,6 +20,7 @@ type FormState = {
   trainingFrequency: string;
   goals: string;
   weaknesses: string;
+  bio: string;
   competes: boolean;
 };
 
@@ -36,6 +37,7 @@ function toForm(f: Fighter): FormState {
     trainingFrequency: f.trainingFrequency,
     goals: f.goals,
     weaknesses: f.weaknesses,
+    bio: f.bio ?? "",
     competes: f.competes,
   };
 }
@@ -63,6 +65,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
       trainingFrequency: form.trainingFrequency,
       goals: form.goals,
       weaknesses: form.weaknesses,
+      bio: form.bio,
       competes: form.competes,
     };
     // DOB is the source of truth for age; only send it when set (empty would be rejected server-side).
@@ -221,6 +224,16 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
           className={`${INPUT_CLASS} min-h-[72px] resize-y`}
           value={form.weaknesses}
           onChange={(e) => set("weaknesses", e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label className={FIELD_LABEL}>Bio — about you (read by FRAME every session)</label>
+        <textarea
+          className={`${INPUT_CLASS} min-h-[80px] resize-y`}
+          value={form.bio}
+          onChange={(e) => set("bio", e.target.value)}
+          placeholder="A few sentences about your background, injuries, competition history, or anything else that shapes how you train."
         />
       </div>
 

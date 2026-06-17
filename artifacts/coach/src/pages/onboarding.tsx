@@ -72,6 +72,7 @@ export default function OnboardingPage() {
     weaknesses: "",
     competes: false,
     personality: "",
+    bio: "",
   });
 
   const update = <K extends keyof FighterInput>(k: K, v: FighterInput[K]) =>
@@ -112,7 +113,7 @@ export default function OnboardingPage() {
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 bg-primary" />
             <h1 className="font-mono font-bold text-sm tracking-[0.3em] uppercase text-foreground/90">
-              Synochi
+              FRAME
             </h1>
           </div>
           <div className="flex items-center gap-1.5">
@@ -319,7 +320,17 @@ export default function OnboardingPage() {
             </div>
 
             <div>
-              <label className={FIELD_LABEL}>Anything else the system should know (optional)</label>
+              <label className={FIELD_LABEL}>Bio — saved to your profile, read by FRAME every session (optional)</label>
+              <textarea
+                className={`${INPUT_CLASS} min-h-[72px] resize-y`}
+                value={form.bio ?? ""}
+                onChange={(e) => update("bio", e.target.value)}
+                placeholder="Background, injuries, competition history, or anything that shapes how you train."
+              />
+            </div>
+
+            <div>
+              <label className={FIELD_LABEL}>Anything else (optional)</label>
               <textarea
                 className={`${INPUT_CLASS} min-h-[60px] resize-y`}
                 value={form.personality}

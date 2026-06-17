@@ -19,6 +19,7 @@ import {
   isValidLoad,
   hasCanonicalScores,
   recomputeSessionScore,
+  ContentValidationError,
 } from "../lib/analysisService";
 
 const router: IRouter = Router();
@@ -272,6 +273,10 @@ router.post("/analysis", async (req, res) => {
 
     res.json({ analysis: { ...row, prevSignals, signalHistory } });
   } catch (err) {
+    if (err instanceof ContentValidationError) {
+      res.status(422).json({ error: err.message, code: "INVALID_CONTENT" });
+      return;
+    }
     req.log.error({ err }, "analysis generation failed");
     res.status(500).json({ error: err instanceof Error ? err.message : "analysis failed" });
   }

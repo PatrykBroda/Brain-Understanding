@@ -1753,8 +1753,20 @@ function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: strin
       <div className="pointer-events-none absolute inset-0 frame-scanlines" />
       <div className="pointer-events-none absolute inset-x-0 h-24 frame-scan-sweep" />
 
-      <div className="relative">
-        <FrameOctagon size={120} spin spinSeconds={5} glow />
+      <div className="relative flex items-center justify-center w-32 h-32">
+        <img
+          src={`${import.meta.env.BASE_URL.replace(/\/$/, "")}frame-logo.png`}
+          alt="FRAME"
+          className="w-20 h-20 object-contain"
+          style={{ animation: "frame-logo-pulse 2.4s ease-in-out infinite", opacity: 0.92 }}
+          draggable={false}
+        />
+        <style>{`
+          @keyframes frame-logo-pulse {
+            0%, 100% { opacity: 0.6; transform: scale(0.97); }
+            50% { opacity: 0.95; transform: scale(1.03); }
+          }
+        `}</style>
       </div>
 
       <div className="mt-10 text-center space-y-2 relative">
