@@ -47,7 +47,15 @@ function buildPhases(b: Breath): Phase[] {
     .map((k) => ({ key: k, label: PHASE_LABELS[k], seconds: secs[k], scale: PHASE_SCALE[k] }));
 }
 
-export function BreathCard({ breath }: { breath: Breath }) {
+export function BreathCard({
+  breath,
+  embedded,
+  onComplete,
+}: {
+  breath: Breath;
+  embedded?: boolean;
+  onComplete?: () => void;
+}) {
   const phases = buildPhases(breath);
   const totalRounds = Math.max(1, Math.min(20, clampSec(breath.rounds, 5) || 5));
 
@@ -108,21 +116,19 @@ export function BreathCard({ breath }: { breath: Breath }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
 
+  useEffect(() => {
+    if (done) onComplete?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done]);
+
   if (phases.length === 0) return null;
 
   const current = phases[Math.min(phaseIdx, phases.length - 1)]!;
   const scale = running || done ? current.scale : 0.62;
   const transitionSec = running ? current.seconds : 0.4;
 
-  return (
-    <div className="my-4 border border-primary/30 bg-primary/5">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-primary/20 bg-primary/10">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-primary/80">
-          Regulate
-        </div>
-        <div className="font-mono text-[10px] text-primary/60">BREATH</div>
-      </div>
-
+  const inner = (
+    <>
       {breath.title && (
         <div className="px-4 pt-4 pb-1 font-mono text-sm text-foreground tracking-wide uppercase">
           {breath.title}
@@ -222,6 +228,20 @@ export function BreathCard({ breath }: { breath: Breath }) {
           {breath.note}
         </div>
       )}
+    </>
+  );
+
+  if (embedded) return inner;
+
+  return (
+    <div className="my-4 border border-primary/30 bg-primary/5">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-primary/20 bg-primary/10">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-primary/80">
+          Regulate
+        </div>
+        <div className="font-mono text-[10px] text-primary/60">BREATH</div>
+      </div>
+      {inner}
     </div>
   );
 }

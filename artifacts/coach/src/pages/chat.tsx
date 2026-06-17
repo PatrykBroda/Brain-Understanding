@@ -19,7 +19,7 @@ const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   { label: "Build drill", prompt: "Prescribe me a drill for my biggest current weakness. Use the drill block." },
   { label: "Fix my game", prompt: "Diagnose the recurring leak in my game right now and tell me the protocol to close it." },
   { label: "Competition prep", prompt: "Walk me through how to prepare my nervous system and tactics for an upcoming competition." },
-  { label: "Regulate", prompt: "I need to regulate right now. Read my likely nervous system state from my recent history, then give me: (1) a guided breathing protocol in the breath block, (2) a somatic grounding exercise I can do immediately, and (3) one tactical adjustment for the next round or session." },
+  { label: "Regulate", prompt: "I need to regulate right now. Produce a regulate block." },
   { label: "Reflect", prompt: "Ask me one sharp question to surface what I'm not seeing about my training this week." },
 ];
 

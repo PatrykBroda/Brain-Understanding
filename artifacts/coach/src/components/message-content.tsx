@@ -1,15 +1,17 @@
 import { createContext, useContext, useState } from "react";
 import { DrillCard, type Drill } from "./drill-card";
 import { BreathCard, type Breath } from "./breath-card";
+import { RegulateSequence, type RegulateSequenceData } from "./regulate-sequence";
 import { GLOSSARY, GLOSSARY_KEYS, type GlossEntry } from "@/lib/glossary";
 
 type Segment =
   | { kind: "text"; text: string }
   | { kind: "drill"; drill: Drill; raw: string }
-  | { kind: "breath"; breath: Breath; raw: string };
+  | { kind: "breath"; breath: Breath; raw: string }
+  | { kind: "regulate"; regulate: RegulateSequenceData; raw: string };
 
-// Fenced blocks the UI renders as interactive cards (```drill / ```breath).
-const BLOCK_RE = /```(drill|breath)\s*\n([\s\S]*?)\n?```/g;
+// Fenced blocks the UI renders as interactive cards.
+const BLOCK_RE = /```(drill|breath|regulate)\s*\n([\s\S]*?)\n?```/g;
 
 function segment(content: string): Segment[] {
   const out: Segment[] = [];
@@ -20,11 +22,12 @@ function segment(content: string): Segment[] {
     if (m.index > last) {
       out.push({ kind: "text", text: content.slice(last, m.index) });
     }
-    const kind = m[1] as "drill" | "breath";
+    const kind = m[1] as "drill" | "breath" | "regulate";
     const raw = m[2] ?? "";
     try {
       const parsed = JSON.parse(raw);
       if (kind === "drill") out.push({ kind: "drill", drill: parsed as Drill, raw });
+      else if (kind === "regulate") out.push({ kind: "regulate", regulate: parsed as RegulateSequenceData, raw });
       else out.push({ kind: "breath", breath: parsed as Breath, raw });
     } catch {
       // not valid yet (mid-stream) — render as code-ish placeholder text
@@ -210,6 +213,9 @@ export function MessageContent({
           }
           if (s.kind === "breath") {
             return <BreathCard key={i} breath={s.breath} />;
+          }
+          if (s.kind === "regulate") {
+            return <RegulateSequence key={i} data={s.regulate} />;
           }
           return <DrillCard key={i} drill={s.drill} />;
         })}
