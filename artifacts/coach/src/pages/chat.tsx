@@ -89,14 +89,35 @@ export default function ChatPage() {
 
   useAutoWelcome();
 
-  const [entryActive, setEntryActive] = useState(true);
+  // EntrySequence is a first-ever-entry experience: show once, never repeat.
+  // Backed by localStorage so it survives same-day reopens and re-navigation.
+  // Must NOT reset on navigation — that is the root of the repeat-loading bug.
+  const [entryActive, setEntryActive] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem("frame:chat-entry-seen");
+    } catch {
+      return false; // storage blocked — skip
+    }
+  });
+
+  // Mark seen on first mount so navigating away mid-sequence also suppresses
+  // future replays (the sequence's auto-dismiss will still finish normally).
+  useEffect(() => {
+    if (entryActive) {
+      try {
+        localStorage.setItem("frame:chat-entry-seen", "1");
+      } catch {}
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [drafts, setDrafts] = useState<AttachmentDto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Only reset drafts when the fighter changes — do NOT reset entryActive.
   useEffect(() => {
-    setEntryActive(true);
     setDrafts([]);
   }, [fighter?.id]);
 
