@@ -1,0 +1,351 @@
+The Real Problem
+
+Currently FRAME is still behaving like:
+
+User
+ ↓
+Chat
+ ↓
+Response
+
+But the vision you're describing is:
+
+Athlete
+ ↓
+FRAME Model
+ ↓
+Coach
+ ↓
+Calendar
+ ↓
+Competition
+ ↓
+Performance System
+
+The chat should become a small part of the experience.
+
+1. Athlete State Engine
+
+Right now FRAME reacts.
+
+Instead FRAME should maintain a live state.
+
+Example:
+
+Athlete State
+
+Competition: 42 days
+
+Motivation: High
+
+Consistency: Declining
+
+Training Load: Moderate
+
+Recovery: Good
+
+Primary Weakness:
+Guard Recovery
+
+Every response comes from that.
+
+2. Adaptive Friction Scaling 2.0
+
+Current idea:
+
+More serious user
+=
+More pressure
+
+Good.
+
+But not enough.
+
+FRAME should classify:
+
+Explorer
+
+Needs:
+
+curiosity
+education
+encouragement
+Builder
+
+Needs:
+
+structure
+consistency
+Competitor
+
+Needs:
+
+accountability
+pressure
+Performer
+
+Needs:
+
+refinement
+
+Same AI.
+
+Different coach.
+
+3. The Daily Mission System
+
+Instead of:
+
+What can I help with?
+
+FRAME should open with:
+
+TODAY'S MISSION
+
+Primary:
+Guard Retention
+
+Secondary:
+Hip Mobility
+
+Estimated Time:
+18 Minutes
+
+Competition:
+42 Days Away
+
+Now the user enters a mission.
+
+Not a conversation.
+
+4. The Portal Concept
+
+This is where your logo becomes important.
+
+You said:
+
+Octagon + Spiral Portal
+
+Use it.
+
+The orb becomes:
+
+The Athlete Model
+
+Not decoration.
+
+Imagine:
+
+Home Screen
+
+Orb in center.
+
+The orb changes based on:
+
+Consistency
+Confidence
+Training
+Competition
+
+Low engagement:
+
+Dark.
+
+Collapsed.
+
+High engagement:
+
+Brighter.
+
+More connected.
+
+More alive.
+
+The athlete sees their evolution.
+
+5. The Spirit Animal System
+
+This can become powerful.
+
+Not personality quiz nonsense.
+
+Actual coaching archetypes.
+
+Example:
+
+Raven
+
+Strengths:
+
+Analysis
+Strategy
+
+Weakness:
+
+Overthinking
+Wolf
+
+Strengths:
+
+Consistency
+Endurance
+
+Weakness:
+
+Predictability
+Panther
+
+Strengths:
+
+Timing
+Pressure
+
+Weakness:
+
+Volume
+
+FRAME identifies:
+
+Primary Archetype
+
+Current Archetype
+
+Target Archetype
+6. Conversation Memory Upgrade
+
+Your current issue:
+
+User returns 5 hours later.
+
+FRAME continues random conversation.
+
+Feels broken.
+
+Instead:
+
+Return after 5 hours:
+
+Welcome Back.
+
+Last Focus:
+Guard Recovery
+
+Progress Since:
+None Logged
+
+Continue Mission?
+
+Return after 24 hours:
+
+New Day.
+
+Mission Refresh Ready.
+
+Return after 3 days:
+
+You haven't trained in 3 days.
+
+Adjust goals or recommit?
+7. The Footage Analyzer Needs To Feel Elite
+
+Current AI analyzers:
+
+Video
+↓
+Chat
+↓
+Feedback
+
+Boring.
+
+FRAME:
+
+MATCH REVIEW
+
+Video left.
+
+Insights right.
+
+Heat maps.
+
+Timeline.
+
+Mistake frequency.
+
+Patterns.
+
+Example:
+
+Guard Retention
+72%
+
+Pass Prevention
+61%
+
+Submission Threat
+43%
+
+Energy Management
+84%
+
+Now it feels like athlete intelligence software.
+
+8. Dynamic Terminology
+
+You already noticed this.
+
+FRAME should know:
+
+White Belt
+Keep your elbow tight.
+Purple Belt
+Protect inside position.
+Black Belt
+Maintain upper body connection while denying hip access.
+
+Same lesson.
+
+Different language.
+
+9. The Daily Briefing
+
+Replace the loading screen entirely.
+
+Instead:
+
+FRAME BRIEFING
+
+Competition:
+42 Days
+
+Focus:
+Guard Retention
+
+Training Load:
+Moderate
+
+Quote:
+THE SYSTEM YOU BUILD
+IS THE SYSTEM
+THAT TESTS YOU.
+
+Once every 24 hours.
+
+Not every launch.
+
+10. The Biggest Upgrade
+
+Right now FRAME feels like:
+
+AI Coach
+
+It should become:
+
+Athlete Operating System
+
+The user should feel:
+
+observed
+calibrated
+challenged
+guided
