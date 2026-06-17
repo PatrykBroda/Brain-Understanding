@@ -173,3 +173,80 @@ export function beltKeyOf(level: string): BeltKey | null {
 export function beltMeaning(key: string): BeltMeaning | null {
   return BELT_PSYCHOLOGY.find((b) => b.key === key) ?? null;
 }
+
+// Coaching mode — the posture FRAME takes toward an athlete. Same system,
+// different coach. Derived deterministically from REAL data only (a scheduled
+// competition, recorded experience level, the size of the accumulated model) —
+// never from mood or fabricated metrics. One source of truth so the server
+// prompt and the client UI describe the mode identically.
+export type CoachingModeKey = "explorer" | "builder" | "competitor" | "performer";
+
+export type CoachingMode = {
+  key: CoachingModeKey;
+  label: string;
+  // Short UI tagline.
+  focus: string;
+  // One line: what this athlete needs from the coach right now.
+  needs: string;
+  // Prompt directive injected into the coach's dynamic context.
+  directive: string;
+};
+
+export const COACHING_MODES = {
+  explorer: {
+    key: "explorer",
+    label: "Explorer",
+    focus: "Curiosity + literacy",
+    needs: "Education, clear reasons, earned encouragement — not hard friction yet.",
+    directive:
+      "This athlete is in EXPLORER mode — early in the journey, still building the base. They need curiosity, clean education, and earned encouragement more than pressure. Teach the why. One concept at a time. Acknowledge accurate reps without flattery. Keep the friction floor LOW: stabilise and build literacy before you push. Do not withhold the answer to make them earn it yet — they're learning the language.",
+  },
+  builder: {
+    key: "builder",
+    label: "Builder",
+    focus: "Structure + consistency",
+    needs: "Repeatable systems and accountability to the plan, not novelty.",
+    directive:
+      "This athlete is in BUILDER mode — consistent, accumulating a real base. They need STRUCTURE and consistency above all. Give repeatable systems, hold them to the plan, connect today's work to the through-line. Friction sits in the MIDDLE: push on consistency and follow-through, not on novelty. Reinforce what is holding before adding complexity.",
+  },
+  competitor: {
+    key: "competitor",
+    label: "Competitor",
+    focus: "Accountability + pressure",
+    needs: "Pressure that mirrors the event — sharpen, hold the standard, no new doubt.",
+    directive:
+      "This athlete is in COMPETITOR mode — a live competition is scheduled. They need accountability and pressure that mirrors the event. Sharpen what already exists; do not introduce new doubt or rebuild fundamentals this close. Raise the friction FLOOR — this is not the place to coddle — but protect the frame: never crack the foundation in a peak week.",
+  },
+  performer: {
+    key: "performer",
+    label: "Performer",
+    focus: "Refinement + edges",
+    needs: "The subtle correction and the edge case — make them earn the depth.",
+    directive:
+      "This athlete is in PERFORMER mode — advanced, the base is built. They need REFINEMENT, not fundamentals. Go to the subtle correction, the edge case, the 2% that separates levels. Raise the friction CEILING: withhold the comfortable answer, hand the work back, make them earn the depth. Treat them as a peer who wants to be sharpened.",
+  },
+} as const satisfies Record<CoachingModeKey, CoachingMode>;
+
+function experienceTier(level: string): "advanced" | "intermediate" | "beginner" {
+  const l = level.toLowerCase();
+  if (/black|brown|advanced|elite|\bpro\b|professional|expert/.test(l)) return "advanced";
+  if (/purple|blue|intermediate|competitor/.test(l)) return "intermediate";
+  return "beginner";
+}
+
+// First match wins, all signals are real:
+//   1. a competition is scheduled        → Competitor
+//   2. advanced experience               → Performer
+//   3. intermediate OR a built-up model  → Builder
+//   4. otherwise                         → Explorer
+export function computeCoachingMode(input: {
+  hasActiveCompetition: boolean;
+  level: string;
+  modelSize: number;
+}): CoachingMode {
+  if (input.hasActiveCompetition) return COACHING_MODES.competitor;
+  const tier = experienceTier(input.level);
+  if (tier === "advanced") return COACHING_MODES.performer;
+  if (tier === "intermediate" || input.modelSize >= 8) return COACHING_MODES.builder;
+  return COACHING_MODES.explorer;
+}

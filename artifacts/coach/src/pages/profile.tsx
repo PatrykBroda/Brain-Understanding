@@ -6,6 +6,7 @@ import { useMemory } from "@/hooks/use-memory";
 import { BottomNav } from "@/components/bottom-nav";
 import { Belt } from "@/components/belt";
 import { ProfileEdit } from "@/components/profile-edit";
+import { AthleteStatePanel } from "@/components/athlete-state-panel";
 import { sportLabel } from "@/lib/fighter-options";
 import { getArchetype } from "@workspace/archetypes";
 import { Link } from "wouter";
@@ -229,6 +230,11 @@ export default function ProfilePage() {
                     </div>
                   );
                 })()}
+
+                {/* ATHLETE STATE — honest, real-signal-only snapshot */}
+                <div className="mb-5">
+                  <AthleteStatePanel fighter={fighter} facts={facts} />
+                </div>
 
                 {/* FRAME RANK — prestige rank dashboard */}
                 <div

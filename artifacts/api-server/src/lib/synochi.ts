@@ -1,7 +1,7 @@
 import { SYNOCHI_VAULT } from "./synochi.generated";
 import type { RetrievedNode } from "./vaultRetrieval";
 import type { Fighter, Calibration, AthleteFact } from "@workspace/db";
-import { getArchetype } from "@workspace/archetypes";
+import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
 
 export const COACH_SYSTEM_PROMPT_STATIC = `You are FRAME.
 
@@ -391,6 +391,15 @@ export function buildDynamicContext(
     ? `\n\nThis athlete's primary combat sport is ${sportLabel(fighter.primarySport)}. FRAME is one nervous-system-under-pressure framework that applies across all combat sports — adapt your technical language, positions, and examples to ${sportLabel(fighter.primarySport)} (its ranges, stances, scoring, and failure modes) rather than defaulting to BJJ. The mechanisms (axis control, directional compression, threat sensitivity, breathing under load, fragmentation under pressure) are universal; the expression is sport-specific.`
     : "";
 
+  // Coaching mode — same system, different coach. Derived from real data only
+  // (scheduled competition, recorded level, model size). Sets the friction posture.
+  const mode = computeCoachingMode({
+    hasActiveCompetition: competitionBlock != null,
+    level: fighter.level,
+    modelSize: facts.length,
+  });
+  const coachingModeBlock = `\n\n# Coaching mode — ${mode.label}\n\n${mode.directive} This is a derived posture, not a label to announce — never tell the athlete "you're in Builder mode." It sets how hard you push and what you prioritise, layered on top of (not replacing) adaptive friction scaling and the competition tier.`;
+
   const grouped = groupFacts(facts);
   const factsBlock =
     facts.length === 0
@@ -424,7 +433,7 @@ export function buildDynamicContext(
 
   return `# Athlete profile (baseline)
 
-${profile}${sportBlock}
+${profile}${sportBlock}${coachingModeBlock}
 ${competitionBlock ? `\n${competitionBlock}\n` : ""}
 # Accumulated athlete model (working memory — treat as evidence, supersede when wrong)
 

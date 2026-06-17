@@ -42,7 +42,14 @@ if (!baseURL || !apiKey) {
 
 const client = new Anthropic({ baseURL, apiKey });
 
-const ENTRY_STALE_MS = 30 * 60 * 1000;
+// Time-aware re-entry tiers (gap since the athlete's last message in the convo):
+//   < 2h         → silent resume (no welcome fires)
+//   2h .. 24h    → returning same day
+//   24h .. 72h   → new day / mission refresh
+//   > 72h        → lapsed / recommit
+const ENTRY_STALE_MS = 2 * 60 * 60 * 1000;
+const NEW_DAY_MS = 24 * 60 * 60 * 1000;
+const LAPSED_MS = 72 * 60 * 60 * 1000;
 
 const WELCOME_LOCK_NAMESPACE = 7411;
 
@@ -78,7 +85,8 @@ router.post("/coach/welcome", async (req, res) => {
       .orderBy(desc(messagesTable.createdAt))
       .limit(1);
 
-    const isStale = !last || Date.now() - new Date(last.createdAt).getTime() > ENTRY_STALE_MS;
+    const gapMs = last ? Date.now() - new Date(last.createdAt).getTime() : Infinity;
+    const isStale = gapMs >= ENTRY_STALE_MS;
     if (!isStale) {
       res.json({ message: null, reason: "recent activity" });
       return;
@@ -110,10 +118,22 @@ router.post("/coach/welcome", async (req, res) => {
       6,
     );
 
-    const firstContact = facts.length === 0;
-    const entryInstruction = firstContact
-      ? `\n\n[ENTRY BRIEFING MODE — FIRST CONTACT]\nThis is the very first time this athlete has entered the frame. You have almost nothing on them yet — only their onboarding. Do NOT pretend to read them deeply; that would be a lie and they'll feel it.\n- Open with their name in the first 1-3 words.\n- Land ONE sharp, genuinely funny line that reads their archetype from the thin signal you DO have (their art, level, stated goal, their spirit animal "${fighter.spiritAnimal || "unassigned"}"${fighter.spiritAnimalTagline ? ` — ${fighter.spiritAnimalTagline}` : ""}). Dry, earned, specific to them — the kind of read that makes someone laugh because it's a little too accurate. Never generic, never mean, never a pun.\n- Then state plainly that you don't know them yet and the only way you sharpen is reps — every roll they bring you, every honest answer, tightens the read.\n- Offer 2 or 3 concrete first moves (e.g. "tell me your last roll", "name the position you hate", "calibrate where your game actually is").\nVoice: direct, structural, a blade with a sense of humor. No therapist energy. No questions stacked at the end — open the floor. End clean.`
-      : `\n\n[ENTRY BRIEFING MODE]\nThe athlete just opened the frame. Produce a short opening (4-7 sentences, no preamble).\n- Open with their name in the first 1-3 words.\n- Reflect ONE specific signal you actually have on them (from their model, onboarding, or last calibration) so they feel seen.\n- Name where they appear to be right now (fresh, mid-cycle, deload, post-comp, etc. — only assert what you actually have evidence for; otherwise name the gap).\n- Offer 2 or 3 concrete entry points for this session (e.g. "debrief last roll", "tighten the half-guard pass", "regulate before tomorrow").\n- A single line of dry, earned banter about their archetype is permitted ONLY if you have a specific archetype signal. No generic motivation. No therapist energy. No questions back at the end — just open the floor.\nVoice: direct, structural, performance-grounded. End cleanly without sign-off.`;
+    // First contact is keyed on real conversation history, not fact count — a
+    // returning athlete with sparse facts has still been here before, and the
+    // tier branches below handle sparse-model wording honestly.
+    const noHistory = !last;
+    const gapDays = Number.isFinite(gapMs) ? Math.max(1, Math.floor(gapMs / NEW_DAY_MS)) : 0;
+
+    let entryInstruction: string;
+    if (noHistory) {
+      entryInstruction = `\n\n[ENTRY BRIEFING MODE — FIRST CONTACT]\nThis is the very first time this athlete has entered the frame. You have almost nothing on them yet — only their onboarding. Do NOT pretend to read them deeply; that would be a lie and they'll feel it.\n- Open with their name in the first 1-3 words.\n- Land ONE sharp, genuinely funny line that reads their archetype from the thin signal you DO have (their art, level, stated goal, their spirit animal "${fighter.spiritAnimal || "unassigned"}"${fighter.spiritAnimalTagline ? ` — ${fighter.spiritAnimalTagline}` : ""}). Dry, earned, specific to them — the kind of read that makes someone laugh because it's a little too accurate. Never generic, never mean, never a pun.\n- Then state plainly that you don't know them yet and the only way you sharpen is reps — every roll they bring you, every honest answer, tightens the read.\n- Offer 2 or 3 concrete first moves (e.g. "tell me your last roll", "name the position you hate", "calibrate where your game actually is").\nVoice: direct, structural, a blade with a sense of humor. No therapist energy. No questions stacked at the end — open the floor. End clean.`;
+    } else if (gapMs > LAPSED_MS) {
+      entryInstruction = `\n\n[ENTRY BRIEFING MODE — LAPSED ${gapDays} DAYS]\nThe athlete has been away from the frame for ${gapDays} days. This is a recommit moment — handle it with weight, not guilt.\n- Open with their name. Name the gap plainly and ACCURATELY: it has been ${gapDays} days since they were last in the frame. CRITICAL: this is time since their last contact HERE — you do NOT know whether they trained, rested, or were injured. Never say "you haven't trained in ${gapDays} days." Say it like a corner that noticed they've been away, then ask.\n- No shaming, no motivational-poster energy, no "where have you been."\n- Offer a clean recommit: pick the thread back up on their last recorded focus (name it from the model if you can see it), OR reset goals if the layoff may have changed things. One question max, then open the floor.\nVoice: grounded, direct, a little heavier. End clean.`;
+    } else if (gapMs >= NEW_DAY_MS) {
+      entryInstruction = `\n\n[ENTRY BRIEFING MODE — NEW DAY]\nA new training day — the athlete hasn't been in the frame since yesterday or before. Short opening (4-6 sentences, no preamble).\n- Open with their name. Mark the reset honestly ("new day").\n- Reflect ONE specific signal from their recorded model so they feel tracked, then point forward to today's work — the mission refresh.\n- Offer 2 or 3 concrete entry points (debrief the last session, sharpen their named weakness, regulate, build today's drill).\n- Do NOT fabricate metrics, training logs, or "progress since." Only reference what is actually in the model.\nVoice: clean, forward, structural. End cleanly without sign-off.`;
+    } else {
+      entryInstruction = `\n\n[ENTRY BRIEFING MODE — RETURNING SAME DAY]\nThe athlete stepped away and came back within the day. Short re-entry (3-6 sentences, no preamble).\n- Open with their name, picking the thread straight back up (continuity, not a fresh greeting).\n- Name their last recorded focus from the model (the most recent weakness/goal/pattern you can see) so the thread is unbroken. If you genuinely can't see a last focus, say you're picking up where you left off and ask what they want to move.\n- Offer 2 concrete continuations of that focus.\n- Do NOT fabricate "progress since" — you don't track training logs. Reference only what's actually in the model.\nVoice: direct, continuous, no preamble. End clean.`;
+    }
 
     const activeComp = await getActiveCompetition(fighter.id);
     const compBlock = activeComp
