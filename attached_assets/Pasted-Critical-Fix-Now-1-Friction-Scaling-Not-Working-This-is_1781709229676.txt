@@ -1,0 +1,320 @@
+Critical (Fix Now)
+1. Friction Scaling Not Working
+
+This is core product differentiation.
+
+If the AI treats:
+
+14 year old beginner
+35 year old hobbyist
+Active competitor
+
+the same way, the system loses credibility.
+
+FRAME should adapt:
+
+Age
+Experience
+Training frequency
+Competition goals
+Consistency
+
+and change:
+
+language
+pressure
+expectations
+challenge level
+2. User Ability Vocabulary Scaling
+
+If a white belt gets:
+
+proprioceptive retention mechanics
+
+they're gone.
+
+Need layered language.
+
+Example:
+
+Beginner:
+
+Keep your elbows tight and protect space.
+
+Advanced:
+
+Focus on maintaining inside position and controlling the hip line.
+
+Same lesson.
+
+Different delivery.
+
+3. Keyword Library
+
+Massive opportunity.
+
+Every highlighted term should open:
+
+Definition
+Why it matters
+Common mistakes
+Video example
+Related concepts
+
+Not just dictionary definitions.
+
+Think:
+
+FRAME Knowledge Base
+
+not glossary.
+
+4. Unknown Word Handling
+
+Never allow:
+
+I don't understand
+
+responses.
+
+Instead:
+
+I don't recognize that term.
+
+Did you mean:
+
+• De La Riva
+• Deep Half
+• Dogfight Position
+
+or
+
+Tell me what it means and I'll learn it.
+Important
+5. Athlete Profile Too Long
+
+Agree.
+
+Current feeling:
+
+Form
+Form
+Form
+Form
+Form
+
+Instead:
+
+Step 1
+Age
+Weight
+Gender
+Step 2
+Experience
+Gym
+Belt
+Step 3
+Goals
+Competition plans
+
+Progressive disclosure.
+
+6. Competition Countdown Wording
+
+Current:
+
+Harry's competition is 42 days away
+
+Should become:
+
+Competition in 42 days
+
+or
+
+42 Days Until Competition
+
+More athlete-centric.
+
+7. Bullet Points > Paragraphs
+
+Especially for combat athletes.
+
+Instead of:
+
+You should focus on guard retention because...
+
+Use:
+
+Today's Focus
+
+• Guard retention
+• Hip mobility
+• Frame recovery
+
+Why:
+
+• Passed 4 times last session
+• Recovery speed decreasing
+
+Much easier to scan.
+
+8. Calendar
+
+I like this.
+
+Not a generic planner.
+
+A coaching calendar.
+
+Example:
+
+Monday
+Training
+
+Wednesday
+Open Mat
+
+Saturday
+Competition
+
+Then AI asks:
+
+Can you train Tuesday?
+
+and adjusts automatically.
+
+Higher-Level UX Fixes
+9. Slideshow Once Every 24 Hours
+
+Good.
+
+Otherwise it becomes banner blindness.
+
+Treat it like:
+
+Daily Briefing
+
+not a carousel.
+
+10. Conversation Re-Entry Logic
+
+Current issue:
+
+User returns hours later.
+
+AI acts like conversation never stopped.
+
+Feels weird.
+
+Suggested:
+
+Under 2 Hours
+
+Resume.
+
+2-24 Hours
+
+Show:
+
+Welcome back.
+
+Last focus:
+Guard retention.
+
+Anything changed since then?
+Over 24 Hours
+
+Fresh session.
+
+Show:
+
+Daily Check-In
+
+How did training go?
+10 Second Countdown
+
+I wouldn't do a visible countdown.
+
+Feels artificial.
+
+Instead:
+
+Welcome back.
+
+Still working on this?
+
+If ignored:
+
+Quick check-in:
+Any training completed today?
+
+Much cleaner.
+
+Interesting Differentiators
+11. Nudge System
+
+Potentially powerful.
+
+Not punishment.
+
+Behavior shaping.
+
+Example:
+
+User repeatedly ignores goals.
+
+FRAME:
+
+You've postponed this 4 times.
+
+Want to reduce the target or commit to it?
+
+Phone vibration could support this.
+
+But keep it rare.
+
+Otherwise users disable notifications.
+
+12. Profile Photo → Spirit Animal
+
+This is actually on-brand.
+
+Profile:
+
+Photo
+↓
+Swipe
+↓
+Spirit Animal
+
+Could show:
+
+Primary Animal
+Current Phase
+Strengths
+Weaknesses
+
+Example:
+
+Raven
+
+Pattern Recognition: High
+Consistency: Moderate
+Pressure Tolerance: High
+
+Fits the FRAME identity well if the spirit animals are tied to coaching archetypes rather than being a gimmick.
+
+Highest Priority Order
+Friction scaling
+Ability-based language adaptation
+Conversation re-entry logic
+Keyword library
+Calendar system
+Athlete profile simplification
+Bullet-point response formatting
+Competition countdown wording
+Daily briefing slideshow
+Nudge system
+Spirit animal profile integration
+
+The first four are where FRAME starts feeling like a genuine adaptive coaching system rather than a chatbot with training knowledge. That's where the biggest product value lives.
