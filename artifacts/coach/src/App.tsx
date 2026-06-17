@@ -15,6 +15,7 @@ import PlannerPage from "@/pages/planner";
 import AnalysePage from "@/pages/analyse";
 import CompetitionPage from "@/pages/competition";
 import SplashPage from "@/pages/splash";
+import DailyBriefingPage from "@/pages/daily-briefing";
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
 import PublicLandingPage from "@/pages/landing";
@@ -118,11 +119,21 @@ function SplashGate({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
   useEffect(() => {
     try {
-      if (sessionStorage.getItem("frame:splash-seen") !== "1") {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const introSeen = localStorage.getItem("frame:intro-seen");
+      const lastVisit = localStorage.getItem("frame:last-visit-date");
+      // Always stamp today so same-day re-opens are detected correctly
+      localStorage.setItem("frame:last-visit-date", todayStr);
+      if (!introSeen) {
+        // First ever launch — show cinematic intro (sets intro-seen + last-visit on exit)
         setLocation("/splash", { replace: true });
+      } else if (lastVisit !== todayStr) {
+        // Returning after at least one calendar day — show daily briefing
+        setLocation("/daily-briefing", { replace: true });
       }
+      // Same-day return: fall through to home with no interruption
     } catch {
-      // sessionStorage blocked — skip splash, fall through to home
+      // storage blocked — skip both screens
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -284,6 +295,11 @@ function AppRoutes() {
             <Route path="/splash">
               <Authed>
                 <SplashPage />
+              </Authed>
+            </Route>
+            <Route path="/daily-briefing">
+              <Authed>
+                <DailyBriefingPage />
               </Authed>
             </Route>
             <Route path="/" component={HomeRoute} />

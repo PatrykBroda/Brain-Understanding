@@ -21,16 +21,17 @@ export default function SplashPage() {
     if (leaving) return;
     setLeaving(true);
     try {
-      sessionStorage.setItem("frame:splash-seen", "1");
+      const today = new Date().toISOString().slice(0, 10);
+      localStorage.setItem("frame:intro-seen", "1");
+      localStorage.setItem("frame:last-visit-date", today);
     } catch {
-      // sessionStorage can be disabled — ignore
+      // storage blocked — ignore
     }
-    // Let the fade-out play before navigating
     window.setTimeout(() => setLocation("/"), 420);
   };
 
   useEffect(() => {
-    const t = window.setTimeout(exit, 4500);
+    const t = window.setTimeout(exit, 2500);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
