@@ -19,6 +19,7 @@ Multi-user via Replit-managed Clerk (email+password + Google/Apple/GitHub SSO). 
 - DB: PostgreSQL + Drizzle ORM
 - Frontend: React + Vite + Tailwind 4 + wouter + TanStack Query
 - Streaming: raw SSE (no Orval codegen — SSE can't be generated)
+- Installable PWA (coach): `vite-plugin-pwa` (Workbox) — FRAME manifest + icons (`public/{pwa-192,pwa-512,maskable-512,apple-touch-icon}.png`, dark `#0a0a0a`), iOS metas in `index.html`. Production-only (`devOptions.enabled:false`); SW `navigateFallbackDenylist` excludes `/api`, `/mobile`, `/healthz` (shared origin). See `.agents/memory/pwa-sw-shared-origin.md`.
 
 ## Where things live
 
