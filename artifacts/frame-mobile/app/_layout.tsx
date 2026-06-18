@@ -85,6 +85,13 @@ function RootLayoutNav() {
             presentation: "modal",
           }}
         />
+        <Stack.Screen
+          name="competition"
+          options={{
+            animation: "slide_from_bottom",
+            presentation: "modal",
+          }}
+        />
       </Stack>
     </FighterProvider>
   );

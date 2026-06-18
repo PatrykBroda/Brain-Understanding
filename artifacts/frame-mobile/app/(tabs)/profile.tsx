@@ -178,6 +178,21 @@ export default function ProfileScreen() {
         </View>
       )}
 
+      {/* Competition mode */}
+      <Pressable
+        style={({ pressed }) => [styles.linkRow, pressed && { borderColor: "#C9883A" }]}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push("/competition");
+        }}
+      >
+        <View style={styles.linkLeft}>
+          <Feather name="target" size={16} color="#C9883A" />
+          <Text style={styles.linkLabel}>COMPETITION MODE</Text>
+        </View>
+        <Feather name="chevron-right" size={16} color="#666" />
+      </Pressable>
+
       {/* Athlete model */}
       <Text style={styles.sectionHeader}>ATHLETE MODEL</Text>
 
@@ -321,6 +336,28 @@ const styles = StyleSheet.create({
     color: "#444",
     marginBottom: 12,
     marginTop: 4,
+  },
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#0a0a0a",
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 24,
+  },
+  linkLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  linkLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 3,
+    color: "#e0e0e0",
   },
   factGroup: {
     marginBottom: 16,

@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { FrameOrb } from "@/components/FrameOrb";
+import { CompetitionBanner } from "@/components/CompetitionBanner";
 import { apiGet } from "@/lib/api";
 
 interface Fact {
@@ -83,6 +84,8 @@ export default function HomeScreen() {
           <Feather name="user" size={20} color="#666" />
         </Pressable>
       </View>
+
+      <CompetitionBanner />
 
       {/* Orb + state */}
       <View style={styles.center}>

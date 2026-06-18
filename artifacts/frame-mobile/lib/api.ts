@@ -61,6 +61,16 @@ export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export async function apiDelete<T>(path: string): Promise<T> {
+  const headers = await authHeaders();
+  const res = await fetch(`${_base}${path}`, { method: "DELETE", headers });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
 export type SSEChunk =
   | { content: string; done?: never; error?: never }
   | { done: true; content?: never; error?: never }

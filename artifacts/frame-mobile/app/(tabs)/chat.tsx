@@ -17,6 +17,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { apiStream } from "@/lib/api";
 import { useFighter } from "@/context/FighterContext";
+import { MessageContent } from "@/components/MessageContent";
+import { CompetitionBanner } from "@/components/CompetitionBanner";
 
 interface Message {
   id: string;
@@ -39,15 +41,23 @@ const QUICK_ACTIONS = [
   "Reflect",
 ];
 
-function MessageBubble({ msg }: { msg: Message }) {
+function MessageBubble({
+  msg,
+  onTrain,
+}: {
+  msg: Message;
+  onTrain: (prompt: string) => void;
+}) {
   const isUser = msg.role === "user";
   return (
     <View style={[mb.row, isUser ? mb.userRow : mb.assistantRow]}>
       {!isUser && <View style={mb.dot} />}
       <View style={[mb.bubble, isUser ? mb.userBubble : mb.assistantBubble]}>
-        <Text style={[mb.text, isUser ? mb.userText : mb.assistantText]}>
-          {msg.content}
-        </Text>
+        {isUser ? (
+          <Text style={[mb.text, mb.userText]}>{msg.content}</Text>
+        ) : (
+          <MessageContent content={msg.content} onTrain={onTrain} />
+        )}
       </View>
     </View>
   );
@@ -81,6 +91,7 @@ const mb = StyleSheet.create({
     borderColor: "#2a2a2a",
   },
   assistantBubble: {
+    maxWidth: "94%",
     backgroundColor: "#0a0a0a",
     borderWidth: 1,
     borderColor: "#1a1a1a",
@@ -209,11 +220,13 @@ export default function ChatScreen() {
         </View>
       </View>
 
+      <CompetitionBanner />
+
       {/* Messages */}
       <FlatList
         data={reversed}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <MessageBubble msg={item} />}
+        renderItem={({ item }) => <MessageBubble msg={item} onTrain={handleSend} />}
         inverted={messages.length > 0}
         ListHeaderComponent={showTyping ? <TypingIndicator /> : null}
         keyboardDismissMode="interactive"
