@@ -80,7 +80,8 @@ export default function ProfileScreen() {
     refetch: refetchFacts,
   } = useQuery<Fact[]>({
     queryKey: ["memory"],
-    queryFn: () => apiGet<Fact[]>("/memory"),
+    queryFn: () =>
+      apiGet<{ facts: Fact[]; count: number }>("/memory").then((r) => r.facts ?? []),
     enabled: !!isSignedIn,
     staleTime: 30_000,
   });
@@ -142,8 +143,8 @@ export default function ProfileScreen() {
             {fighter.primarySport && (
               <Text style={styles.metaTag}>{fighter.primarySport.toUpperCase()}</Text>
             )}
-            {fighter.beltLevel && (
-              <Text style={styles.metaTag}>{fighter.beltLevel.toUpperCase()}</Text>
+            {fighter.level && (
+              <Text style={styles.metaTag}>{fighter.level.toUpperCase()}</Text>
             )}
             {fighter.age != null && (
               <Text style={styles.metaTag}>{fighter.age} YRS</Text>

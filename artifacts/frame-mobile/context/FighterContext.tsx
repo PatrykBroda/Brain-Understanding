@@ -14,14 +14,18 @@ export interface Fighter {
   name: string;
   age: number | null;
   dateOfBirth: string | null;
+  art: string | null;
+  primarySport: string | null;
+  level: string | null;
+  trainingFrequency: string | null;
   heightCm: number | null;
   weightKg: number | null;
   gym: string | null;
-  primarySport: string | null;
-  beltLevel: string | null;
   personality: string | null;
   goals: string | null;
   weaknesses: string | null;
+  spiritAnimal: string | null;
+  spiritAnimalTagline: string | null;
   archetype: string | null;
   vocabularyLevel: number | null;
   createdAt: string;
@@ -49,7 +53,8 @@ export function FighterProvider({ children }: { children: ReactNode }) {
     queryKey: ["fighter"],
     queryFn: async () => {
       try {
-        return await apiGet<Fighter>("/fighter");
+        const resp = await apiGet<{ fighter: Fighter | null }>("/fighter");
+        return resp.fighter ?? null;
       } catch (e: unknown) {
         const msg = (e as Error).message ?? "";
         if (msg.includes("404") || msg.includes("not found")) return null;

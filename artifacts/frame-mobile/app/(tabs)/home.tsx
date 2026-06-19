@@ -62,7 +62,8 @@ export default function HomeScreen() {
 
   const { data: facts = [] } = useQuery<Fact[]>({
     queryKey: ["facts"],
-    queryFn: () => apiGet<Fact[]>("/memory"),
+    queryFn: () =>
+      apiGet<{ facts: Fact[]; count: number }>("/memory").then((r) => r.facts ?? []),
     enabled: !!isSignedIn,
     staleTime: 60_000,
   });

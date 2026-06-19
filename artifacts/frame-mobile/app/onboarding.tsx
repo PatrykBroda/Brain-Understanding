@@ -147,8 +147,10 @@ export default function OnboardingScreen() {
       await apiPost("/fighter", {
         name: name.trim(),
         dateOfBirth: dobDate,
+        art: sport,
         primarySport: sport,
-        beltLevel: belt,
+        level: belt,
+        trainingFrequency: freq,
         goals: goals.trim() || null,
         weaknesses: weaknesses.trim() || null,
         personality: `Training ${freq} per week. Sport: ${sport}. Belt: ${belt}.`,
