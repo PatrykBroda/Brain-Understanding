@@ -1,4 +1,5 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api";
+export { toIso } from "@/lib/dateUtils";
 
 export type Competition = {
   id: number;

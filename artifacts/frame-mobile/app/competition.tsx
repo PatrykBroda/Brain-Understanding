@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { toIso } from "@/lib/dateUtils";
 import { competitionApi, type Competition, type PressureTier } from "@/lib/competition";
 import { useActiveCompetition, useCompetitionList } from "@/hooks/useCompetition";
 
@@ -37,22 +38,6 @@ function fmtDate(iso: string): string {
   } catch {
     return iso;
   }
-}
-
-function toIso(dateStr: string): string | null {
-  const raw = dateStr.trim();
-  // Accept strict YYYY-MM-DD (optionally with a THH:MM time) only — avoids
-  // ambiguous cross-engine Date parsing of free-form strings.
-  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?$/.exec(raw);
-  if (!m) return null;
-  const [, y, mo, da, hh, mm] = m;
-  const d = new Date(
-    Date.UTC(Number(y), Number(mo) - 1, Number(da), Number(hh ?? 0), Number(mm ?? 0)),
-  );
-  if (Number.isNaN(d.getTime())) return null;
-  // Reject overflowed components (e.g. 2026-13-40).
-  if (d.getUTCMonth() !== Number(mo) - 1 || d.getUTCDate() !== Number(da)) return null;
-  return d.toISOString();
 }
 
 export default function CompetitionScreen() {
