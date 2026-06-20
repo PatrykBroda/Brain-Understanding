@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/clerk-expo";
 import * as Haptics from "expo-haptics";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -15,7 +15,7 @@ import {
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { apiStream } from "@/lib/api";
+import { apiGet, apiStream } from "@/lib/api";
 import { useFighter } from "@/context/FighterContext";
 import { MessageContent } from "@/components/MessageContent";
 import { CompetitionBanner } from "@/components/CompetitionBanner";
@@ -118,6 +118,11 @@ function TypingIndicator() {
   );
 }
 
+interface ConversationResponse {
+  conversation: { id: number } | null;
+  messages: Array<{ id: number; role: string; content: string }>;
+}
+
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const { fighter } = useFighter();
@@ -127,13 +132,44 @@ export default function ChatScreen() {
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [showTyping, setShowTyping] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const inputRef = useRef<TextInput>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;
 
+  useEffect(() => {
+    if (!isSignedIn) {
+      setIsLoadingHistory(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingHistory(true);
+    apiGet<ConversationResponse>("/conversation/active")
+      .then((data) => {
+        if (cancelled) return;
+        const loaded: Message[] = data.messages
+          .filter((m) => m.role === "user" || m.role === "assistant")
+          .map((m) => ({
+            id: String(m.id),
+            role: m.role as "user" | "assistant",
+            content: m.content,
+          }));
+        setMessages(loaded);
+      })
+      .catch(() => {
+        // history unavailable — start fresh, no error shown
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingHistory(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignedIn]);
+
   async function handleSend(text: string) {
-    if (!text.trim() || isStreaming || !isSignedIn) return;
+    if (!text.trim() || isStreaming || !isSignedIn || isLoadingHistory) return;
 
     const trimmed = text.trim();
     setInput("");
@@ -223,25 +259,31 @@ export default function ChatScreen() {
       <CompetitionBanner />
 
       {/* Messages */}
-      <FlatList
-        data={reversed}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <MessageBubble msg={item} onTrain={handleSend} />}
-        inverted={messages.length > 0}
-        ListHeaderComponent={showTyping ? <TypingIndicator /> : null}
-        keyboardDismissMode="interactive"
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>FRAME</Text>
-            <Text style={styles.emptyText}>Your performance intelligence system is ready.</Text>
-          </View>
-        }
-      />
+      {isLoadingHistory ? (
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="small" color="#C9883A" />
+        </View>
+      ) : (
+        <FlatList
+          data={reversed}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <MessageBubble msg={item} onTrain={handleSend} />}
+          inverted={messages.length > 0}
+          ListHeaderComponent={showTyping ? <TypingIndicator /> : null}
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>FRAME</Text>
+              <Text style={styles.emptyText}>Your performance intelligence system is ready.</Text>
+            </View>
+          }
+        />
+      )}
 
       {/* Quick actions */}
-      {messages.length === 0 && (
+      {!isLoadingHistory && messages.length === 0 && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -277,14 +319,14 @@ export default function ChatScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.sendBtn,
-            (!input.trim() || isStreaming) && styles.sendBtnDisabled,
-            pressed && input.trim() && !isStreaming && styles.sendBtnPressed,
+            (!input.trim() || isStreaming || isLoadingHistory) && styles.sendBtnDisabled,
+            pressed && input.trim() && !isStreaming && !isLoadingHistory && styles.sendBtnPressed,
           ]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             handleSend(input);
           }}
-          disabled={!input.trim() || isStreaming}
+          disabled={!input.trim() || isStreaming || isLoadingHistory}
         >
           {isStreaming ? (
             <ActivityIndicator size="small" color="#666" />
@@ -412,5 +454,10 @@ const styles = StyleSheet.create({
   },
   sendBtnPressed: {
     opacity: 0.85,
+  },
+  loadingState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
