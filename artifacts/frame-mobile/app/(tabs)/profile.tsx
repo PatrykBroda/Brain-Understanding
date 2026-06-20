@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import React from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useFighter } from "@/context/FighterContext";
 import { apiGet } from "@/lib/api";
+import { ProfileEditModal } from "@/components/ProfileEditModal";
 
 interface Fact {
   id: number;
@@ -70,6 +71,7 @@ export default function ProfileScreen() {
   const { fighter, isLoading: fighterLoading, refetch } = useFighter();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [editVisible, setEditVisible] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;
@@ -130,10 +132,32 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>PROFILE</Text>
-        <Pressable onPress={() => router.push("/analyse")} hitSlop={12}>
-          <Feather name="film" size={20} color="#666" />
-        </Pressable>
+        <View style={styles.headerActions}>
+          {fighter && (
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setEditVisible(true);
+              }}
+              hitSlop={12}
+              style={styles.editBtn}
+            >
+              <Text style={styles.editBtnText}>EDIT</Text>
+            </Pressable>
+          )}
+          <Pressable onPress={() => router.push("/analyse")} hitSlop={12}>
+            <Feather name="film" size={20} color="#666" />
+          </Pressable>
+        </View>
       </View>
+
+      {fighter && (
+        <ProfileEditModal
+          fighter={fighter}
+          visible={editVisible}
+          onClose={() => setEditVisible(false)}
+        />
+      )}
 
       {/* Fighter info */}
       {fighter ? (
@@ -256,6 +280,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 5,
     color: "#e0e0e0",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  editBtn: {
+    borderWidth: 1,
+    borderColor: "#C9883A",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  editBtnText: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 3,
+    color: "#C9883A",
   },
   card: {
     backgroundColor: "#0a0a0a",
