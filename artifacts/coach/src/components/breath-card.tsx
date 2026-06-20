@@ -1,51 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef } from "react";
+import {
+  buildPhases,
+  clampSec,
+  makeBreathReducer,
+  makeInitialBreathState,
+  type Breath,
+} from "../lib/breathReducer";
 
-export type Breath = {
-  title?: string;
-  purpose?: string;
-  inhale?: number;
-  holdIn?: number;
-  exhale?: number;
-  holdOut?: number;
-  rounds?: number;
-  note?: string;
-};
-
-type PhaseKey = "inhale" | "holdIn" | "exhale" | "holdOut";
-type Phase = { key: PhaseKey; label: string; seconds: number; scale: number };
-
-const PHASE_LABELS: Record<PhaseKey, string> = {
-  inhale: "Inhale",
-  holdIn: "Hold",
-  exhale: "Exhale",
-  holdOut: "Hold",
-};
-
-// Octagon scale per phase: expanded while air is in, contracted while empty.
-const PHASE_SCALE: Record<PhaseKey, number> = {
-  inhale: 1,
-  holdIn: 1,
-  exhale: 0.62,
-  holdOut: 0.62,
-};
-
-function clampSec(v: number | undefined, fallback: number): number {
-  if (typeof v !== "number" || Number.isNaN(v)) return fallback;
-  return Math.max(0, Math.min(30, Math.round(v)));
-}
-
-function buildPhases(b: Breath): Phase[] {
-  const order: PhaseKey[] = ["inhale", "holdIn", "exhale", "holdOut"];
-  const secs: Record<PhaseKey, number> = {
-    inhale: clampSec(b.inhale, 4),
-    holdIn: clampSec(b.holdIn, 0),
-    exhale: clampSec(b.exhale, 4),
-    holdOut: clampSec(b.holdOut, 0),
-  };
-  return order
-    .filter((k) => secs[k] > 0)
-    .map((k) => ({ key: k, label: PHASE_LABELS[k], seconds: secs[k], scale: PHASE_SCALE[k] }));
-}
+export type { Breath };
 
 export function BreathCard({
   breath,
@@ -59,11 +21,10 @@ export function BreathCard({
   const phases = buildPhases(breath);
   const totalRounds = Math.max(1, Math.min(20, clampSec(breath.rounds, 5) || 5));
 
-  const [running, setRunning] = useState(false);
-  const [phaseIdx, setPhaseIdx] = useState(0);
-  const [remaining, setRemaining] = useState(phases[0]?.seconds ?? 0);
-  const [round, setRound] = useState(1);
-  const [done, setDone] = useState(false);
+  const reducer = makeBreathReducer(phases, totalRounds);
+  const [state, dispatch] = useReducer(reducer, makeInitialBreathState(phases));
+  const { running, phaseIdx, remaining, round, done } = state;
+
   const timer = useRef<number | null>(null);
 
   const clearTimer = () => {
@@ -73,47 +34,17 @@ export function BreathCard({
     }
   };
 
-  const reset = () => {
-    clearTimer();
-    setRunning(false);
-    setDone(false);
-    setPhaseIdx(0);
-    setRound(1);
-    setRemaining(phases[0]?.seconds ?? 0);
-  };
-
   useEffect(() => () => clearTimer(), []);
 
   useEffect(() => {
-    if (!running) return;
+    if (!running) {
+      clearTimer();
+      return;
+    }
     timer.current = window.setInterval(() => {
-      setRemaining((r) => {
-        if (r > 1) return r - 1;
-        // advance phase / round
-        setPhaseIdx((pi) => {
-          const nextPi = pi + 1;
-          if (nextPi < phases.length) {
-            setRemaining(phases[nextPi]!.seconds);
-            return nextPi;
-          }
-          // wrap to next round
-          setRound((rd) => {
-            if (rd >= totalRounds) {
-              clearTimer();
-              setRunning(false);
-              setDone(true);
-              return rd;
-            }
-            setRemaining(phases[0]!.seconds);
-            return rd + 1;
-          });
-          return nextPi < phases.length ? nextPi : 0;
-        });
-        return r;
-      });
+      dispatch({ type: "TICK" });
     }, 1000);
     return clearTimer;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
 
   useEffect(() => {
@@ -171,7 +102,7 @@ export function BreathCard({
           {!running && !done && (
             <button
               type="button"
-              onClick={() => setRunning(true)}
+              onClick={() => dispatch({ type: "BEGIN" })}
               className="px-5 py-2 border border-primary/50 font-mono text-[10px] uppercase tracking-[0.25em] text-primary hover:bg-primary/10 transition-colors"
             >
               Begin
@@ -180,10 +111,7 @@ export function BreathCard({
           {running && (
             <button
               type="button"
-              onClick={() => {
-                clearTimer();
-                setRunning(false);
-              }}
+              onClick={() => dispatch({ type: "PAUSE" })}
               className="px-5 py-2 border border-border/60 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/80 hover:border-primary/40 transition-colors"
             >
               Pause
@@ -192,7 +120,7 @@ export function BreathCard({
           {!running && (phaseIdx > 0 || round > 1 || done) && (
             <button
               type="button"
-              onClick={reset}
+              onClick={() => dispatch({ type: "RESET" })}
               className="px-5 py-2 border border-border/60 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/80 hover:border-primary/40 transition-colors"
             >
               Reset
@@ -201,7 +129,7 @@ export function BreathCard({
           {!running && phaseIdx > 0 && !done && (
             <button
               type="button"
-              onClick={() => setRunning(true)}
+              onClick={() => dispatch({ type: "BEGIN" })}
               className="px-5 py-2 border border-primary/50 font-mono text-[10px] uppercase tracking-[0.25em] text-primary hover:bg-primary/10 transition-colors"
             >
               Resume

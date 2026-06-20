@@ -5,6 +5,7 @@ export default defineConfig({
     include: [
       "artifacts/frame-mobile/__tests__/**/*.test.ts",
       "artifacts/api-server/src/__tests__/**/*.test.ts",
+      "artifacts/coach/__tests__/**/*.test.ts",
     ],
     env: {
       AI_INTEGRATIONS_ANTHROPIC_BASE_URL: "https://mock.example.com",
