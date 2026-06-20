@@ -60,15 +60,20 @@ export default function HomeScreen() {
   const router = useRouter();
   const { isSignedIn } = useAuth();
 
-  const { data: facts = [] } = useQuery<Fact[]>({
+  const { data: rawFacts } = useQuery<Fact[]>({
     queryKey: ["facts"],
     queryFn: () =>
-      apiGet<{ facts: Fact[]; count: number }>("/memory").then((r) => r.facts ?? []),
+      apiGet<{ facts: Fact[]; count: number }>("/memory").then((r) => {
+        const f = r?.facts;
+        return Array.isArray(f) ? f : [];
+      }),
     enabled: !!isSignedIn,
     staleTime: 60_000,
   });
 
-  const { state, source } = useMemo(() => deriveState(facts as Fact[]), [facts]);
+  const facts: Fact[] = Array.isArray(rawFacts) ? rawFacts : [];
+
+  const { state, source } = useMemo(() => deriveState(facts), [facts]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 

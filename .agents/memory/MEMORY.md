@@ -8,3 +8,5 @@
 - [Clerk proxy URL — runtime computation](clerk-proxy-url-fix.md) — never use VITE_CLERK_PROXY_URL (build-time); compute from window.location at runtime or proxy is undefined in prod → third-party cookies blocked → 401.
 - [Clerk 429 on published sign-up](clerk-prod-rate-limit.md) — "Too many requests" on the live app = deploy still on dev/test keys hitting strict caps; not a code bug, fix = re-publish for live keys, don't bump @clerk or edit keys.
 - [SSE coach-chat resilience](sse-chat-resilience.md) — a stream that closes without a `{done:true}` sentinel is a FAILURE; client needs an inactivity watchdog; server persists partial replies so retry-dedup can't safely auto-delete them.
+- [Mobile smoke tests](mobile-smoke-tests.md) — 4 Playwright tests in e2e/mobile-smoke.spec.ts; auth via @clerk/testing ticket strategy; test 2 is API-only (POST /fighter); rebuild dist + restart workflow after mobile code changes before running.
+- [frame-mobile e.filter crash](frame-mobile-efilter-crash.md) — useQuery data default (= []) doesn't guard against null from TanStack Query; use Array.isArray(rawFacts) ? rawFacts : [] after destructuring.

@@ -7,10 +7,15 @@
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:mobile-smoke": "playwright test e2e/mobile-smoke.spec.ts"
   },
   "private": true,
   "devDependencies": {
+    "@clerk/testing": "^2.1.4",
+    "@playwright/test": "^1.61.0",
+    "@types/pg": "^8.20.0",
+    "pg": "^8.20.0",
     "prettier": "^3.8.3",
     "typescript": "~5.9.3",
     "vitest": "^4.1.9"

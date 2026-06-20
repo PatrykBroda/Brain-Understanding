@@ -77,18 +77,22 @@ export default function ProfileScreen() {
   const bottomPad = Platform.OS === "web" ? 34 : 0;
 
   const {
-    data: facts = [],
+    data: rawFacts,
     isLoading: factsLoading,
     refetch: refetchFacts,
   } = useQuery<Fact[]>({
     queryKey: ["memory"],
     queryFn: () =>
-      apiGet<{ facts: Fact[]; count: number }>("/memory").then((r) => r.facts ?? []),
+      apiGet<{ facts: Fact[]; count: number }>("/memory").then((r) => {
+        const f = r?.facts;
+        return Array.isArray(f) ? f : [];
+      }),
     enabled: !!isSignedIn,
     staleTime: 30_000,
   });
 
-  const activeFacts = (facts as Fact[]).filter((f) => f.status === "active");
+  const facts: Fact[] = Array.isArray(rawFacts) ? rawFacts : [];
+  const activeFacts = facts.filter((f) => f.status === "active");
 
   const grouped = CATEGORY_ORDER.reduce<Record<string, Fact[]>>((acc, cat) => {
     const items = activeFacts.filter((f) => f.category === cat);
