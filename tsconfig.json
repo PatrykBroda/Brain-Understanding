@@ -10,6 +10,9 @@
       "path": "./lib/archetypes"
     },
     {
+      "path": "./lib/breath"
+    },
+    {
       "path": "./lib/api-client-react"
     },
     {

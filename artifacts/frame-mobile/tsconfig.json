@@ -19,6 +19,9 @@
   ],
   "references": [
     {
+      "path": "../../lib/breath"
+    },
+    {
       "path": "../../lib/api-client-react"
     }
   ]
