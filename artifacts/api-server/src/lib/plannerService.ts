@@ -72,7 +72,7 @@ type RawItem = {
 };
 type RawPlan = { rationale?: unknown; items?: unknown };
 
-function validateAndNormalise(
+export function validateAndNormalise(
   raw: RawPlan,
   validFactIds: Set<number>,
   validCalibrationKeys: Set<string>,

@@ -95,7 +95,7 @@ const REPORT_TOOL: Anthropic.Tool = {
 const EMOJI_RE =
   /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200D}]/gu;
 
-function stripEmoji(s: string): string {
+export function stripEmoji(s: string): string {
   return s.replace(EMOJI_RE, "").replace(/[ \t]{2,}/g, " ").trim();
 }
 
