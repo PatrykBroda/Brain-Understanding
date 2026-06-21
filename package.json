@@ -8,7 +8,8 @@
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "test": "vitest run",
-    "test:mobile-smoke": "bash scripts/run-mobile-smoke.sh"
+    "test:mobile-smoke": "bash scripts/run-mobile-smoke.sh",
+    "test:coach-smoke": "playwright test e2e/coach-smoke.spec.ts"
   },
   "private": true,
   "devDependencies": {
