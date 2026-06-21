@@ -25,3 +25,26 @@ signed-in screens** (home banner, chat message rendering, competition screen) wi
 real credentials — rely on typecheck + code review for those.
 
 **Why:** confirms routing + auth guard work, but is a hard limit on visual QA here.
+
+# post-merge.sh must NOT install Playwright browsers with --with-deps
+
+`pnpm exec playwright install chromium --with-deps` fails in Replit: `--with-deps`
+switches to root and runs apt, which Replit forbids ("you don't need sudo"). It aborts
+post-merge (exit 1), which then blocks every future merge's setup.
+
+**How to apply:** keep `scripts/post-merge.sh` to `pnpm install` + `pnpm --filter db push`.
+Smoke tests resolve Chromium themselves via `scripts/run-mobile-smoke.sh` (bundled-first,
+then a dynamic Nix `/nix/store/*/bin/chromium` glob), so post-merge never needs to install
+a browser.
+
+# Gitignored dist/ goes stale after a merge cascade → serves an old bundle
+
+`artifacts/frame-mobile/dist/` is gitignored (a local build artifact, never committed).
+After parallel task branches merge, the locally-served `dist/` can be an OLD build whose
+JS predates a source fix — the `mobile-smoke` suite then fails against the stale bundle
+(e.g. an already-fixed `e.filter is not a function` crash) even though source is correct.
+
+**How to apply:** if a mobile smoke test fails on a bug the source already fixed, rebuild
+`dist/` (`expo export -p web --output-dir dist`) before assuming a real regression. The
+served bundle hash in the stack trace vs the on-disk `dist/_expo/static/js/web/entry-*.js`
+hash tells you whether it's stale.
