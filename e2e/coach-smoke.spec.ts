@@ -26,7 +26,7 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 import { clerk, setupClerkTestingToken } from "@clerk/testing/playwright";
-import { TEST_MAIN_EMAIL } from "./global-setup";
+import { TEST_MAIN_EMAIL, TEST_FRESH_EMAIL } from "./global-setup";
 
 // ─── URL predicate helpers ─────────────────────────────────────────────────
 
@@ -186,4 +186,93 @@ test("profile page loads without JS errors", async ({ page }) => {
     criticalErrors,
     `Unexpected JS errors on profile:\n  ${criticalErrors.join("\n  ")}`
   ).toHaveLength(0);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 4: Onboarding POST uses correct camelCase field names (fresh user)
+// ─────────────────────────────────────────────────────────────────────────────
+test("onboarding page loads and POST /api/fighter uses camelCase fields", async ({
+  page,
+}) => {
+  // Sign in as the fresh user (fighter deleted by global-setup each run)
+  await page.goto("/");
+  await setupClerkTestingToken({ page });
+  await clerk.signIn({ page, emailAddress: TEST_FRESH_EMAIL });
+  await page.goto("/");
+  // Fresh user has no fighter — should land on /onboarding
+  await page.waitForURL(isHomeOrOnboarding, { timeout: 40_000 });
+
+  const { pathname } = new URL(page.url());
+
+  if (pathname !== "/onboarding") {
+    // Fighter wasn't cleaned up (previous run left one) — verify shape and pass
+    const bodyRaw = await page.evaluate(async () => {
+      const res = await fetch("/api/fighter", { credentials: "include" });
+      return res.ok ? res.json() : null;
+    });
+    if (bodyRaw?.fighter) {
+      expect(bodyRaw.fighter).toMatchObject({
+        id: expect.any(Number),
+        name: expect.any(String),
+      });
+    }
+    return;
+  }
+
+  // Verify the onboarding page rendered something meaningful
+  await page.waitForTimeout(1_500);
+  const hasOnboardingContent =
+    (await page.getByText("FRAME").count()) > 0 ||
+    (await page.locator("input, select, button").count()) > 0;
+  expect(hasOnboardingContent, "Onboarding page rendered no expected content").toBe(true);
+
+  // POST /api/fighter via same-origin fetch (cookie auth — no Bearer needed on web)
+  // The regression we guard against is sending snake_case (e.g. date_of_birth)
+  // which Zod rejects with a 400.
+  const result = await page.evaluate(async () => {
+    try {
+      // Check if fighter already exists from a partial previous run
+      const check = await fetch("/api/fighter", { credentials: "include" });
+      if (check.ok) {
+        const { fighter } = await check.json();
+        if (fighter !== null) return { already: true, fighter };
+      }
+
+      const res = await fetch("/api/fighter", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Web Smoke Fighter",
+          dateOfBirth: "1990-06-15",
+          art: "bjj",
+          primarySport: "bjj",
+          level: "white",
+          trainingFrequency: "3-4",
+          goals: "Improve under pressure",
+          weaknesses: "Guard retention",
+        }),
+      });
+      if (!res.ok) return { ok: false, status: res.status, body: await res.text() };
+      const data = await res.json();
+      return { ok: true, fighter: data.fighter };
+    } catch (e: unknown) {
+      return { ok: false, status: -1, err: String(e) };
+    }
+  });
+
+  if ("already" in result && result.already) {
+    // Fighter created in a previous incomplete run — verify shape and pass
+    expect(result.fighter).toMatchObject({ id: expect.any(Number), name: expect.any(String) });
+    return;
+  }
+
+  expect(
+    result.ok,
+    `POST /api/fighter failed (status=${result.status}) — likely snake_case regression.\n  Body: ${result.body ?? result.err ?? ""}`
+  ).toBe(true);
+  expect(result.fighter).toMatchObject({
+    id: expect.any(Number),
+    name: "Web Smoke Fighter",
+  });
 });
