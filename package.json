@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:api-server": "vitest run artifacts/api-server/src/__tests__/",
     "test:mobile-smoke": "bash scripts/run-mobile-smoke.sh",
-    "test:coach-smoke": "playwright test e2e/coach-smoke.spec.ts"
+    "test:coach-smoke": "bash scripts/run-coach-smoke.sh"
   },
   "private": true,
   "devDependencies": {
