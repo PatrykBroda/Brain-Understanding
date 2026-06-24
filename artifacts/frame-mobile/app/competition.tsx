@@ -130,9 +130,10 @@ export default function CompetitionScreen() {
 
   const cancelMut = useMutation({
     mutationFn: (id: number) => competitionApi.cancel(id),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
       qc.invalidateQueries({ queryKey: ["competition"] });
+      if (editingId === id) resetForm();
     },
   });
 
