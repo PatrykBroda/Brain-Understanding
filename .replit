@@ -22,15 +22,15 @@ args = "test"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "mobile-smoke"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "coach-smoke"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "api-server-tests"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "mobile-smoke"
 
 [[workflows.workflow]]
 name = "test"
@@ -42,17 +42,6 @@ args = "pnpm test"
 
 [workflows.workflow.metadata]
 isValidation = true
-
-[[workflows.workflow]]
-name = "mobile-smoke"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "bash scripts/run-mobile-smoke.sh"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [[workflows.workflow]]
 name = "coach-smoke"
@@ -72,6 +61,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm run test:api-server"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "mobile-smoke"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash scripts/run-mobile-smoke.sh"
 
 [workflows.workflow.metadata]
 isValidation = true
