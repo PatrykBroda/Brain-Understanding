@@ -22,10 +22,6 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         launchOptions: {
-          executablePath:
-            process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ??
-            process.env.CHROMIUM_PATH ??
-            undefined,
           args: ["--no-sandbox", "--disable-setuid-sandbox"],
         },
       },

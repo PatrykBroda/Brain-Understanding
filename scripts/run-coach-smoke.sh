@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Run the coach web-app Playwright smoke suite.
 #
-# Dynamically locates the system Chromium so the path does not depend on a
-# specific Nix store hash (which changes across Nix channel updates).
+# Chromium is managed by Playwright (installed via `pnpm exec playwright install
+# chromium` in post-merge.sh), so no Nix store path discovery is needed.
 #
 # If the API server (port 8080) or the coach frontend (port 21706) are not
 # already listening, they are started in the background and torn down when
@@ -13,19 +13,6 @@
 #   bash scripts/run-coach-smoke.sh          # run all coach smoke tests
 #   bash scripts/run-coach-smoke.sh --headed  # pass-through Playwright flags
 set -euo pipefail
-
-# ── Chromium discovery ────────────────────────────────────────────────────────
-if [ -z "${PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH:-}" ]; then
-  CHROMIUM=$(
-    which chromium 2>/dev/null ||
-    which chromium-browser 2>/dev/null ||
-    ls /nix/store/*/bin/chromium 2>/dev/null | sort | tail -1 ||
-    true
-  )
-  if [ -n "${CHROMIUM:-}" ]; then
-    export PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH="$CHROMIUM"
-  fi
-fi
 
 # ── Port constants (must match artifact.toml) ─────────────────────────────────
 API_PORT=8080

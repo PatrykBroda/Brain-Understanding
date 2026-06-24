@@ -5,6 +5,12 @@ pnpm --filter db push
 
 echo ""
 echo "──────────────────────────────────────────────"
+echo " Installing Playwright Chromium browser…"
+echo "──────────────────────────────────────────────"
+pnpm exec playwright install chromium
+
+echo ""
+echo "──────────────────────────────────────────────"
 echo " Running coach smoke tests…"
 echo "──────────────────────────────────────────────"
 
