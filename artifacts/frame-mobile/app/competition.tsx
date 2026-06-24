@@ -40,6 +40,16 @@ function fmtDate(iso: string): string {
   }
 }
 
+// ISO timestamp -> YYYY-MM-DD for the date TextInputs when prefilling an edit.
+function isoToInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toISOString().slice(0, 10);
+  } catch {
+    return "";
+  }
+}
+
 export default function CompetitionScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -63,38 +73,58 @@ export default function CompetitionScreen() {
   const [targetWeight, setTargetWeight] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  function resetForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setEventName("");
+    setDiscipline("");
+    setEventDate("");
+    setWeighInDate("");
+    setCurrentWeight("");
+    setTargetWeight("");
+    setNotes("");
+    setError(null);
+  }
+
+  function buildInput() {
+    const iso = toIso(eventDate);
+    if (!iso) throw new Error("Enter a valid event date (YYYY-MM-DD)");
+    const weighIso = weighInDate.trim() ? toIso(weighInDate) : null;
+    if (weighInDate.trim() && !weighIso) throw new Error("Weigh-in date is invalid");
+    return {
+      eventName: eventName.trim(),
+      discipline: discipline.trim(),
+      eventDate: iso,
+      weighInDate: weighIso,
+      currentWeight: currentWeight.trim(),
+      targetWeight: targetWeight.trim(),
+      notes: notes.trim(),
+    };
+  }
 
   const createMut = useMutation({
-    mutationFn: () => {
-      const iso = toIso(eventDate);
-      if (!iso) throw new Error("Enter a valid event date (YYYY-MM-DD)");
-      const weighIso = weighInDate.trim() ? toIso(weighInDate) : null;
-      if (weighInDate.trim() && !weighIso) throw new Error("Weigh-in date is invalid");
-      return competitionApi.create({
-        eventName: eventName.trim(),
-        discipline: discipline.trim(),
-        eventDate: iso,
-        weighInDate: weighIso,
-        currentWeight: currentWeight.trim(),
-        targetWeight: targetWeight.trim(),
-        notes: notes.trim(),
-      });
-    },
+    mutationFn: () => competitionApi.create(buildInput()),
     onSuccess: () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       qc.invalidateQueries({ queryKey: ["competition"] });
-      setShowForm(false);
-      setEventName("");
-      setDiscipline("");
-      setEventDate("");
-      setWeighInDate("");
-      setCurrentWeight("");
-      setTargetWeight("");
-      setNotes("");
-      setError(null);
+      resetForm();
     },
     onError: (e: unknown) => {
       setError(e instanceof Error ? e.message : "Could not schedule competition");
+    },
+  });
+
+  const updateMut = useMutation({
+    mutationFn: (id: number) => competitionApi.update(id, buildInput()),
+    onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      qc.invalidateQueries({ queryKey: ["competition"] });
+      resetForm();
+    },
+    onError: (e: unknown) => {
+      setError(e instanceof Error ? e.message : "Could not update competition");
     },
   });
 
@@ -106,13 +136,33 @@ export default function CompetitionScreen() {
     },
   });
 
+  function beginEdit(c: Competition) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setEditingId(c.id);
+    setEventName(c.eventName ?? "");
+    setDiscipline(c.discipline ?? "");
+    setEventDate(isoToInput(c.eventDate));
+    setWeighInDate(isoToInput(c.weighInDate));
+    setCurrentWeight(c.currentWeight ?? "");
+    setTargetWeight(c.targetWeight ?? "");
+    setNotes(c.notes ?? "");
+    setError(null);
+    setShowForm(true);
+  }
+
+  const saving = createMut.isPending || updateMut.isPending;
+
   function submit() {
     if (!eventName.trim()) {
       setError("Event name is required");
       return;
     }
     setError(null);
-    createMut.mutate();
+    if (editingId != null) {
+      updateMut.mutate(editingId);
+    } else {
+      createMut.mutate();
+    }
   }
 
   const activeComps = competitions.filter((c) => c.status === "active");
@@ -142,6 +192,7 @@ export default function CompetitionScreen() {
           <ActiveCard
             pressure={pressure}
             onCancel={() => cancelMut.mutate(pressure.competition.id)}
+            onEdit={() => beginEdit(pressure.competition)}
             cancelling={cancelMut.isPending}
           />
         ) : (
@@ -169,7 +220,9 @@ export default function CompetitionScreen() {
 
         {showForm && (
           <View style={styles.form}>
-            <Text style={styles.formTitle}>NEW COMPETITION</Text>
+            <Text style={styles.formTitle}>
+              {editingId != null ? "EDIT COMPETITION" : "NEW COMPETITION"}
+            </Text>
 
             <Field label="EVENT NAME">
               <TextInput
@@ -252,24 +305,20 @@ export default function CompetitionScreen() {
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <View style={styles.formActions}>
-              <Pressable
-                style={styles.cancelBtn}
-                onPress={() => {
-                  setShowForm(false);
-                  setError(null);
-                }}
-              >
+              <Pressable style={styles.cancelBtn} onPress={resetForm}>
                 <Text style={styles.cancelText}>CANCEL</Text>
               </Pressable>
               <Pressable
-                style={[styles.submitBtn, createMut.isPending && { opacity: 0.6 }]}
+                style={[styles.submitBtn, saving && { opacity: 0.6 }]}
                 onPress={submit}
-                disabled={createMut.isPending}
+                disabled={saving}
               >
-                {createMut.isPending ? (
+                {saving ? (
                   <ActivityIndicator size="small" color="#050505" />
                 ) : (
-                  <Text style={styles.submitText}>SCHEDULE</Text>
+                  <Text style={styles.submitText}>
+                    {editingId != null ? "UPDATE" : "SCHEDULE"}
+                  </Text>
                 )}
               </Pressable>
             </View>
@@ -286,6 +335,7 @@ export default function CompetitionScreen() {
                   key={c.id}
                   comp={c}
                   onCancel={() => cancelMut.mutate(c.id)}
+                  onEdit={() => beginEdit(c)}
                   cancelling={cancelMut.isPending}
                 />
               ))}
@@ -317,10 +367,12 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function ActiveCard({
   pressure,
   onCancel,
+  onEdit,
   cancelling,
 }: {
   pressure: NonNullable<ReturnType<typeof useActiveCompetition>["data"]>["pressure"];
   onCancel: () => void;
+  onEdit: () => void;
   cancelling: boolean;
 }) {
   if (!pressure) return null;
@@ -362,15 +414,17 @@ function ActiveCard({
 
       {c.notes ? <Text style={styles.notes}>{c.notes}</Text> : null}
 
-      <Pressable
-        style={styles.cancelComp}
-        onPress={onCancel}
-        disabled={cancelling}
-      >
-        <Text style={styles.cancelCompText}>
-          {cancelling ? "CANCELLING…" : "CANCEL COMPETITION"}
-        </Text>
-      </Pressable>
+      <View style={styles.activeActions}>
+        <Pressable style={styles.editComp} onPress={onEdit} hitSlop={6}>
+          <Feather name="edit-2" size={11} color="#C9883A" />
+          <Text style={styles.editCompText}>EDIT</Text>
+        </Pressable>
+        <Pressable style={styles.cancelComp} onPress={onCancel} disabled={cancelling}>
+          <Text style={styles.cancelCompText}>
+            {cancelling ? "CANCELLING…" : "CANCEL COMPETITION"}
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -387,11 +441,13 @@ function Meta({ label, value }: { label: string; value: string }) {
 function CompRow({
   comp,
   onCancel,
+  onEdit,
   cancelling,
   past,
 }: {
   comp: Competition;
   onCancel?: () => void;
+  onEdit?: () => void;
   cancelling?: boolean;
   past?: boolean;
 }) {
@@ -401,10 +457,19 @@ function CompRow({
         <Text style={[styles.compRowName, past && { color: "#666" }]}>{comp.eventName}</Text>
         <Text style={styles.compRowDate}>{fmtDate(comp.eventDate)}</Text>
       </View>
-      {!past && onCancel ? (
-        <Pressable onPress={onCancel} disabled={cancelling} hitSlop={8}>
-          <Feather name="x" size={16} color="#666" />
-        </Pressable>
+      {!past ? (
+        <View style={styles.compRowActions}>
+          {onEdit ? (
+            <Pressable onPress={onEdit} hitSlop={8}>
+              <Feather name="edit-2" size={14} color="#777" />
+            </Pressable>
+          ) : null}
+          {onCancel ? (
+            <Pressable onPress={onCancel} disabled={cancelling} hitSlop={8}>
+              <Feather name="x" size={16} color="#666" />
+            </Pressable>
+          ) : null}
+        </View>
       ) : (
         <Text style={styles.compStatus}>{comp.status.toUpperCase()}</Text>
       )}
@@ -535,8 +600,24 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#1a1a1a",
   },
-  cancelComp: {
+  activeActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 20,
     marginTop: 18,
+  },
+  editComp: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  editCompText: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 2,
+    color: "#C9883A",
+  },
+  cancelComp: {
     alignSelf: "flex-start",
   },
   cancelCompText: {
@@ -544,6 +625,11 @@ const styles = StyleSheet.create({
     fontSize: 9,
     letterSpacing: 2,
     color: "#6a3a35",
+  },
+  compRowActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
   },
   scheduleBtn: {
     flexDirection: "row",

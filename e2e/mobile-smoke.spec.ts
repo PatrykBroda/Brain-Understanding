@@ -173,6 +173,17 @@ test("competition CRUD — POST → GET → DELETE", async ({ page }) => {
   const found = (competitions as Array<{ id: number }>).find((c) => c.id === compId);
   expect(found).toBeTruthy();
 
+  // PATCH: Edit the competition (rename + new date) and verify it persists
+  const editedName = `${eventName}-edited`;
+  const patchRes = await page.request.patch(`/api/competition/${compId}`, {
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    data: { eventName: editedName, eventDate: "2026-12-20T10:00:00.000Z" },
+  });
+  expect(patchRes.ok(), `PATCH /api/competition/${compId} failed: ${patchRes.status()}`).toBe(true);
+  const { competition: updated } = await patchRes.json();
+  expect(updated).toMatchObject({ id: compId, eventName: editedName });
+  expect(new Date(updated.eventDate).toISOString()).toBe("2026-12-20T10:00:00.000Z");
+
   // DELETE (soft-cancel)
   const cancelRes = await page.request.delete(`/api/competition/${compId}`, {
     headers: { Authorization: `Bearer ${token}` },
