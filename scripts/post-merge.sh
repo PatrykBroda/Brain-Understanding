@@ -3,11 +3,10 @@ set -e
 pnpm install --frozen-lockfile
 pnpm --filter db push
 
-echo ""
-echo "──────────────────────────────────────────────"
-echo " Installing Playwright Chromium browser…"
-echo "──────────────────────────────────────────────"
-pnpm exec playwright install chromium
+# NOTE: Do NOT run `playwright install chromium` here. The bundled
+# chrome-headless-shell crashes on launch in this container (missing system
+# libs; `--with-deps` needs root and is forbidden). playwright.config.ts
+# auto-discovers the Nix-provided system Chromium instead.
 
 echo ""
 echo "──────────────────────────────────────────────"

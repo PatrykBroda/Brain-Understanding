@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Run the coach web-app Playwright smoke suite.
 #
-# Chromium is managed by Playwright (installed via `pnpm exec playwright install
-# chromium` in post-merge.sh), so no Nix store path discovery is needed.
+# Chromium is auto-discovered by playwright.config.ts (Nix-provided system
+# Chromium, with PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH / CHROMIUM_PATH override).
+# Do NOT use Playwright's bundled chrome-headless-shell — it crashes on launch
+# in this container (missing system libs; --with-deps is forbidden).
 #
 # If the API server (port 8080) or the coach frontend (port 21706) are not
 # already listening, they are started in the background and torn down when
