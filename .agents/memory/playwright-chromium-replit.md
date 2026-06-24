@@ -19,12 +19,12 @@ the newest `/nix/store/*-chromium-*/bin/chromium`). Keep `--no-sandbox
   system shared libs that only `--with-deps` would install.
 - Removing the `executablePath` override from `playwright.config.ts`.
 
-**Why:** Three separate task agents each "fixed" Chromium discovery by switching
-to the bundled browser or `--with-deps`, and each one broke every smoke test.
-The bundled browser cannot run here; the Nix Chromium ships with its libraries
-wired up. Auto-discovery (glob newest `-chromium-` store path) is the durable
-form — it survives Nix store-hash bumps, which was the legitimate goal behind
-those breaking changes.
+**Why:** Repeated attempts to "fix" Chromium discovery by switching to the
+bundled browser or `--with-deps` each broke every smoke test. The bundled
+browser cannot run here; the Nix Chromium ships with its libraries wired up.
+Auto-discovery (glob newest `-chromium-` store path) is the durable form — it
+survives Nix store-hash bumps, which is the legitimate goal those breaking
+changes were chasing.
 
 **How to apply:** Put the browser resolution in `playwright.config.ts` (not just
 the shell scripts), so it holds even when a future merge rewrites
