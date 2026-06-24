@@ -146,7 +146,7 @@ test("onboarding completes for fresh user", async ({ page }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Test 3: Competition CRUD round-trips
 // ─────────────────────────────────────────────────────────────────────────────
-test("competition CRUD — POST → GET → DELETE", async ({ page }) => {
+test("competition CRUD — POST → GET → PATCH → DELETE", async ({ page }) => {
   await signIn(page, TEST_MAIN_EMAIL);
   await page.waitForURL(/\/home/, { timeout: 5_000 });
 
