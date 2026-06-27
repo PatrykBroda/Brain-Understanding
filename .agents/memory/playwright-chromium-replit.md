@@ -31,3 +31,14 @@ the shell scripts), so it holds even when a future merge rewrites
 `post-merge.sh`. If smoke tests suddenly fail every test with a launch/closed
 error, this is the cause — check whether something reintroduced the bundled
 browser.
+
+**Never gate the production deployment build with e2e/Playwright tests.** An
+artifact's production `build` (and its `postbuild` hook, which pnpm runs
+automatically) executes in the Cloud Run build sandbox, which has NO Nix system
+Chromium and NO system libs — Playwright falls back to its bundled
+`chrome-headless-shell` and dies with `libglib-2.0.so.0: cannot open shared
+object file`, failing the whole publish even though every artifact built fine.
+e2e smoke tests belong in the merge gate (`post-merge.sh`) and as validation
+commands, never in an artifact's `postbuild`. Fast browser-less unit tests in
+`postbuild` are tolerable, but the principle holds: the production build should
+build, not run test suites.
