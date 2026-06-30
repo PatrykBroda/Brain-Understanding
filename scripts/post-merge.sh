@@ -10,35 +10,63 @@ pnpm --filter db push
 
 echo ""
 echo "──────────────────────────────────────────────"
-echo " Running coach smoke tests…"
+echo " Running coach and mobile smoke tests in parallel…"
 echo "──────────────────────────────────────────────"
+echo " Logs → /tmp/post-merge-coach.log  /tmp/post-merge-mobile.log"
+echo ""
+
+COACH_LOG=/tmp/post-merge-coach.log
+MOBILE_LOG=/tmp/post-merge-mobile.log
 
 set +e
-bash scripts/run-coach-smoke.sh
-COACH_EXIT=$?
+
+bash scripts/run-coach-smoke.sh  >"$COACH_LOG"  2>&1 &
+COACH_PID=$!
+
+bash scripts/run-mobile-smoke.sh >"$MOBILE_LOG" 2>&1 &
+MOBILE_PID=$!
+
+# Wait for both suites and collect exit codes independently.
+wait "$COACH_PID";  COACH_EXIT=$?
+wait "$MOBILE_PID"; MOBILE_EXIT=$?
+
 set -e
 
-if [ $COACH_EXIT -ne 0 ]; then
-  echo ""
-  echo "✗ Coach smoke tests FAILED (exit $COACH_EXIT) — see output above for details."
-  exit $COACH_EXIT
-fi
+echo "──────────────────────────────────────────────"
+echo " Coach smoke output"
+echo "──────────────────────────────────────────────"
+cat "$COACH_LOG"
 
 echo ""
 echo "──────────────────────────────────────────────"
-echo " Running mobile smoke tests…"
+echo " Mobile smoke output"
+echo "──────────────────────────────────────────────"
+cat "$MOBILE_LOG"
+
+echo ""
+echo "──────────────────────────────────────────────"
+echo " Results"
 echo "──────────────────────────────────────────────"
 
-set +e
-bash scripts/run-mobile-smoke.sh
-SMOKE_EXIT=$?
-set -e
+OVERALL=0
 
-if [ $SMOKE_EXIT -eq 0 ]; then
-  echo ""
-  echo "✓ Smoke tests passed."
+if [ $COACH_EXIT -eq 0 ]; then
+  echo "✓ Coach smoke tests passed."
 else
-  echo ""
-  echo "✗ Mobile smoke tests FAILED (exit $SMOKE_EXIT) — see output above for details."
-  exit $SMOKE_EXIT
+  echo "✗ Coach smoke tests FAILED (exit $COACH_EXIT) — see output above."
+  OVERALL=$COACH_EXIT
 fi
+
+if [ $MOBILE_EXIT -eq 0 ]; then
+  echo "✓ Mobile smoke tests passed."
+else
+  echo "✗ Mobile smoke tests FAILED (exit $MOBILE_EXIT) — see output above."
+  OVERALL=$MOBILE_EXIT
+fi
+
+if [ $OVERALL -eq 0 ]; then
+  echo ""
+  echo "✓ All smoke tests passed."
+fi
+
+exit $OVERALL
