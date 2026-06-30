@@ -1,0 +1,327 @@
+FRAME — Athlete Model v2
+Core Philosophy
+
+FRAME is not measuring the athlete.
+
+FRAME is measuring its own confidence in understanding the athlete.
+
+That's a huge distinction.
+
+Instead of:
+
+Understanding: 18%
+
+The UI should subtly communicate:
+
+FRAME Confidence
+Learning your game
+
+The percentage is about the model, not the user.
+
+That feels much more intelligent.
+
+Athlete Model
+Understanding Your Game
+
+FRAME Confidence
+
+████████░░░░░░░░░░
+
+18%
+
+FRAME is still building an accurate model of how you perform,
+adapt and recover.
+
+The better it understands your game,
+the more precise its coaching becomes.
+
+Notice the wording.
+
+Not
+
+"FRAME is still learning about you."
+
+But
+
+"FRAME is still building an accurate model."
+
+Much more premium.
+
+Dynamic Knowledge Gaps
+
+Instead of
+
+Help FRAME understand...
+
+I'd make it feel more like calibration.
+
+Next Calibration Areas
+
+• Competition behaviour
+• Defensive reactions
+• Recovery patterns
+
+or
+
+Lowest Confidence
+
+Competition Behaviour
+
+Recovery Under Fatigue
+
+Bottom Game
+
+It feels like the AI has actually analysed itself.
+
+Each opens chat.
+
+Instead of
+
+Help FRAME understand my competition habits...
+
+FRAME opens with:
+
+One area where my understanding is still weak is your competition behaviour.
+
+I'll ask a few focused questions.
+
+Answer naturally—I'm looking for patterns, not perfect answers.
+
+That sounds way smarter.
+
+The Questions Should Feel Like Coaching
+
+Bad
+
+How often do you compete?
+
+Good
+
+Walk me through the morning of a competition.
+
+What changes compared to a normal training day?
+
+Then
+
+What's usually the first thing you notice once adrenaline kicks in?
+
+Then
+
+When performances go badly, what's normally responsible?
+
+Then
+
+When you're at your best, what's different?
+
+Now the AI learns psychology instead of collecting survey answers.
+
+Fight Readiness
+
+I LOVE this feature.
+
+But I wouldn't say
+
+Unlocks at 25%.
+
+I'd say
+
+Fight Readiness
+
+Calibrating
+
+Reliable readiness requires
+a deeper understanding
+of your game.
+
+Current confidence
+
+18%
+
+Required
+
+25%
+
+Subtle difference.
+
+We're protecting quality.
+
+Not locking features.
+
+Better Home Screen
+
+Instead of
+
+Fight Readiness
+
+Calibrating...
+
+18%
+
+I'd literally make it
+
+Fight Readiness
+
+Unavailable
+
+FRAME doesn't yet have
+enough confidence in its
+understanding of your game.
+
+18%
+
+25% required
+
+That makes users think
+
+"I need to teach it."
+
+Here's the Killer Addition
+
+This is the feature I'd add.
+
+Confidence Map
+
+Instead of ONE percentage...
+
+FRAME actually knows confidence per category.
+
+Striking
+
+91%
+
+Wrestling
+
+43%
+
+Recovery
+
+26%
+
+Competition
+
+12%
+
+Mental Game
+
+74%
+
+Pacing
+
+81%
+
+Pressure
+
+55%
+
+Training Habits
+
+69%
+
+Not all visible immediately.
+
+Only inside Athlete Model.
+
+Now...
+
+those three suggested prompts are automatically generated from the LOWEST confidence values.
+
+Example
+
+Lowest Confidence
+
+Competition Behaviour
+
+Bottom Position
+
+Weight Cut Routine
+
+Tap.
+
+Chat opens.
+
+Confidence increases.
+
+Suggestions refresh.
+
+That's incredibly satisfying.
+
+The Really Clever Part
+
+Don't just increase confidence because they answered.
+
+Increase confidence based on INFORMATION DENSITY.
+
+Examples:
+
+Bad answer
+
+"Yeah I'm alright under pressure."
+
++0.5%
+
+Amazing answer
+
+"I usually feel fine until the warm-up finishes. Then I become too outcome focused, my breathing shortens and I rush the opening exchange."
+
++4%
+
+The AI should reward quality, not quantity.
+
+Even Better...
+
+Every answer should update the Athlete Model.
+
+Imagine after answering three questions:
+
+FRAME noticed
+
+✓ You become outcome-focused before competing
+
+✓ Your breathing shortens under uncertainty
+
+✓ You recover confidence quickly after positive exchanges
+
+Athlete Model Updated
++3.4%
+
+That dopamine hit is earned.
+
+The Long-Term Vision
+
+I think your Athlete Model shouldn't just be a progress bar.
+
+It should eventually become a living performance profile.
+
+Imagine opening it after six months:
+
+ATHLETE MODEL
+
+Primary Archetype
+
+Pressure Counter
+
+Primary Strength
+
+Maintains clarity under contact
+
+Highest Confidence
+
+Decision Making
+
+Lowest Confidence
+
+Ground Transitions
+
+Observed Trends
+
+• Rushes when trying to finish exchanges
+
+• Confidence increases after successful counters
+
+• Performs best with clear tactical objectives
+
+• Recovery improves after technical sessions
+
+FRAME Confidence
+
+82%
