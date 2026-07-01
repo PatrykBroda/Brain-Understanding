@@ -117,6 +117,24 @@ EOF
   echo "$f"
 }
 
+# A suite that ignores SIGTERM, forcing kill_group to escalate to SIGKILL after
+# the 5 s grace window.  Each `sleep` in the group dies on SIGTERM but the
+# trapping parent re-loops, so the process group stays alive until SIGKILL.
+make_stubborn() {
+  local f
+  f=$(mktemp --suffix=.sh)
+  cat >"$f" <<'EOF'
+#!/usr/bin/env bash
+echo "STUBBORN: starting"
+trap '' TERM
+while true; do sleep 1; done
+echo "STUBBORN: done (should not reach here)"
+exit 0
+EOF
+  chmod +x "$f"
+  echo "$f"
+}
+
 # ── Test 1: coach fails fast, mobile is cancelled ─────────────────────────────
 
 echo ""
@@ -239,6 +257,39 @@ assert_contains \
   "All smoke tests passed."
 
 rm -f "$PASS_A" "$PASS_B"
+trap - RETURN
+
+# ── Test 4: cancelled suite ignores SIGTERM — kill_group must escalate to SIGKILL ─
+
+echo ""
+echo "Test 4: coach fails fast — stubborn mobile must be SIGKILLed and reported"
+FAIL_FAST=$(make_fail_fast)
+STUBBORN=$(make_stubborn)
+trap 'rm -f "$FAIL_FAST" "$STUBBORN"' RETURN
+
+run_scenario "$FAIL_FAST" "$STUBBORN"
+
+assert_t4_exit() {
+  [ "$SCENARIO_EXIT" -ne 0 ] && echo "ok" || echo "expected non-zero exit, got 0"
+}
+assert "exits non-zero overall (timed-out suite never reports 0)" "$(assert_t4_exit)"
+
+assert_contains \
+  "kill_group escalated to SIGKILL" \
+  "$SCENARIO_OUTPUT" \
+  "sending SIGKILL"
+
+assert_contains \
+  "results section shows mobile CANCELLED" \
+  "$SCENARIO_OUTPUT" \
+  "Mobile smoke tests CANCELLED"
+
+assert_contains \
+  "stubborn mobile partial log is dumped" \
+  "$SCENARIO_OUTPUT" \
+  "STUBBORN: starting"
+
+rm -f "$FAIL_FAST" "$STUBBORN"
 trap - RETURN
 
 # ── Summary ───────────────────────────────────────────────────────────────────

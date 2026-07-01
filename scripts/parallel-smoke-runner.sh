@@ -34,6 +34,10 @@ setsid bash "$MOBILE_SCRIPT" >"$MOBILE_LOG" 2>&1 &
 MOBILE_PID=$!
 
 # Send SIGTERM to the process group; escalate to SIGKILL after 5 s if still alive.
+# Reaps the process afterwards and stores its real exit status in KILL_GROUP_EXIT
+# so the caller can report the actual code (e.g. 137 after a SIGKILL) instead of
+# assuming a hardcoded value.
+KILL_GROUP_EXIT=""
 kill_group() {
   local pid=$1 label=$2
   echo "[parallel-runner] Sending SIGTERM to ${label} process group (pgid=${pid})…"
@@ -47,6 +51,11 @@ kill_group() {
     echo "[parallel-runner] ${label} still alive after ${elapsed}s — sending SIGKILL…"
     kill -9 -- -"$pid" 2>/dev/null || true
   fi
+  # Reap the process and capture its actual exit status.  A SIGKILLed process
+  # yields 137 (128+9); a process that honoured SIGTERM yields 143 (128+15).
+  # Either way we surface the real code so a hung suite can never masquerade as 0.
+  wait "$pid" 2>/dev/null
+  KILL_GROUP_EXIT=$?
 }
 
 COACH_EXIT=""
@@ -64,8 +73,7 @@ while [ -z "$COACH_EXIT" ] || [ -z "$MOBILE_EXIT" ]; do
     if [ "$COACH_EXIT" -ne 0 ] && [ -z "$MOBILE_EXIT" ]; then
       echo "[parallel-runner] Coach suite failed — cancelling mobile suite…"
       kill_group "$MOBILE_PID" "mobile"
-      wait "$MOBILE_PID" 2>/dev/null || true
-      MOBILE_EXIT=130
+      MOBILE_EXIT=$KILL_GROUP_EXIT
       CANCELLED="mobile"
     fi
   fi
@@ -76,8 +84,7 @@ while [ -z "$COACH_EXIT" ] || [ -z "$MOBILE_EXIT" ]; do
     if [ "$MOBILE_EXIT" -ne 0 ] && [ -z "$COACH_EXIT" ]; then
       echo "[parallel-runner] Mobile suite failed — cancelling coach suite…"
       kill_group "$COACH_PID" "coach"
-      wait "$COACH_PID" 2>/dev/null || true
-      COACH_EXIT=130
+      COACH_EXIT=$KILL_GROUP_EXIT
       CANCELLED="coach"
     fi
   fi
