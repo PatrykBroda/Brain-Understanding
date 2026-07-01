@@ -1,0 +1,263 @@
+Replace "FRAME Confidence" with "Model Confidence"
+
+This is subtle, but I think it's stronger.
+
+ATHLETE MODEL
+
+Model Confidence
+
+23%
+
+or
+
+FRAME Model
+
+23% Confidence
+
+"FRAME Confidence" sounds like the AI is confident in itself.
+
+"Model Confidence" immediately tells the user:
+
+"This percentage represents how complete my athlete model is."
+
+2. Add a "Last Updated" heartbeat
+
+This makes the model feel alive.
+
+Example:
+
+ATHLETE MODEL
+
+Model Confidence
+
+23%
+
+Updated 8 minutes ago
+
+or
+
+Last calibrated after today's sparring reflection.
+
+It subconsciously tells the user:
+
+This isn't a static profile.
+
+3. Give the AI uncertainty
+
+This is the feature almost nobody builds.
+
+Instead of only showing what FRAME knows…
+
+Show what it's questioning.
+
+Example:
+
+FRAME Hypotheses
+
+• You appear to perform better with clear tactical objectives.
+
+• You may become outcome-focused before competition.
+
+• Confidence: Low
+
+Notice the wording:
+
+may
+
+That makes the AI feel scientific instead of magical.
+
+Later it can confirm or reject hypotheses.
+
+4. Add "Emerging Pattern"
+
+One single sentence.
+
+Changes every few chats.
+
+Example
+
+Emerging Pattern
+
+Your pacing is stabilising faster than your confidence.
+
+
+or
+
+Recent Trend
+
+Decision speed improving.
+
+Recovery consistency declining.
+
+That tiny sentence becomes addictive.
+
+5. Fight Readiness shouldn't unlock once.
+
+It should become another living model.
+
+Instead of
+
+Fight Readiness
+
+Unlocked
+
+Imagine
+
+Fight Readiness
+
+Available
+
+Confidence
+
+Medium
+
+Reason
+
+FRAME has enough understanding of your preparation,
+competition behaviour and recovery patterns
+to generate reliable readiness assessments.
+
+Way more premium.
+
+6. Athlete Identity
+
+This is the feature I'd spend the next sprint on.
+
+Don't ask the user
+
+"What style do you fight?"
+
+FRAME should infer.
+
+Imagine opening Athlete Model after 40 conversations.
+
+Athlete Identity
+
+Primary Archetype
+
+Pressure Counter
+
+Decision Style
+
+Reactive
+
+Preferred Distance
+
+Long
+
+Recovery Style
+
+Fast Between Exchanges
+
+Pressure Response
+
+Forward
+
+Current Blind Spot
+
+Forcing Finishes
+
+Now the AI has an opinion.
+
+That's powerful.
+
+7. The biggest feature I think you're missing
+Confidence Timeline
+
+Not for the athlete.
+
+For the MODEL.
+
+June
+
+17%
+
+↓
+
+July
+
+24%
+
+↓
+
+August
+
+36%
+
+Users see
+
+FRAME understands me more than it did three months ago.
+
+That's retention.
+
+8. The DNA radar
+
+I'd make one tweak.
+
+Don't label the axes with abstract things like:
+
+Structure
+Context
+Patterns
+
+Instead make them fighter-specific.
+
+For example:
+
+Striking
+Grappling
+Competition
+Recovery
+Decision Making
+Mental Game
+
+Those dimensions are immediately intuitive. Internally, each one can still aggregate dozens of observations, but the user instantly understands what they're looking at.
+
+9. Add "What changed?"
+
+This is a tiny UX improvement.
+
+Every time confidence increases:
+
+Model Updated
+
++2%
+
+New understanding
+
+✓ You recover confidence quickly after successful exchanges.
+
+
+People love knowing why something changed.
+
+10. My favourite idea
+
+This could become FRAME's signature feature.
+
+Model Accuracy
+
+Instead of pretending the AI is always right…
+
+Occasionally ask:
+
+FRAME Observation
+
+I believe you become
+more aggressive after
+losing momentum.
+
+Is that accurate?
+
+[Yes]
+
+[Mostly]
+
+[Not Really]
+
+That does three things:
+
+improves the model
+makes users trust the AI more because it admits uncertainty
+makes them feel like they're co-training the system
+
+Very few AI products do this well.

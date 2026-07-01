@@ -312,6 +312,11 @@ export const api = {
       body: JSON.stringify({ key, answer }),
     }),
   getMemory: () => jsonFetch<{ facts: AthleteFact[]; count: number }>("api/memory"),
+  confirmFact: (id: number, response: "yes" | "mostly" | "no") =>
+    jsonFetch<{ ok: true; fact: AthleteFact | null }>(`api/memory/fact/${id}/confirm`, {
+      method: "POST",
+      body: JSON.stringify({ response }),
+    }),
   postWelcome: () =>
     jsonFetch<{ message: ServerMessage | null; reason?: string }>("api/coach/welcome", {
       method: "POST",

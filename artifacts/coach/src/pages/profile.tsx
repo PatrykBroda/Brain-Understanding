@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useClerk, useUser } from "@clerk/react";
 import { useFighter } from "@/hooks/use-fighter";
 import { useMemory } from "@/hooks/use-memory";
@@ -48,18 +48,67 @@ const CATEGORY_ORDER: FactCategory[] = [
   "context",
 ];
 
-// Each radar dimension and what categories contribute to it
-const RADAR_DIMS: { label: string; categories: FactCategory[] }[] = [
-  { label: "Structure", categories: ["technical_knowledge"] },
-  { label: "Patterns", categories: ["pattern"] },
-  { label: "Strengths", categories: ["strength"] },
-  { label: "Gaps", categories: ["weakness"] },
-  { label: "Mindset", categories: ["goal"] },
-  { label: "Context", categories: ["context", "preference"] },
+// Fighter-specific DNA dimensions. Each aggregates any observation whose
+// topic/content matches its keywords (a fact can feed several) plus a category
+// hint. Confidence bands — how well FRAME understands each area — never a
+// 1-100 attribute score.
+const RADAR_DIMS: {
+  label: string;
+  keywords: string[];
+  categories?: FactCategory[];
+}[] = [
+  {
+    label: "Striking",
+    keywords: [
+      "strik", "punch", "kick", "elbow", "knee", "jab", "cross", "hook",
+      "box", "muay", "stance", "footwork", "combination", "range", "distance",
+    ],
+  },
+  {
+    label: "Grappling",
+    keywords: [
+      "grappl", "guard", "mount", "takedown", "wrestl", "submission", "choke",
+      "armbar", "sweep", "pass", "clinch", "control", "ground", "bjj", "judo",
+      "position", "escape", "scramble", "pin",
+    ],
+  },
+  {
+    label: "Competition",
+    keywords: [
+      "comp", "tournament", "match", "fight", "spar", "opponent", "weigh",
+      "cut", "event", "prep", "medal", "bracket",
+    ],
+    categories: ["goal", "event"],
+  },
+  {
+    label: "Recovery",
+    keywords: [
+      "recover", "rest", "sleep", "fatigue", "gas", "cardio", "conditioning",
+      "breath", "injur", "sore", "heal", "tired", "energy",
+    ],
+  },
+  {
+    label: "Decision Making",
+    keywords: [
+      "decision", "choice", "react", "read", "anticipat", "tactical", "pace",
+      "timing", "adapt", "plan", "patient", "hesitat", "commit", "impos",
+    ],
+    categories: ["pattern"],
+  },
+  {
+    label: "Mental Game",
+    keywords: [
+      "mental", "mind", "confidence", "focus", "calm", "compos", "anxiet",
+      "fear", "tilt", "emotion", "motivat", "doubt", "frustrat", "nervous",
+      "pressure",
+    ],
+    categories: ["preference"],
+  },
 ];
 
 // How many confidence points = "fully mapped" for a set of categories
 const TARGET_PER_CATEGORY = 15; // 3 facts × confidence 5
+const RADAR_TARGET = 12; // confidence points that fill one DNA dimension
 const FRAME_UNLOCK_PCT = 25; // % at which Fight Readiness unlocks
 
 function daysBetween(a: Date, b: Date) {
@@ -74,6 +123,31 @@ function formatRelative(dateStr: string): string {
   if (days === 1) return "Yesterday";
   if (days < 7) return `${days}d ago`;
   return `${Math.floor(days / 7)}w ago`;
+}
+
+// "Updated 8 minutes ago" heartbeat — makes the model feel alive.
+function formatHeartbeat(dateStr: string): string {
+  const mins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
+  if (mins < 1) return "moments ago";
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days} days ago`;
+  const months = Math.floor(days / 30);
+  return `${months} month${months === 1 ? "" : "s"} ago`;
+}
+
+const MONTH_ABBR = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+// First short clause of a longer signature string — the identity read.
+function leadClause(text: string): string {
+  const m = text.match(/^[^.!?]+[.!?]?/);
+  return (m ? m[0] : text).replace(/[.!?]+$/, "");
 }
 
 // ─── SVG Radar Chart ────────────────────────────────────────────────────────
@@ -272,15 +346,85 @@ export default function ProfilePage() {
         date: f.updatedAt,
       }));
 
-    // ── Radar data (6 dims) ───────────────────────────────────────────
+    // ── Radar data (6 fighter-specific dims via keyword buckets) ──────
     const radarData = RADAR_DIMS.map((dim) => {
-      const allFacts = dim.categories.flatMap((c) => grouped[c] ?? []);
-      const sum = allFacts.reduce((s, f) => s + f.confidence, 0);
-      return {
-        label: dim.label,
-        value: Math.min(1, sum / (TARGET_PER_CATEGORY * dim.categories.length)),
-      };
+      let sum = 0;
+      for (const f of facts) {
+        const hay = `${f.topic} ${f.content}`.toLowerCase();
+        const kwHit = dim.keywords.some((k) => hay.includes(k));
+        const catHit = dim.categories?.includes(f.category) ?? false;
+        if (kwHit || catHit) sum += f.confidence;
+      }
+      return { label: dim.label, value: Math.min(1, sum / RADAR_TARGET) };
     });
+
+    // ── Heartbeat: most recent observation touch ──────────────────────
+    const lastUpdated = facts.length
+      ? facts.reduce(
+          (max, f) => (f.updatedAt > max ? f.updatedAt : max),
+          facts[0].updatedAt,
+        )
+      : null;
+
+    // ── FRAME Hypotheses: low-confidence reads FRAME is still testing ─
+    const hypotheses = [...facts]
+      .filter((f) => f.confidence <= 2)
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      )
+      .slice(0, 3);
+
+    // ── Emerging pattern: single most-recent pattern observation ──────
+    const emergingPattern =
+      [...(grouped.pattern ?? [])].sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      )[0] ?? null;
+
+    // ── Readiness band (living model, not a one-time unlock) ──────────
+    let readinessBand = "Low";
+    if (frameConfidence >= 60) readinessBand = "High";
+    else if (frameConfidence >= 42) readinessBand = "Medium";
+
+    // ── Model growth: reconstruct confidence at each month-end from when
+    //    observations were first recorded. Approximate (uses current
+    //    confidence values) but grounded in real createdAt timestamps.
+    const modelGrowth: { label: string; pct: number }[] = [];
+    if (facts.length > 0) {
+      const earliest = facts.reduce(
+        (min, f) =>
+          new Date(f.createdAt) < min ? new Date(f.createdAt) : min,
+        new Date(facts[0].createdAt),
+      );
+      const now = new Date();
+      const cursor = new Date(
+        Date.UTC(earliest.getUTCFullYear(), earliest.getUTCMonth(), 1),
+      );
+      let steps = 0;
+      while (cursor <= now && steps < 24) {
+        const monthEnd = new Date(
+          Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1),
+        );
+        const cutoff = monthEnd <= now ? monthEnd : now;
+        let covSum = 0;
+        for (const c of CATEGORY_ORDER) {
+          const s = facts
+            .filter(
+              (f) => f.category === c && new Date(f.createdAt) <= cutoff,
+            )
+            .reduce((acc, f) => acc + f.confidence, 0);
+          covSum += Math.min(1, s / TARGET_PER_CATEGORY);
+        }
+        modelGrowth.push({
+          label: MONTH_ABBR[cursor.getUTCMonth()],
+          pct: Math.round((covSum / CATEGORY_ORDER.length) * 100),
+        });
+        cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+        steps++;
+      }
+    }
+    const growthTrail = modelGrowth.slice(-5);
 
     // ── Athlete identity derivations ──────────────────────────────────
     const topStrength = (grouped.strength ?? []).sort(
@@ -321,6 +465,11 @@ export default function ProfilePage() {
       frameNotes,
       evolutionTimeline,
       radarData,
+      lastUpdated,
+      hypotheses,
+      emergingPattern,
+      readinessBand,
+      growthTrail,
       topStrength,
       topWeakness,
       topPattern,
@@ -331,6 +480,73 @@ export default function ProfilePage() {
       coachingMode,
     };
   }, [facts, messages, fighter, grouped]);
+
+  const queryClient = useQueryClient();
+
+  // ── "What changed?" — client-remembered confidence baseline per fighter ──
+  const [changeInfo, setChangeInfo] = useState<{ delta: number; note: string } | null>(null);
+  useEffect(() => {
+    if (!fighter || facts.length === 0) return;
+    const key = `frame:lastConfidence:${fighter.id}`;
+    const prevRaw = localStorage.getItem(key);
+    const prev = prevRaw == null ? null : Number(prevRaw);
+    const current = computed.frameConfidence;
+    if (prev != null && Number.isFinite(prev) && current > prev) {
+      const recent = [...facts].sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      )[0];
+      setChangeInfo({ delta: current - prev, note: recent?.content ?? "" });
+    } else {
+      setChangeInfo(null);
+    }
+    localStorage.setItem(key, String(current));
+  }, [fighter, facts, computed.frameConfidence]);
+
+  // ── Model Accuracy — reviewed fact ids remembered client-side ──
+  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
+  useEffect(() => {
+    if (!fighter) return;
+    try {
+      const raw = localStorage.getItem(`frame:reviewedFacts:${fighter.id}`);
+      setReviewedIds(new Set(raw ? (JSON.parse(raw) as number[]) : []));
+    } catch {
+      setReviewedIds(new Set());
+    }
+  }, [fighter]);
+
+  const confirmMutation = useMutation({
+    mutationFn: ({ id, response }: { id: number; response: "yes" | "mostly" | "no" }) =>
+      api.confirmFact(id, response),
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["memory"] });
+      setReviewedIds((prev) => {
+        const next = new Set(prev);
+        next.add(id);
+        if (fighter) {
+          localStorage.setItem(
+            `frame:reviewedFacts:${fighter.id}`,
+            JSON.stringify([...next]),
+          );
+        }
+        return next;
+      });
+    },
+  });
+
+  const confirmCandidate = useMemo(() => {
+    if (!fighter) return null;
+    return (
+      [...facts]
+        .filter((f) => f.confidence >= 2 && f.confidence <= 3 && !reviewedIds.has(f.id))
+        .sort(
+          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        )[0] ?? null
+    );
+  }, [facts, reviewedIds, fighter]);
+
+  function handleConfirm(id: number, response: "yes" | "mostly" | "no") {
+    confirmMutation.mutate({ id, response });
+  }
 
   return (
     <div className="flex flex-col h-[100dvh] bg-background text-foreground">
@@ -476,25 +692,58 @@ export default function ProfilePage() {
                     )}
                   </div>
 
-                  <div className="flex items-baseline gap-3 mb-3">
+                  <div className="flex items-baseline gap-3 mb-1.5">
                     <div className="font-mono text-3xl text-foreground/95 tabular-nums leading-none">
                       {computed.frameConfidence}
                       <span className="text-lg text-foreground/60">%</span>
                     </div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60 leading-snug">
-                      FRAME confidence
+                      Model confidence
                     </div>
                   </div>
 
+                  {computed.lastUpdated && (
+                    <div className="font-mono text-[9px] tracking-wide text-muted-foreground/45 mb-3">
+                      Updated {formatHeartbeat(computed.lastUpdated)}
+                    </div>
+                  )}
+
                   <ConfidenceBar pct={computed.frameConfidence} segments={20} />
+
+                  {changeInfo && (
+                    <div
+                      className="mt-3 px-3 py-2.5"
+                      style={{
+                        border: "1px solid hsla(32,54%,46%,0.28)",
+                        background: "hsla(32,54%,46%,0.05)",
+                      }}
+                    >
+                      <div className="flex items-baseline justify-between">
+                        <span className="font-mono text-[8px] uppercase tracking-[0.4em] text-primary/75">
+                          Model updated
+                        </span>
+                        <span
+                          className="font-mono text-[11px] tabular-nums"
+                          style={{ color: "hsl(32,54%,55%)" }}
+                        >
+                          +{changeInfo.delta}%
+                        </span>
+                      </div>
+                      {changeInfo.note && (
+                        <p className="text-[11px] text-foreground/70 leading-relaxed mt-1.5">
+                          New understanding — {changeInfo.note}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   <p className="font-mono text-[10px] text-muted-foreground/55 leading-relaxed mt-2.5">
                     {computed.frameConfidence < 10
-                      ? "FRAME is still learning how you move under pressure."
+                      ? "FRAME is still learning how you move under pressure. This percentage is how complete its model of you is."
                       : computed.frameConfidence < 25
-                        ? "FRAME is still calibrating its understanding of how you perform, adapt, and recover."
+                        ? "This percentage is how complete FRAME's model of you is. Still calibrating how you perform, adapt, and recover."
                         : computed.frameConfidence < 60
-                          ? "FRAME has a working model. It deepens with every session."
+                          ? "FRAME has a working model of you. It deepens with every session."
                           : "FRAME has a strong read on your game. Keep feeding it signal."}
                   </p>
                 </div>
@@ -535,6 +784,25 @@ export default function ProfilePage() {
                   </Link>
                 </div>
               </div>
+
+              {/* ─── EMERGING PATTERN ────────────────────────────────── */}
+              {computed.emergingPattern && (
+                <div
+                  className="border px-4 py-3.5"
+                  style={{
+                    borderColor: "hsla(32,54%,46%,0.22)",
+                    background:
+                      "linear-gradient(180deg, hsla(32,54%,46%,0.05), transparent 70%)",
+                  }}
+                >
+                  <div className="font-mono text-[8px] uppercase tracking-[0.5em] text-primary/70 mb-1.5">
+                    Emerging pattern
+                  </div>
+                  <p className="text-[13px] text-foreground/85 leading-relaxed">
+                    {computed.emergingPattern.content}
+                  </p>
+                </div>
+              )}
 
               {/* ─── 2. FRAME NOTES ──────────────────────────────────── */}
               {computed.frameNotes.length > 0 && (
@@ -581,6 +849,90 @@ export default function ProfilePage() {
                 </div>
               )}
 
+              {/* ─── FRAME HYPOTHESES (uncertainty) ──────────────────── */}
+              {computed.hypotheses.length > 0 && (
+                <div className="border border-white/[0.08]">
+                  <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
+                      FRAME Hypotheses
+                    </div>
+                    <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/45">
+                      Still testing
+                    </div>
+                  </div>
+                  <div className="px-4 pt-2 pb-2">
+                    <p className="font-mono text-[9px] text-muted-foreground/50 leading-relaxed mb-2.5">
+                      Low-confidence reads FRAME is still testing — it may confirm or drop
+                      these as it sees more.
+                    </p>
+                    <ul className="space-y-2">
+                      {computed.hypotheses.map((f) => (
+                        <li key={f.id} className="flex items-start gap-2.5">
+                          <span className="flex-none mt-1.5 w-1 h-1 rounded-full bg-muted-foreground/35" />
+                          <span className="text-[12px] text-foreground/75 leading-relaxed">
+                            {f.content}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="font-mono text-[8px] uppercase tracking-[0.3em] text-muted-foreground/40 mt-3">
+                      Confidence: Low
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── MODEL ACCURACY (confirm / reject) ───────────────── */}
+              {confirmCandidate && (
+                <div
+                  className="border"
+                  style={{ borderColor: "hsla(32,54%,46%,0.28)" }}
+                >
+                  <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
+                      Model Accuracy
+                    </div>
+                    <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/45">
+                      Help FRAME
+                    </div>
+                  </div>
+                  <div className="px-4 pt-2 pb-4">
+                    <div className="font-mono text-[8px] uppercase tracking-[0.45em] text-muted-foreground/45 mb-1.5">
+                      FRAME observation
+                    </div>
+                    <p className="text-[13px] text-foreground/85 leading-relaxed mb-3">
+                      {confirmCandidate.content}
+                    </p>
+                    <div className="font-mono text-[9px] text-muted-foreground/55 mb-2.5">
+                      Is that accurate?
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(
+                        [
+                          ["yes", "Yes"],
+                          ["mostly", "Mostly"],
+                          ["no", "Not really"],
+                        ] as const
+                      ).map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          disabled={confirmMutation.isPending}
+                          onClick={() => handleConfirm(confirmCandidate.id, value)}
+                          className="border border-white/[0.1] hover:border-primary/50 hover:text-primary text-foreground/75 transition-colors py-2 font-mono text-[9px] uppercase tracking-[0.2em] disabled:opacity-40"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="font-mono text-[8px] text-muted-foreground/40 leading-relaxed mt-2.5">
+                      Your answer trains the model. FRAME would rather be corrected than
+                      confidently wrong.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* ─── 3. EVOLUTION TIMELINE ───────────────────────────── */}
               {computed.evolutionTimeline.length > 0 && (
                 <div className="border border-white/[0.08]">
@@ -615,7 +967,20 @@ export default function ProfilePage() {
 
               {/* ─── 4. FIGHT READINESS (confidence-gated) ───────────── */}
               {computed.isReadinessUnlocked ? (
-                <AthleteStatePanel fighter={fighter} facts={facts} />
+                <div className="space-y-2">
+                  <div
+                    className="border px-4 py-2.5 flex items-baseline justify-between gap-3"
+                    style={{ borderColor: "hsla(32,54%,46%,0.22)" }}
+                  >
+                    <span className="font-mono text-[8px] uppercase tracking-[0.4em] text-primary/70">
+                      Available · Confidence: {computed.readinessBand}
+                    </span>
+                    <span className="font-mono text-[9px] text-muted-foreground/45 text-right">
+                      Reason: model at {computed.frameConfidence}%
+                    </span>
+                  </div>
+                  <AthleteStatePanel fighter={fighter} facts={facts} />
+                </div>
               ) : (
                 <div className="border border-white/[0.08]">
                   <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
@@ -665,6 +1030,51 @@ export default function ProfilePage() {
                 </div>
               </div>
 
+              {/* ─── CONFIDENCE TIMELINE ─────────────────────────────── */}
+              {computed.growthTrail.length >= 2 && (
+                <div className="border border-white/[0.08]">
+                  <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
+                      Confidence Timeline
+                    </div>
+                    <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/45">
+                      Model growth
+                    </div>
+                  </div>
+                  <div className="px-4 pt-3 pb-4">
+                    <div className="flex items-end justify-between gap-2 h-20">
+                      {computed.growthTrail.map((pt, i) => (
+                        <div
+                          key={i}
+                          className="flex-1 flex flex-col items-center justify-end gap-1.5 h-full"
+                        >
+                          <span className="font-mono text-[8px] text-foreground/55 tabular-nums">
+                            {pt.pct}
+                          </span>
+                          <div
+                            className="w-full"
+                            style={{
+                              height: `${Math.max(4, pt.pct)}%`,
+                              background:
+                                i === computed.growthTrail.length - 1
+                                  ? "hsl(32,54%,50%)"
+                                  : "hsla(32,54%,46%,0.3)",
+                            }}
+                          />
+                          <span className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/40">
+                            {pt.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="font-mono text-[8px] text-muted-foreground/40 leading-relaxed mt-3">
+                      Reconstructed from when FRAME first recorded each observation —
+                      an approximation of how its model of you has grown, not a stored history.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* ─── ATHLETE IDENTITY ─────────────────────────────────── */}
               {(computed.topStrength || computed.topWeakness || computed.topPattern) && (
                 <div className="border border-white/[0.08]">
@@ -678,6 +1088,21 @@ export default function ProfilePage() {
                       label="Current style"
                       value={`${fighter.primarySport ? sportLabel(fighter.primarySport) : fighter.art ?? "—"} · ${fighter.level}`}
                     />
+                    {(() => {
+                      const arch = fighter.spiritAnimal
+                        ? getArchetype(fighter.spiritAnimal)
+                        : null;
+                      if (!arch) return null;
+                      return (
+                        <>
+                          <IdentityRow label="Primary archetype" value={arch.name} />
+                          <IdentityRow
+                            label="Pressure response"
+                            value={leadClause(arch.pressureSignature)}
+                          />
+                        </>
+                      );
+                    })()}
                     <IdentityRow
                       label="Coaching mode"
                       value={computed.coachingMode.label}
