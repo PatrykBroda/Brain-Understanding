@@ -8,6 +8,53 @@ pnpm --filter db push
 # libs; `--with-deps` needs root and is forbidden). playwright.config.ts
 # auto-discovers the Nix-provided system Chromium instead.
 
+# ── Shared API server ─────────────────────────────────────────────────────────
+# Start the API server here, once, before launching the two smoke suites in
+# parallel.  Both run-*-smoke.sh scripts check port 8080 first; when they see
+# it already open they skip their own start — eliminating the race window where
+# both scripts see the port closed simultaneously and both try to bind it.
+
+API_PORT=8080
+API_PID=""
+
+port_open() {
+  (echo > /dev/tcp/127.0.0.1/"$1") 2>/dev/null
+}
+
+wait_for_port() {
+  local port="$1" max_s="$2" elapsed=0
+  echo "[post-merge] Waiting for port $port (up to ${max_s}s)..."
+  while ! port_open "$port"; do
+    sleep 2
+    elapsed=$((elapsed + 2))
+    if [ "$elapsed" -ge "$max_s" ]; then
+      echo "[post-merge] ERROR: timeout waiting for port $port" >&2
+      return 1
+    fi
+  done
+  echo "[post-merge] Port $port is ready (${elapsed}s)"
+}
+
+cleanup_api() {
+  if [ -n "$API_PID" ]; then
+    echo "[post-merge] Stopping shared API server (pid $API_PID)..."
+    kill "$API_PID" 2>/dev/null || true
+  fi
+}
+trap cleanup_api EXIT INT TERM
+
+if port_open "$API_PORT"; then
+  echo "[post-merge] API server already running on :$API_PORT — skipping start."
+else
+  echo "[post-merge] Starting shared API server on :$API_PORT..."
+  PORT=$API_PORT pnpm --filter @workspace/api-server run dev \
+    >/tmp/post-merge-api.log 2>&1 &
+  API_PID=$!
+  wait_for_port "$API_PORT" 90
+fi
+
+# ── Run both smoke suites in parallel ────────────────────────────────────────
+
 echo ""
 echo "──────────────────────────────────────────────"
 echo " Running coach and mobile smoke tests in parallel…"
