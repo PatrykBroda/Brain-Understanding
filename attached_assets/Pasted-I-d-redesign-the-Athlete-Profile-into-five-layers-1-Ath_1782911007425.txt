@@ -1,0 +1,259 @@
+I'd redesign the Athlete Profile into five layers
+1. Athlete Model (Primary)
+
+This is the first thing they see.
+
+━━━━━━━━━━━━━━━━━━━━
+
+UNDERSTANDING YOUR GAME
+
+FRAME Confidence
+
+22%
+
+FRAME is still calibrating its understanding of how you perform,
+adapt and recover.
+
+Reliable Fight Readiness unlocks at 25%.
+
+━━━━━━━━━━━━━━━━━━━━
+
+Lowest Confidence
+
+• Competition Behaviour
+• Bottom Game
+• Recovery Between Rounds
+
+[Continue Calibration]
+
+━━━━━━━━━━━━━━━━━━━━
+
+Notice there isn't a generic progress bar.
+
+I'd actually make it a subtle segmented line.
+
+Almost like:
+
+█████──────────────
+22%
+
+Very FRAME.
+
+2. Athlete Identity
+
+This becomes the AI's understanding of the athlete.
+
+Not information they typed.
+
+Information FRAME has inferred.
+
+Example
+
+ATHLETE MODEL
+
+Primary Archetype
+
+Pressure Counter
+
+Current Style
+
+Kickboxing Heavy
+
+Decision Profile
+
+Calculated until pressured
+
+Confidence Pattern
+
+Confidence rises after clean counters
+
+Observed Strength
+
+Distance Management
+
+Observed Blind Spot
+
+Rushing exits
+
+
+This is FAR cooler than
+
+Height
+Weight
+Gym
+
+because it feels alive.
+
+3. Evolution Timeline
+
+Tiny.
+
+Maybe only four events.
+
+Recent Calibration
+
+✓ Competition psychology updated
+
+✓ Sparring tendencies refined
+
+✓ Recovery model improved
+
+✓ Wrestling confidence increased
+
+
+Users LOVE seeing the AI evolve.
+
+4. Fight Readiness
+
+Instead of a lock.
+
+I'd make it look like:
+
+Fight Readiness
+
+Unavailable
+
+FRAME requires
+a higher confidence
+in your athlete model.
+
+22%
+
+25% required
+
+That makes sense psychologically.
+
+FRAME isn't withholding.
+
+FRAME is protecting accuracy.
+
+5. Training Rhythm
+
+Instead of streaks.
+
+Training Rhythm
+
+Observed Pattern
+
+Mon
+Tue
+Wed
+Fri
+
+FRAME believes this is your current rhythm.
+
+
+Again—
+
+BELIEVES.
+
+Not KNOWS.
+
+Something HUGE I'd Add
+
+Your AI already has memory.
+
+Expose it.
+
+Imagine this card:
+
+FRAME NOTES
+
+You tend to overcommit
+once exchanges become chaotic.
+
+We're seeing improvement in pacing,
+but composure still drops after missed opportunities.
+
+Confidence:
+Medium
+
+That instantly makes the app feel like
+
+"Holy shit...
+this thing actually watches how I evolve."
+
+Another Amazing Feature
+
+Instead of
+
+Help FRAME understand
+
+Call it
+
+Deepen Model
+
+or
+
+Continue Calibration
+
+Much stronger.
+
+Then each card:
+
+Competition Behaviour
+
+Confidence
+
+12%
+
+
+Tap.
+
+FRAME says
+
+One area I'm still uncertain about is how your decision-making changes before competition.
+
+Let's tighten that up.
+
+This is where I'd make FRAME genuinely addictive...
+Athlete DNA
+
+A radial diagram.
+
+Not stats.
+
+Dimensions like:
+
+Aggression
+
+Composure
+
+Adaptability
+
+Pressure Tolerance
+
+Decision Speed
+
+Recovery
+
+Confidence Stability
+
+Awareness
+
+
+Not scored 1–100.
+
+Just confidence bands.
+
+The radar changes over months.
+
+People would screenshot this constantly.
+
+The thing I would remove
+
+Personally...
+
+I wouldn't even call it
+
+Athlete Profile
+
+I'd call it
+
+Athlete Model
+
+Because that's what it is.
+
+You're not viewing your account.
+
+You're viewing FRAME's current understanding of you.
