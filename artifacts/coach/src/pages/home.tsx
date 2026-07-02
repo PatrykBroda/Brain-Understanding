@@ -1,11 +1,15 @@
+import { useRef, useState } from "react";
 import { Link } from "wouter";
-import { Shield } from "lucide-react";
+import { Shield, Camera, Loader2, ChevronRight } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CosmicOrb, ORB_PALETTE } from "@/components/cosmic-orb";
 import { BottomNav } from "@/components/bottom-nav";
 import { CompetitionBanner } from "@/components/competition-banner";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { useFrameState } from "@/hooks/use-frame-state";
+import { useAnalyses } from "@/hooks/use-analysis";
+import { api, heroFileUrl } from "@/lib/api";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -16,10 +20,47 @@ export default function HomePage() {
   useAutoWelcome();
   const frameState = useFrameState();
 
+  const analysesQuery = useAnalyses();
+  const latest = analysesQuery.data?.analyses?.[0] ?? null;
+
+  // Warms the shared ["conversation"] cache Chat reuses; lets the doorway read
+  // "Continue" only when there's a real prior session (not keyed on analyses).
+  const conversationQuery = useQuery({
+    queryKey: ["conversation"],
+    queryFn: () => api.getActiveConversation(),
+    enabled: !!fighter,
+  });
+  const hasSession = (conversationQuery.data?.messages?.length ?? 0) > 0;
+
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const uploadHero = useMutation({
+    mutationFn: (file: File) => api.uploadHero(file),
+    onSuccess: () => {
+      setUploadErr(null);
+      qc.invalidateQueries({ queryKey: ["fighter"] });
+    },
+    onError: (e) => setUploadErr(e instanceof Error ? e.message : "Upload failed"),
+  });
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 12 * 1024 * 1024) {
+      setUploadErr("Image too large (max 12MB).");
+      return;
+    }
+    uploadHero.mutate(file);
+  };
+
   const { hue, sat, light } = ORB_PALETTE[frameState.orb];
   const labelColor = `hsl(${hue}, ${Math.round(sat * 35)}%, 91%)`;
   const labelGlow = `0 0 48px hsla(${hue}, ${Math.round(sat * 100)}%, ${Math.round(light * 100)}%, 0.38), 0 2px 12px rgba(0,0,0,0.6)`;
 
+  const hasHero = !!fighter && fighter.heroImageUrl.trim() !== "";
+  const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
+  const uploading = uploadHero.isPending;
 
   return (
     <div
@@ -29,6 +70,36 @@ export default function HomePage() {
         background: "#000",
       }}
     >
+      {/* ─── Ambient environment ─────────────────────────────────────
+          The fighter's own photo, dropped almost to a whisper: blurred,
+          desaturated, low opacity, then buried under layered dark gradients
+          so it reads as atmosphere, not a picture. Matte fallback when unset. */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        {heroSrc && (
+          <img
+            src={heroSrc}
+            alt=""
+            aria-hidden
+            className="w-full h-full object-cover frame-ambient-in"
+            style={{
+              opacity: 0.32,
+              filter: "blur(2px) saturate(0.82) contrast(1.02)",
+              transform: "scale(1.06)",
+            }}
+            draggable={false}
+          />
+        )}
+        {/* Depth wash — top + bottom pulled to near-black so type/orb stay legible */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: heroSrc
+              ? "linear-gradient(180deg, rgba(0,0,0,0.74) 0%, rgba(0,0,0,0.40) 40%, rgba(0,0,0,0.62) 72%, rgba(0,0,0,0.9) 100%)"
+              : "transparent",
+          }}
+        />
+      </div>
+
       {/* Page-wide vignette — anchored on the orb, eases off so it doesn't eat the CTA */}
       <div
         className="absolute inset-0 pointer-events-none z-0"
@@ -70,13 +141,35 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-        <Link
-          href="/profile"
-          aria-label="Open profile"
-          className="w-10 h-10 rounded-full border border-white/[0.06] flex items-center justify-center text-foreground/40 hover:border-primary/40 hover:text-primary/90 outline-none focus-visible:ring-1 focus-visible:ring-primary/60 transition-all duration-500"
-        >
-          <Shield className="w-[15px] h-[15px]" strokeWidth={1.2} />
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            aria-label={hasHero ? "Change ambient image" : "Set ambient image"}
+            className="w-10 h-10 rounded-full border border-white/[0.06] flex items-center justify-center text-foreground/40 hover:border-primary/40 hover:text-primary/90 outline-none focus-visible:ring-1 focus-visible:ring-primary/60 transition-all duration-500 disabled:opacity-40"
+          >
+            {uploading ? (
+              <Loader2 className="w-[15px] h-[15px] animate-spin" strokeWidth={1.4} />
+            ) : (
+              <Camera className="w-[15px] h-[15px]" strokeWidth={1.2} />
+            )}
+          </button>
+          <Link
+            href="/profile"
+            aria-label="Open profile"
+            className="w-10 h-10 rounded-full border border-white/[0.06] flex items-center justify-center text-foreground/40 hover:border-primary/40 hover:text-primary/90 outline-none focus-visible:ring-1 focus-visible:ring-primary/60 transition-all duration-500"
+          >
+            <Shield className="w-[15px] h-[15px]" strokeWidth={1.2} />
+          </Link>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={onPick}
+          />
+        </div>
       </header>
 
       <div className="relative z-10">
@@ -92,7 +185,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      <section className="relative z-10 flex flex-col items-center text-center px-6 gap-6 pb-3">
+      <section className="relative z-10 flex flex-col items-center text-center px-6 gap-5 pb-3">
         <div className="space-y-3">
           <div className="frame-state-caption-top font-mono text-[10px] uppercase tracking-[0.55em] text-foreground/65 font-light">
             State
@@ -114,6 +207,35 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* ─── Fight readiness — real, or an honest prompt ─────────────
+            The number is only ever the composite from the most recently
+            analysed session. No session, no number — never "calibrating". */}
+        <Link
+          href="/analyse"
+          className="group frame-readiness-in flex items-center gap-3 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg px-3 py-1"
+          aria-label={latest ? "View session analysis" : "Analyse a session"}
+        >
+          <span className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 font-light">
+            Fight readiness
+          </span>
+          <span aria-hidden className="w-px h-3 bg-white/10" />
+          {latest ? (
+            <span className="flex items-baseline gap-1.5">
+              <span className="font-sans font-light text-[19px] tabular-nums leading-none text-primary/90">
+                {Math.round(latest.sessionScore)}
+              </span>
+              <span className="font-mono text-[9px] uppercase tracking-widest text-foreground/40">
+                / 100 · last session
+              </span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/50 group-hover:text-primary/80 transition-colors">
+              Analyse a session
+              <ChevronRight className="w-3 h-3" strokeWidth={1.5} />
+            </span>
+          )}
+        </Link>
+
         <div className="w-full max-w-[10rem] flex items-center gap-3 px-1" aria-hidden>
           <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, hsla(35,55%,55%,0.18))" }} />
           <div className="w-1 h-1 rounded-full" style={{ background: "hsla(35,55%,55%,0.22)" }} />
@@ -123,7 +245,7 @@ export default function HomePage() {
         <div className="w-full max-w-sm">
           <Link
             href="/chat"
-            aria-label={fighter ? "Enter the frame" : "Enter"}
+            aria-label={hasSession ? "Continue session" : "Enter the frame"}
             className="group block w-full rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
             <div
@@ -137,7 +259,7 @@ export default function HomePage() {
               }}
             >
               <span className="font-sans text-[13px] uppercase tracking-[0.5em] font-light text-primary group-hover:tracking-[0.55em] transition-all duration-500">
-                Enter
+                {hasSession ? "Continue" : "Enter"}
               </span>
               <div
                 className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
@@ -148,6 +270,19 @@ export default function HomePage() {
               />
             </div>
           </Link>
+          {!hasHero && (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="mt-4 mx-auto block font-mono text-[9px] uppercase tracking-[0.4em] text-foreground/25 hover:text-foreground/55 transition-colors duration-500 disabled:opacity-40"
+            >
+              {uploading ? "Setting frame…" : "Set your frame"}
+            </button>
+          )}
+          {uploadErr && (
+            <p className="mt-3 text-center font-mono text-[10px] text-destructive">{uploadErr}</p>
+          )}
         </div>
       </section>
 
@@ -162,6 +297,14 @@ export default function HomePage() {
         }
         .frame-fade-in {
           animation: frame-fade-in 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+        }
+
+        @keyframes frame-ambient-in {
+          from { opacity: 0; }
+          to   { opacity: 0.32; }
+        }
+        .frame-ambient-in {
+          animation: frame-ambient-in 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
         }
 
         @keyframes frame-caption-in {
@@ -184,10 +327,17 @@ export default function HomePage() {
           animation: frame-caption-in 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) 0.9s both;
         }
 
+        .frame-readiness-in {
+          animation: frame-caption-in 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) 1.05s both;
+        }
+
         @media (prefers-reduced-motion: reduce) {
+          .frame-fade-in,
+          .frame-ambient-in,
           .frame-state-caption-top,
           .frame-state-label,
-          .frame-state-caption-bottom { animation: none; }
+          .frame-state-caption-bottom,
+          .frame-readiness-in { animation: none; }
         }
       `}</style>
     </div>
