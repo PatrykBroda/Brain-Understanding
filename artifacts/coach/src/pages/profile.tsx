@@ -7,6 +7,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { Belt } from "@/components/belt";
 import { ProfileEdit } from "@/components/profile-edit";
 import { AthleteStatePanel } from "@/components/athlete-state-panel";
+import { FighterCard } from "@/components/fighter-card";
 import { sportLabel } from "@/lib/fighter-options";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
 import { Link } from "wouter";
@@ -109,7 +110,6 @@ const RADAR_DIMS: {
 // How many confidence points = "fully mapped" for a set of categories
 const TARGET_PER_CATEGORY = 15; // 3 facts × confidence 5
 const RADAR_TARGET = 12; // confidence points that fill one DNA dimension
-const FRAME_UNLOCK_PCT = 25; // % at which Fight Readiness unlocks
 
 function daysBetween(a: Date, b: Date) {
   return Math.max(0, Math.floor((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)));
@@ -315,7 +315,6 @@ export default function ProfilePage() {
     const avgCoverage =
       CATEGORY_ORDER.reduce((s, c) => s + categoryCoverage[c], 0) / CATEGORY_ORDER.length;
     const frameConfidence = Math.round(avgCoverage * 100);
-    const isReadinessUnlocked = frameConfidence >= FRAME_UNLOCK_PCT;
 
     // ── Lowest-confidence categories ──────────────────────────────────
     const lowestCategories = [...CATEGORY_ORDER]
@@ -381,11 +380,6 @@ export default function ProfilePage() {
         (a, b) =>
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       )[0] ?? null;
-
-    // ── Readiness band (living model, not a one-time unlock) ──────────
-    let readinessBand = "Low";
-    if (frameConfidence >= 60) readinessBand = "High";
-    else if (frameConfidence >= 42) readinessBand = "Medium";
 
     // ── Model growth: reconstruct confidence at each month-end from when
     //    observations were first recorded. Approximate (uses current
@@ -460,7 +454,6 @@ export default function ProfilePage() {
     return {
       categoryCoverage,
       frameConfidence,
-      isReadinessUnlocked,
       lowestCategories,
       frameNotes,
       evolutionTimeline,
@@ -468,7 +461,6 @@ export default function ProfilePage() {
       lastUpdated,
       hypotheses,
       emergingPattern,
-      readinessBand,
       growthTrail,
       topStrength,
       topWeakness,
@@ -585,75 +577,29 @@ export default function ProfilePage() {
             <ProfileEdit fighter={fighter} onClose={() => setIsEditing(false)} />
           ) : fighter ? (
             <>
-              {/* ─── 0. COMBAT IDENTITY HERO ─────────────────────────── */}
+              {/* ─── 0. FIGHTER CARD ─────────────────────────────────── */}
+              <FighterCard fighter={fighter} />
+
+              {/* ─── 0b. ARCHETYPE ───────────────────────────────────── */}
               {(() => {
                 const arch = fighter.spiritAnimal ? getArchetype(fighter.spiritAnimal) : null;
+                if (!arch && !fighter.spiritAnimalTagline) return null;
                 return (
-                  <div className="profile-id-card" style={{ border: "1px solid hsla(32,54%,46%,0.35)" }}>
-                    <div className="flex gap-0">
-                      <div
-                        className="flex-none flex items-center justify-center"
-                        style={{
-                          width: 110,
-                          minHeight: 110,
-                          borderRight: "1px solid hsla(32,54%,46%,0.2)",
-                          background: "hsla(0,0%,0%,0.35)",
-                        }}
-                      >
-                        {fighter.spiritAnimal ? (
-                          <img
-                            src={`${basePath}/spirit/${fighter.spiritAnimal}.png`}
-                            alt={fighter.spiritAnimal}
-                            className="w-[72px] h-[72px] object-contain"
-                            style={{ opacity: 0.88 }}
-                            draggable={false}
-                          />
-                        ) : (
-                          <span className="font-mono text-2xl uppercase tracking-widest text-primary/60">
-                            {fighter.name.charAt(0)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0 px-4 py-4 flex flex-col justify-center">
-                        <div className="font-mono text-[8px] uppercase tracking-[0.55em] text-muted-foreground/50 mb-2">
-                          Combat identity
-                        </div>
-                        <div className="font-mono text-2xl uppercase tracking-[0.12em] text-foreground/95 leading-none mb-2 truncate">
-                          {fighter.name}
-                        </div>
-                        {fighter.spiritAnimal && (
-                          <div
-                            className="font-mono text-[11px] uppercase tracking-[0.4em] mb-2.5"
-                            style={{ color: "hsl(32,54%,50%)" }}
-                          >
-                            {fighter.spiritAnimal}
-                          </div>
-                        )}
-                        <div className="space-y-0.5">
-                          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/65">
-                            {fighter.primarySport ? sportLabel(fighter.primarySport) : fighter.art}
-                          </div>
-                          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/45">
-                            {fighter.trainingFrequency}
-                            {fighter.gym ? ` · ${fighter.gym}` : ""}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
+                  <div style={{ border: "1px solid hsla(32,54%,46%,0.28)" }}>
                     {fighter.spiritAnimalTagline && (
                       <div
                         className="px-4 py-3"
-                        style={{ borderTop: "1px solid hsla(32,54%,46%,0.14)" }}
+                        style={{
+                          borderBottom: arch ? "1px solid hsla(32,54%,46%,0.14)" : undefined,
+                        }}
                       >
                         <p className="text-[12px] italic text-foreground/55 leading-relaxed">
                           {fighter.spiritAnimalTagline}
                         </p>
                       </div>
                     )}
-
                     {arch && (
-                      <div style={{ borderTop: "1px solid hsla(32,54%,46%,0.2)" }}>
+                      <div>
                         <div
                           className="flex items-center gap-3 px-4 py-3"
                           style={{ borderBottom: "1px solid hsla(0,0%,100%,0.05)" }}
@@ -965,51 +911,8 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* ─── 4. FIGHT READINESS (confidence-gated) ───────────── */}
-              {computed.isReadinessUnlocked ? (
-                <div className="space-y-2">
-                  <div
-                    className="border px-4 py-2.5 flex items-baseline justify-between gap-3"
-                    style={{ borderColor: "hsla(32,54%,46%,0.22)" }}
-                  >
-                    <span className="font-mono text-[8px] uppercase tracking-[0.4em] text-primary/70">
-                      Available · Confidence: {computed.readinessBand}
-                    </span>
-                    <span className="font-mono text-[9px] text-muted-foreground/45 text-right">
-                      Reason: model at {computed.frameConfidence}%
-                    </span>
-                  </div>
-                  <AthleteStatePanel fighter={fighter} facts={facts} />
-                </div>
-              ) : (
-                <div className="border border-white/[0.08]">
-                  <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
-                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
-                      Fight Readiness
-                    </div>
-                    <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/45">
-                      Unavailable
-                    </div>
-                  </div>
-                  <div className="px-4 pb-5 pt-3">
-                    <p className="font-mono text-[11px] text-foreground/55 leading-relaxed mb-3">
-                      FRAME requires a higher confidence in your athlete model before it can
-                      make reliable fight-readiness reads.
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <ConfidenceBar pct={computed.frameConfidence} segments={12} />
-                    </div>
-                    <div className="flex items-baseline justify-between mt-2">
-                      <span className="font-mono text-[9px] text-foreground/50 tabular-nums">
-                        {computed.frameConfidence}% current
-                      </span>
-                      <span className="font-mono text-[9px] text-muted-foreground/40 tabular-nums">
-                        {FRAME_UNLOCK_PCT}% required
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* ─── 4. ATHLETE STATE ────────────────────────────────── */}
+              <AthleteStatePanel fighter={fighter} facts={facts} />
 
               {/* ─── 5. ATHLETE DNA ──────────────────────────────────── */}
               <div className="border border-white/[0.08]">

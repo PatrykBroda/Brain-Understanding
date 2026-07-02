@@ -18,6 +18,22 @@ export function sportLabel(key: string): string {
   return SPORTS.find((s) => s.value === key)?.label ?? key;
 }
 
+export const STANCES = ["Orthodox", "Southpaw", "Switch", "Open"];
+
+// Combat-sport weight classes across the common promotions (kept broad since FRAME
+// spans all combat sports). Free selection — nothing is inferred or fabricated.
+export const WEIGHT_CLASSES = [
+  "Strawweight",
+  "Flyweight",
+  "Bantamweight",
+  "Featherweight",
+  "Lightweight",
+  "Welterweight",
+  "Middleweight",
+  "Light Heavyweight",
+  "Heavyweight",
+];
+
 export function ageFromDob(dob: string | null | undefined): number | null {
   if (!dob) return null;
   const d = new Date(dob);

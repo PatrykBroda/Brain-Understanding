@@ -20,8 +20,19 @@ export const fightersTable = pgTable("fighters", {
   level: text("level").notNull(),
   trainingFrequency: text("training_frequency").notNull(),
   gym: text("gym").notNull().default(""),
+  // Head coach / lead trainer — shown in the profile "Camp" block.
+  headCoach: text("head_coach").notNull().default(""),
   heightCm: integer("height_cm"),
   weightKg: integer("weight_kg"),
+  // Fighter-card identity fields (all optional, shown only when set).
+  reachCm: integer("reach_cm"),
+  weightClass: text("weight_class").notNull().default(""),
+  stance: text("stance").notNull().default(""),
+  // Free-form competitive record, e.g. "8-1-0" (wins-losses-draws). Never fabricated.
+  record: text("record").notNull().default(""),
+  // Customizable faded hero background for the profile card. Stores a safe filename in
+  // the server UPLOADS_DIR; server-managed via POST/DELETE /fighter/hero (omitted from client schemas).
+  heroImageUrl: text("hero_image_url").notNull().default(""),
   goals: text("goals").notNull().default(""),
   weaknesses: text("weaknesses").notNull().default(""),
   competes: boolean("competes").notNull().default(false),
@@ -48,6 +59,8 @@ export const insertFighterSchema = createInsertSchema(fightersTable)
     id: true,
     userId: true,
     age: true,
+    // hero image is set via the dedicated upload endpoint, never by the client payload.
+    heroImageUrl: true,
     createdAt: true,
     updatedAt: true,
   })
@@ -62,6 +75,7 @@ export const updateFighterSchema = createInsertSchema(fightersTable)
     id: true,
     userId: true,
     age: true,
+    heroImageUrl: true,
     createdAt: true,
     updatedAt: true,
     spiritAnimal: true,

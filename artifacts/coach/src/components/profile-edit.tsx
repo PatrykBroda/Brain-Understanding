@@ -2,7 +2,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useUpdateFighter } from "@/hooks/use-fighter";
 import type { Fighter, FighterUpdate } from "@/lib/api";
-import { ARTS, LEVELS, FREQUENCIES, SPORTS, ageFromDob } from "@/lib/fighter-options";
+import {
+  ARTS,
+  LEVELS,
+  FREQUENCIES,
+  SPORTS,
+  STANCES,
+  WEIGHT_CLASSES,
+  ageFromDob,
+} from "@/lib/fighter-options";
 
 const FIELD_LABEL = "block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2";
 const INPUT_CLASS =
@@ -13,7 +21,12 @@ type FormState = {
   dateOfBirth: string;
   heightCm: string;
   weightKg: string;
+  reachCm: string;
   gym: string;
+  headCoach: string;
+  record: string;
+  stance: string;
+  weightClass: string;
   primarySport: string;
   art: string;
   level: string;
@@ -30,7 +43,12 @@ function toForm(f: Fighter): FormState {
     dateOfBirth: f.dateOfBirth ?? "",
     heightCm: f.heightCm != null ? String(f.heightCm) : "",
     weightKg: f.weightKg != null ? String(f.weightKg) : "",
+    reachCm: f.reachCm != null ? String(f.reachCm) : "",
     gym: f.gym ?? "",
+    headCoach: f.headCoach ?? "",
+    record: f.record ?? "",
+    stance: f.stance ?? "",
+    weightClass: f.weightClass ?? "",
     primarySport: f.primarySport || "",
     art: f.art,
     level: f.level,
@@ -54,11 +72,17 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
     if (!form.name.trim() || update.isPending) return;
     const heightCm = form.heightCm.trim() === "" ? null : parseInt(form.heightCm, 10);
     const weightKg = form.weightKg.trim() === "" ? null : parseInt(form.weightKg, 10);
+    const reachCm = form.reachCm.trim() === "" ? null : parseInt(form.reachCm, 10);
     const patch: FighterUpdate = {
       name: form.name.trim(),
       heightCm: heightCm != null && Number.isNaN(heightCm) ? null : heightCm,
       weightKg: weightKg != null && Number.isNaN(weightKg) ? null : weightKg,
+      reachCm: reachCm != null && Number.isNaN(reachCm) ? null : reachCm,
       gym: form.gym,
+      headCoach: form.headCoach,
+      record: form.record.trim(),
+      stance: form.stance,
+      weightClass: form.weightClass,
       primarySport: form.primarySport,
       art: form.art,
       level: form.level,
@@ -153,13 +177,81 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
       </div>
 
       <div>
-        <label className={FIELD_LABEL}>Gym / team</label>
+        <label className={FIELD_LABEL}>Reach (cm)</label>
+        <input
+          type="number"
+          inputMode="numeric"
+          className={INPUT_CLASS}
+          value={form.reachCm}
+          min={100}
+          max={260}
+          placeholder="e.g. 180"
+          onChange={(e) => set("reachCm", e.target.value)}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={FIELD_LABEL}>Stance</label>
+          <select
+            className={INPUT_CLASS}
+            value={form.stance}
+            onChange={(e) => set("stance", e.target.value)}
+          >
+            <option value="">Not set</option>
+            {STANCES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Weight class</label>
+          <select
+            className={INPUT_CLASS}
+            value={form.weightClass}
+            onChange={(e) => set("weightClass", e.target.value)}
+          >
+            <option value="">Not set</option>
+            {WEIGHT_CLASSES.map((w) => (
+              <option key={w} value={w}>
+                {w}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className={FIELD_LABEL}>Record (wins-losses-draws)</label>
         <input
           className={INPUT_CLASS}
-          value={form.gym}
-          placeholder="Where you train"
-          onChange={(e) => set("gym", e.target.value)}
+          value={form.record}
+          placeholder="e.g. 8-1-0"
+          onChange={(e) => set("record", e.target.value)}
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={FIELD_LABEL}>Gym / team</label>
+          <input
+            className={INPUT_CLASS}
+            value={form.gym}
+            placeholder="Where you train"
+            onChange={(e) => set("gym", e.target.value)}
+          />
+        </div>
+        <div>
+          <label className={FIELD_LABEL}>Head coach</label>
+          <input
+            className={INPUT_CLASS}
+            value={form.headCoach}
+            placeholder="Lead trainer"
+            onChange={(e) => set("headCoach", e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

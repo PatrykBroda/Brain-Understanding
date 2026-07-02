@@ -10,8 +10,14 @@ export type Fighter = {
   level: string;
   trainingFrequency: string;
   gym: string;
+  headCoach: string;
   heightCm: number | null;
   weightKg: number | null;
+  reachCm: number | null;
+  weightClass: string;
+  stance: string;
+  record: string;
+  heroImageUrl: string;
   goals: string;
   weaknesses: string;
   competes: boolean;
@@ -66,8 +72,13 @@ export type FighterInput = {
   level: string;
   trainingFrequency: string;
   gym?: string;
+  headCoach?: string;
   heightCm?: number | null;
   weightKg?: number | null;
+  reachCm?: number | null;
+  weightClass?: string;
+  stance?: string;
+  record?: string;
   goals: string;
   weaknesses: string;
   competes: boolean;
@@ -290,6 +301,19 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(input),
     }),
+  uploadHero: async (file: File) => {
+    const dataBase64 = await fileToBase64(file);
+    return jsonFetch<{ fighter: Fighter }>("api/fighter/hero", {
+      method: "POST",
+      body: JSON.stringify({
+        mimeType: file.type,
+        filename: file.name,
+        dataBase64,
+      }),
+    });
+  },
+  removeHero: () =>
+    jsonFetch<{ fighter: Fighter }>("api/fighter/hero", { method: "DELETE" }),
   getActiveConversation: () =>
     jsonFetch<{ conversation: Conversation | null; messages: ServerMessage[] }>(
       "api/conversation/active",
@@ -576,3 +600,6 @@ export const competitionApi = {
 
 export const coachChatUrl = `${base}api/coach/chat`;
 export const attachmentFileUrl = (id: number) => `${base}api/attachments/${id}/file`;
+// Cache-busted with the fighter's updatedAt so a new upload shows immediately.
+export const heroFileUrl = (cacheKey: string | number) =>
+  `${base}api/fighter/hero/file?v=${encodeURIComponent(String(cacheKey))}`;
