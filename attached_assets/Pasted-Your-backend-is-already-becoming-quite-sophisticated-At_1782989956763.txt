@@ -1,0 +1,298 @@
+Your backend is already becoming quite sophisticated (Athlete Model, memory, calibration, Fight Readiness, AI reasoning).
+Trying to shoehorn a generated frontend into an existing React/Next app usually ends up costing more time than rebuilding the components properly.
+The Emergent UI is actually quite simple once you break it down—it's the typography, spacing, imagery, and hierarchy that make it feel premium.
+What I think you should keep from Emergent
+1. Hero-first home screen
+
+The second screenshot nails something your current app probably doesn't:
+
+The athlete is immediately dropped into their world, not into an app.
+
+Instead of:
+
+○ Orb
+
+Enter Chat
+
+Imagine:
+
+(full bleed background)
+
+Today's focus
+
+[Orb]
+
+STATE
+Composed
+
+Fight Readiness
+Calibrating...
+
+Continue Session
+
+The orb almost feels embedded into the environment.
+
+2. Editorial typography
+
+The screenshots feel more like:
+
+Nike campaign
+UFC Embedded
+WHOOP
+
+than
+
+SaaS dashboard.
+
+Use:
+
+Huge condensed titles
+Tiny labels
+Lots of whitespace
+Thin dividers
+
+Instead of lots of cards.
+
+3. Black isn't enough
+
+One thing Emergent gets right:
+
+Everything isn't flat black.
+
+There's:
+
+charcoal
+smoke
+graphite
+subtle overlays
+transparent panels
+
+FRAME should feel like:
+
+walking into a quiet MMA gym at 6am.
+
+Not:
+
+dark mode.
+
+4. Full-screen imagery
+
+This is huge.
+
+Don't use stock fitness photos everywhere.
+
+Use:
+
+blurred sparring
+empty cage
+gloves
+corner stool
+wraps
+gym lights
+
+Very low opacity.
+
+Almost subconscious.
+
+I'd actually redesign FRAME like this
+HOME
+Background:
+blurred training footage
+
+CENTER
+
+Orb
+
+STATE
+
+Composed
+
+Fight Readiness
+
+Calibrating
+
+Continue Session
+CHAT
+
+Almost nothing.
+
+Just
+
+FRAME
+
+-------------------
+
+conversation
+
+-------------------
+
+input
+
+No bubbles that scream ChatGPT.
+
+More like Messages meets Notion.
+
+ATHLETE MODEL
+
+Should feel like classified documents.
+
+Not settings.
+
+Large typography.
+
+Minimal colour.
+
+Everything earned.
+
+HISTORY
+
+Timeline.
+
+Not cards.
+
+Yesterday
+
+Hard Sparring
+
+↓
+
+FRAME noticed:
+
+Earlier commitment.
+Better exits.
+
+↓
+
+Model +2%
+
+Beautiful.
+
+The Video Analyzer
+
+This is the one feature I would not ship half-working.
+
+If it doesn't work reliably, remove it from navigation until it does.
+
+Because users will forgive:
+
+"Coming Soon"
+
+They won't forgive:
+
+"Broken."
+
+Here's how I'd rebuild it
+
+Not:
+
+Upload video → AI magically analyses.
+
+Instead:
+
+Upload
+
+↓
+
+FRAME extracts frames.
+
+↓
+
+User chooses:
+
+Striking
+Wrestling
+Sparring
+Competition
+Pad work
+
+↓
+
+FRAME asks:
+
+"What do you want analysed?"
+
+Examples:
+
+Distance management
+Guard
+Entries
+Exits
+Footwork
+Pace
+Composure
+Shot selection
+
+↓
+
+Then analysis starts.
+
+That makes the AI much more accurate.
+
+The output
+
+Not pages of text.
+
+Example:
+
+FRAME ANALYSIS
+
+Overall
+
+Composed
+
+Observation
+
+You consistently enter range safely.
+
+Primary issue
+
+You square your stance during exits.
+
+Impact
+
+This exposes you after combinations.
+
+Prescription
+
+Finish with one fewer strike and
+exit on an angle.
+
+Confidence
+
+Medium
+
+That's premium.
+
+The next killer feature
+
+I think you're missing one thing.
+
+When someone uploads a sparring video...
+
+FRAME should update the Athlete Model.
+
+Example:
+
+Athlete Model Updated
+
++1.8%
+
+New observations
+
+✓ Maintains composure under pressure
+
+✓ Exits become linear after combinations
+
+✓ Decision speed improves in later rounds
+
+Now every feature feeds the same living model.
+
+If I were writing the next brief for Replit
+
+I'd give it this:
+
+Do not replace the backend architecture. Preserve all existing AI memory, Athlete Model, calibration logic, Fight Readiness gating, and database schema. This is a frontend redesign only. Use the attached Emergent screenshots purely as aesthetic inspiration—not as layouts to copy. The UI should feel like a premium combat performance operating system with cinematic photography, restrained motion, editorial typography, matte black surfaces, subtle transparency, and generous spacing. Remove anything that feels like a SaaS dashboard. Every screen should reinforce the feeling that FRAME is a living performance environment rather than a fitness app.
+
+Refactor the interface into reusable components (Hero, Orb, EditorialSection, CalibrationCard, TimelineItem, SignalCard, AthleteIdentity, FightReadinessPanel) while keeping all existing backend hooks and API calls intact. If a feature (such as Video Analysis) is incomplete or unreliable, either fully repair it end-to-end or hide it behind a clearly marked "Coming Soon" state rather than exposing broken functionality. Every interaction should feel calm, deliberate, and premium.
+
+I genuinely think this is the point where FRAME stops looking like "an app with AI" and starts looking like a premium operating system for fighters. The backend you've described is already differentiated; now the frontend needs to communicate that same level of quality from the first screen onward.
