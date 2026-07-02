@@ -243,35 +243,40 @@ export default function ChatPage() {
                 Loading state…
               </div>
             ) : messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-8 animate-in fade-in duration-700">
-                <div className="text-center space-y-2">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              <div className="flex flex-col items-center justify-center min-h-[55vh] gap-10 animate-in fade-in duration-700">
+                <div className="text-center space-y-4">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/45">
                     Frame open
                   </div>
-                  <p className="text-sm text-muted-foreground max-w-sm">
-                    Talk to the coach. Debrief a session, request a drill, regulate, or reflect.
+                  <p className="font-sans font-extralight text-lg leading-relaxed text-foreground/70 max-w-sm">
+                    Say what happened. Debrief a session, request a drill, regulate, or reflect.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-xl">
+                <div className="w-full max-w-xl grid grid-cols-1 sm:grid-cols-2 gap-px bg-white/[0.06] border border-white/[0.06]">
                   {SUGGESTED_PROMPTS.map((prompt) => (
                     <button
                       key={prompt}
                       onClick={() => sendMessage(prompt)}
-                      className="text-left p-3.5 border border-border/60 hover:border-primary/50 transition-colors font-mono text-xs tracking-wide text-muted-foreground hover:text-foreground"
+                      className="group text-left p-4 bg-background hover:bg-white/[0.02] transition-colors font-mono text-[11px] tracking-wide text-foreground/55 hover:text-foreground"
                     >
+                      <span className="text-primary/50 group-hover:text-primary mr-2 transition-colors">—</span>
                       {prompt}
                     </button>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-10">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
                   >
-                    <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-2 px-1">
+                    <div
+                      className={`text-[10px] font-mono uppercase tracking-[0.4em] mb-2.5 px-1 ${
+                        msg.role === "user" ? "text-foreground/40" : "text-primary/70"
+                      }`}
+                    >
                       {msg.role === "user" ? (fighter?.name ?? "Operator") : "FRAME"}
                     </div>
                     <div
@@ -303,7 +308,7 @@ export default function ChatPage() {
                           `}</style>
                         </div>
                       ) : msg.role === "user" && msg.content ? (
-                        <div className="text-foreground/90 px-4 py-3 border-l-2 border-border/70 whitespace-pre-wrap text-[0.95rem] leading-relaxed">
+                        <div className="text-foreground/90 px-4 py-3 border-l-2 border-primary/30 bg-white/[0.015] whitespace-pre-wrap text-[0.95rem] leading-relaxed">
                           {msg.content}
                         </div>
                       ) : msg.content ? (

@@ -278,6 +278,98 @@ function ConfidenceBar({ pct, segments = 20 }: { pct: number; segments?: number 
   );
 }
 
+// ─── Editorial section header (overline + title, optional aside) ──────────────
+
+function SectionHead({
+  overline,
+  title,
+  aside,
+}: {
+  overline: string;
+  title: string;
+  aside?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-end justify-between gap-4">
+      <div>
+        <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 mb-2">
+          {overline}
+        </div>
+        <div className="font-sans font-extralight uppercase text-[0.95rem] tracking-[0.32em] text-foreground/90 leading-none">
+          {title}
+        </div>
+      </div>
+      {aside ? <div className="flex-none pb-0.5">{aside}</div> : null}
+    </div>
+  );
+}
+
+// ─── Hairline divider with amber node ────────────────────────────────────────
+
+function NodeDivider({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex items-center gap-3 ${className}`} aria-hidden>
+      <div
+        className="flex-1 h-px"
+        style={{ background: "linear-gradient(to right, transparent, hsla(35,55%,55%,0.18))" }}
+      />
+      <div className="w-1 h-1 rounded-full" style={{ background: "hsla(35,55%,55%,0.3)" }} />
+      <div
+        className="flex-1 h-px"
+        style={{ background: "linear-gradient(to left, transparent, hsla(35,55%,55%,0.18))" }}
+      />
+    </div>
+  );
+}
+
+// ─── Dossier panel shell — transparent, hairline, subtle inner highlight ─────
+
+function Panel({
+  children,
+  accent = false,
+  className = "",
+}: {
+  children: React.ReactNode;
+  accent?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`relative overflow-hidden border ${accent ? "border-primary/25" : "border-white/[0.06]"} ${className}`}
+      style={{
+        background: accent
+          ? "linear-gradient(180deg, hsla(35,55%,52%,0.055), transparent 62%)"
+          : "linear-gradient(180deg, hsla(0,0%,100%,0.018), transparent 58%)",
+        boxShadow: "inset 0 1px 0 hsla(0,0%,100%,0.04)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ─── Fact confidence — pips + label, real 1–5 confidence only ────────────────
+
+function FactConfidence({ value }: { value: number }) {
+  const v = Math.max(0, Math.min(5, value));
+  return (
+    <div className="flex items-center gap-1.5 flex-none" title={`Confidence ${v}/5`}>
+      <div className="flex gap-[3px]">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <span
+            key={i}
+            className="w-[3px] h-[9px]"
+            style={{ background: i <= v ? "hsl(35,58%,55%)" : "hsla(0,0%,100%,0.1)" }}
+          />
+        ))}
+      </div>
+      <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/40 tabular-nums">
+        {v}/5
+      </span>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -624,32 +716,35 @@ export default function ProfilePage() {
                 );
               })()}
 
-              {/* ─── 1. FRAME CONFIDENCE ──────────────────────────────── */}
-              <div className="border border-white/[0.08] overflow-hidden">
-                <div className="px-4 pt-4 pb-3">
-                  <div className="flex items-baseline justify-between mb-3">
-                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
-                      Understanding your game
-                    </div>
-                    {memoryQuery.isFetching && (
-                      <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/50">
-                        Syncing
-                      </div>
-                    )}
-                  </div>
+              {/* ─── 1. MODEL CONFIDENCE ──────────────────────────────── */}
+              <Panel className="frame-reveal">
+                <div className="px-5 pt-5 pb-4">
+                  <SectionHead
+                    overline="Dossier · Model confidence"
+                    title="Understanding your game"
+                    aside={
+                      memoryQuery.isFetching ? (
+                        <span className="font-mono text-[9px] uppercase tracking-[0.4em] text-primary/60">
+                          Syncing
+                        </span>
+                      ) : null
+                    }
+                  />
 
-                  <div className="flex items-baseline gap-3 mb-1.5">
-                    <div className="font-mono text-3xl text-foreground/95 tabular-nums leading-none">
+                  <div className="flex items-baseline gap-4 mt-6 mb-2">
+                    <div className="font-sans font-extralight text-[3.25rem] text-foreground/95 tabular-nums leading-[0.85]">
                       {computed.frameConfidence}
-                      <span className="text-lg text-foreground/60">%</span>
+                      <span className="text-2xl text-primary/70">%</span>
                     </div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60 leading-snug">
-                      Model confidence
+                    <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-foreground/50 leading-relaxed pb-1">
+                      Model
+                      <br />
+                      confidence
                     </div>
                   </div>
 
                   {computed.lastUpdated && (
-                    <div className="font-mono text-[9px] tracking-wide text-muted-foreground/45 mb-3">
+                    <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/40 mb-4">
                       Updated {formatHeartbeat(computed.lastUpdated)}
                     </div>
                   )}
@@ -658,32 +753,29 @@ export default function ProfilePage() {
 
                   {changeInfo && (
                     <div
-                      className="mt-3 px-3 py-2.5"
+                      className="mt-4 px-3.5 py-3"
                       style={{
-                        border: "1px solid hsla(32,54%,46%,0.28)",
-                        background: "hsla(32,54%,46%,0.05)",
+                        border: "1px solid hsla(35,55%,52%,0.28)",
+                        background: "linear-gradient(180deg, hsla(35,55%,52%,0.07), transparent 90%)",
                       }}
                     >
                       <div className="flex items-baseline justify-between">
-                        <span className="font-mono text-[8px] uppercase tracking-[0.4em] text-primary/75">
+                        <span className="font-mono text-[9px] uppercase tracking-[0.45em] text-primary/75">
                           Model updated
                         </span>
-                        <span
-                          className="font-mono text-[11px] tabular-nums"
-                          style={{ color: "hsl(32,54%,55%)" }}
-                        >
+                        <span className="font-sans font-extralight text-base tabular-nums text-primary">
                           +{changeInfo.delta}%
                         </span>
                       </div>
                       {changeInfo.note && (
-                        <p className="text-[11px] text-foreground/70 leading-relaxed mt-1.5">
+                        <p className="text-[0.8rem] text-foreground/70 leading-relaxed mt-2">
                           New understanding — {changeInfo.note}
                         </p>
                       )}
                     </div>
                   )}
 
-                  <p className="font-mono text-[10px] text-muted-foreground/55 leading-relaxed mt-2.5">
+                  <p className="text-[0.8rem] text-foreground/50 leading-relaxed mt-4">
                     {computed.frameConfidence < 10
                       ? "FRAME is still learning how you move under pressure. This percentage is how complete its model of you is."
                       : computed.frameConfidence < 25
@@ -696,20 +788,17 @@ export default function ProfilePage() {
 
                 {computed.lowestCategories.length > 0 && (
                   <div
-                    className="px-4 pb-4"
+                    className="px-5 pt-4 pb-5"
                     style={{ borderTop: "1px solid hsla(0,0%,100%,0.05)" }}
                   >
-                    <div className="font-mono text-[8px] uppercase tracking-[0.4em] text-muted-foreground/45 mb-2 pt-3">
+                    <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/40 mb-3">
                       Lowest confidence
                     </div>
-                    <ul className="space-y-1">
+                    <ul className="space-y-2">
                       {computed.lowestCategories.map((c) => (
-                        <li
-                          key={c}
-                          className="flex items-center gap-2"
-                        >
-                          <span className="w-1 h-1 rounded-full bg-muted-foreground/30 flex-none" />
-                          <span className="font-mono text-[10px] text-foreground/65">
+                        <li key={c} className="flex items-center gap-2.5">
+                          <span className="w-1 h-1 rounded-full bg-primary/40 flex-none" />
+                          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/65">
                             {CATEGORY_LABELS[c]}
                           </span>
                         </li>
@@ -718,138 +807,135 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                <div style={{ borderTop: "1px solid hsla(0,0%,100%,0.06)" }}>
-                  <Link
-                    href="/chat"
-                    className="flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors group"
-                  >
-                    <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/70 group-hover:text-primary transition-colors">
-                      Continue Calibration
-                    </span>
-                    <span className="font-mono text-[9px] text-muted-foreground/45">→</span>
-                  </Link>
-                </div>
-              </div>
+                <Link
+                  href="/chat"
+                  className="flex items-center justify-between px-5 py-3.5 hover:bg-white/[0.02] transition-colors group"
+                  style={{ borderTop: "1px solid hsla(0,0%,100%,0.06)" }}
+                >
+                  <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary/70 group-hover:text-primary transition-colors">
+                    Continue Calibration
+                  </span>
+                  <span className="font-mono text-[11px] text-foreground/40 group-hover:text-primary transition-colors">
+                    →
+                  </span>
+                </Link>
+              </Panel>
 
               {/* ─── EMERGING PATTERN ────────────────────────────────── */}
               {computed.emergingPattern && (
-                <div
-                  className="border px-4 py-3.5"
-                  style={{
-                    borderColor: "hsla(32,54%,46%,0.22)",
-                    background:
-                      "linear-gradient(180deg, hsla(32,54%,46%,0.05), transparent 70%)",
-                  }}
-                >
-                  <div className="font-mono text-[8px] uppercase tracking-[0.5em] text-primary/70 mb-1.5">
-                    Emerging pattern
+                <Panel accent className="px-5 py-4">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <span className="w-1 h-1 rounded-full bg-primary flex-none" />
+                    <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-primary/75">
+                      Emerging pattern
+                    </div>
                   </div>
-                  <p className="text-[13px] text-foreground/85 leading-relaxed">
+                  <p className="text-[0.95rem] text-foreground/85 leading-relaxed">
                     {computed.emergingPattern.content}
                   </p>
-                </div>
+                </Panel>
               )}
 
               {/* ─── 2. FRAME NOTES ──────────────────────────────────── */}
               {computed.frameNotes.length > 0 && (
-                <div className="border border-white/[0.08]">
-                  <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
-                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
-                      FRAME Notes
-                    </div>
-                    <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/45">
-                      What FRAME sees
-                    </div>
+                <Panel>
+                  <div className="px-5 pt-5 pb-3">
+                    <SectionHead overline="What FRAME sees" title="Frame notes" />
                   </div>
                   <div className="divide-y" style={{ borderColor: "hsla(0,0%,100%,0.05)" }}>
                     {computed.frameNotes.map((f) => (
-                      <div key={f.id} className="px-4 py-3.5">
-                        <div className="flex items-center justify-between gap-3 mb-1.5">
-                          <div className="font-mono text-[8px] uppercase tracking-[0.4em] text-muted-foreground/50">
+                      <div key={f.id} className="px-5 py-4">
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <div
+                            className="font-mono text-[9px] uppercase tracking-[0.4em] text-foreground/45 truncate"
+                            title={f.source || undefined}
+                          >
                             {CATEGORY_LABELS_SHORT[f.category]}
                             {f.topic ? ` · ${f.topic}` : ""}
                           </div>
-                          <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/35">
-                            Confidence {f.confidence}/5
-                          </div>
+                          <FactConfidence value={f.confidence} />
                         </div>
-                        <p className="text-[12px] text-foreground/80 leading-relaxed">
+                        <p className="text-[0.95rem] text-foreground/80 leading-relaxed">
                           {f.content}
                         </p>
                       </div>
                     ))}
                   </div>
-                </div>
+                </Panel>
               )}
 
               {facts.length === 0 && (
-                <div className="border border-border/40 px-4 py-5">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85 mb-2">
-                    FRAME Notes
+                <Panel className="px-5 py-6">
+                  <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-primary/75 mb-3">
+                    Frame notes
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <p className="text-[0.95rem] text-foreground/55 leading-relaxed">
                     The model sharpens with use. As you talk to the coach, FRAME records durable
                     observations and surfaces them here — what's leaking, what's solid, where
                     confidence is still forming.
                   </p>
-                </div>
+                </Panel>
               )}
 
               {/* ─── FRAME HYPOTHESES (uncertainty) ──────────────────── */}
               {computed.hypotheses.length > 0 && (
-                <div className="border border-white/[0.08]">
-                  <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
-                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
-                      FRAME Hypotheses
-                    </div>
-                    <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/45">
-                      Still testing
-                    </div>
+                <Panel>
+                  <div className="px-5 pt-5 pb-3">
+                    <SectionHead overline="Still testing" title="Frame hypotheses" />
                   </div>
-                  <div className="px-4 pt-2 pb-2">
-                    <p className="font-mono text-[9px] text-muted-foreground/50 leading-relaxed mb-2.5">
+                  <div className="px-5 pb-5">
+                    <p className="text-[0.8rem] text-foreground/50 leading-relaxed mb-4">
                       Low-confidence reads FRAME is still testing — it may confirm or drop
                       these as it sees more.
                     </p>
-                    <ul className="space-y-2">
+                    <ul className="space-y-3">
                       {computed.hypotheses.map((f) => (
-                        <li key={f.id} className="flex items-start gap-2.5">
-                          <span className="flex-none mt-1.5 w-1 h-1 rounded-full bg-muted-foreground/35" />
-                          <span className="text-[12px] text-foreground/75 leading-relaxed">
+                        <li key={f.id} className="flex items-start gap-3">
+                          <span
+                            className="flex-none mt-[7px] w-1 h-1 rounded-full"
+                            style={{ background: "hsla(35,55%,55%,0.4)" }}
+                          />
+                          <span
+                            className="text-[0.95rem] text-foreground/75 leading-relaxed"
+                            title={
+                              f.source
+                                ? `${f.source} · confidence ${f.confidence}/5`
+                                : `Confidence ${f.confidence}/5`
+                            }
+                          >
                             {f.content}
                           </span>
                         </li>
                       ))}
                     </ul>
-                    <div className="font-mono text-[8px] uppercase tracking-[0.3em] text-muted-foreground/40 mt-3">
-                      Confidence: Low
+                    <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-foreground/35 mt-4">
+                      Confidence · low
                     </div>
                   </div>
-                </div>
+                </Panel>
               )}
 
               {/* ─── MODEL ACCURACY (confirm / reject) ───────────────── */}
               {confirmCandidate && (
-                <div
-                  className="border"
-                  style={{ borderColor: "hsla(32,54%,46%,0.28)" }}
-                >
-                  <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
-                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
-                      Model Accuracy
-                    </div>
-                    <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/45">
-                      Help FRAME
-                    </div>
+                <Panel accent>
+                  <div className="px-5 pt-5 pb-3">
+                    <SectionHead overline="Help FRAME" title="Model accuracy" />
                   </div>
-                  <div className="px-4 pt-2 pb-4">
-                    <div className="font-mono text-[8px] uppercase tracking-[0.45em] text-muted-foreground/45 mb-1.5">
+                  <div className="px-5 pb-5">
+                    <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-foreground/40 mb-2">
                       FRAME observation
                     </div>
-                    <p className="text-[13px] text-foreground/85 leading-relaxed mb-3">
+                    <p
+                      className="text-[0.95rem] text-foreground/85 leading-relaxed mb-4"
+                      title={
+                        confirmCandidate.source
+                          ? `${confirmCandidate.source} · confidence ${confirmCandidate.confidence}/5`
+                          : `Confidence ${confirmCandidate.confidence}/5`
+                      }
+                    >
                       {confirmCandidate.content}
                     </p>
-                    <div className="font-mono text-[9px] text-muted-foreground/55 mb-2.5">
+                    <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/55 mb-3">
                       Is that accurate?
                     </div>
                     <div className="grid grid-cols-3 gap-2">
@@ -865,126 +951,118 @@ export default function ProfilePage() {
                           type="button"
                           disabled={confirmMutation.isPending}
                           onClick={() => handleConfirm(confirmCandidate.id, value)}
-                          className="border border-white/[0.1] hover:border-primary/50 hover:text-primary text-foreground/75 transition-colors py-2 font-mono text-[9px] uppercase tracking-[0.2em] disabled:opacity-40"
+                          className="border border-white/[0.1] hover:border-primary/50 hover:text-primary text-foreground/75 transition-colors py-2.5 font-mono text-[9px] uppercase tracking-[0.25em] disabled:opacity-40"
                         >
                           {label}
                         </button>
                       ))}
                     </div>
-                    <p className="font-mono text-[8px] text-muted-foreground/40 leading-relaxed mt-2.5">
+                    <p className="text-[0.75rem] text-foreground/40 leading-relaxed mt-3">
                       Your answer trains the model. FRAME would rather be corrected than
                       confidently wrong.
                     </p>
                   </div>
-                </div>
+                </Panel>
               )}
 
               {/* ─── 3. EVOLUTION TIMELINE ───────────────────────────── */}
               {computed.evolutionTimeline.length > 0 && (
-                <div className="border border-white/[0.08]">
-                  <div className="px-4 pt-3.5 pb-1">
-                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
-                      Recent Calibration
-                    </div>
+                <Panel>
+                  <div className="px-5 pt-5 pb-3">
+                    <SectionHead overline="Latest signal" title="Recent calibration" />
                   </div>
-                  <div className="px-4 pb-4 pt-2 space-y-2">
+                  <div className="px-5 pb-5 pt-1 space-y-3.5">
                     {computed.evolutionTimeline.map((ev, i) => (
-                      <div key={i} className="flex items-start gap-3">
+                      <div key={i} className="flex items-center gap-3">
                         <span
-                          className="flex-none mt-1 w-3 h-3 flex items-center justify-center"
-                          style={{ color: "hsl(32,54%,50%)" }}
-                        >
-                          ✓
-                        </span>
+                          className="flex-none w-1.5 h-1.5 rounded-full"
+                          style={{
+                            background: "hsl(35,58%,55%)",
+                            boxShadow: "0 0 8px hsla(35,58%,55%,0.5)",
+                          }}
+                          aria-hidden
+                        />
                         <div className="min-w-0 flex-1">
-                          <span className="font-mono text-[10px] text-foreground/75">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/70">
                             {ev.label}
                             {ev.topic ? ` — ${ev.topic}` : ""} updated
                           </span>
                         </div>
-                        <div className="flex-none font-mono text-[9px] text-muted-foreground/40 whitespace-nowrap">
+                        <div className="flex-none font-mono text-[9px] uppercase tracking-[0.2em] text-foreground/40 whitespace-nowrap">
                           {formatRelative(ev.date)}
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
+                </Panel>
               )}
 
               {/* ─── 4. ATHLETE STATE ────────────────────────────────── */}
               <AthleteStatePanel fighter={fighter} facts={facts} />
 
               {/* ─── 5. ATHLETE DNA ──────────────────────────────────── */}
-              <div className="border border-white/[0.08]">
-                <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
-                    Athlete DNA
-                  </div>
-                  <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/45">
-                    Model coverage
-                  </div>
+              <Panel>
+                <div className="px-5 pt-5 pb-3">
+                  <SectionHead overline="Model coverage" title="Athlete DNA" />
                 </div>
-                <div className="px-4 pt-2 pb-4">
+                <div className="px-4 pt-3 pb-5">
                   <RadarChart dims={computed.radarData} />
-                  <p className="font-mono text-[9px] text-muted-foreground/40 leading-relaxed text-center mt-1">
+                  <p className="text-[0.75rem] text-foreground/40 leading-relaxed text-center mt-2">
                     Confidence bands — how well FRAME understands each dimension.
                     Not scored 1–100.
                   </p>
                 </div>
-              </div>
+              </Panel>
 
               {/* ─── CONFIDENCE TIMELINE ─────────────────────────────── */}
               {computed.growthTrail.length >= 2 && (
-                <div className="border border-white/[0.08]">
-                  <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
-                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
-                      Confidence Timeline
-                    </div>
-                    <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/45">
-                      Model growth
-                    </div>
+                <Panel>
+                  <div className="px-5 pt-5 pb-3">
+                    <SectionHead overline="Model growth" title="Confidence timeline" />
                   </div>
-                  <div className="px-4 pt-3 pb-4">
-                    <div className="flex items-end justify-between gap-2 h-20">
-                      {computed.growthTrail.map((pt, i) => (
-                        <div
-                          key={i}
-                          className="flex-1 flex flex-col items-center justify-end gap-1.5 h-full"
-                        >
-                          <span className="font-mono text-[8px] text-foreground/55 tabular-nums">
-                            {pt.pct}
-                          </span>
+                  <div className="px-5 pt-3 pb-5">
+                    <div className="flex items-end justify-between gap-2 h-24">
+                      {computed.growthTrail.map((pt, i) => {
+                        const last = i === computed.growthTrail.length - 1;
+                        return (
                           <div
-                            className="w-full"
-                            style={{
-                              height: `${Math.max(4, pt.pct)}%`,
-                              background:
-                                i === computed.growthTrail.length - 1
-                                  ? "hsl(32,54%,50%)"
-                                  : "hsla(32,54%,46%,0.3)",
-                            }}
-                          />
-                          <span className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/40">
-                            {pt.label}
-                          </span>
-                        </div>
-                      ))}
+                            key={i}
+                            className="flex-1 flex flex-col items-center justify-end gap-1.5 h-full"
+                          >
+                            <span
+                              className={`font-mono text-[9px] tabular-nums ${last ? "text-primary/90" : "text-foreground/45"}`}
+                            >
+                              {pt.pct}
+                            </span>
+                            <div
+                              className="w-full transition-[height] duration-700"
+                              style={{
+                                height: `${Math.max(4, pt.pct)}%`,
+                                background: last
+                                  ? "hsl(35,58%,55%)"
+                                  : "hsla(35,55%,52%,0.28)",
+                              }}
+                            />
+                            <span className="font-mono text-[8px] uppercase tracking-[0.3em] text-foreground/35">
+                              {pt.label}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <p className="font-mono text-[8px] text-muted-foreground/40 leading-relaxed mt-3">
+                    <p className="text-[0.75rem] text-foreground/40 leading-relaxed mt-4">
                       Reconstructed from when FRAME first recorded each observation —
                       an approximation of how its model of you has grown, not a stored history.
                     </p>
                   </div>
-                </div>
+                </Panel>
               )}
 
               {/* ─── ATHLETE IDENTITY ─────────────────────────────────── */}
               {(computed.topStrength || computed.topWeakness || computed.topPattern) && (
-                <div className="border border-white/[0.08]">
-                  <div className="px-4 pt-3.5 pb-1">
-                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
-                      Athlete Identity
-                    </div>
+                <Panel>
+                  <div className="px-5 pt-5 pb-3">
+                    <SectionHead overline="Derived read" title="Athlete identity" />
                   </div>
                   <div className="divide-y" style={{ borderColor: "hsla(0,0%,100%,0.05)" }}>
                     <IdentityRow
@@ -1033,7 +1111,7 @@ export default function ProfilePage() {
                       />
                     )}
                   </div>
-                </div>
+                </Panel>
               )}
 
               {/* ─── FRAME RANK ───────────────────────────────────────── */}
@@ -1090,69 +1168,98 @@ export default function ProfilePage() {
               </Link>
 
               {/* ─── FULL ATHLETE MODEL (fact list) ───────────────────── */}
-              <div className="h-px bg-border/40" />
+              <NodeDivider className="pt-1" />
 
-              <section>
-                <div className="flex items-baseline justify-between mb-5">
+              <section className="frame-reveal">
+                <div className="flex items-end justify-between gap-4 mb-6">
                   <div>
-                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-muted-foreground mb-1">
+                    <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 mb-2">
                       Full model
                     </div>
-                    <div className="font-mono text-sm uppercase tracking-widest text-foreground/95">
+                    <div className="font-sans font-extralight uppercase text-xl tracking-[0.3em] text-foreground/90 leading-none">
                       {facts.length} observation{facts.length === 1 ? "" : "s"}
                     </div>
                   </div>
+                  <Link
+                    href="/history"
+                    className="flex-none font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/45 hover:text-primary transition-colors"
+                  >
+                    View history →
+                  </Link>
                 </div>
 
                 {facts.length > 0 && (
-                  <div className="space-y-1.5 mb-6">
-                    {CATEGORY_ORDER.filter((c) => (grouped[c]?.length ?? 0) > 0).map((c) => {
-                      const count = grouped[c]?.length ?? 0;
-                      const pct = Math.round(computed.categoryCoverage[c] * 100);
-                      return (
-                        <div key={c} className="flex items-center gap-3">
-                          <div className="flex-none w-32 font-mono text-[9px] uppercase tracking-widest text-muted-foreground truncate">
-                            {CATEGORY_LABELS[c]}
+                  <Panel className="mb-7">
+                    <div className="px-5 pt-4 pb-2">
+                      <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/40">
+                        Category coverage
+                      </div>
+                    </div>
+                    <div className="px-5 pb-5 pt-1 space-y-3">
+                      {CATEGORY_ORDER.filter((c) => (grouped[c]?.length ?? 0) > 0).map((c) => {
+                        const count = grouped[c]?.length ?? 0;
+                        const pct = Math.round(computed.categoryCoverage[c] * 100);
+                        return (
+                          <div key={c} className="flex items-center gap-3">
+                            <div className="flex-none w-28 font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/55 truncate">
+                              {CATEGORY_LABELS[c]}
+                            </div>
+                            <div className="flex-1 relative h-[3px] bg-white/[0.06] overflow-hidden">
+                              <div
+                                className="absolute top-0 left-0 h-full transition-[width] duration-700"
+                                style={{ width: `${pct}%`, background: "hsl(35,58%,55%)" }}
+                              />
+                            </div>
+                            <div className="flex-none font-mono text-[9px] tabular-nums text-foreground/70 w-5 text-right">
+                              {count}
+                            </div>
                           </div>
-                          <div className="flex-1 relative h-[3px] bg-border/40 overflow-hidden">
-                            <div
-                              className="absolute top-0 left-0 h-full bg-primary/70"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <div className="flex-none font-mono text-[9px] uppercase tracking-widest text-foreground/80 w-5 text-right">
-                            {count}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  </Panel>
                 )}
 
                 {facts.length === 0 ? (
-                  <div className="text-sm text-muted-foreground leading-relaxed border border-border/40 p-4">
-                    The model sharpens with use. As you talk to the coach, FRAME records durable
-                    observations and feeds them back into how you're coached.
-                  </div>
+                  <Panel className="px-5 py-6">
+                    <p className="text-[0.95rem] text-foreground/55 leading-relaxed">
+                      The model sharpens with use. As you talk to the coach, FRAME records durable
+                      observations and feeds them back into how you're coached.
+                    </p>
+                  </Panel>
                 ) : (
-                  <div className="space-y-7">
+                  <div className="space-y-8">
                     {CATEGORY_ORDER.filter((c) => (grouped[c]?.length ?? 0) > 0).map((c) => (
                       <div key={c}>
-                        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/85 mb-3">
-                          {CATEGORY_LABELS[c]}
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="flex-none font-sans font-extralight uppercase text-[0.9rem] tracking-[0.3em] text-primary/90 leading-none">
+                            {CATEGORY_LABELS[c]}
+                          </div>
+                          <div
+                            className="flex-1 h-px"
+                            style={{ background: "linear-gradient(to right, hsla(35,55%,55%,0.22), transparent)" }}
+                          />
+                          <div className="flex-none font-mono text-[9px] tabular-nums text-foreground/40">
+                            {grouped[c]!.length}
+                          </div>
                         </div>
-                        <div className="space-y-2.5">
+                        <div className="space-y-3">
                           {grouped[c]!.map((f) => (
-                            <div key={f.id} className="border-l-2 border-border/60 pl-3 py-1">
-                              <div className="flex items-baseline justify-between gap-3 mb-0.5">
-                                <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/80 truncate">
+                            <div
+                              key={f.id}
+                              className="pl-4 py-1.5"
+                              style={{ borderLeft: "1px solid hsla(35,55%,55%,0.25)" }}
+                            >
+                              <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                                <div
+                                  className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/75 truncate"
+                                  title={f.source || undefined}
+                                >
                                   {f.topic}
                                 </div>
-                                <div className="flex-none font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                                  conf {f.confidence}/5
-                                </div>
+                                <FactConfidence value={f.confidence} />
                               </div>
-                              <div className="text-sm text-foreground/90 leading-snug">
+                              <div className="text-[0.95rem] text-foreground/85 leading-relaxed">
                                 {f.content}
                               </div>
                             </div>
@@ -1266,8 +1373,16 @@ function ProfileAnimations() {
       .profile-id-card {
         animation: profile-id-in 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) 0.05s both;
       }
+      @keyframes frame-reveal-in {
+        from { opacity: 0; transform: translateY(12px) scale(0.99); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .frame-reveal {
+        animation: frame-reveal-in 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+      }
       @media (prefers-reduced-motion: reduce) {
-        .profile-id-card { animation: none; }
+        .profile-id-card,
+        .frame-reveal { animation: none; }
       }
     `}</style>
   );

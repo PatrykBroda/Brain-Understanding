@@ -11,6 +11,7 @@ import ChatPage from "@/pages/chat";
 import OnboardingPage from "@/pages/onboarding";
 import HomePage from "@/pages/home";
 import ProfilePage from "@/pages/profile";
+import HistoryPage from "@/pages/history";
 import PlannerPage from "@/pages/planner";
 import AnalysePage from "@/pages/analyse";
 import CompetitionPage from "@/pages/competition";
@@ -311,6 +312,11 @@ function AppRoutes() {
             <Route path="/profile">
               <Authed>
                 <ProfilePage />
+              </Authed>
+            </Route>
+            <Route path="/history">
+              <Authed>
+                <HistoryPage />
               </Authed>
             </Route>
             <Route path="/planner">
