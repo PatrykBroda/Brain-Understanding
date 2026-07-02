@@ -76,8 +76,12 @@ test("sign-in lands on FRAME home with no JS errors", async ({ page }) => {
   // State section exists (font-mono "State" label)
   await expect(page.getByText("State")).toBeVisible();
 
-  // "Enter" CTA present
-  await expect(page.getByText("Enter").first()).toBeVisible();
+  // Doorway CTA present. The label is session-aware: "Enter the frame" for a
+  // fresh session, "Continue session" for a returning one (the persistent test
+  // account usually has prior history, so it reads "Continue").
+  await expect(
+    page.getByRole("link", { name: /Enter the frame|Continue session/ })
+  ).toBeVisible();
 
   // No unexpected JS errors (filter out known benign browser noise)
   const criticalErrors = jsErrors.filter(
