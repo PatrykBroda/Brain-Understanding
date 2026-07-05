@@ -78,6 +78,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff,woff2}"],
+        // Headroom above the 2 MiB Workbox default so bundle growth can't
+        // hard-fail the production build at the SW precache step again.
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         // The coach is served at "/" but the Expo app ("/mobile/") and the API
@@ -132,6 +135,17 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // The three.js stack (CosmicOrb) is the single largest dependency.
+          // Splitting it keeps each chunk under Workbox's precache limit.
+          if (/node_modules\/(three|@react-three)\//.test(id)) {
+            return "three";
+          }
+        },
+      },
+    },
   },
   server: {
     port,
