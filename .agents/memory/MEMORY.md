@@ -2,6 +2,7 @@
 - [No-fabricated-numbers pillar](no-fake-percentages-constraint.md) — never invent numbers; the line is fabrication not numbers. Analyse FRAME REPORT may show REAL pose-measured scores (AI writes only narrative, server recomputes the composite).
 - [Analyse feature](analyse-feature.md) — footage→nervous-system read: pose runs on-device, server narrates + enforces the FRAME REPORT honesty contract.
 - [Clerk dev 401 / all-null getAuth](clerk-dev-cookie-pollution.md) — not a server bug: parent-domain stale cookies shadow fresh ones + dev FAPI is third-party (incognito invalid). Fix = clear replit.dev cookies / fresh browser.
+- [Smoke port race → CONNECTION LOST](smoke-port-race-connection-lost.md) — smoke workflows share the main API port; overlap → EADDRINUSE → app shows the useFighter CONNECTION LOST gate. A smoke failure showing that gate is a backend blip, not a page regression.
 - [Playwright Chromium in Replit](playwright-chromium-replit.md) — smoke tests MUST use Nix Chromium (auto-discovered in playwright.config.ts); bundled browser crashes on launch.
 - [frame-mobile static-export preview](frame-mobile-static-export-preview.md) — previewed from prebuilt dist/ (no live reload): rebuild (bg, >2min) + restart to see changes; gated screens redirect to landing so can't screenshot signed-out.
 - [PWA SW shared-origin scope](pwa-sw-shared-origin.md) — coach SW at "/" claims whole origin; navigateFallbackDenylist must exclude /api,/mobile,/healthz matching bare+subpath via `(?:/|$)`.
