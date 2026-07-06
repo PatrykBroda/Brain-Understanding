@@ -1,4 +1,6 @@
 import { Router, type IRouter } from "express";
+import { createReadStream } from "node:fs";
+import { stat, rm } from "node:fs/promises";
 import {
   db,
   videoAnalysesTable,
@@ -21,6 +23,14 @@ import {
   recomputeSessionScore,
   ContentValidationError,
 } from "../lib/analysisService";
+import {
+  classifySource,
+  normalizeForFetch,
+  safeStream,
+  MAX_REMOTE_BYTES,
+  RemoteFetchError,
+} from "../lib/remoteFetch";
+import { downloadYouTube, YtDlpError } from "../lib/ytdlp";
 
 const router: IRouter = Router();
 
@@ -432,6 +442,136 @@ router.patch("/analysis/:id/notes", async (req, res) => {
     return;
   }
   res.json({ analysis: updated });
+});
+
+// ---------------------------------------------------------------------------
+// POST /analysis/fetch-remote — fetch a pasted video link server-side and stream
+// the raw bytes back same-origin. The browser turns the response into a
+// Blob→File and runs the EXISTING on-device pose pass — scoring never moves to
+// the server. SSRF is the one serious surface (see lib/remoteFetch.ts).
+// ---------------------------------------------------------------------------
+
+// Small in-flight cap: yt-dlp + large downloads are heavy, and /tmp is tmpfs
+// (RAM) on autoscale. Beyond this we shed load with 429 rather than OOM.
+const MAX_INFLIGHT_REMOTE = 2;
+let inFlightRemote = 0;
+
+router.post("/analysis/fetch-remote", async (req, res) => {
+  const raw = typeof (req.body as { url?: unknown })?.url === "string" ? (req.body as { url: string }).url.trim() : "";
+  if (!raw) {
+    res.status(400).json({ error: "No link provided." });
+    return;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    res.status(422).json({ error: "That doesn't look like a valid link." });
+    return;
+  }
+  if (parsed.protocol !== "https:") {
+    res.status(422).json({ error: "Only https links are supported." });
+    return;
+  }
+
+  if (inFlightRemote >= MAX_INFLIGHT_REMOTE) {
+    res.status(429).json({ error: "The server is fetching other clips right now — try again in a moment." });
+    return;
+  }
+
+  inFlightRemote += 1;
+  let released = false;
+  const release = () => {
+    if (!released) {
+      released = true;
+      inFlightRemote -= 1;
+    }
+  };
+  res.on("close", release);
+
+  const source = classifySource(parsed);
+
+  try {
+    if (source === "youtube") {
+      const dl = await downloadYouTube(parsed.toString());
+      // If the client aborted during the (up to 90s) download, `res` already
+      // fired "close" — a listener registered now would never run, leaking the
+      // temp dir (autoscale /tmp is RAM). Clean up immediately in that case.
+      if (res.destroyed) {
+        await rm(dl.dir, { recursive: true, force: true }).catch(() => {});
+        return;
+      }
+      // Clean the temp dir once the response is done (autoscale /tmp is RAM).
+      res.on("close", () => {
+        void rm(dl.dir, { recursive: true, force: true }).catch(() => {});
+      });
+      try {
+        const info = await stat(dl.file);
+        if (info.size > MAX_REMOTE_BYTES) {
+          throw new RemoteFetchError("That clip is too large after download. Try a shorter video.");
+        }
+        res.setHeader("Content-Type", "video/mp4");
+        res.setHeader("Content-Length", String(info.size));
+        const stream = createReadStream(dl.file);
+        stream.on("error", () => res.destroy());
+        stream.pipe(res);
+      } catch (err) {
+        await rm(dl.dir, { recursive: true, force: true }).catch(() => {});
+        throw err;
+      }
+      return;
+    }
+
+    const target = normalizeForFetch(parsed, source);
+    if (!target) {
+      res.status(422).json({ error: "Couldn't turn that into a direct video link. Paste a direct video URL." });
+      return;
+    }
+
+    const { res: upstream } = await safeStream(target);
+    const contentType = String(upstream.headers["content-type"] ?? "");
+
+    if (!/^video\//i.test(contentType)) {
+      upstream.resume(); // drain
+      const hint =
+        source === "drive"
+          ? "Google Drive returned a permission or virus-scan page, not the video. Share the file as 'Anyone with the link' and make sure it isn't too large for a direct download."
+          : "That link didn't return a video file. Paste a direct video URL (e.g. ending in .mp4) or a share link.";
+      res.status(422).json({ error: hint });
+      return;
+    }
+
+    const declared = Number(upstream.headers["content-length"] ?? "");
+    if (Number.isFinite(declared) && declared > MAX_REMOTE_BYTES) {
+      upstream.resume();
+      res.status(422).json({ error: "That video is too large. Try a shorter clip (first 75s is analysed anyway)." });
+      return;
+    }
+
+    res.setHeader("Content-Type", contentType);
+    if (Number.isFinite(declared) && declared > 0) res.setHeader("Content-Length", String(declared));
+
+    let bytes = 0;
+    upstream.on("data", (chunk: Buffer) => {
+      bytes += chunk.length;
+      if (bytes > MAX_REMOTE_BYTES) {
+        upstream.destroy();
+        res.destroy(); // headers already sent — abort the socket
+      }
+    });
+    upstream.on("error", () => res.destroy());
+    upstream.pipe(res);
+  } catch (err) {
+    if (res.headersSent) {
+      res.destroy();
+    } else if (err instanceof RemoteFetchError || err instanceof YtDlpError) {
+      res.status(422).json({ error: err.message });
+    } else {
+      req.log.error({ err }, "fetch-remote failed");
+      res.status(502).json({ error: "Couldn't fetch that video link." });
+    }
+  }
 });
 
 export default router;

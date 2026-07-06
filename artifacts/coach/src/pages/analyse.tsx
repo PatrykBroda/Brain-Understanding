@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
-import { ChevronLeft, Upload, Film, X, Download, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+import { ChevronLeft, Upload, Film, X, Download, ArrowUpRight, ArrowDownRight, Minus, Link2 } from "lucide-react";
 import { toPng } from "html-to-image";
 import {
   LineChart,
@@ -21,7 +21,7 @@ import {
   type ExtractResult,
 } from "@/lib/pose";
 import { computeMetrics } from "@/lib/analysis-metrics";
-import { ApiError } from "@/lib/api";
+import { ApiError, fetchRemoteVideo } from "@/lib/api";
 import type {
   AnalysisKind,
   AnalysisKeyframe,
@@ -61,6 +61,7 @@ const LOAD_COLOR: Record<NervousSystemLoad, string> = {
 
 type Phase =
   | { stage: "idle" }
+  | { stage: "fetching" }
   | { stage: "reading"; pct: number }
   | { stage: "tracking"; pct: number }
   | { stage: "detecting" }
@@ -68,6 +69,7 @@ type Phase =
   | { stage: "error"; title: string; causes: string[]; retryable: boolean };
 
 const PHASE_PHRASES: Record<string, string[]> = {
+  fetching: ["Pulling the footage", "Fetching the clip", "Reaching the source"],
   reading: ["Decoding footage", "Sampling frames", "Reading the tape"],
   tracking: ["Locking the skeleton", "Tracking limbs under load", "Following the structure"],
   detecting: ["Reading the body under load", "Finding the breakpoints", "Watching the guard", "Measuring composure"],
@@ -75,6 +77,7 @@ const PHASE_PHRASES: Record<string, string[]> = {
 };
 
 const PHASE_TITLE: Record<string, string> = {
+  fetching: "Fetching the clip",
   reading: "Reading footage",
   tracking: "Tracking movement",
   detecting: "Detecting patterns",
@@ -126,7 +129,10 @@ export default function AnalysePage() {
   const [openId, setOpenId] = useState<number | null>(null);
   const [compareId, setCompareId] = useState<number | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [sourceMode, setSourceMode] = useState<"upload" | "link">("upload");
+  const [linkUrl, setLinkUrl] = useState("");
   const pendingFile = useRef<File | null>(null);
+  const lastLink = useRef<string | null>(null);
   const videoUrlRef = useRef<string | null>(null);
 
   // Revoke any outstanding blob URL when the component unmounts
@@ -138,6 +144,12 @@ export default function AnalysePage() {
 
   const busy = phase.stage !== "idle" && phase.stage !== "error";
   const danger = result?.fragmentationRisk === "high" || result?.nervousSystemLoad === "high";
+  // Retry is offered when there's something to retry: a picked file, or a link
+  // that failed to fetch (which leaves no File behind).
+  const canRetry =
+    phase.stage === "error" &&
+    phase.retryable &&
+    (!!pendingFile.current || (sourceMode === "link" && !!lastLink.current));
 
   async function runAnalysis(file: File) {
     setResult(null);
@@ -220,6 +232,25 @@ export default function AnalysePage() {
     }
   }
 
+  async function runFromLink(url: string) {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    lastLink.current = trimmed;
+    pendingFile.current = null;
+    setResult(null);
+    setOpenId(null);
+    setPhase({ stage: "fetching" });
+    let file: File;
+    try {
+      file = await fetchRemoteVideo(trimmed);
+    } catch (err) {
+      setPhase(toErrorPhase(err));
+      return;
+    }
+    pendingFile.current = file;
+    await runAnalysis(file);
+  }
+
   function clearResult() {
     setResult(null);
     if (videoUrlRef.current) {
@@ -230,6 +261,11 @@ export default function AnalysePage() {
   }
 
   function retry() {
+    // A link that never produced a File is re-fetched; anything else re-runs the pose pass.
+    if (sourceMode === "link" && lastLink.current && !pendingFile.current) {
+      void runFromLink(lastLink.current);
+      return;
+    }
     const file = pendingFile.current;
     if (file) void runAnalysis(file);
   }
@@ -288,10 +324,15 @@ export default function AnalysePage() {
               setFocus={setFocus}
               busy={busy}
               phase={phase}
-              pendingFile={pendingFile}
+              canRetry={canRetry}
               fileRef={fileRef}
               onPick={onPick}
               retry={retry}
+              sourceMode={sourceMode}
+              setSourceMode={setSourceMode}
+              linkUrl={linkUrl}
+              setLinkUrl={setLinkUrl}
+              onSubmitLink={() => void runFromLink(linkUrl)}
               analyses={analyses.data?.analyses ?? []}
               analysesLoading={analyses.isLoading}
               onOpen={(id) => setOpenId(id)}
@@ -353,27 +394,39 @@ export default function AnalysePage() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={busy}
-                className="relative w-full max-w-sm overflow-hidden transition-all duration-300 disabled:opacity-50 py-16 flex flex-col items-center justify-center gap-4"
-                style={{ border: "1px solid hsla(0,68%,46%,0.25)", background: "linear-gradient(160deg, hsla(0,68%,46%,0.04) 0%, transparent 60%)" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.55)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.25)"; }}
-              >
-                <span className="absolute left-0 top-0 h-3 w-3 border-l border-t border-destructive/40" />
-                <span className="absolute right-0 top-0 h-3 w-3 border-r border-t border-destructive/40" />
-                <span className="absolute left-0 bottom-0 h-3 w-3 border-l border-b border-destructive/40" />
-                <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-destructive/40" />
-                <Upload className="w-10 h-10" strokeWidth={1} style={{ color: "hsla(0,68%,46%,0.6)" }} />
-                <div className="font-mono text-[11px] uppercase tracking-[0.45em] text-foreground/80">
-                  Drop footage
-                </div>
-                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45">
-                  mp4 · mov · first 75s processed
-                </div>
-              </button>
+              <div className="w-full max-w-sm space-y-4">
+                <SourceToggle mode={sourceMode} setMode={setSourceMode} disabled={busy} />
+                {sourceMode === "upload" ? (
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={busy}
+                    className="relative w-full overflow-hidden transition-all duration-300 disabled:opacity-50 py-16 flex flex-col items-center justify-center gap-4"
+                    style={{ border: "1px solid hsla(0,68%,46%,0.25)", background: "linear-gradient(160deg, hsla(0,68%,46%,0.04) 0%, transparent 60%)" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.55)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.25)"; }}
+                  >
+                    <span className="absolute left-0 top-0 h-3 w-3 border-l border-t border-destructive/40" />
+                    <span className="absolute right-0 top-0 h-3 w-3 border-r border-t border-destructive/40" />
+                    <span className="absolute left-0 bottom-0 h-3 w-3 border-l border-b border-destructive/40" />
+                    <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-destructive/40" />
+                    <Upload className="w-10 h-10" strokeWidth={1} style={{ color: "hsla(0,68%,46%,0.6)" }} />
+                    <div className="font-mono text-[11px] uppercase tracking-[0.45em] text-foreground/80">
+                      Drop footage
+                    </div>
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45">
+                      mp4 · mov · first 75s processed
+                    </div>
+                  </button>
+                ) : (
+                  <LinkInput
+                    value={linkUrl}
+                    onChange={setLinkUrl}
+                    onSubmit={() => void runFromLink(linkUrl)}
+                    disabled={busy}
+                  />
+                )}
+              </div>
             </div>
 
             {/* RIGHT — controls + history */}
@@ -418,6 +471,7 @@ export default function AnalysePage() {
                   placeholder="e.g. my guard when I get tired, left-side pressure…"
                   className="w-full bg-transparent border border-border/50 focus:border-primary/50 outline-none px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/50 transition-colors disabled:opacity-40"
                 />
+                <FocusPresets focus={focus} setFocus={setFocus} disabled={busy} />
               </section>
 
               {phase.stage === "error" && (
@@ -437,7 +491,7 @@ export default function AnalysePage() {
                       ))}
                     </ul>
                   )}
-                  {phase.retryable && pendingFile.current && (
+                  {canRetry && (
                     <button
                       type="button"
                       onClick={retry}
@@ -483,6 +537,159 @@ export default function AnalysePage() {
 // Upload controls (mobile only — desktop renders inline)
 // ---------------------------------------------------------------------------
 
+// Focus presets — set a concise focus string the AI reads. "Overall" clears it.
+const FOCUS_PRESETS: { label: string; value: string }[] = [
+  { label: "Overall", value: "" },
+  { label: "Striking", value: "my striking — output, distance, shot selection" },
+  { label: "Grappling", value: "my grappling — control, transitions, scrambles" },
+  { label: "Footwork", value: "my footwork and positioning" },
+  { label: "Defence", value: "my defence under pressure" },
+  { label: "Fight IQ", value: "my decision-making and fight IQ" },
+  { label: "Pace", value: "my pace and output under fatigue" },
+];
+
+function FocusPresets({
+  focus,
+  setFocus,
+  disabled,
+}: {
+  focus: string;
+  setFocus: (v: string) => void;
+  disabled: boolean;
+}) {
+  const current = focus.trim();
+  return (
+    <div className="flex flex-wrap gap-[3px]">
+      {FOCUS_PRESETS.map((p) => {
+        const active = current === p.value;
+        return (
+          <button
+            key={p.label}
+            type="button"
+            onClick={() => setFocus(p.value)}
+            disabled={disabled}
+            className="font-mono text-[9px] uppercase tracking-widest px-2.5 py-1.5 transition-all duration-200 disabled:opacity-40"
+            style={{
+              border: `1px solid ${active ? "hsla(0,68%,46%,0.55)" : "hsla(0,0%,100%,0.09)"}`,
+              background: active ? "hsla(0,68%,46%,0.1)" : "transparent",
+              color: active ? "hsl(0,55%,68%)" : "hsla(0,0%,100%,0.5)",
+            }}
+          >
+            {p.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SourceToggle({
+  mode,
+  setMode,
+  disabled,
+}: {
+  mode: "upload" | "link";
+  setMode: (m: "upload" | "link") => void;
+  disabled: boolean;
+}) {
+  const opts: { value: "upload" | "link"; label: string }[] = [
+    { value: "upload", label: "Upload file" },
+    { value: "link", label: "Paste link" },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-[3px]">
+      {opts.map((o) => {
+        const active = mode === o.value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => setMode(o.value)}
+            disabled={disabled}
+            className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
+            style={{
+              borderLeft: `2px solid ${active ? "hsla(0,68%,46%,0.9)" : "hsla(0,0%,100%,0.1)"}`,
+              borderTop: `1px solid ${active ? "hsla(0,68%,46%,0.2)" : "hsla(0,0%,100%,0.06)"}`,
+              borderRight: "1px solid hsla(0,0%,100%,0.04)",
+              borderBottom: "1px solid hsla(0,0%,100%,0.04)",
+              background: active ? "hsla(0,68%,46%,0.08)" : "transparent",
+              color: active ? "hsl(0,55%,65%)" : "hsla(0,0%,100%,0.55)",
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function LinkInput({
+  value,
+  onChange,
+  onSubmit,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSubmit: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="w-full space-y-3">
+      <div
+        className="relative flex flex-col gap-4 p-5"
+        style={{
+          border: "1px solid hsla(0,68%,46%,0.25)",
+          background: "linear-gradient(160deg, hsla(0,68%,46%,0.04) 0%, transparent 60%)",
+        }}
+      >
+        <span className="absolute left-0 top-0 h-3 w-3 border-l border-t border-destructive/40" />
+        <span className="absolute right-0 top-0 h-3 w-3 border-r border-t border-destructive/40" />
+        <span className="absolute left-0 bottom-0 h-3 w-3 border-l border-b border-destructive/40" />
+        <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-destructive/40" />
+
+        <div className="flex items-center gap-2.5">
+          <Link2 className="w-4 h-4 flex-none" strokeWidth={1.5} style={{ color: "hsla(0,68%,46%,0.6)" }} />
+          <input
+            type="url"
+            inputMode="url"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                onSubmit();
+              }
+            }}
+            disabled={disabled}
+            placeholder="https://…"
+            className="flex-1 min-w-0 bg-transparent border-b border-border/40 focus:border-destructive/40 outline-none py-1.5 text-sm text-foreground/85 placeholder:text-muted-foreground/35 transition-colors disabled:opacity-40"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={onSubmit}
+          disabled={disabled || !value.trim()}
+          className="w-full font-mono text-[11px] uppercase tracking-[0.35em] py-3 transition-colors disabled:opacity-40 hover:bg-destructive/10"
+          style={{
+            border: "1px solid hsla(0,68%,46%,0.45)",
+            color: "hsl(0,55%,68%)",
+            background: "hsla(0,68%,46%,0.06)",
+          }}
+        >
+          Fetch and analyse
+        </button>
+      </div>
+      <p className="font-mono text-[9px] leading-relaxed tracking-wide text-muted-foreground/45">
+        Direct video links (.mp4 / .mov), Google Drive and Dropbox share links work best. YouTube is
+        best-effort — use your own footage; some links won&apos;t pull. The clip is fetched and read on
+        this device, nothing else is stored.
+      </p>
+    </div>
+  );
+}
+
 function UploadControls({
   kind,
   setKind,
@@ -490,10 +697,15 @@ function UploadControls({
   setFocus,
   busy,
   phase,
-  pendingFile,
+  canRetry,
   fileRef,
   onPick,
   retry,
+  sourceMode,
+  setSourceMode,
+  linkUrl,
+  setLinkUrl,
+  onSubmitLink,
   analyses,
   analysesLoading,
   onOpen,
@@ -506,10 +718,15 @@ function UploadControls({
   setFocus: (v: string) => void;
   busy: boolean;
   phase: Phase;
-  pendingFile: React.RefObject<File | null>;
+  canRetry: boolean;
   fileRef: React.RefObject<HTMLInputElement | null>;
   onPick: (e: React.ChangeEvent<HTMLInputElement>) => void;
   retry: () => void;
+  sourceMode: "upload" | "link";
+  setSourceMode: (m: "upload" | "link") => void;
+  linkUrl: string;
+  setLinkUrl: (v: string) => void;
+  onSubmitLink: () => void;
   analyses: { id: number; kind: string; nervousSystemLoad: NervousSystemLoad; sessionScore: number; styleProfile: string; summary: string; createdAt: string }[];
   analysesLoading: boolean;
   onOpen: (id: number) => void;
@@ -578,35 +795,43 @@ function UploadControls({
           placeholder="guard under fatigue, left shoulder, pressure after a miss…"
           className="w-full bg-transparent border-b border-border/40 focus:border-destructive/40 outline-none py-2.5 text-sm text-foreground/85 placeholder:text-muted-foreground/35 transition-colors disabled:opacity-40"
         />
+        <FocusPresets focus={focus} setFocus={setFocus} disabled={busy} />
       </section>
 
-      {/* Upload zone — atmospheric */}
-      <button
-        type="button"
-        onClick={() => fileRef.current?.click()}
-        disabled={busy}
-        className="group w-full relative overflow-hidden transition-all duration-300 disabled:opacity-50 py-12 flex flex-col items-center justify-center gap-4"
-        style={{
-          border: "1px solid hsla(0,68%,46%,0.25)",
-          background: "linear-gradient(160deg, hsla(0,68%,46%,0.04) 0%, transparent 60%)",
-        }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.55)"; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.25)"; }}
-      >
-        {/* Subtle corner brackets */}
-        <span className="absolute left-0 top-0 h-3 w-3 border-l border-t border-destructive/40" />
-        <span className="absolute right-0 top-0 h-3 w-3 border-r border-t border-destructive/40" />
-        <span className="absolute left-0 bottom-0 h-3 w-3 border-l border-b border-destructive/40" />
-        <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-destructive/40" />
+      {/* Source: upload a file or paste a link */}
+      <section className="space-y-3">
+        <SourceToggle mode={sourceMode} setMode={setSourceMode} disabled={busy} />
+        {sourceMode === "upload" ? (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={busy}
+            className="group w-full relative overflow-hidden transition-all duration-300 disabled:opacity-50 py-12 flex flex-col items-center justify-center gap-4"
+            style={{
+              border: "1px solid hsla(0,68%,46%,0.25)",
+              background: "linear-gradient(160deg, hsla(0,68%,46%,0.04) 0%, transparent 60%)",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.55)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.25)"; }}
+          >
+            {/* Subtle corner brackets */}
+            <span className="absolute left-0 top-0 h-3 w-3 border-l border-t border-destructive/40" />
+            <span className="absolute right-0 top-0 h-3 w-3 border-r border-t border-destructive/40" />
+            <span className="absolute left-0 bottom-0 h-3 w-3 border-l border-b border-destructive/40" />
+            <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-destructive/40" />
 
-        <Upload className="w-8 h-8" strokeWidth={1} style={{ color: "hsla(0,68%,46%,0.6)" }} />
-        <div className="font-mono text-[11px] uppercase tracking-[0.45em] text-foreground/80">
-          Drop footage
-        </div>
-        <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45">
-          mp4 · mov · first 75s processed
-        </div>
-      </button>
+            <Upload className="w-8 h-8" strokeWidth={1} style={{ color: "hsla(0,68%,46%,0.6)" }} />
+            <div className="font-mono text-[11px] uppercase tracking-[0.45em] text-foreground/80">
+              Drop footage
+            </div>
+            <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45">
+              mp4 · mov · first 75s processed
+            </div>
+          </button>
+        ) : (
+          <LinkInput value={linkUrl} onChange={setLinkUrl} onSubmit={onSubmitLink} disabled={busy} />
+        )}
+      </section>
 
       {phase.stage === "error" && (
         <div className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
@@ -625,7 +850,7 @@ function UploadControls({
               ))}
             </ul>
           )}
-          {phase.retryable && pendingFile.current && (
+          {canRetry && (
             <button
               type="button"
               onClick={retry}
@@ -1725,13 +1950,15 @@ function TrendSection({
 
 function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: string }) {
   const key =
-    phase.stage === "reading"
-      ? "reading"
-      : phase.stage === "tracking"
-        ? "tracking"
-        : phase.stage === "detecting"
-          ? "detecting"
-          : "loading_ai";
+    phase.stage === "fetching"
+      ? "fetching"
+      : phase.stage === "reading"
+        ? "reading"
+        : phase.stage === "tracking"
+          ? "tracking"
+          : phase.stage === "detecting"
+            ? "detecting"
+            : "loading_ai";
 
   const phrases = PHASE_PHRASES[key]!;
   const [phraseIdx, setPhraseIdx] = useState(0);

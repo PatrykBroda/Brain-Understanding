@@ -525,6 +525,99 @@ export type CreateAnalysisInput = {
   keyframes: AnalysisKeyframe[];
 };
 
+// Fetch a pasted video link via the server proxy and return it as a File so the
+// EXISTING on-device pose pass (which needs a seekable same-origin Blob) runs
+// unchanged. Its own AbortController + generous timeout: the server may run
+// yt-dlp or download a large file, which is far slower than a JSON round-trip.
+const REMOTE_FETCH_TIMEOUT_MS = 150_000;
+
+export async function fetchRemoteVideo(url: string): Promise<File> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), REMOTE_FETCH_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${base}api/analysis/fetch-remote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError({
+        kind: "timeout",
+        title: "Fetching the video timed out",
+        causes: [
+          "The source took too long — large or slow links may not finish",
+          "Try a shorter clip, or download it and upload it directly",
+        ],
+        retryable: true,
+      });
+    }
+    throw new ApiError({
+      kind: "network",
+      title: "Can't reach the server",
+      causes: ["You may be offline", "The server may be offline or restarting"],
+      retryable: true,
+      detail: err instanceof Error ? err.message : String(err),
+    });
+  } finally {
+    window.clearTimeout(timer);
+  }
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    let msg = body.trim();
+    try {
+      const parsed = JSON.parse(body);
+      if (parsed?.error) msg = String(parsed.error);
+    } catch {}
+    if (res.status === 401 || res.status === 403) {
+      throw new ApiError({
+        kind: "auth",
+        status: res.status,
+        title: "You're signed out",
+        causes: ["Your session expired", "You need to sign in again"],
+        retryable: false,
+        detail: body,
+      });
+    }
+    if (res.status === 429) {
+      throw new ApiError({
+        kind: "rate_limit",
+        status: res.status,
+        title: "The server is busy",
+        causes: [msg || "Another clip is being fetched — try again shortly"],
+        retryable: true,
+        detail: body,
+      });
+    }
+    throw new ApiError({
+      kind: "unknown",
+      status: res.status,
+      title: "Couldn't fetch that video link",
+      causes: [msg || `The server responded ${res.status}`],
+      retryable: false,
+      detail: body,
+    });
+  }
+
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!/^video\//i.test(contentType)) {
+    const body = await res.text().catch(() => "");
+    throw new ApiError({
+      kind: "unknown",
+      title: "That link didn't return a video",
+      causes: [body.slice(0, 200) || "The server didn't return video data"],
+      retryable: false,
+    });
+  }
+
+  const blob = await res.blob();
+  const ext = /quicktime|\/mov/i.test(contentType) ? "mov" : "mp4";
+  return new File([blob], `remote-clip.${ext}`, { type: blob.type || "video/mp4" });
+}
+
 export const analysisApi = {
   list: () => jsonFetch<{ analyses: AnalysisListItem[] }>("api/analysis"),
   get: (id: number, compareId?: number | null) => {
