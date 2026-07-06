@@ -141,6 +141,11 @@ function analyseFrame(lm: Landmark[]): Omit<PerFrame, "t" | "energy"> {
 
 const ENERGY_JOINTS = [NOSE, L_WRIST, R_WRIST, L_ANKLE, R_ANKLE, L_HIP, R_HIP];
 
+// Frames are nominally sampled ~0.25s apart. Energy is normalised to this window
+// so uneven per-device sampling (e.g. mobile play-through at 2x) can't skew the
+// energy-derived scores relative to desktop.
+const NOMINAL_SAMPLE_DT = 0.25;
+
 function fmt(n: number, d = 2): string {
   return n.toFixed(d);
 }
@@ -152,6 +157,7 @@ function nums(xs: (number | null)[]): number[] {
 export function computeMetrics(frames: PoseFrame[]): MetricsResult {
   const per: PerFrame[] = [];
   let prev: Landmark[] | null = null;
+  let prevT = 0;
   for (const f of frames) {
     if (!f.landmarks) {
       prev = null;
@@ -166,10 +172,18 @@ export function computeMetrics(frames: PoseFrame[]): MetricsResult {
         const b = prev[j];
         if (vis(a) && vis(b)) ds.push(dist(a!, b!));
       }
-      if (ds.length) energy = mean(ds);
+      if (ds.length) {
+        // Displacement is per real time gap between sampled frames; normalise it
+        // back to the nominal 0.25s window so a wider/uneven gap on slower
+        // devices can't inflate the energy-derived scores vs desktop.
+        const dt = f.timestamp - prevT;
+        const raw = mean(ds);
+        energy = dt > 0.01 ? raw * (NOMINAL_SAMPLE_DT / dt) : raw;
+      }
     }
     per.push({ t: f.timestamp, energy, ...base });
     prev = f.landmarks;
+    prevT = f.timestamp;
   }
 
   const poseFrames = per.length;

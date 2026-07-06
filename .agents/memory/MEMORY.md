@@ -2,6 +2,7 @@
 - [No-fabricated-numbers pillar](no-fake-percentages-constraint.md) — never invent numbers; the line is fabrication not numbers. Analyse FRAME REPORT may show REAL pose-measured scores (AI writes only narrative, server recomputes the composite).
 - [Analyse feature](analyse-feature.md) — footage→nervous-system read: pose runs on-device, server narrates + enforces the FRAME REPORT honesty contract.
 - [Clerk dev 401 / all-null getAuth](clerk-dev-cookie-pollution.md) — not a server bug: parent-domain stale cookies shadow fresh ones + dev FAPI is third-party (incognito invalid). Fix = clear replit.dev cookies / fresh browser.
+- [Mobile pose frame extraction](mobile-pose-extraction.md) — iOS needs play-through + rVFC sampling, not detached currentTime-seek (hangs at ~1%); start play() inside the user gesture.
 - [SSRF IP-literal bypass](ssrf-ip-literal-bypass.md) — Node skips the request `lookup` option for IP-literal hosts, so DNS-based SSRF guards must ALSO check IP literals explicitly on every redirect hop.
 - [Smoke port race → CONNECTION LOST](smoke-port-race-connection-lost.md) — smoke workflows share the main API port; overlap → EADDRINUSE → app shows the useFighter CONNECTION LOST gate. A smoke failure showing that gate is a backend blip, not a page regression.
 - [Playwright Chromium in Replit](playwright-chromium-replit.md) — smoke tests MUST use Nix Chromium (auto-discovered in playwright.config.ts); bundled browser crashes on launch.
