@@ -102,6 +102,24 @@ describe("weightCutFor", () => {
     expect(wc.targetNum).toBe(77);
   });
 
+  it("refuses to invent a difference when only the target carries a unit", () => {
+    const wc = weightCutFor(makeComp({ currentWeight: "170", targetWeight: "77kg" }));
+    expect(wc.difference).toBeNull();
+    expect(wc.unit).toBeNull();
+    expect(wc.status).toBe("Calibrating");
+    expect(wc.currentNum).toBe(170);
+    expect(wc.targetNum).toBe(77);
+  });
+
+  it("refuses to invent a difference when only the current carries a unit", () => {
+    const wc = weightCutFor(makeComp({ currentWeight: "170lb", targetWeight: "77" }));
+    expect(wc.difference).toBeNull();
+    expect(wc.unit).toBeNull();
+    expect(wc.status).toBe("Calibrating");
+    expect(wc.currentNum).toBe(170);
+    expect(wc.targetNum).toBe(77);
+  });
+
   it("never fabricates a number from junk text", () => {
     const wc = weightCutFor(makeComp({ currentWeight: "soon", targetWeight: "lean" }));
     expect(wc.currentNum).toBeNull();

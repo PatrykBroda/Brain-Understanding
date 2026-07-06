@@ -65,16 +65,19 @@ export function weightCutFor(competition: Competition): WeightCut {
   const target = competition.targetWeight ?? "";
   const c = parseWeight(current);
   const t = parseWeight(target);
-  // Only subtract when the units are compatible. Comparing "170 lbs" against
-  // "77kg" would otherwise fabricate a nonsense figure ("93lb to cut"), which
-  // violates the no-fabricated-numbers pillar. On a unit conflict we stay honest
-  // and report "Calibrating" instead of inventing a difference.
-  const unitsConflict = c.unit !== null && t.unit !== null && c.unit !== t.unit;
+  // Only subtract when the units are compatible: both weights must carry the
+  // SAME unit, or both must carry no unit. Any mixed state — different units
+  // ("170lb" vs "77kg") OR one-sided units ("170" vs "77kg") — is ambiguous and
+  // would fabricate a nonsense figure ("93 to cut"), which violates the
+  // no-fabricated-numbers pillar. On any incompatibility we stay honest and
+  // report "Calibrating" instead of inventing a difference. c.unit === t.unit
+  // is true only for (kg,kg) / (lb,lb) / (null,null).
+  const unitsCompatible = c.unit === t.unit;
 
   let unit: string | null = null;
   let difference: number | null = null;
   let status: string;
-  if (c.num !== null && t.num !== null && !unitsConflict) {
+  if (c.num !== null && t.num !== null && unitsCompatible) {
     unit = c.unit ?? t.unit ?? null;
     difference = Math.round((c.num - t.num) * 10) / 10;
     const suffix = unit ? unit : "";
