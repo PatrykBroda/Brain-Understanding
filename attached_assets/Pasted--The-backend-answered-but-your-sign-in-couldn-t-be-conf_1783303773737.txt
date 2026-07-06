@@ -1,0 +1,155 @@
+"The backend answered, but your sign-in couldn't be confirmed."
+
+That tells me:
+
+✅ Frontend reached backend
+✅ Backend responded
+❌ Backend couldn't verify your session/token
+
+So don't spend time debugging the AI yet. Fix authentication first.
+
+I'd give Replit this exact task
+URGENT: Authentication Bug (Blocking Video Analysis)
+
+The Video Analysis feature is currently blocked by session verification failures.
+
+Current error:
+
+"Session not verified.
+The backend answered, but your sign-in couldn't be confirmed."
+
+Do not work on UI.
+
+Do not modify the Athlete Model.
+
+Do not modify AI prompts.
+
+Only investigate authentication.
+
+-----------------------------------
+
+Debug Checklist
+
+1. Verify Supabase authentication state.
+
+Check:
+
+- auth.getUser()
+- auth.getSession()
+
+on both client and server.
+
+-----------------------------------
+
+2. Verify JWT
+
+Confirm:
+
+- access token exists
+- token is being attached to every request
+
+Example:
+
+Authorization:
+Bearer <access_token>
+
+Verify token isn't:
+
+- expired
+- undefined
+- stale
+- cached incorrectly
+
+-----------------------------------
+
+3. Verify backend middleware
+
+Check every protected endpoint.
+
+Confirm it reads:
+
+Authorization header
+
+instead of relying on stale cookies.
+
+Return explicit errors.
+
+Not generic failures.
+
+-----------------------------------
+
+4. Verify session persistence
+
+Refresh the page.
+
+Close browser.
+
+Reopen.
+
+Confirm session survives.
+
+If not:
+
+investigate:
+
+persistSession
+
+storage adapter
+
+token refresh
+
+-----------------------------------
+
+5. Compare authentication
+
+The Chat feature already works.
+
+Compare Video Analysis request with Chat request.
+
+Find differences in:
+
+headers
+
+cookies
+
+Authorization
+
+user id
+
+Supabase client
+
+One of these is almost certainly missing.
+
+-----------------------------------
+
+6. Logging
+
+Log:
+
+User ID
+
+Session exists
+
+JWT exists
+
+JWT expiry
+
+Authorization header
+
+Backend authenticated user
+
+Every protected endpoint should output these during development.
+
+-----------------------------------
+
+Expected Result
+
+Before Video Analysis begins:
+
+✓ Session exists
+
+✓ User authenticated
+
+✓ JWT valid
+
+✓ Backend identifies correct user
