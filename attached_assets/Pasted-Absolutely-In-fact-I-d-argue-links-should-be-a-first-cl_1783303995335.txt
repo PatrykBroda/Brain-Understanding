@@ -1,0 +1,140 @@
+Absolutely. In fact, I'd argue links should be a first-class input, not just uploads.
+
+Many fighters already have their footage on:
+
+YouTube (public or unlisted)
+Google Drive
+Dropbox
+OneDrive
+Team cloud folders
+Coach-shared links
+
+Making users download a video just to upload it again adds unnecessary friction.
+
+I'd design it like this
+FRAME Analysis
+
+Choose your source
+
+[ Upload Video ]
+
+or
+
+[ Paste Video Link ]
+
+────────────────────
+
+Supported
+
+• YouTube (public/unlisted)
+• Google Drive
+• Dropbox
+• MP4 URL
+Better Workflow
+
+After a user pastes a link:
+
+Paste Video
+
+_________________________
+
+Analyse
+
+FRAME verifies:
+
+✓ Video accessible
+
+✓ Duration
+
+✓ Resolution
+
+✓ Downloadable
+
+Then:
+
+What would you like analysed?
+
+○ Overall
+○ Striking
+○ Grappling
+○ Footwork
+○ Fight IQ
+○ Defence
+○ Pace
+
+Then analysis begins.
+
+Supported Sources
+
+I'd prioritise these:
+
+✅ YouTube (Highest Priority)
+
+Public and unlisted.
+
+A huge percentage of fighters already upload sparring and fights there.
+
+✅ Direct MP4 URLs
+
+Simple and reliable.
+
+✅ Google Drive
+
+Only if the file is shared with viewing permissions.
+
+✅ Dropbox
+
+Straightforward if the link is public.
+
+⚠️ Instagram / TikTok
+
+I wouldn't build around these.
+
+They're harder to access programmatically due to authentication and platform restrictions, and links can break more easily.
+
+One thing I'd add
+
+After analysis:
+
+Save to Library?
+
+✓ Yes
+
+Now FRAME builds a personal video library.
+
+Later users can ask:
+
+"Compare this sparring session to the one from three weeks ago."
+
+or
+
+"Am I exiting better than before?"
+
+That's where the product becomes really powerful.
+
+Prompt for Replit
+Add a second input method to Video Analysis.
+
+Users should be able to either:
+
+• Upload a video file
+• Paste a supported video URL
+
+Supported sources:
+
+- Public or unlisted YouTube videos
+- Direct MP4 URLs
+- Public Google Drive links
+- Public Dropbox links
+
+Workflow:
+
+1. User chooses Upload or Paste Link.
+2. Validate that the video is accessible.
+3. Retrieve metadata (duration, size if available).
+4. Present analysis focus options (Overall, Striking, Grappling, Footwork, Defence, Fight IQ, Pace).
+5. Process the video using the existing analysis pipeline.
+6. Produce the same structured coaching report regardless of input method.
+7. Store the video reference in the user's history so analyses can be revisited and compared.
+
+The analysis experience should be identical whether the source is an uploaded file or a supported URL.
