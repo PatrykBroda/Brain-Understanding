@@ -1,0 +1,435 @@
+FRAME — Camp Mode
+Philosophy
+
+FRAME doesn't organise your life.
+
+It organises your preparation.
+
+Everything revolves around one thing:
+
+The next fight.
+
+Home
+
+Instead of a generic planner:
+
+CAMP
+
+14 September
+
+42 Days Remaining
+
+████████░░░░░░░░
+
+Current Phase
+
+Build
+
+Next Session
+
+Wrestling
+19:00
+
+Recovery
+
+Green
+
+The countdown immediately gives every session context.
+
+Google Calendar Integration
+
+Yes, it's absolutely possible.
+
+Users can connect their Google Calendar so FRAME can:
+
+Import training sessions
+Detect rest days
+Detect travel days
+Identify competition dates
+Avoid scheduling conflicts
+Send intelligent reminders
+
+Importantly:
+
+FRAME should never edit the user's calendar automatically.
+
+Instead:
+
+"Would you like me to add this session to your calendar?"
+
+The user stays in control.
+
+Google Calendar integration is well supported via the Google Calendar API using OAuth.
+
+Camp Creation
+
+This is the feature I'd build first.
+
+Instead of asking:
+
+Add Event
+
+Ask:
+
+Create Camp
+
+Example
+
+Opponent
+
+James Smith
+
+Promotion
+
+Cage Warriors
+
+Fight Date
+
+14 September
+
+Weight Class
+
+70kg
+
+Rounds
+
+3 x 5
+
+Location
+
+Manchester
+
+Once saved...
+
+FRAME changes.
+
+Entire App Changes
+
+Home becomes
+
+CAMP
+
+42 Days Remaining
+
+Current Phase
+
+Build
+
+Fight Readiness
+
+Calibrating
+
+Chat changes.
+
+Notifications change.
+
+Recommendations change.
+
+Everything has context.
+
+Camp Phases
+
+FRAME automatically changes emphasis.
+
+12–8 weeks
+
+Build
+
+Focus
+
+Skill acquisition
+Conditioning
+Volume
+8–4 weeks
+
+Development
+
+Focus
+
+Game plan
+Sparring
+Decision making
+4–2 weeks
+
+Sharpen
+
+Focus
+
+Speed
+Precision
+Tactical refinement
+Fight Week
+
+Execute
+
+Focus
+
+Recovery
+Confidence
+Weight
+Stress regulation
+
+FRAME's advice changes automatically.
+
+Camp Dashboard
+
+Minimal.
+
+Camp
+
+42 Days Remaining
+
+────────────
+
+Training Rhythm
+
+On Track
+
+Recovery
+
+Stable
+
+Fight Readiness
+
+Unavailable
+
+Weight
+
+71.3kg
+
+Target
+
+70kg
+
+No dashboards.
+
+Just signals.
+
+Weight Cut
+
+Huge opportunity.
+
+Not calorie tracking.
+
+Just:
+
+Current
+
+71.3kg
+
+Fight
+
+70kg
+
+Difference
+
+1.3kg
+
+Status
+
+Comfortable
+
+Later you can integrate smart reminders around the cut.
+
+Session Planning
+
+Instead of
+
+Add Event
+
+FRAME asks
+
+What kind of work?
+
+○ Sparring
+
+○ Wrestling
+
+○ BJJ
+
+○ Pads
+
+○ Conditioning
+
+○ Recovery
+
+Then:
+
+Duration
+
+Coach
+
+Objective
+
+Done.
+
+Notifications
+
+Not:
+
+Training in one hour.
+
+Instead:
+
+Today's focus
+
+Stay composed during entries.
+
+or
+
+Heavy sparring tonight.
+
+Protect decision quality,
+not ego.
+
+Very FRAME.
+
+Camp Timeline
+
+This would look incredible.
+
+TODAY
+
+↓
+
+Hard Sparring
+
+↓
+
+Recovery
+
+↓
+
+Technical
+
+↓
+
+Conditioning
+
+↓
+
+Fight Week
+
+↓
+
+Competition
+
+Almost like a military operation.
+
+One Feature Nobody Else Has
+Opponent Intelligence
+
+When Camp is active:
+
+FRAME asks
+
+Tell me about your opponent.
+
+or later
+
+Upload
+
+footage
+notes
+scouting
+
+FRAME remembers:
+
+tendencies
+stance
+pace
+favourite entries
+defensive habits
+
+Then during chat:
+
+"Today's pad work should focus on defending the opponent's lead hook."
+
+Now the whole AI becomes contextual.
+
+Prompt for Replit
+FRAME – Camp Mode & Calendar Integration
+
+Replace the generic planner with a Camp system.
+
+Core principle:
+FRAME is not a productivity app. The planner exists to support fight preparation, not task management.
+
+Features:
+
+1. Camp Creation
+- Fight date
+- Opponent (optional)
+- Promotion (optional)
+- Weight class
+- Number of rounds
+- Location (optional)
+- Notes
+
+2. Countdown
+Display days remaining until competition throughout the app.
+
+3. Camp Phases
+Automatically determine:
+- Build
+- Develop
+- Sharpen
+- Fight Week
+
+Adapt coaching and reminders based on the current phase.
+
+4. Google Calendar Integration
+Allow users to securely connect Google Calendar.
+
+Import:
+- Training sessions
+- Existing events
+- Rest days
+- Travel
+
+FRAME must never modify the user's calendar without explicit confirmation.
+
+Users can optionally add FRAME sessions to Google Calendar.
+
+5. Training Planner
+Allow scheduling:
+- Sparring
+- Wrestling
+- BJJ
+- Striking
+- Conditioning
+- Recovery
+- Mobility
+
+Each session includes:
+- Date
+- Time
+- Duration
+- Coach
+- Objective
+
+6. Context-Aware Coaching
+When Camp Mode is active, all AI responses should consider:
+- Days until fight
+- Current camp phase
+- Recent training load
+- Recovery
+- Competition proximity
+
+7. Future Expansion
+Design the architecture so Camp Mode can later support:
+- Opponent scouting
+- Weight-cut tracking
+- Video analysis linked to a specific camp
+- Camp reports
+- Fight review after competition
+- Multiple historical camps
+
+The planner should feel calm, premium, and performance-focused—not like a generic calendar or productivity tool.
+One final idea
+
+I wouldn't even call the tab Planner.
+
+I'd call it Camp.
+
+For an MMA athlete, "Camp" is immediately meaningful. It's emotionally tied to preparation, discipline, and competition. It also gives every feature—calendar, countdown, scheduled sessions, reminders, opponent notes, weight tracking, and AI coaching—a single unifying purpose instead of feeling like unrelated productivity tools. I think that naming change alone makes the app feel much more authentic to the sport.
