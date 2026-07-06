@@ -124,7 +124,11 @@ export async function upsertCalendarSessions(
 ): Promise<number> {
   let count = 0;
   for (const e of events) {
-    await db
+    // `.returning()` yields a row only when a row was actually inserted OR updated.
+    // When the conflict target matches an EXPORTED manual row, the setWhere guard
+    // skips the update and nothing is returned — so a skipped row is NOT counted.
+    // Keeps the "imported N" toast honest (no-fake-numbers pillar).
+    const written = await db
       .insert(trainingSessionsTable)
       .values({
         campId,
@@ -139,6 +143,10 @@ export async function upsertCalendarSessions(
       })
       .onConflictDoUpdate({
         target: [trainingSessionsTable.campId, trainingSessionsTable.externalEventId],
+        // Only ever update rows that were themselves imported. If an EXPORTED manual
+        // row later carries this externalEventId, re-import must NOT clobber the
+        // athlete's own fields — the update is skipped and the manual row stands.
+        setWhere: eq(trainingSessionsTable.source, "google_calendar"),
         set: {
           sessionType: e.sessionType,
           sessionDate: e.sessionDate,
@@ -147,8 +155,9 @@ export async function upsertCalendarSessions(
           objective: e.objective,
           updatedAt: new Date(),
         },
-      });
-    count++;
+      })
+      .returning({ id: trainingSessionsTable.id });
+    if (written.length > 0) count++;
   }
   return count;
 }

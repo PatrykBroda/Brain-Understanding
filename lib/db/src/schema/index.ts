@@ -10,3 +10,5 @@ export * from "./weekly_plans";
 export * from "./video_analyses";
 export * from "./competitions";
 export * from "./training_sessions";
+export * from "./google_calendar_connections";
+export * from "./google_oauth_states";

@@ -778,6 +778,58 @@ export const competitionApi = {
     jsonFetch<{ ok: true }>(`api/competition/sessions/${id}`, { method: "DELETE" }),
 };
 
+// ── Google Calendar (per-user two-way sync) ─────────────────────────────────
+
+export type GoogleStatus = {
+  configured: boolean;
+  connected: boolean;
+  googleEmail: string | null;
+  lastSyncedAt: string | null;
+};
+
+export type GoogleImportItem = {
+  externalEventId: string;
+  title: string;
+  sessionDate: string; // YYYY-MM-DD
+  startTime: string | null; // HH:MM
+  durationMin: number | null;
+  suggestedType: SessionType;
+};
+
+export type GoogleApplyResult = { imported: number; exported: number };
+
+export type GoogleApplyInput = {
+  campId: number;
+  timeZone: string;
+  importItems: {
+    externalEventId: string;
+    sessionType: SessionType;
+    sessionDate: string;
+    startTime: string | null;
+    durationMin: number | null;
+    objective: string;
+  }[];
+  exportSessions: boolean;
+};
+
+export const googleApi = {
+  status: () => jsonFetch<GoogleStatus>("api/google/status"),
+  start: () =>
+    jsonFetch<{ url: string }>("api/google/oauth/start", { method: "POST" }),
+  disconnect: () =>
+    jsonFetch<{ ok: true }>("api/google/connection", { method: "DELETE" }),
+  preview: (campId: number, timeZone: string) =>
+    jsonFetch<{ items: GoogleImportItem[] }>("api/google/sync/preview", {
+      method: "POST",
+      body: JSON.stringify({ campId, timeZone }),
+    }),
+  apply: (input: GoogleApplyInput) =>
+    jsonFetch<GoogleApplyResult>("api/google/sync/apply", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+};
+
 export const SESSION_TYPE_LABEL: Record<SessionType, string> = {
   sparring: "Sparring",
   wrestling: "Wrestling",

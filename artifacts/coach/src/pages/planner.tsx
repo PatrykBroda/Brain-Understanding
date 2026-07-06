@@ -4,6 +4,7 @@ import { ChevronLeft, Pencil, X } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
 import { CampMission } from "@/components/camp-mission";
 import { CampSchedule } from "@/components/camp-schedule";
+import { GoogleCalendarSync } from "@/components/google-calendar-sync";
 import {
   useActiveCompetition,
   useCancelCompetition,
@@ -134,7 +135,10 @@ export default function CampPage() {
               </div>
 
               {view === "schedule" ? (
-                <CampSchedule campId={competition.id} sessions={sessions} />
+                <div className="space-y-6">
+                  <GoogleCalendarSync campId={competition.id} />
+                  <CampSchedule campId={competition.id} sessions={sessions} />
+                </div>
               ) : (
                 <CampMission />
               )}

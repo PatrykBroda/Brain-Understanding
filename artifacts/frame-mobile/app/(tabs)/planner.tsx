@@ -32,6 +32,7 @@ import {
   useDeleteSession,
   useUpdateSession,
 } from "@/hooks/useCompetition";
+import { GoogleCalendarSync } from "@/components/GoogleCalendarSync";
 
 const TIER_ACCENT: Record<PressureTier, string> = {
   base: "#C9883A",
@@ -484,6 +485,8 @@ function CampView() {
               </Pressable>
             )}
           </View>
+
+          <GoogleCalendarSync campId={competition.id} />
 
           {showSessionForm && (
             <SessionForm

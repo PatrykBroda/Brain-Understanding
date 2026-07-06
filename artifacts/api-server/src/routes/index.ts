@@ -9,12 +9,16 @@ import attachmentsRouter from "./attachments";
 import plannerRouter from "./planner";
 import analysisRouter from "./analysis";
 import competitionRouter from "./competition";
+import { googlePublicRouter, googleRouter } from "./google";
 import { requireAuth } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
 
 // public
 router.use(healthRouter);
+// Google OAuth callback — Google arrives with no Clerk session; identity is
+// recovered from the signed `state`, so this MUST stay public.
+router.use(googlePublicRouter);
 
 // everything below requires an authenticated Clerk session
 router.use(requireAuth);
@@ -27,6 +31,7 @@ router.use(attachmentsRouter);
 router.use(plannerRouter);
 router.use(analysisRouter);
 router.use(competitionRouter);
+router.use(googleRouter);
 router.use(coachRouter);
 
 export default router;
