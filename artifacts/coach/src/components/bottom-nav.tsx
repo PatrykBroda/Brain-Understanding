@@ -6,7 +6,7 @@ const TABS = [
   { path: "/chat", label: "Chat", Icon: MessageSquare },
   { path: "/analyse", label: "Analyse", Icon: Film },
   { path: "/profile", label: "Profile", Icon: User },
-  { path: "/planner", label: "Planner", Icon: Calendar },
+  { path: "/camp", label: "Camp", Icon: Calendar },
 ];
 
 export function BottomNav() {
@@ -24,7 +24,7 @@ export function BottomNav() {
             location === path ||
             (path === "/chat" && location.startsWith("/chat")) ||
             (path === "/analyse" && location.startsWith("/analyse")) ||
-            (path === "/planner" && location.startsWith("/planner"));
+            (path === "/camp" && location.startsWith("/camp"));
           return (
             <Link
               key={path}

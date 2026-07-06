@@ -1,23 +1,45 @@
 import { Router, type IRouter } from "express";
-import { db, competitionsTable, insertCompetitionSchema } from "@workspace/db";
+import {
+  db,
+  competitionsTable,
+  insertCompetitionSchema,
+  insertTrainingSessionSchema,
+} from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
-import { getActiveCompetition, pressureFor } from "../lib/competitionService";
+import {
+  getActiveCompetition,
+  pressureFor,
+  weightCutFor,
+} from "../lib/competitionService";
+import {
+  ownedCampId,
+  listSessions,
+  createSession,
+  updateSession,
+  deleteSession,
+} from "../lib/trainingSessionService";
 
 const router: IRouter = Router();
 
-// The current camp + computed pressure (days out, tier). Drives the countdown
-// banner and the UI tightening as the event nears.
+// The current camp + computed pressure (days out, tier, phase) + honest weight-cut
+// readout + this camp's training sessions. Drives the Camp dashboard, the countdown
+// banner, and the UI tightening as the event nears.
 router.get("/competition/active", async (req, res) => {
   const fighter = await getUserFighter(req);
   if (!fighter) {
-    res.json({ competition: null, pressure: null });
+    res.json({ competition: null, pressure: null, weightCut: null, sessions: [] });
     return;
   }
   const competition = await getActiveCompetition(fighter.id);
+  const sessions = competition
+    ? await listSessions(competition.id, fighter.id)
+    : [];
   res.json({
     competition,
     pressure: competition ? pressureFor(competition) : null,
+    weightCut: competition ? weightCutFor(competition) : null,
+    sessions,
   });
 });
 
@@ -101,6 +123,95 @@ router.delete("/competition/:id", async (req, res) => {
     .returning();
   if (!updated) {
     res.status(404).json({ error: "competition not found" });
+    return;
+  }
+  res.json({ ok: true });
+});
+
+// ---- Training sessions (the manual schedule under a camp) ----
+
+// List every session for a camp (owned check inside the query).
+router.get("/competition/:campId/sessions", async (req, res) => {
+  const fighter = await getUserFighter(req);
+  if (!fighter) {
+    res.status(400).json({ error: "no fighter" });
+    return;
+  }
+  const campId = Number(req.params.campId);
+  if (!Number.isFinite(campId)) {
+    res.status(400).json({ error: "invalid camp id" });
+    return;
+  }
+  if (!(await ownedCampId(campId, fighter.id))) {
+    res.status(404).json({ error: "camp not found" });
+    return;
+  }
+  const sessions = await listSessions(campId, fighter.id);
+  res.json({ sessions });
+});
+
+router.post("/competition/:campId/sessions", async (req, res) => {
+  const fighter = await getUserFighter(req);
+  if (!fighter) {
+    res.status(400).json({ error: "no fighter" });
+    return;
+  }
+  const campId = Number(req.params.campId);
+  if (!Number.isFinite(campId)) {
+    res.status(400).json({ error: "invalid camp id" });
+    return;
+  }
+  if (!(await ownedCampId(campId, fighter.id))) {
+    res.status(404).json({ error: "camp not found" });
+    return;
+  }
+  const parsed = insertTrainingSessionSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid session", details: parsed.error.flatten() });
+    return;
+  }
+  const created = await createSession(campId, fighter.id, parsed.data);
+  res.json({ session: created });
+});
+
+router.patch("/competition/sessions/:id", async (req, res) => {
+  const fighter = await getUserFighter(req);
+  if (!fighter) {
+    res.status(400).json({ error: "no fighter" });
+    return;
+  }
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    res.status(400).json({ error: "invalid id" });
+    return;
+  }
+  const parsed = insertTrainingSessionSchema.partial().safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid session", details: parsed.error.flatten() });
+    return;
+  }
+  const updated = await updateSession(id, fighter.id, parsed.data);
+  if (!updated) {
+    res.status(404).json({ error: "session not found" });
+    return;
+  }
+  res.json({ session: updated });
+});
+
+router.delete("/competition/sessions/:id", async (req, res) => {
+  const fighter = await getUserFighter(req);
+  if (!fighter) {
+    res.status(400).json({ error: "no fighter" });
+    return;
+  }
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    res.status(400).json({ error: "invalid id" });
+    return;
+  }
+  const removed = await deleteSession(id, fighter.id);
+  if (!removed) {
+    res.status(404).json({ error: "session not found" });
     return;
   }
   res.json({ ok: true });

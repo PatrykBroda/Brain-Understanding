@@ -43,7 +43,7 @@ function makeScores(overrides: Partial<Record<string, number>> = {}): AnalysisSc
   return Object.entries(merged).map(([key, value]) => ({
     key,
     label: labels[key] ?? key.toUpperCase(),
-    value,
+    value: value as number,
     basis: `computed from ${key} signals`,
   }));
 }

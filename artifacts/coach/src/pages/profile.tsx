@@ -1156,7 +1156,7 @@ export default function ProfilePage() {
               </div>
 
               <Link
-                href="/competition"
+                href="/camp"
                 className="flex items-center justify-between border border-white/[0.08] px-4 py-3 hover:border-[hsl(var(--red-accent))]/50 transition-colors group"
               >
                 <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/70 group-hover:text-[hsl(var(--red-accent))] transition-colors">

@@ -66,8 +66,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="planner"
         options={{
-          title: "MISSION",
-          tabBarIcon: ({ color }) => <Feather name="check-square" size={20} color={color} />,
+          title: "CAMP",
+          tabBarIcon: ({ color }) => <Feather name="calendar" size={20} color={color} />,
         }}
       />
     </Tabs>

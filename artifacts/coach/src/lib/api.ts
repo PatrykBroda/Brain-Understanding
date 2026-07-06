@@ -645,6 +645,11 @@ export type Competition = {
   weighInDate: string | null;
   targetWeight: string;
   currentWeight: string;
+  opponent: string;
+  promotion: string;
+  weightClass: string;
+  rounds: number | null;
+  location: string;
   notes: string;
   status: string;
   createdAt: string;
@@ -653,29 +658,97 @@ export type Competition = {
 
 export type PressureTier = "base" | "build" | "sharpen" | "peak" | "fight_week";
 
+// Athlete-facing phase names, computed server-side. Five pressure tiers collapse
+// into four phases (peak + fight_week both read as "Fight Week").
+export type CampPhase = "Build" | "Develop" | "Sharpen" | "Fight Week";
+
 export type CompetitionPressure = {
   competition: Competition;
   daysToEvent: number;
   daysToWeighIn: number | null;
   tier: PressureTier;
   tierLabel: string;
+  phase: CampPhase;
+};
+
+// Honest weight-cut readout — derived only from the real target/current values.
+// `status` is authoritative ("3kg to cut" | "On weight" | "Calibrating" | ...).
+export type WeightCut = {
+  current: string;
+  target: string;
+  currentNum: number | null;
+  targetNum: number | null;
+  unit: string | null;
+  difference: number | null;
+  status: string;
+};
+
+export const SESSION_TYPES = [
+  "sparring",
+  "wrestling",
+  "bjj",
+  "striking",
+  "conditioning",
+  "recovery",
+  "mobility",
+] as const;
+export type SessionType = (typeof SESSION_TYPES)[number];
+
+export type TrainingSessionSource = "manual" | "google_calendar";
+
+export type TrainingSession = {
+  id: number;
+  campId: number;
+  fighterId: number;
+  sessionType: SessionType;
+  sessionDate: string; // YYYY-MM-DD
+  startTime: string | null; // HH:MM
+  durationMin: number | null;
+  coach: string;
+  objective: string;
+  notes: string;
+  completed: boolean;
+  source: TrainingSessionSource;
+  externalEventId: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type CompetitionInput = {
   eventName: string;
   discipline?: string;
-  eventDate: string;
-  weighInDate?: string | null;
+  eventDate: string; // YYYY-MM-DD
+  weighInDate?: string | null; // YYYY-MM-DD | null
   targetWeight?: string;
   currentWeight?: string;
+  opponent?: string;
+  promotion?: string;
+  weightClass?: string;
+  rounds?: number | null;
+  location?: string;
   notes?: string;
 };
 
+export type TrainingSessionInput = {
+  sessionType: SessionType;
+  sessionDate: string; // YYYY-MM-DD
+  startTime?: string | null; // HH:MM
+  durationMin?: number | null;
+  coach?: string;
+  objective?: string;
+  notes?: string;
+  completed?: boolean;
+};
+
+export type ActiveCompetition = {
+  competition: Competition | null;
+  pressure: CompetitionPressure | null;
+  weightCut: WeightCut | null;
+  sessions: TrainingSession[];
+};
+
 export const competitionApi = {
-  active: () =>
-    jsonFetch<{ competition: Competition | null; pressure: CompetitionPressure | null }>(
-      "api/competition/active",
-    ),
+  active: () => jsonFetch<ActiveCompetition>("api/competition/active"),
   list: () => jsonFetch<{ competitions: Competition[] }>("api/competition"),
   create: (input: CompetitionInput) =>
     jsonFetch<{ competition: Competition }>("api/competition", {
@@ -689,6 +762,30 @@ export const competitionApi = {
     }),
   cancel: (id: number) =>
     jsonFetch<{ ok: true }>(`api/competition/${id}`, { method: "DELETE" }),
+  listSessions: (campId: number) =>
+    jsonFetch<{ sessions: TrainingSession[] }>(`api/competition/${campId}/sessions`),
+  createSession: (campId: number, input: TrainingSessionInput) =>
+    jsonFetch<{ session: TrainingSession }>(`api/competition/${campId}/sessions`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  updateSession: (id: number, input: Partial<TrainingSessionInput>) =>
+    jsonFetch<{ session: TrainingSession }>(`api/competition/sessions/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
+  deleteSession: (id: number) =>
+    jsonFetch<{ ok: true }>(`api/competition/sessions/${id}`, { method: "DELETE" }),
+};
+
+export const SESSION_TYPE_LABEL: Record<SessionType, string> = {
+  sparring: "Sparring",
+  wrestling: "Wrestling",
+  bjj: "BJJ",
+  striking: "Striking",
+  conditioning: "Conditioning",
+  recovery: "Recovery",
+  mobility: "Mobility",
 };
 
 export const coachChatUrl = `${base}api/coach/chat`;

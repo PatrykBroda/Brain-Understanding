@@ -17,6 +17,12 @@ export const competitionsTable = pgTable("competitions", {
   weighInDate: timestamp("weigh_in_date", { withTimezone: true }),
   targetWeight: text("target_weight").notNull().default(""),
   currentWeight: text("current_weight").notNull().default(""),
+  // Camp fields — all optional. The fight this camp is building toward.
+  opponent: text("opponent").notNull().default(""),
+  promotion: text("promotion").notNull().default(""),
+  weightClass: text("weight_class").notNull().default(""),
+  rounds: integer("rounds"),
+  location: text("location").notNull().default(""),
   notes: text("notes").notNull().default(""),
   // active | completed | cancelled
   status: text("status").notNull().default("active"),
@@ -31,6 +37,7 @@ export const insertCompetitionSchema = createInsertSchema(competitionsTable, {
   eventName: (s) => s.min(1),
   eventDate: z.coerce.date(),
   weighInDate: z.coerce.date().nullable().optional(),
+  rounds: z.coerce.number().int().positive().max(20).nullable().optional(),
 }).omit({
   id: true,
   fighterId: true,

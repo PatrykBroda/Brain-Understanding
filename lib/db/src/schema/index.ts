@@ -9,3 +9,4 @@ export * from "./attachments";
 export * from "./weekly_plans";
 export * from "./video_analyses";
 export * from "./competitions";
+export * from "./training_sessions";

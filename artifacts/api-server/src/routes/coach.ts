@@ -24,8 +24,22 @@ import {
   getActiveCompetition,
   pressureFor,
   competitionPromptBlock,
+  weightCutFor,
 } from "../lib/competitionService";
+import { getUpcomingSessions } from "../lib/trainingSessionService";
 import { computeVocabulary, vocabularyPromptBlock } from "../lib/vocabulary";
+
+// Build the active-camp coach directive: pressure + phase + honest weight-cut +
+// upcoming scheduled sessions. Null when no camp is live.
+async function buildCompBlock(fighterId: number): Promise<string | null> {
+  const activeComp = await getActiveCompetition(fighterId);
+  if (!activeComp) return null;
+  const sessions = await getUpcomingSessions(activeComp.id, fighterId);
+  return competitionPromptBlock(pressureFor(activeComp), {
+    sessions,
+    weightCut: weightCutFor(activeComp),
+  });
+}
 
 const OPENAI_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
@@ -135,10 +149,7 @@ router.post("/coach/welcome", async (req, res) => {
       entryInstruction = `\n\n[ENTRY BRIEFING MODE — RETURNING SAME DAY]\nThe athlete stepped away and came back within the day. Short re-entry (3-6 sentences, no preamble).\n- Open with their name, picking the thread straight back up (continuity, not a fresh greeting).\n- Name their last recorded focus from the model (the most recent weakness/goal/pattern you can see) so the thread is unbroken. If you genuinely can't see a last focus, say you're picking up where you left off and ask what they want to move.\n- Offer 2 concrete continuations of that focus.\n- Do NOT fabricate "progress since" — you don't track training logs. Reference only what's actually in the model.\nVoice: direct, continuous, no preamble. End clean.`;
     }
 
-    const activeComp = await getActiveCompetition(fighter.id);
-    const compBlock = activeComp
-      ? competitionPromptBlock(pressureFor(activeComp))
-      : null;
+    const compBlock = await buildCompBlock(fighter.id);
 
     const dynamicText =
       buildDynamicContext(fighter, facts, calibrations, deepNodes, compBlock) +
@@ -430,10 +441,7 @@ router.post("/coach/chat", async (req, res) => {
 
   let assembled = "";
 
-  const activeComp = await getActiveCompetition(fighter.id);
-  const compBlock = activeComp
-    ? competitionPromptBlock(pressureFor(activeComp))
-    : null;
+  const compBlock = await buildCompBlock(fighter.id);
 
   const vocab = computeVocabulary(facts);
   // Persist the high-water mark so the profile can show real growth and the tier

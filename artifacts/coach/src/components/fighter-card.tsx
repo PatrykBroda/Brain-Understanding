@@ -323,7 +323,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
       {/* ─── COMPETITION CONTEXT ───────────────────────────────────── */}
       {pressure && (
         <Link
-          href="/competition"
+          href="/camp"
           className="block px-4 py-3.5 border-t group transition-colors"
           style={{
             borderColor: "hsla(0,72%,45%,0.25)",
@@ -366,7 +366,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
 
       {/* ─── WEEKLY MISSION ────────────────────────────────────────── */}
       <Link
-        href="/planner"
+        href="/camp"
         className="block px-4 py-3.5 border-t border-white/[0.06] hover:bg-white/[0.02] group transition-colors"
       >
         <div className="flex items-center justify-between mb-2">

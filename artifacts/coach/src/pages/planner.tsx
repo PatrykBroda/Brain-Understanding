@@ -1,532 +1,556 @@
 import { useState } from "react";
 import { Link } from "wouter";
+import { ChevronLeft, Pencil, X } from "lucide-react";
+import { BottomNav } from "@/components/bottom-nav";
+import { CampMission } from "@/components/camp-mission";
+import { CampSchedule } from "@/components/camp-schedule";
+import {
+  useActiveCompetition,
+  useCancelCompetition,
+  useCreateCompetition,
+  useUpdateCompetition,
+} from "@/hooks/use-competition";
+import type {
+  Competition,
+  CompetitionInput,
+  CompetitionPressure,
+  PressureTier,
+  WeightCut,
+} from "@/lib/api";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-import { ChevronLeft, HelpCircle, RefreshCcw, X } from "lucide-react";
-import { BottomNav } from "@/components/bottom-nav";
-import { FrameOctagon } from "@/components/frame-octagon";
-import { useFighter } from "@/hooks/use-fighter";
-import {
-  usePlanner,
-  useRegeneratePlanner,
-  useTogglePlannerItem,
-} from "@/hooks/use-planner";
-import type { PlanCategory, PlanItem } from "@/lib/api";
 
-const CATEGORY_ORDER: PlanCategory[] = ["fix", "goal_step", "train", "technique", "regulate"];
-
-const CATEGORY_LABEL: Record<PlanCategory, string> = {
-  fix: "Primary weakness",
-  goal_step: "Structural objective",
-  train: "Daily execution",
-  technique: "Technical drilling",
-  regulate: "Recovery protocol",
+const TIER_FG: Record<PressureTier, string> = {
+  base: "hsl(35 60% 60%)",
+  build: "hsl(28 70% 58%)",
+  sharpen: "hsl(14 78% 56%)",
+  peak: "hsl(2 80% 58%)",
+  fight_week: "hsl(0 85% 60%)",
 };
 
-const CATEGORY_HINT: Record<PlanCategory, string> = {
-  fix: "The leak being closed",
-  goal_step: "One step toward a stated goal",
-  train: "Mat time + conditioning",
-  technique: "Drills on weak topics",
-  regulate: "Nervous-system work",
-};
+type CampView = "schedule" | "mission";
 
-const CATEGORY_COLOR: Record<PlanCategory, { bar: string; glow: string; label: string }> = {
-  fix:       { bar: "hsla(0,68%,46%,0.95)",    glow: "hsla(0,68%,46%,0.07)",   label: "hsl(0,55%,62%)" },
-  goal_step: { bar: "hsla(32,54%,48%,0.9)",    glow: "hsla(32,54%,48%,0.07)",  label: "hsl(32,52%,58%)" },
-  train:     { bar: "hsla(0,0%,55%,0.7)",      glow: "hsla(0,0%,55%,0.04)",    label: "hsl(0,0%,70%)" },
-  technique: { bar: "hsla(210,38%,52%,0.8)",   glow: "hsla(210,38%,52%,0.06)", label: "hsl(210,35%,68%)" },
-  regulate:  { bar: "hsla(160,28%,38%,0.8)",   glow: "hsla(160,28%,38%,0.06)", label: "hsl(160,28%,56%)" },
-};
-
-const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
-
-function formatWeekRange(weekStartIso: string) {
-  const start = new Date(weekStartIso);
-  const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
-  const fmt = (d: Date) =>
-    `${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
-  return `${fmt(start)} — ${fmt(end)}`;
+// Take the calendar-day portion of an event/weigh-in value that may be a full
+// ISO timestamp or a plain YYYY-MM-DD, without timezone drift.
+function toDateInput(value: string | null): string {
+  if (!value) return "";
+  return value.slice(0, 10);
 }
 
-function todayIndex(weekStartIso: string): number {
-  // 0=Mon..6=Sun, relative to the plan's weekStart (ISO Monday UTC)
-  const start = new Date(weekStartIso).getTime();
-  const now = Date.now();
-  const diffDays = Math.floor((now - start) / (24 * 60 * 60 * 1000));
-  if (diffDays < 0 || diffDays > 6) return -1;
-  return diffDays;
+function formatDay(value: string | null): string {
+  if (!value) return "";
+  const d = new Date(`${value.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
 
-export default function PlannerPage() {
-  const { data: fighterData } = useFighter();
-  const fighter = fighterData?.fighter ?? null;
-  const planner = usePlanner();
-  const regen = useRegeneratePlanner();
-  const toggle = useTogglePlannerItem();
-  const [help, setHelp] = useState(false);
+export default function CampPage() {
+  const { data, isLoading } = useActiveCompetition();
+  const competition = data?.competition ?? null;
+  const pressure = data?.pressure ?? null;
+  const weightCut = data?.weightCut ?? null;
+  const sessions = data?.sessions ?? [];
 
-  const plan = planner.data?.plan ?? null;
-  const completions = new Set(planner.data?.completions ?? []);
-  const weekStart = planner.data?.weekStart ?? new Date().toISOString();
-  const todayIdx = todayIndex(weekStart);
-
-  const grouped: Record<PlanCategory, PlanItem[]> = {
-    fix: [],
-    train: [],
-    technique: [],
-    regulate: [],
-    goal_step: [],
-  };
-  if (plan) {
-    for (const item of plan.items) grouped[item.category].push(item);
-  }
+  const [view, setView] = useState<CampView>("schedule");
+  const [showCreate, setShowCreate] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-background text-foreground">
-      <header className="flex-none flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3 border-b border-border/40">
-        <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+    <div className="flex flex-col h-[100dvh]" style={{ background: "#000" }}>
+      <header className="flex-none flex items-center gap-3 px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3 border-b border-white/[0.06]">
+        <Link
+          href="/"
+          aria-label="Back to home"
+          className="text-foreground/50 hover:text-foreground/90 transition-colors"
+        >
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
         </Link>
-        <div className="text-center flex flex-col items-center gap-1.5">
+        <div className="flex items-center gap-2.5">
           <img
             src={`${basePath}/frame-logo.png`}
             alt=""
             aria-hidden
-            width={24}
-            height={24}
+            width={22}
+            height={22}
             className="object-contain opacity-80"
           />
-          <div className="font-mono text-[11px] uppercase tracking-[0.4em] text-foreground/90">
-            Weekly mission
+          <div>
+            <div className="font-sans font-extralight text-[13px] tracking-[0.45em] text-foreground/95 leading-none">
+              CAMP
+            </div>
+            <div className="font-mono text-[9px] tracking-[0.45em] text-foreground/50 mt-1.5">
+              FIGHT CAMP
+            </div>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setHelp(true)}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="How the planner works"
-        >
-          <HelpCircle className="w-5 h-5" strokeWidth={1.5} />
-        </button>
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-md mx-auto px-5 py-5 space-y-5 pb-10">
-
-          {/* Fighter + regenerate row */}
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/60">
-                {fighter?.name ?? "Athlete"}
-              </div>
-              <div className="font-sans text-[13px] font-light tracking-[0.12em] text-foreground/80 mt-0.5">
-                {formatWeekRange(weekStart)}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => regen.mutate()}
-              disabled={regen.isPending}
-              className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40 flex items-center gap-1.5"
-            >
-              {regen.isPending ? (
-                <>
-                  <FrameOctagon size={14} spin spinSeconds={3} glow={false} />
-                  Generating
-                </>
-              ) : (
-                <>
-                  <RefreshCcw className="w-3 h-3" strokeWidth={1.5} />
-                  {plan ? "Regenerate" : "Generate"}
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Day grid — operational timeline */}
-          <section aria-label="This week's days, today highlighted" className="grid grid-cols-7 gap-[3px]">
-            {DAY_LABELS.map((label, idx) => {
-              const isToday = idx === todayIdx;
-              const isPast = todayIdx >= 0 && idx < todayIdx;
-              return (
-                <div
-                  key={label}
-                  className="relative text-center py-2.5 transition-all duration-300"
-                  style={{
-                    background: isToday
-                      ? "hsla(0,68%,46%,0.12)"
-                      : isPast
-                      ? "hsla(0,0%,100%,0.02)"
-                      : "hsla(0,0%,100%,0.025)",
-                    borderBottom: isToday
-                      ? "2px solid hsla(0,68%,46%,0.8)"
-                      : "2px solid hsla(0,0%,100%,0.07)",
-                  }}
-                >
-                  {isToday && (
-                    <div
-                      className="absolute inset-0 pointer-events-none"
-                      style={{ boxShadow: "inset 0 0 12px hsla(0,68%,46%,0.08)" }}
-                    />
-                  )}
-                  <div
-                    className="font-mono text-[9px] uppercase tracking-widest"
-                    style={{ color: isToday ? "hsl(0,55%,62%)" : isPast ? "hsla(0,0%,100%,0.25)" : "hsla(0,0%,100%,0.45)" }}
-                  >
-                    {label}
-                  </div>
-                  {isToday && (
-                    <div className="w-1 h-1 rounded-full bg-destructive/80 mx-auto mt-1 animate-pulse" />
-                  )}
-                </div>
-              );
-            })}
-          </section>
-
-          {regen.isError && (
-            <div className="border-l-2 border-destructive/70 bg-destructive/8 px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
-              {(regen.error as Error).message || "generation failed"}
-            </div>
-          )}
-
-          {planner.isLoading ? (
-            <div className="text-muted-foreground font-mono text-[10px] uppercase tracking-widest py-16 text-center opacity-60">
+        <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
+          {isLoading ? (
+            <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Loading
             </div>
-          ) : !plan ? (
-            /* Empty state — dramatic */
-            <div
-              className="relative border border-border/30 p-6 space-y-4 mt-4"
-              style={{ background: "linear-gradient(160deg, hsla(0,60%,30%,0.04), transparent 60%)" }}
-            >
-              <span className="absolute left-0 top-0 h-3 w-3 border-l-2 border-t-2 border-destructive/40" />
-              <span className="absolute right-0 top-0 h-3 w-3 border-r-2 border-t-2 border-destructive/40" />
-              <span className="absolute left-0 bottom-0 h-3 w-3 border-l-2 border-b-2 border-destructive/40" />
-              <span className="absolute right-0 bottom-0 h-3 w-3 border-r-2 border-b-2 border-destructive/40" />
-              <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/70">
-                No directive issued
-              </div>
-              <p className="text-sm text-foreground/80 leading-relaxed">
-                The planner reads your accumulated model, recent calibrations, and chat signals,
-                then builds 5-7 actions for the week. Every item is anchored to a real recorded signal.
-                No padding, no streaks, no invented work.
-              </p>
-              <p className="text-sm text-muted-foreground/70 leading-relaxed">
-                Generate when you're ready.
-              </p>
-            </div>
+          ) : !competition ? (
+            <NoCampState
+              showCreate={showCreate}
+              onOpen={() => setShowCreate(true)}
+              onClose={() => setShowCreate(false)}
+            />
           ) : (
             <>
-              {/* Mission directive card */}
-              {plan.rationale && (
-                <div
-                  className="relative mt-1"
-                  style={{
-                    background: "linear-gradient(170deg, hsla(0,60%,30%,0.1) 0%, hsla(0,0%,0%,0) 55%)",
-                    borderLeft: "2px solid hsla(0,68%,46%,0.6)",
-                    borderTop: "1px solid hsla(0,68%,46%,0.2)",
-                    borderRight: "1px solid hsla(0,0%,100%,0.05)",
-                    borderBottom: "1px solid hsla(0,0%,100%,0.05)",
-                  }}
-                >
-                  <div className="px-4 pt-3 pb-4">
-                    <div className="flex items-center gap-2.5 mb-3">
-                      <span className="h-[5px] w-[5px] rounded-full bg-destructive animate-pulse" />
-                      <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/80">
-                        Mission directive
-                      </div>
-                    </div>
-                    <p className="text-[0.9rem] text-foreground/90 leading-relaxed font-light">{plan.rationale}</p>
-                  </div>
-                </div>
+              {editing ? (
+                <CampForm
+                  competition={competition}
+                  onClose={() => setEditing(false)}
+                />
+              ) : (
+                <CampDashboard
+                  competition={competition}
+                  pressure={pressure}
+                  weightCut={weightCut}
+                  onEdit={() => setEditing(true)}
+                />
               )}
 
-              {/* Completion tracker */}
-              {plan.items.length > 0 && (
-                <div className="flex items-center gap-3 py-1">
-                  <div className="flex-1 relative h-[1px] bg-white/8 overflow-hidden">
-                    <div
-                      className="absolute top-0 left-0 h-full transition-all duration-700"
-                      style={{
-                        width: `${Math.round((completions.size / plan.items.length) * 100)}%`,
-                        background: completions.size === plan.items.length
-                          ? "hsl(32,54%,46%)"
-                          : "hsl(0,68%,46%)",
-                      }}
-                    />
-                  </div>
-                  <div
-                    className="flex-none font-mono text-[9px] uppercase tracking-widest"
-                    style={{
-                      color: completions.size === plan.items.length
-                        ? "hsl(32,52%,58%)"
-                        : "hsla(0,0%,100%,0.45)",
-                    }}
-                  >
-                    {completions.size}/{plan.items.length}
-                  </div>
-                </div>
+              {/* Primary vs secondary view toggle */}
+              <div className="grid grid-cols-2 gap-2">
+                <ViewTab
+                  label="Schedule"
+                  active={view === "schedule"}
+                  onClick={() => setView("schedule")}
+                />
+                <ViewTab
+                  label="Weekly mission"
+                  active={view === "mission"}
+                  onClick={() => setView("mission")}
+                />
+              </div>
+
+              {view === "schedule" ? (
+                <CampSchedule campId={competition.id} sessions={sessions} />
+              ) : (
+                <CampMission />
               )}
-
-              {/* Category sections */}
-              <div className="space-y-10 pt-2">
-                {CATEGORY_ORDER.map((cat, ci) => {
-                  const items = grouped[cat];
-                  if (items.length === 0) return null;
-                  const col = CATEGORY_COLOR[cat];
-                  return (
-                    <section
-                      key={cat}
-                      className="plan-section"
-                      style={{ animationDelay: `${ci * 0.09}s` }}
-                    >
-                      {/* Zone header */}
-                      <div className="mb-4">
-                        <div className="flex items-center gap-3">
-                          <span
-                            className="font-mono text-[9px] tracking-widest px-2 py-0.5"
-                            style={{
-                              color: col.label,
-                              borderLeft: `2px solid ${col.bar}`,
-                              background: col.glow,
-                            }}
-                          >
-                            {String(ci + 1).padStart(2, "0")}
-                          </span>
-                          <div>
-                            <div
-                              className="font-mono text-[12px] uppercase tracking-[0.35em]"
-                              style={{ color: col.label }}
-                            >
-                              {CATEGORY_LABEL[cat]}
-                            </div>
-                          </div>
-                          <div className="flex-1 ml-2" style={{ height: 1, background: `linear-gradient(90deg, ${col.bar} 0%, transparent 100%)`, opacity: 0.4 }} />
-                        </div>
-                        <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/45 mt-1.5 pl-10">
-                          {CATEGORY_HINT[cat]}
-                        </div>
-                      </div>
-
-                      {/* Items */}
-                      <div className="space-y-3">
-                        {items.map((item, ii) => (
-                          <PlanItemCard
-                            key={item.key}
-                            item={item}
-                            cat={cat}
-                            index={ii}
-                            done={completions.has(item.key)}
-                            disabled={toggle.isPending}
-                            onToggle={(done) =>
-                              toggle.mutate({ key: item.key, completed: done })
-                            }
-                          />
-                        ))}
-                      </div>
-                    </section>
-                  );
-                })}
-              </div>
-
-              {/* Footer metadata */}
-              <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40">
-                  Issued {new Date(plan.createdAt).toLocaleString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </div>
-                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/30">
-                  {plan.aiProvider}
-                </div>
-              </div>
             </>
           )}
         </div>
       </main>
 
       <BottomNav />
-      <PlannerAnimations />
-
-      {help && <HelpOverlay onClose={() => setHelp(false)} />}
     </div>
   );
 }
 
-function PlanItemCard({
-  item,
-  cat,
-  index,
-  done,
-  disabled,
-  onToggle,
+function ViewTab({
+  label,
+  active,
+  onClick,
 }: {
-  item: PlanItem;
-  cat: PlanCategory;
-  index: number;
-  done: boolean;
-  disabled: boolean;
-  onToggle: (done: boolean) => void;
+  label: string;
+  active: boolean;
+  onClick: () => void;
 }) {
-  const col = CATEGORY_COLOR[cat];
-  const doneBar = "hsla(32,54%,46%,0.85)";
   return (
-    <div
-      className="plan-item relative transition-all duration-400"
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className="py-2.5 font-mono text-[10px] uppercase tracking-[0.3em] border transition-colors"
       style={{
-        borderLeft: `3px solid ${done ? doneBar : col.bar}`,
-        borderTop: "1px solid hsla(0,0%,100%,0.07)",
-        borderRight: "1px solid hsla(0,0%,100%,0.04)",
-        borderBottom: "1px solid hsla(0,0%,100%,0.04)",
-        background: done
-          ? "linear-gradient(95deg, hsla(32,54%,46%,0.06), transparent 70%)"
-          : `linear-gradient(95deg, ${col.glow}, transparent 70%)`,
-        animationDelay: `${index * 0.07}s`,
+        borderColor: active ? "hsla(35,65%,55%,0.5)" : "hsla(0,0%,100%,0.08)",
+        color: active ? "hsl(var(--primary))" : "hsla(0,0%,100%,0.5)",
+        background: active ? "hsla(35,65%,55%,0.06)" : "transparent",
       }}
     >
-      {/* Background index watermark */}
-      <div
-        className="absolute right-4 top-1/2 -translate-y-1/2 font-mono font-bold select-none pointer-events-none"
-        style={{ fontSize: "2.8rem", opacity: 0.04, color: done ? "hsl(32,54%,46%)" : col.label }}
-        aria-hidden
-      >
-        {String(index + 1).padStart(2, "0")}
-      </div>
+      {label}
+    </button>
+  );
+}
 
-      <div className="flex items-start gap-3.5 px-5 py-4">
-        {/* Toggle */}
-        <button
-          type="button"
-          onClick={() => onToggle(!done)}
-          disabled={disabled}
-          aria-pressed={done}
-          aria-label={done ? "Mark not done" : "Mark done"}
-          className="flex-none mt-0.5 w-[18px] h-[18px] border flex items-center justify-center transition-all duration-300"
-          style={{
-            borderColor: done ? "hsl(32,54%,46%)" : col.bar,
-            background: done ? "hsla(32,54%,46%,0.15)" : "transparent",
-            color: done ? "hsl(32,54%,50%)" : "transparent",
-          }}
-        >
-          <svg viewBox="0 0 20 20" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.8">
-            <path d="M4 10.5 L8 14.5 L16 6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+function CampDashboard({
+  competition: c,
+  pressure,
+  weightCut,
+  onEdit,
+}: {
+  competition: Competition;
+  pressure: CompetitionPressure | null;
+  weightCut: WeightCut | null;
+  onEdit: () => void;
+}) {
+  const cancel = useCancelCompetition();
+  const tier = pressure?.tier ?? "base";
+  const fg = TIER_FG[tier];
 
-        <div className="flex-1 min-w-0">
-          {/* Directive title */}
-          <div
-            className="text-[0.95rem] leading-snug font-light transition-colors duration-300 mb-2"
-            style={{
-              color: done ? "hsla(0,0%,100%,0.32)" : "hsla(0,0%,100%,0.94)",
-              textDecoration: done ? "line-through" : "none",
-            }}
-          >
-            {item.title}
+  const fightLine = [
+    c.opponent,
+    c.promotion,
+    c.weightClass,
+    c.rounds ? `${c.rounds} rounds` : "",
+    c.location,
+  ]
+    .filter((v) => v && String(v).trim() !== "")
+    .join(" · ");
+
+  return (
+    <section>
+      <div className="border px-5 py-6 text-center" style={{ borderColor: `${fg}55` }}>
+        <div className="flex items-center justify-between">
+          <div className="font-mono text-[9px] uppercase tracking-[0.45em]" style={{ color: fg }}>
+            {pressure ? pressure.phase : "Camp"}
           </div>
-
-          {/* Execution detail */}
-          <p
-            className="text-[0.82rem] leading-relaxed transition-colors duration-300"
-            style={{ color: done ? "hsla(0,0%,100%,0.28)" : "hsla(0,0%,100%,0.60)" }}
+          <button
+            type="button"
+            onClick={onEdit}
+            aria-label="Edit camp"
+            className="flex items-center gap-1.5 text-foreground/45 hover:text-foreground/85 transition-colors font-mono text-[9px] uppercase tracking-[0.3em]"
           >
-            {item.detail}
-          </p>
-
-          {/* Source + days footer */}
-          <div
-            className="flex items-center justify-between mt-3"
-            title={[
-              item.sourceFactIds.length ? `facts: ${item.sourceFactIds.join(", ")}` : "",
-              item.sourceCalibrationKeys.length ? `calibrations: ${item.sourceCalibrationKeys.join(", ")}` : "",
-            ].filter(Boolean).join(" · ")}
-          >
-            <div className="flex items-center gap-2">
-              <span className="flex-none" style={{ display: "inline-block", width: 14, height: 1, background: done ? "hsla(32,54%,46%,0.5)" : col.bar, opacity: 0.7 }} />
-              <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/55">
-                {item.sourceLabel}
-              </span>
-            </div>
-            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40">
-              {item.suggestedDays}
-            </span>
-          </div>
+            <Pencil className="w-3 h-3" strokeWidth={1.5} />
+            Edit
+          </button>
         </div>
+
+        {pressure ? (
+          <>
+            <div
+              className="font-sans font-extralight tabular-nums leading-none mt-4"
+              style={{ fontSize: "clamp(3rem,18vw,5rem)", color: fg }}
+            >
+              {pressure.daysToEvent}
+            </div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/55 mt-2">
+              {pressure.daysToEvent === 1 ? "day until" : "days until"} {c.eventName}
+            </div>
+            <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/40 mt-2">
+              {pressure.tierLabel}
+            </div>
+            {pressure.daysToWeighIn !== null && (
+              <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/45 mt-3">
+                Weigh-in: {pressure.daysToWeighIn}{" "}
+                {pressure.daysToWeighIn === 1 ? "day" : "days"}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="font-sans text-[15px] tracking-[0.1em] text-foreground/80 mt-4">
+            {c.eventName}
+          </div>
+        )}
       </div>
-    </div>
-  );
-}
 
-function PlannerAnimations() {
-  return (
-    <style>{`
-      @keyframes plan-section-in {
-        from { opacity: 0; transform: translateY(6px); }
-        to   { opacity: 1; transform: translateY(0); }
-      }
-      .plan-section {
-        animation: plan-section-in 0.5s ease-out both;
-      }
-      @keyframes plan-item-in {
-        from { opacity: 0; transform: translateX(-4px); }
-        to   { opacity: 1; transform: translateX(0); }
-      }
-      .plan-item {
-        animation: plan-item-in 0.4s ease-out both;
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .plan-section, .plan-item { animation: none; }
-      }
-    `}</style>
-  );
-}
+      <dl className="mt-5 space-y-2.5">
+        <Row label="Event date" value={formatDay(c.eventDate)} />
+        {c.weighInDate && <Row label="Weigh-in date" value={formatDay(c.weighInDate)} />}
+        {c.discipline.trim() && <Row label="Discipline" value={c.discipline} />}
+        {fightLine && <Row label="Fight" value={fightLine} />}
+        {weightCut && (
+          <Row
+            label="Weight cut"
+            value={
+              weightCut.current.trim() || weightCut.target.trim()
+                ? `${weightCut.current.trim() || "?"} → ${weightCut.target.trim() || "?"} · ${weightCut.status}`
+                : weightCut.status
+            }
+          />
+        )}
+        {c.notes.trim() && <Row label="Notes" value={c.notes} />}
+      </dl>
 
-function HelpOverlay({ onClose }: { onClose: () => void }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="relative max-w-md w-full bg-background border border-border/60 p-6 space-y-4"
-        onClick={(e) => e.stopPropagation()}
+      <button
+        type="button"
+        onClick={() => {
+          if (confirm("End this camp? It moves to history and the countdown stops.")) {
+            cancel.mutate(c.id);
+          }
+        }}
+        disabled={cancel.isPending}
+        className="mt-6 w-full border border-white/[0.1] py-3 font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/60 hover:text-[hsl(var(--red-accent))] hover:border-[hsl(var(--red-accent))]/50 transition-colors disabled:opacity-50"
       >
+        {cancel.isPending ? "Ending" : "End camp"}
+      </button>
+    </section>
+  );
+}
+
+function NoCampState({
+  showCreate,
+  onOpen,
+  onClose,
+}: {
+  showCreate: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+}) {
+  if (showCreate) return <CampForm onClose={onClose} />;
+  return (
+    <section>
+      <div className="border border-white/[0.08] px-5 py-8 text-center">
+        <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/55">
+          No camp scheduled
+        </div>
+        <p className="mt-3 text-[12px] leading-relaxed text-foreground/50">
+          Create a camp to enter the tunnel. A persistent countdown appears, the interface
+          tightens toward the date, the coach shifts into camp register, and you can build a
+          session-by-session schedule through to fight day.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="mt-5 w-full border border-primary/40 py-3 font-mono text-[11px] uppercase tracking-[0.35em] text-primary hover:bg-primary/5 transition-colors"
+      >
+        Create your camp
+      </button>
+    </section>
+  );
+}
+
+type CampFormState = {
+  eventName: string;
+  discipline: string;
+  eventDate: string;
+  weighInDate: string;
+  opponent: string;
+  promotion: string;
+  weightClass: string;
+  rounds: string;
+  location: string;
+  currentWeight: string;
+  targetWeight: string;
+  notes: string;
+};
+
+function toFormState(c?: Competition): CampFormState {
+  return {
+    eventName: c?.eventName ?? "",
+    discipline: c?.discipline ?? "",
+    eventDate: toDateInput(c?.eventDate ?? null),
+    weighInDate: toDateInput(c?.weighInDate ?? null),
+    opponent: c?.opponent ?? "",
+    promotion: c?.promotion ?? "",
+    weightClass: c?.weightClass ?? "",
+    rounds: c?.rounds != null ? String(c.rounds) : "",
+    location: c?.location ?? "",
+    currentWeight: c?.currentWeight ?? "",
+    targetWeight: c?.targetWeight ?? "",
+    notes: c?.notes ?? "",
+  };
+}
+
+function CampForm({
+  competition,
+  onClose,
+}: {
+  competition?: Competition;
+  onClose: () => void;
+}) {
+  const isEdit = !!competition;
+  const [form, setForm] = useState<CampFormState>(toFormState(competition));
+  const create = useCreateCompetition();
+  const update = useUpdateCompetition();
+  const pending = create.isPending || update.isPending;
+  const isError = create.isError || update.isError;
+
+  const canSubmit = form.eventName.trim().length > 0 && form.eventDate.length > 0;
+
+  const set = (patch: Partial<CampFormState>) => setForm((f) => ({ ...f, ...patch }));
+
+  const submit = () => {
+    if (!canSubmit) return;
+    const payload: CompetitionInput = {
+      eventName: form.eventName.trim(),
+      discipline: form.discipline.trim(),
+      eventDate: form.eventDate,
+      weighInDate: form.weighInDate || null,
+      opponent: form.opponent.trim(),
+      promotion: form.promotion.trim(),
+      weightClass: form.weightClass.trim(),
+      rounds: form.rounds.trim() ? Number(form.rounds) : null,
+      location: form.location.trim(),
+      currentWeight: form.currentWeight.trim(),
+      targetWeight: form.targetWeight.trim(),
+      notes: form.notes.trim(),
+    };
+    if (isEdit && competition) {
+      update.mutate({ id: competition.id, input: payload }, { onSuccess: onClose });
+    } else {
+      create.mutate(payload, { onSuccess: onClose });
+    }
+  };
+
+  return (
+    <section className="space-y-4">
+      <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/70">
+        {isEdit ? "Edit camp" : "Create camp"}
+      </div>
+
+      <Field label="Event name *">
+        <input
+          value={form.eventName}
+          onChange={(e) => set({ eventName: e.target.value })}
+          placeholder="ADCC Trials"
+          className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+        />
+      </Field>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Event date *">
+          <input
+            type="date"
+            value={form.eventDate}
+            onChange={(e) => set({ eventDate: e.target.value })}
+            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50"
+          />
+        </Field>
+        <Field label="Weigh-in date">
+          <input
+            type="date"
+            value={form.weighInDate}
+            onChange={(e) => set({ weighInDate: e.target.value })}
+            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50"
+          />
+        </Field>
+      </div>
+
+      <Field label="Discipline">
+        <input
+          value={form.discipline}
+          onChange={(e) => set({ discipline: e.target.value })}
+          placeholder="No-gi / MMA / BJJ"
+          className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+        />
+      </Field>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Opponent">
+          <input
+            value={form.opponent}
+            onChange={(e) => set({ opponent: e.target.value })}
+            placeholder="Optional"
+            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+          />
+        </Field>
+        <Field label="Promotion">
+          <input
+            value={form.promotion}
+            onChange={(e) => set({ promotion: e.target.value })}
+            placeholder="Optional"
+            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+          />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Weight class">
+          <input
+            value={form.weightClass}
+            onChange={(e) => set({ weightClass: e.target.value })}
+            placeholder="Optional"
+            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+          />
+        </Field>
+        <Field label="Rounds">
+          <input
+            inputMode="numeric"
+            value={form.rounds}
+            onChange={(e) => set({ rounds: e.target.value.replace(/[^0-9]/g, "") })}
+            placeholder="Optional"
+            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+          />
+        </Field>
+      </div>
+
+      <Field label="Location">
+        <input
+          value={form.location}
+          onChange={(e) => set({ location: e.target.value })}
+          placeholder="Optional"
+          className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+        />
+      </Field>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Current weight">
+          <input
+            value={form.currentWeight}
+            onChange={(e) => set({ currentWeight: e.target.value })}
+            placeholder="78kg"
+            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+          />
+        </Field>
+        <Field label="Target weight">
+          <input
+            value={form.targetWeight}
+            onChange={(e) => set({ targetWeight: e.target.value })}
+            placeholder="74kg"
+            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+          />
+        </Field>
+      </div>
+
+      <Field label="Notes">
+        <textarea
+          value={form.notes}
+          onChange={(e) => set({ notes: e.target.value })}
+          rows={3}
+          placeholder="Bracket, weaknesses to close, anything the coach should hold you to."
+          className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50 resize-none"
+        />
+      </Field>
+
+      {isError && (
+        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[hsl(var(--red-accent))]">
+          Could not save — check the dates
+        </div>
+      )}
+
+      <div className="flex gap-3 pt-1">
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
-          className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.1] py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/55 hover:text-foreground/85 transition-colors"
         >
-          <X className="w-4 h-4" strokeWidth={1.5} />
+          <X className="w-3 h-3" strokeWidth={1.5} />
+          Cancel
         </button>
-        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
-          How the mission works
-        </div>
-        <div className="space-y-3 text-sm text-foreground/85 leading-relaxed">
-          <p>
-            One mission per week. 5-7 actions for the next 7 days, grouped into Primary weakness,
-            Structural objective, Daily execution, Technical drilling, and Recovery protocol. Empty
-            sections say so — the system never invents items to fill them.
-          </p>
-          <p>
-            Every item is drawn from a real recorded signal — a fact in your athlete model, or a
-            calibration answer. The source line under each item names where it came from. The
-            suggested-days label is the system's best guess given your recorded training
-            frequency, not a prescription.
-          </p>
-          <p>
-            Marking an item done writes a low-confidence pattern into your model so the next plan
-            knows what you actually executed. Un-marking reverses it.
-          </p>
-          <p className="text-muted-foreground">
-            No streaks, no points, no celebration. The plan is a mirror, not a game.
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!canSubmit || pending}
+          className="flex-1 border border-primary/40 py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-primary hover:bg-primary/5 transition-colors disabled:opacity-40"
+        >
+          {pending ? "Saving" : isEdit ? "Save camp" : "Create camp"}
+        </button>
       </div>
+    </section>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-white/[0.05] pb-2.5">
+      <dt className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/45 pt-0.5">
+        {label}
+      </dt>
+      <dd className="text-[13px] text-foreground/85 text-right max-w-[60%]">{value}</dd>
     </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/55 block mb-1.5">
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }

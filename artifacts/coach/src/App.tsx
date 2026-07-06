@@ -12,9 +12,8 @@ import OnboardingPage from "@/pages/onboarding";
 import HomePage from "@/pages/home";
 import ProfilePage from "@/pages/profile";
 import HistoryPage from "@/pages/history";
-import PlannerPage from "@/pages/planner";
+import CampPage from "@/pages/planner";
 import AnalysePage from "@/pages/analyse";
-import CompetitionPage from "@/pages/competition";
 import SplashPage from "@/pages/splash";
 import DailyBriefingPage from "@/pages/daily-briefing";
 import SignInPage from "@/pages/sign-in";
@@ -319,19 +318,20 @@ function AppRoutes() {
                 <HistoryPage />
               </Authed>
             </Route>
-            <Route path="/planner">
+            <Route path="/camp">
               <Authed>
-                <PlannerPage />
+                <CampPage />
               </Authed>
+            </Route>
+            <Route path="/planner">
+              <Redirect to="/camp" />
+            </Route>
+            <Route path="/competition">
+              <Redirect to="/camp" />
             </Route>
             <Route path="/analyse">
               <Authed>
                 <AnalysePage />
-              </Authed>
-            </Route>
-            <Route path="/competition">
-              <Authed>
-                <CompetitionPage />
               </Authed>
             </Route>
             <Route component={NotFound} />
