@@ -49,6 +49,17 @@ of 401).
 state on the shared dev domain. Do NOT hack Clerk cookie reading or add a custom verify path —
 the clerk-auth skill forbids it and it would mask a non-bug.
 
+# Canvas preview iframe = same third-party trap
+
+"SESSION NOT VERIFIED" (Gate's auth-error branch, 401 from `/api/fighter`) seen inside
+the workspace **canvas iframe preview** is the SAME third-party-cookie limitation, not a
+regression. The canvas embeds the app cross-origin (top-level = workspace, framed = the
+`*.replit.dev` dev app), so the session cookie is third-party and browsers drop it →
+`getAuth` null → 401. Compounded in dev because Clerk isn't proxied there. Verify by
+opening the app in a REAL top-level tab (dev URL or the published domain) instead of the
+canvas iframe. Production is unaffected: prod proxies Clerk first-party via `/api/__clerk`
+(confirm with a 200 on `/api/__clerk/v1/environment` at the prod/custom domain).
+
 # Debugging tip
 
 The browser does NOT auto-poll `/api/fighter` (React Query won't refetch behind the error
