@@ -203,6 +203,48 @@ test("competition CRUD — POST → GET → PATCH → DELETE", async ({ page }) 
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Test 5: Camp create form opens from the empty (no-camp) state
+//   Regression: CampForm used to be rendered only inside the has-camp branch, so
+//   tapping "CREATE YOUR CAMP" on the empty state set showCampForm=true but
+//   rendered nothing — a brand-new user could never create a camp on mobile.
+// ─────────────────────────────────────────────────────────────────────────────
+test("camp create form opens from the no-camp empty state", async ({ page }) => {
+  await signIn(page, TEST_MAIN_EMAIL);
+  await page.waitForURL(/\/home/, { timeout: 5_000 });
+
+  const token = await getBearerToken(page);
+
+  // Guarantee the no-camp state: soft-cancel any active competition so the
+  // Camp screen renders its empty-state branch (bounded loop, list semantics
+  // aside).
+  for (let i = 0; i < 10; i++) {
+    const activeRes = await page.request.get("/api/competition/active", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const activeBody = (await activeRes.json()) as { competition?: { id: number } | null };
+    if (!activeBody.competition) break;
+    await page.request.delete(`/api/competition/${activeBody.competition.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  // Open the Camp tab directly.
+  await page.goto(`${BASE}/planner`);
+
+  // Empty-state CTA present → confirms we're in the no-camp branch.
+  const cta = page.getByText("CREATE YOUR CAMP", { exact: true });
+  await expect(cta).toBeVisible({ timeout: 20_000 });
+
+  // Tapping it must reveal the create form. Before the fix, nothing appeared.
+  await cta.click();
+
+  // The event-name field (placeholder "Regional Open") and the "CREATE CAMP"
+  // submit button both live inside CampForm; either proves the form rendered.
+  await expect(page.getByPlaceholder("Regional Open")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("CREATE CAMP", { exact: true })).toBeVisible();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Test 4: Chat SSE delivers at least one content chunk
 // ─────────────────────────────────────────────────────────────────────────────
 test("chat SSE delivers at least one chunk", async ({ page }) => {

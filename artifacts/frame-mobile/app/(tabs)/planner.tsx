@@ -380,6 +380,43 @@ function CampView() {
   const sessionSaving = createSessionMut.isPending || updateSessionMut.isPending;
   const groups = groupSessions(sessions);
 
+  // Shared so it renders both when creating a first camp (no-camp branch) and
+  // when editing an existing one (dashboard edit). Without this, tapping
+  // "CREATE YOUR CAMP" on the empty state showed nothing.
+  const campFormNode = showCampForm ? (
+    <CampForm
+      editing={editingCampId != null}
+      eventName={eventName}
+      setEventName={setEventName}
+      discipline={discipline}
+      setDiscipline={setDiscipline}
+      eventDate={eventDate}
+      setEventDate={setEventDate}
+      weighInDate={weighInDate}
+      setWeighInDate={setWeighInDate}
+      opponent={opponent}
+      setOpponent={setOpponent}
+      promotion={promotion}
+      setPromotion={setPromotion}
+      weightClass={weightClass}
+      setWeightClass={setWeightClass}
+      rounds={rounds}
+      setRounds={setRounds}
+      location={location}
+      setLocation={setLocation}
+      currentWeight={currentWeight}
+      setCurrentWeight={setCurrentWeight}
+      targetWeight={targetWeight}
+      setTargetWeight={setTargetWeight}
+      notes={notes}
+      setNotes={setNotes}
+      error={campError}
+      saving={campSaving}
+      onCancel={resetCampForm}
+      onSubmit={submitCamp}
+    />
+  ) : null;
+
   return (
     <ScrollView
       style={camp.scroll}
@@ -392,25 +429,28 @@ function CampView() {
       {isLoading ? (
         <ActivityIndicator color="#C9883A" style={{ marginTop: 40 }} />
       ) : !competition ? (
-        <View style={camp.emptyCard}>
-          <Text style={camp.emptyTitle}>No camp yet</Text>
-          <Text style={camp.emptyBody}>
-            Set your fight or comp and FRAME builds the camp around it — countdown, phase, weight
-            cut, and the sessions that carry you to the mat.
-          </Text>
-          {!showCampForm && (
-            <Pressable
-              style={({ pressed }) => [camp.cta, pressed && camp.ctaPressed]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                setShowCampForm(true);
-              }}
-            >
-              <Feather name="plus" size={16} color="#C9883A" />
-              <Text style={camp.ctaText}>CREATE YOUR CAMP</Text>
-            </Pressable>
-          )}
-        </View>
+        <>
+          <View style={camp.emptyCard}>
+            <Text style={camp.emptyTitle}>No camp yet</Text>
+            <Text style={camp.emptyBody}>
+              Set your fight or comp and FRAME builds the camp around it — countdown, phase, weight
+              cut, and the sessions that carry you to the mat.
+            </Text>
+            {!showCampForm && (
+              <Pressable
+                style={({ pressed }) => [camp.cta, pressed && camp.ctaPressed]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                  setShowCampForm(true);
+                }}
+              >
+                <Feather name="plus" size={16} color="#C9883A" />
+                <Text style={camp.ctaText}>CREATE YOUR CAMP</Text>
+              </Pressable>
+            )}
+          </View>
+          {campFormNode}
+        </>
       ) : (
         <>
           {/* Dashboard */}
@@ -490,39 +530,7 @@ function CampView() {
           )}
 
           {/* Camp edit form (opened via dashboard edit) */}
-          {showCampForm && (
-            <CampForm
-              editing={editingCampId != null}
-              eventName={eventName}
-              setEventName={setEventName}
-              discipline={discipline}
-              setDiscipline={setDiscipline}
-              eventDate={eventDate}
-              setEventDate={setEventDate}
-              weighInDate={weighInDate}
-              setWeighInDate={setWeighInDate}
-              opponent={opponent}
-              setOpponent={setOpponent}
-              promotion={promotion}
-              setPromotion={setPromotion}
-              weightClass={weightClass}
-              setWeightClass={setWeightClass}
-              rounds={rounds}
-              setRounds={setRounds}
-              location={location}
-              setLocation={setLocation}
-              currentWeight={currentWeight}
-              setCurrentWeight={setCurrentWeight}
-              targetWeight={targetWeight}
-              setTargetWeight={setTargetWeight}
-              notes={notes}
-              setNotes={setNotes}
-              error={campError}
-              saving={campSaving}
-              onCancel={resetCampForm}
-              onSubmit={submitCamp}
-            />
-          )}
+          {campFormNode}
         </>
       )}
     </ScrollView>
