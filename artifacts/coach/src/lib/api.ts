@@ -231,7 +231,10 @@ function classifyStatus(status: number, body: string): ApiError {
 
 // Per-request timeout (ms). The on-device pose pass already happened by the time
 // we POST, so this only bounds the server round-trip (DB + Claude narrative).
-const REQUEST_TIMEOUT_MS = 90_000;
+// Sits just above the server's 55s AI-call cap so a real server error/timeout
+// arrives first as a clean response; this only fires if the connection is
+// silently black-holed, bounding the worst-case spinner instead of hanging.
+const REQUEST_TIMEOUT_MS = 70_000;
 
 async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();

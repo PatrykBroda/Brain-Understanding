@@ -50,6 +50,18 @@ The "Analyse" tab turns uploaded footage into a FRAME nervous-system read.
 - Express json body limit is 20mb (app.ts) — key frames fit; keep them bounded.
 - athlete_facts from an analysis use source `video:<analysisId>` and are only
   written for non-low-severity findings.
+- **Never set `maxRetries > 0` on the long analysis vision call.** The narration
+  call is slow (large system prompt + several base64 key frames on Sonnet). A
+  single SDK retry on a slow/rate-limited (429) attempt — e.g. when smoke suites
+  or chat traffic hammer Anthropic concurrently — silently ~doubles latency
+  toward the timeout×2 worst case, blowing past the caller's request window so
+  the user sits on an endless "loading_ai" spinner (symptom: `/api/analysis` POST
+  runs 60s+ then `request aborted`, statusCode null). Bound a single attempt
+  under the caller's timeout instead. **Why:** an expensive long call retried is
+  mostly retrying the *slowness*, not a transient fault — retry buys nothing and
+  costs the user the whole spinner. If cold-cache calls (full vault prompt
+  uncached) start tripping the timeout, the durable fix is a slim analysis-only
+  system prompt, NOT a longer timeout.
 
 ## Frontend error contract (ApiError)
 `jsonFetch` throws a structured `ApiError` (kind/title/causes/retryable + timeout via AbortController). Its base `Error.message` is deliberately set to `title: causes` because legacy callers (onboarding, profile-edit, planner, chat upload) only read `err.message` — if you ever make `message` just the title, those screens lose actionable backend detail. Richer UIs (Analyse error card) read the structured fields directly.

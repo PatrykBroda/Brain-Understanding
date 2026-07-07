@@ -308,7 +308,7 @@ export async function generateAnalysis(args: {
     metricsText({ kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores });
 
   const content: Anthropic.ContentBlockParam[] = [];
-  for (const kf of keyframes.slice(0, 6)) {
+  for (const kf of keyframes.slice(0, 4)) {
     const parsed = parseDataUrl(kf.imageBase64);
     if (parsed && CLAUDE_IMAGE_MIME.has(parsed.mediaType)) {
       content.push({
@@ -341,7 +341,14 @@ export async function generateAnalysis(args: {
     },
     // Bound the AI round-trip so a hung upstream call fails fast with a clear
     // error instead of holding the request open until the client gives up.
-    { timeout: 75_000, maxRetries: 1 },
+    // maxRetries:0 — a retry on a slow/rate-limited call (e.g. under concurrent
+    // load) silently doubled latency toward ~150s, blowing past the client's
+    // request window and leaving the user on an endless spinner. A single 55s
+    // attempt surfaces a genuine timeout as a clean 500 the client renders,
+    // instead of a request that outlives the caller and hangs. If cold-cache
+    // calls (full vault prompt uncached) start tripping this, the durable fix is
+    // a slim analysis-only system prompt, not a longer timeout.
+    { timeout: 55_000, maxRetries: 0 },
   );
 
   for (const block of resp.content) {
