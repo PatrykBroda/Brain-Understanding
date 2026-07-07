@@ -7,7 +7,6 @@
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
     "prebuild": "node ./build-synochi.mjs",
     "build": "node ./build.mjs",
-    "postbuild": "pnpm -w run test:api-server",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "test": "pnpm -w run test:api-server",
     "typecheck": "tsc -p tsconfig.json --noEmit"

@@ -28,5 +28,9 @@ CONNECTION LOST and a `profile page loads` smoke test failed at the same time.
 - Fix the outage by restarting the main API server workflow once the shared port is
   free. Verify with `curl localhost:80/api/healthz` (200) — do **not** trust `ss`
   in this sandbox; it gives false negatives on listening ports.
-- Durable prevention (not yet done): give the smoke runners a dedicated API port so
-  they can never collide with the main server. Offered to the user as a follow-up.
+- Durable mitigations now in place (see `api-server-boot-reliability.md`): the
+  api-server no longer runs the test suite on its build/boot path (that ~12s window
+  was the main opportunity for the race), and `index.ts` retries `EADDRINUSE`
+  (10×1s) so a restart that overlaps a smoke server's port release recovers instead
+  of dying. A fuller fix — a dedicated API port for the smoke runners so they can
+  never collide — remains a valid follow-up but is not done.
