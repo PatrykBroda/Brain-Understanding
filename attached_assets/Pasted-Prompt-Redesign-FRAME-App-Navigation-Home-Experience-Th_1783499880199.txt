@@ -1,0 +1,193 @@
+Prompt: Redesign FRAME App Navigation & Home Experience
+
+The authentication flow (Sign Up / Sign In) is already correct and should remain unchanged.
+
+Goal
+
+I want to restructure the app so that the current "Home" screen becomes a landing/dashboard selector, and replace the Home tab with a true athlete dashboard similar to the attached reference.
+
+Current Structure
+✅ Sign Up / Sign In page → Keep exactly as it is.
+❌ Current Home screen (Stable sphere, Continue button) → Repurpose.
+❌ Current Home tab → Replace with new athlete dashboard.
+1. Convert the current Home screen into a Navigation Hub
+
+The screen currently showing:
+
+FRAME logo
+Orb
+"STATE: STABLE"
+Continue button
+
+should no longer be the Home page.
+
+Instead, make it a landing hub that appears immediately after login.
+
+Purpose:
+
+This is simply a beautiful transition screen where the athlete chooses where to go.
+
+It should contain:
+
+animated FRAME orb
+athlete state
+subtle readiness indicator
+bottom navigation
+
+Instead of feeling like a dashboard, it should feel like:
+
+"Where do you want to go?"
+
+No training metrics.
+No profile data.
+No readiness breakdown.
+
+Just a premium navigation experience.
+
+The Continue button can either:
+
+disappear completely
+
+or
+
+become "Enter"
+
+that simply opens whichever tab is selected.
+
+2. Create a New Home Page (Reference Screenshot 1)
+
+The Home tab should become the athlete dashboard.
+
+Use Screenshot 1 as the design reference.
+
+The layout should include:
+
+Hero Section
+
+Large athlete image/video.
+
+Overlay:
+
+Athlete Name
+
+Sport
+
+Weight class
+
+Stance
+
+Example:
+
+STORM
+
+MMA
+Bantamweight (135 lb)
+
+Orthodox
+Fight Readiness Score
+
+Large number
+
+Example:
+
+77
+TRAINABLE
+
+This is the primary metric on the page.
+
+Readiness Breakdown
+
+Display metrics like:
+
+Sleep
+
+Energy
+
+Soreness
+
+Stress
+
+Cardio HR
+
+Use a clean two-column layout.
+
+Example:
+
+Sleep        90
+
+Energy       70
+
+Soreness     67
+
+Stress       78
+
+Cardio HR    78
+Competition Context
+
+Placeholder section for future data.
+
+Keep the heading.
+
+Use subtle dividers.
+
+Overall Style
+
+Maintain FRAME branding:
+
+black background
+warm white typography
+bronze/gold accents
+lots of negative space
+premium minimalist feel
+Apple x WHOOP x Nothing aesthetic
+elegant typography
+subtle motion
+cinematic presentation
+
+Avoid making it feel like a typical fitness app.
+
+3. Navigation Flow
+
+New flow:
+
+Sign In
+
+↓
+
+Landing Hub (current Stable screen)
+
+↓
+
+Choose
+
+Home
+Chat
+Analyse
+Profile
+Camp
+
+The landing hub should not duplicate dashboard information.
+
+The Home page is where athlete metrics live.
+
+4. Keep Existing Tabs
+
+Do not redesign:
+
+Chat
+Analyse
+Profile
+Camp
+
+Only change:
+
+Landing Hub
+Home page
+5. Technical Notes
+Reuse existing design system and components wherever possible.
+Preserve animations already implemented for the orb.
+Maintain responsive layouts for desktop and mobile.
+Keep transitions smooth between the Landing Hub and Home dashboard.
+Do not alter the authentication flow.
+
+Objective: The experience should feel like entering a premium operating system for elite athletes. After signing in, users arrive at a calm, cinematic landing hub that serves as a gateway to the app. The Home tab then becomes a rich athlete dashboard focused on readiness, performance, and competition context, matching the visual style of Screenshot 1.
