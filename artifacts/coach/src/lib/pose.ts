@@ -13,6 +13,39 @@ export type PoseFrame = {
 
 let _landmarker: Promise<PoseLandmarker> | null = null;
 
+// Bound the model download + init: on a flaky connection (or a GPU-delegate
+// init that hangs instead of throwing) the load can otherwise sit forever and
+// the Analyse overlay never leaves "Reading footage · 0%".
+const MODEL_LOAD_TIMEOUT_MS = 25_000;
+
+class ModelLoadTimeoutError extends Error {
+  constructor() {
+    super("movement model load timed out");
+    this.name = "ModelLoadTimeoutError";
+  }
+}
+
+function withModelLoadTimeout(p: Promise<PoseLandmarker>): Promise<PoseLandmarker> {
+  return new Promise<PoseLandmarker>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      // Drop the (possibly hung) cached promise so a retry starts a fresh load
+      // instead of awaiting the same stuck one.
+      if (_landmarker === p) _landmarker = null;
+      reject(new ModelLoadTimeoutError());
+    }, MODEL_LOAD_TIMEOUT_MS);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (err: unknown) => {
+        clearTimeout(timer);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      },
+    );
+  });
+}
+
 function loadLandmarker(): Promise<PoseLandmarker> {
   if (_landmarker) return _landmarker;
   const shared = {
@@ -205,7 +238,7 @@ export async function extractPoseFrames(
 
   let landmarker: PoseLandmarker;
   try {
-    landmarker = await landmarkerPromise;
+    landmarker = await withModelLoadTimeout(landmarkerPromise);
   } catch {
     teardownVideo(video);
     URL.revokeObjectURL(url);
