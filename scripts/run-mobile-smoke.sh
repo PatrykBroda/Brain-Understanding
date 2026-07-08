@@ -21,10 +21,11 @@
 #   port range is distinct from coach-smoke's, so the two suites can overlap
 #   safely (EADDRINUSE → CONNECTION LOST gate).
 #
-# NB: the mobile app itself is served from a prebuilt dist/ — an existing
-# dist/ may still be OLDER than the current source. Rebuild frame-mobile
-# explicitly after mobile code changes (see replit.md gotchas); the runner
-# prints the dist/ build time so staleness is visible.
+# NB: the mobile app itself is served from a prebuilt dist/. This runner
+# checks whether any frame-mobile source file is newer than dist/index.html
+# and automatically rebuilds a stale/missing bundle before serving (failing
+# loudly if the rebuild fails) — the suite can never run against an
+# outdated app bundle.
 #
 # Usage:
 #   bash scripts/run-mobile-smoke.sh          # run all smoke tests
@@ -134,16 +135,45 @@ PORT=$API_PORT pnpm --filter @workspace/api-server run dev \
 track $!
 wait_for_http "API server" "http://127.0.0.1:$API_PORT/api/healthz" 90 200
 
-# Ensure a built dist/ exists before serving; surface its build time so a
-# stale bundle is at least visible in the runner output.
-DIST_DIR="artifacts/frame-mobile/dist"
+# ── dist/ freshness gate ──────────────────────────────────────────────────────
+# The mobile app is served from a prebuilt static export. If any mobile source
+# file is newer than dist/index.html, the suite would silently test an OLD
+# bundle — so detect that and rebuild automatically before serving.
+MOBILE_DIR="artifacts/frame-mobile"
+DIST_DIR="$MOBILE_DIR/dist"
+
+# Source dirs/files that affect the exported bundle (dist/ itself excluded).
+SRC_PATHS=()
+for p in app components lib hooks context assets constants app.json \
+  package.json tsconfig.json babel.config.js metro.config.js \
+  serve-static.mjs; do
+  [ -e "$MOBILE_DIR/$p" ] && SRC_PATHS+=("$MOBILE_DIR/$p")
+done
+
+REBUILD_REASON=""
 if [ ! -f "$DIST_DIR/index.html" ]; then
-  echo "[mobile-smoke] dist/ not found — building frame-mobile..."
-  pnpm --filter @workspace/frame-mobile run build \
-    >/tmp/mobile-smoke-build.log 2>&1
-  echo "[mobile-smoke] Build complete."
+  REBUILD_REASON="dist/ not found"
+elif [ "${#SRC_PATHS[@]}" -gt 0 ]; then
+  NEWER=$(find "${SRC_PATHS[@]}" -type f -newer "$DIST_DIR/index.html" -print -quit 2>/dev/null || true)
+  if [ -n "$NEWER" ]; then
+    REBUILD_REASON="source newer than dist/ (e.g. $NEWER)"
+  fi
+fi
+
+if [ -n "$REBUILD_REASON" ]; then
+  echo "[mobile-smoke] STALE BUNDLE: $REBUILD_REASON — rebuilding frame-mobile so tests never run against an outdated app bundle (this can take a few minutes)..."
+  if ! pnpm --filter @workspace/frame-mobile run build \
+    >/tmp/mobile-smoke-build.log 2>&1; then
+    echo "[mobile-smoke] ERROR: frame-mobile rebuild FAILED — refusing to run smoke tests against a stale/missing bundle. See /tmp/mobile-smoke-build.log" >&2
+    exit 1
+  fi
+  if [ ! -f "$DIST_DIR/index.html" ]; then
+    echo "[mobile-smoke] ERROR: build reported success but $DIST_DIR/index.html is missing — aborting." >&2
+    exit 1
+  fi
+  echo "[mobile-smoke] dist/ REBUILT — bundle is now current (built: $(date -u -r "$DIST_DIR/index.html" '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || echo unknown))."
 else
-  echo "[mobile-smoke] Serving existing dist/ (last built: $(date -u -r "$DIST_DIR/index.html" '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || echo unknown)) — rebuild if mobile code changed since."
+  echo "[mobile-smoke] dist/ CONFIRMED CURRENT — no source file newer than dist/index.html (built: $(date -u -r "$DIST_DIR/index.html" '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || echo unknown))."
 fi
 
 echo "[mobile-smoke] Starting FRESH smoke mobile static server on :$MOBILE_PORT"
