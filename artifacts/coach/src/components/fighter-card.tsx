@@ -115,15 +115,20 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
   return (
     <div className="border border-white/[0.08] overflow-hidden">
       {/* ─── HERO BAND ─────────────────────────────────────────────── */}
-      <div className="relative" style={{ minHeight: 176 }}>
+      <div className="relative overflow-hidden" style={{ minHeight: 176 }}>
         {/* Background image (faded) or fallback gradient */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 overflow-hidden">
           {heroSrc ? (
             <img
               src={heroSrc}
               alt=""
               className="w-full h-full object-cover"
-              style={{ opacity: 0.4 }}
+              style={{
+                opacity: 0.4,
+                objectPosition: `${fighter.heroPosX ?? 50}% ${fighter.heroPosY ?? 50}%`,
+                transform: `scale(${(fighter.heroZoom ?? 100) / 100})`,
+                transformOrigin: `${fighter.heroPosX ?? 50}% ${fighter.heroPosY ?? 50}%`,
+              }}
               draggable={false}
             />
           ) : (

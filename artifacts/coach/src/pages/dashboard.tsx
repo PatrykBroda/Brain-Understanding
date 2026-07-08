@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "wouter";
-import { ChevronRight, Pencil } from "lucide-react";
+import { ChevronRight, Pencil, Move } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
 import { CompetitionBanner } from "@/components/competition-banner";
-import { useFighter } from "@/hooks/use-fighter";
+import { useFighter, useUpdateFighter } from "@/hooks/use-fighter";
 import { useAnalyses } from "@/hooks/use-analysis";
 import { useActiveCompetition } from "@/hooks/use-competition";
 import { useTodayCheckin, useSaveCheckin } from "@/hooks/use-checkin";
 import { heroFileUrl, type DailyCheckin } from "@/lib/api";
+
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -174,6 +176,61 @@ export default function DashboardPage() {
   const hasHero = !!fighter && fighter.heroImageUrl.trim() !== "";
   const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
 
+  // ── Hero framing (athlete-adjustable, persisted on the fighter row) ──────
+  const updateFighter = useUpdateFighter();
+  const [adjusting, setAdjusting] = useState(false);
+  const [draft, setDraft] = useState({ posX: 50, posY: 50, zoom: 100 });
+  const dragRef = useRef<{ pointerId: number; x: number; y: number; posX: number; posY: number } | null>(null);
+  const heroBoxRef = useRef<HTMLDivElement>(null);
+
+  const framing = adjusting
+    ? draft
+    : {
+        posX: fighter?.heroPosX ?? 50,
+        posY: fighter?.heroPosY ?? 50,
+        zoom: fighter?.heroZoom ?? 100,
+      };
+
+  const startAdjust = () => {
+    setDraft({
+      posX: fighter?.heroPosX ?? 50,
+      posY: fighter?.heroPosY ?? 50,
+      zoom: fighter?.heroZoom ?? 100,
+    });
+    setAdjusting(true);
+  };
+
+  const saveFraming = () => {
+    updateFighter.mutate(
+      {
+        heroPosX: Math.round(clamp(draft.posX, 0, 100)),
+        heroPosY: Math.round(clamp(draft.posY, 0, 100)),
+        heroZoom: Math.round(clamp(draft.zoom, 100, 250)),
+      },
+      { onSuccess: () => setAdjusting(false) },
+    );
+  };
+
+  const onHeroPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!adjusting) return;
+    dragRef.current = { pointerId: e.pointerId, x: e.clientX, y: e.clientY, posX: draft.posX, posY: draft.posY };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onHeroPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    const box = heroBoxRef.current;
+    if (!adjusting || !drag || drag.pointerId !== e.pointerId || !box) return;
+    const rect = box.getBoundingClientRect();
+    // Dragging the image right reveals more of its left side → focal % decreases.
+    const scale = 100 / (draft.zoom || 100);
+    const dx = ((e.clientX - drag.x) / rect.width) * 100 * scale;
+    const dy = ((e.clientY - drag.y) / rect.height) * 100 * scale;
+    setDraft((d) => ({ ...d, posX: clamp(drag.posX - dx, 0, 100), posY: clamp(drag.posY - dy, 0, 100) }));
+  };
+  const onHeroPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.pointerId === e.pointerId) dragRef.current = null;
+  };
+
   const metaParts = fighter
     ? [
         fighter.primarySport ? fighter.primarySport.replace(/_/g, " ").toUpperCase() : null,
@@ -187,14 +244,30 @@ export default function DashboardPage() {
       <main className="flex-1 min-h-0 overflow-y-auto">
         {/* ─── Hero — the athlete's own uploaded image, cinematic crop ───── */}
         <section className="relative">
-          <div className="relative h-[46vh] min-h-[300px] max-h-[430px] overflow-hidden">
+          <div
+            ref={heroBoxRef}
+            className="relative h-[46vh] min-h-[300px] max-h-[430px] overflow-hidden"
+            style={adjusting ? { touchAction: "none", cursor: "grab", userSelect: "none" } : undefined}
+            onPointerDown={onHeroPointerDown}
+            onPointerMove={onHeroPointerMove}
+            onPointerUp={onHeroPointerUp}
+            onPointerCancel={onHeroPointerUp}
+          >
             {heroSrc ? (
               <img
                 src={heroSrc}
                 alt=""
                 aria-hidden
                 className="absolute inset-0 w-full h-full object-cover"
-                style={{ filter: "saturate(0.85) contrast(1.05)" }}
+                style={{
+                  filter: "saturate(0.85) contrast(1.05)",
+                  objectPosition: `${framing.posX}% ${framing.posY}%`,
+                  transform: `scale(${framing.zoom / 100})`,
+                  transformOrigin: `${framing.posX}% ${framing.posY}%`,
+                  // Dimmed like the profile card — dark contrast is the default;
+                  // lifted while adjusting so the athlete can see what they frame.
+                  opacity: adjusting ? 0.85 : 0.45,
+                }}
                 draggable={false}
               />
             ) : (
@@ -206,12 +279,13 @@ export default function DashboardPage() {
                 }}
               />
             )}
-            {/* Legibility washes */}
+            {/* Legibility washes — profile-card dark contrast */}
             <div
-              className="absolute inset-0"
+              className="absolute inset-0 pointer-events-none"
               style={{
-                background:
-                  "linear-gradient(180deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.12) 34%, rgba(0,0,0,0.28) 62%, rgba(0,0,0,0.96) 100%)",
+                background: adjusting
+                  ? "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.05) 30%, rgba(0,0,0,0.05) 70%, rgba(0,0,0,0.6) 100%)"
+                  : "linear-gradient(180deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.42) 34%, rgba(0,0,0,0.55) 62%, rgba(0,0,0,0.97) 100%)",
               }}
             />
 
@@ -233,35 +307,96 @@ export default function DashboardPage() {
                   </span>
                 </div>
               </div>
+              {hasHero && !adjusting && (
+                <button
+                  type="button"
+                  onClick={startAdjust}
+                  aria-label="Adjust hero image framing"
+                  className="w-8 h-8 flex items-center justify-center border border-white/15 bg-black/40 text-foreground/60 hover:text-primary hover:border-primary/40 transition-colors"
+                >
+                  <Move className="w-3.5 h-3.5" strokeWidth={1.5} />
+                </button>
+              )}
             </header>
 
-            {/* Identity overlay */}
-            <div className="absolute bottom-0 inset-x-0 px-6 pb-5">
-              <div className="font-mono text-[9px] uppercase tracking-[0.55em] text-foreground/55 mb-2">
-                Athlete
-              </div>
-              <h1 className="font-sans font-extralight uppercase text-[clamp(2.6rem,11vw,4rem)] tracking-[0.12em] leading-none text-foreground/95">
-                {fighter?.name ?? "—"}
-              </h1>
-              {metaParts.length > 0 && (
-                <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/60 mt-3">
-                  {metaParts.map((p, i) => (
-                    <span key={p}>
-                      {i > 0 && <MetaDivider />}
-                      {p}
-                    </span>
-                  ))}
+            {/* Framing controls (adjust mode) */}
+            {adjusting && (
+              <div className="absolute bottom-0 inset-x-0 px-6 pb-5 space-y-4">
+                <p className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/70">
+                  Drag to reposition
+                </p>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/60 w-12">
+                    Zoom
+                  </span>
+                  <input
+                    type="range"
+                    min={100}
+                    max={250}
+                    step={1}
+                    value={framing.zoom}
+                    onChange={(e) => setDraft((d) => ({ ...d, zoom: Number(e.target.value) }))}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onPointerMove={(e) => e.stopPropagation()}
+                    className="flex-1 accent-[hsl(35,65%,55%)]"
+                    aria-label="Hero image zoom"
+                  />
+                  <span className="font-sans font-light text-[13px] tabular-nums text-foreground/80 w-12 text-right">
+                    {framing.zoom}%
+                  </span>
                 </div>
-              )}
-              {!hasHero && (
-                <Link
-                  href="/"
-                  className="inline-block mt-3 font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/30 hover:text-foreground/60 transition-colors"
-                >
-                  Set your frame on the hub
-                </Link>
-              )}
-            </div>
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={saveFraming}
+                    disabled={updateFighter.isPending}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="px-5 py-2 rounded-none border border-primary/40 font-mono text-[10px] uppercase tracking-[0.35em] text-primary hover:border-primary/70 transition-colors disabled:opacity-40 bg-black/50"
+                  >
+                    {updateFighter.isPending ? "Saving" : "Save framing"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAdjusting(false)}
+                    disabled={updateFighter.isPending}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/50 hover:text-foreground/80 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Identity overlay */}
+            {!adjusting && (
+              <div className="absolute bottom-0 inset-x-0 px-6 pb-5">
+                <div className="font-mono text-[9px] uppercase tracking-[0.55em] text-foreground/55 mb-2">
+                  Athlete
+                </div>
+                <h1 className="font-sans font-extralight uppercase text-[clamp(2.6rem,11vw,4rem)] tracking-[0.12em] leading-none text-foreground/95">
+                  {fighter?.name ?? "—"}
+                </h1>
+                {metaParts.length > 0 && (
+                  <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/60 mt-3">
+                    {metaParts.map((p, i) => (
+                      <span key={p}>
+                        {i > 0 && <MetaDivider />}
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {!hasHero && (
+                  <Link
+                    href="/"
+                    className="inline-block mt-3 font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/30 hover:text-foreground/60 transition-colors"
+                  >
+                    Set your frame on the hub
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         </section>
 

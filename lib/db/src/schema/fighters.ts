@@ -33,6 +33,11 @@ export const fightersTable = pgTable("fighters", {
   // Customizable faded hero background for the profile card. Stores a safe filename in
   // the server UPLOADS_DIR; server-managed via POST/DELETE /fighter/hero (omitted from client schemas).
   heroImageUrl: text("hero_image_url").notNull().default(""),
+  // Athlete-adjustable hero framing: focal point as object-position percentages
+  // (0-100, 50/50 = centered) and zoom percent (100 = fit, up to 250).
+  heroPosX: integer("hero_pos_x").notNull().default(50),
+  heroPosY: integer("hero_pos_y").notNull().default(50),
+  heroZoom: integer("hero_zoom").notNull().default(100),
   goals: text("goals").notNull().default(""),
   weaknesses: text("weaknesses").notNull().default(""),
   competes: boolean("competes").notNull().default(false),
@@ -61,6 +66,10 @@ export const insertFighterSchema = createInsertSchema(fightersTable)
     age: true,
     // hero image is set via the dedicated upload endpoint, never by the client payload.
     heroImageUrl: true,
+    // hero framing is adjusted post-upload via PATCH, not at onboarding.
+    heroPosX: true,
+    heroPosY: true,
+    heroZoom: true,
     createdAt: true,
     updatedAt: true,
   })
@@ -81,6 +90,11 @@ export const updateFighterSchema = createInsertSchema(fightersTable)
     spiritAnimal: true,
     spiritAnimalTagline: true,
     vocabularyLevel: true,
+  })
+  .extend({
+    heroPosX: z.coerce.number().int().min(0).max(100),
+    heroPosY: z.coerce.number().int().min(0).max(100),
+    heroZoom: z.coerce.number().int().min(100).max(250),
   })
   .partial();
 

@@ -18,6 +18,9 @@ export type Fighter = {
   stance: string;
   record: string;
   heroImageUrl: string;
+  heroPosX: number;
+  heroPosY: number;
+  heroZoom: number;
   goals: string;
   weaknesses: string;
   competes: boolean;
@@ -86,7 +89,12 @@ export type FighterInput = {
   bio?: string;
 };
 
-export type FighterUpdate = Partial<FighterInput>;
+export type FighterUpdate = Partial<FighterInput> & {
+  // Hero framing (athlete-adjustable): focal point 0-100, zoom 100-250.
+  heroPosX?: number;
+  heroPosY?: number;
+  heroZoom?: number;
+};
 
 export type FactCategory =
   | "strength"

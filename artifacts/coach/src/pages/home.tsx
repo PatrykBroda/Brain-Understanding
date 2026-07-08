@@ -85,6 +85,8 @@ export default function HomePage() {
               opacity: 0.32,
               filter: "blur(2px) saturate(0.82) contrast(1.02)",
               transform: "scale(1.06)",
+              // Follow the athlete's saved focal point (zoom stays ambient here).
+              objectPosition: `${fighter?.heroPosX ?? 50}% ${fighter?.heroPosY ?? 50}%`,
             }}
             draggable={false}
           />

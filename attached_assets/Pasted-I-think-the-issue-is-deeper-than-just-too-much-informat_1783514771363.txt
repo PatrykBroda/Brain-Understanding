@@ -1,0 +1,80 @@
+I think the issue is deeper than just "too much information."
+
+You're designing FRAME, not a CRM or athlete database.
+
+When an athlete opens the app, they shouldn't feel like they're reading a report—they should feel like they're being coached.
+
+I'd strip the Profile page down to almost nothing.
+
+Athlete
+
+KHÁI
+
+Shark
+
+Brazilian Jiu-Jitsu
+
+Today
+
+66
+
+TRAINABLE
+
+Guard before pressure.
+
+FRAME
+
+You rush the finish before you've earned it.
+
+Next
+
+Continue Calibration →
+
+That's it.
+
+One screen.
+
+No scrolling.
+
+No cards everywhere.
+
+No graphs.
+
+No confidence percentages.
+
+No 20 sections.
+
+If they want more, they tap Analyse.
+
+Analyse is where FRAME becomes the nerd.
+
+Profile should feel like looking at the front page of your passport.
+
+I'd even rethink the navigation philosophy:
+
+Home
+
+How am I today?
+
+Chat
+
+Coach
+
+Analyse
+
+Everything.
+Every weakness.
+Every graph.
+Every pattern.
+Every session.
+Every confidence score.
+
+Profile
+
+Who am I?
+
+The current Profile is trying to be Analyse.
+
+I'd give your developer this prompt instead:
+
+Completely rethink the Athlete Profile. It should not be a report or data dashboard. It should feel like the identity page of an elite operating system. Reduce the page to a single-screen experience with no scrolling on most devices. Keep only: Athlete Name, Archetype, Discipline, one large Fight Readiness score, one one-line coaching cue ("Guard before pressure"), one short FRAME insight (maximum one sentence), and a single "Continue Calibration" action. Remove all graphs, timelines, confidence percentages, recurring patterns, weaknesses, hypotheses, technical explanations, model coverage, calibration ladder, category breakdowns, and historical data. Those belong exclusively in the Analyse section. The Profile should answer one question only: "Who am I as an athlete today?" Aim for an Apple-level minimalist experience where every element earns its place and there is generous negative space. If an athlete can understand the entire page in five seconds, the design is successful.
