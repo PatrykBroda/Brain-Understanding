@@ -34,3 +34,15 @@ CONNECTION LOST and a `profile page loads` smoke test failed at the same time.
   (10×1s) so a restart that overlaps a smoke server's port release recovers instead
   of dying. A fuller fix — a dedicated API port for the smoke runners so they can
   never collide — remains a valid follow-up but is not done.
+- Durable prevention (not yet done): give the smoke runners a dedicated API port so
+  they can never collide with the main server. Offered to the user as a follow-up.
+
+**More failure disguises (same root cause):** a Playwright smoke test that seems
+to "hang forever" (no output, exceeds its own test timeout) can simply be
+sign-in retrying against a 502 because the services are down/proxied nowhere —
+diagnose with `curl localhost:80/api/healthz` FIRST before suspecting the page
+under test. Also: never wrap playwright in `stdbuf` (its LD_PRELOAD libstdbuf.so
+needs a newer glibc than Nix chromium's wrapper → instant browser-launch
+failure), and never `pkill -f <pattern>` where the pattern appears in your own
+shell command line — it SIGKILLs your own session; kill by explicit PID from a
+`ps` snapshot instead.

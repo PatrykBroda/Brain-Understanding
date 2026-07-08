@@ -13,6 +13,16 @@
  *  3. profile-no-crash      — /profile loads without JS errors; athlete-state
  *                             panel and bottom nav are present in the DOM.
  *
+ *  4. analyse-no-hang       — uploads a short clip to /analyse and asserts the
+ *                             processing overlay advances past ~1% and reaches
+ *                             a terminal state (FRAME REPORT or an honest error)
+ *                             within a bounded window. Guards the regression
+ *                             where the on-device pose extractor hung forever at
+ *                             ~1% on mobile. Reaching the honest "couldn't lock
+ *                             onto a body" error is a valid terminal state — the
+ *                             test clip has no detectable body, so that error
+ *                             proves the extraction loop ran to completion.
+ *
  * Auth:
  *   Same two Clerk accounts provisioned by global-setup.ts.
  *   @clerk/testing/playwright `clerk.signIn()` uses the ticket strategy.
@@ -24,9 +34,16 @@
  *   Anchored path regexes like /^\/$/ never match because the URL starts with
  *   "http://". We use URL predicate functions that parse pathname instead.
  */
+import path from "node:path";
 import { test, expect, type Page } from "@playwright/test";
 import { clerk, setupClerkTestingToken } from "@clerk/testing/playwright";
 import { TEST_MAIN_EMAIL, TEST_FRESH_EMAIL } from "./global-setup";
+
+// A short, valid VP8/WebM clip (open-source-Chromium decodable). It contains a
+// synthetic test pattern with NO detectable body, so a healthy extraction run
+// samples frames and terminates in the honest "couldn't lock onto a body"
+// error — exactly the terminal state that proves the loop did not hang.
+const SAMPLE_VIDEO = path.join(process.cwd(), "e2e", "fixtures", "analyse-sample.webm");
 
 // ─── URL predicate helpers ─────────────────────────────────────────────────
 
@@ -279,4 +296,108 @@ test("onboarding page loads and POST /api/fighter uses camelCase fields", async 
     id: expect.any(Number),
     name: "Web Smoke Fighter",
   });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 5: Analyse never silently hangs — the extraction loop always terminates
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// The regression this guards: the on-device pose extractor used to stall
+// forever at ~1% on mobile (a detached, never-played <video> iOS refuses to
+// decode). It was rewritten to a play-through + requestVideoFrameCallback
+// sampler with a stall watchdog and honest error paths. This test proves the
+// loop ALWAYS reaches a terminal state — a FRAME REPORT or an honest error —
+// within a bounded window, and advances past the ~1% point it used to stall at.
+test("analyse video processing always terminates (never silently hangs)", async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+
+  await signInWeb(page);
+  await page.waitForURL(isHomePath, { timeout: 5_000 });
+
+  await page.goto("/analyse");
+  await page.waitForTimeout(1_500);
+
+  // The Analyse page keeps a single hidden <input type=file> mounted at all
+  // times (shared across mobile + desktop layouts). Setting files on it drives
+  // the same code path as the visible "Drop footage" control.
+  const fileInput = page.locator('input[type="file"]');
+  await expect(fileInput).toHaveCount(1);
+  await fileInput.setInputFiles(SAMPLE_VIDEO);
+
+  // The cinematic processing overlay appears — proves the pipeline started.
+  // Its per-phase titles ("Reading footage" / "Tracking movement" / …) render
+  // only inside the overlay, so seeing one confirms we're processing.
+  await expect(
+    page
+      .getByText(/Reading footage|Tracking movement|Detecting patterns|Building the read/)
+      .first()
+  ).toBeVisible({ timeout: 45_000 });
+
+  // Poll for a terminal state while recording the highest progress % seen.
+  // A hang (the old bug) would leave us stuck below ~1% until the deadline,
+  // failing the `terminal` assertion below.
+  const KNOWN_ERROR =
+    /Couldn't read this clip|too large to process|couldn't lock onto|movement model|processing stalled|start video playback/i;
+  const deadline = Date.now() + 100_000;
+  let maxPct = 0;
+  let terminal: "report" | "error" | null = null;
+  let errorSeen = false;
+  let lockOnBodyError = false;
+
+  while (Date.now() < deadline) {
+    const state = await page.evaluate(() => {
+      const text = document.body.innerText;
+      const m = text.match(/·\s*(\d+)%/);
+      return {
+        pct: m ? parseInt(m[1]!, 10) : null,
+        hasReport: /FRAME Report/i.test(text),
+        knownError:
+          /Couldn't read this clip|too large to process|couldn't lock onto|movement model|processing stalled|start video playback/i.test(
+            text
+          ),
+        lockOnBody: /couldn't lock onto/i.test(text),
+      };
+    });
+    if (state.pct != null && state.pct > maxPct) maxPct = state.pct;
+    if (state.hasReport) {
+      terminal = "report";
+      break;
+    }
+    if (state.knownError) {
+      terminal = "error";
+      errorSeen = true;
+      lockOnBodyError = state.lockOnBody;
+      break;
+    }
+    await page.waitForTimeout(120);
+  }
+
+  // (1) The core anti-hang guarantee: a terminal state within the window.
+  expect(
+    terminal,
+    `Analyse never reached a terminal state within the bounded window (maxPct=${maxPct}) — the extraction loop appears to be hanging.`
+  ).not.toBeNull();
+
+  // (2) If it errored, it must be one of the HONEST, expected messages — not an
+  //     unexpected crash. The stall-watchdog error is itself the anti-hang
+  //     mechanism firing, which is an acceptable terminal state.
+  if (terminal === "error") {
+    const bodyText = await page.locator("body").innerText();
+    expect(
+      KNOWN_ERROR.test(bodyText),
+      `Analyse errored with an unexpected (non-honest) message:\n${bodyText.slice(0, 400)}`
+    ).toBe(true);
+  }
+
+  // (3) The extraction advanced past the ~1% point the old bug stalled at.
+  //     Reaching a FRAME REPORT, or the honest "couldn't lock onto a body"
+  //     error, both prove frames were actually sampled to completion — even if
+  //     the fast run finished between progress polls and maxPct wasn't caught.
+  const provedSampling = terminal === "report" || lockOnBodyError;
+  expect(
+    maxPct > 1 || provedSampling,
+    `Extraction never advanced past ~1% (maxPct=${maxPct}, terminal=${terminal}, errorSeen=${errorSeen}) — the sampler may be stalling at the start.`
+  ).toBe(true);
 });
