@@ -48,3 +48,15 @@ JS predates a source fix — the `mobile-smoke` suite then fails against the sta
 `dist/` (`expo export -p web --output-dir dist`) before assuming a real regression. The
 served bundle hash in the stack trace vs the on-disk `dist/_expo/static/js/web/entry-*.js`
 hash tells you whether it's stale.
+
+# Web export API base is same-origin, NOT the baked EXPO_PUBLIC_DOMAIN
+
+On web, `_layout.tsx` sets the API base from `window.location.origin` at runtime;
+the build-time `EXPO_PUBLIC_DOMAIN` absolute URL is only the native fallback.
+**Why:** the baked domain routed all browser traffic through the real proxy to the
+MAIN API server, silently defeating smoke-stack isolation (smoke API saw ~0 requests)
+and coupling mobile smoke tests to the main workflow's health.
+**How to apply:** never reintroduce an absolute build-time API URL for the web export;
+same-origin keeps dev preview, prod, and isolated smoke proxies all working.
+Also: `app/index.tsx` shows a CONNECTION LOST + RETRY screen on fighter-query error —
+errors must never be misread as "no fighter" (that redirected real users to onboarding).

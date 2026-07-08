@@ -8,7 +8,10 @@ description: How the frame-mobile Playwright smoke suite works — auth, structu
 ## Files
 - `e2e/mobile-smoke.spec.ts` — 4 tests
 - `e2e/global-setup.ts` — seeds two Clerk accounts + DB rows
-- `playwright.config.ts` — Nix Chromium path, baseURL http://localhost
+- `playwright.config.ts` — Nix Chromium path; baseURL defaults to
+  http://localhost:80 but the smoke runners override it via `SMOKE_BASE_URL`
+  to their isolated smoke-proxy port (mobile: :19000) so runs never touch the
+  main workflow ports
 
 ## Auth strategy
 `@clerk/testing/playwright` ticket strategy (`clerk.signIn()`). No CAPTCHA,

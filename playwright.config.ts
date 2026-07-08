@@ -48,7 +48,9 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never", outputFolder: "/tmp/playwright-report" }]],
   globalSetup: "./e2e/global-setup.ts",
   use: {
-    baseURL: "http://localhost:80",
+    // Smoke runners set SMOKE_BASE_URL to their isolated smoke-proxy port so
+    // tests never depend on the main workflow's shared proxy (localhost:80).
+    baseURL: process.env.SMOKE_BASE_URL || "http://localhost:80",
     viewport: { width: 400, height: 720 },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

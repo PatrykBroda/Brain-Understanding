@@ -6,19 +6,23 @@
 # Do NOT use Playwright's bundled chrome-headless-shell — it crashes on launch
 # in this container (missing system libs; --with-deps is forbidden).
 #
-# If the API server (port 8080) or the mobile static-export server (port 8099)
-# are not already listening, they are started in the background and torn down
-# when this script exits.  When the services are already running (e.g. the
-# normal dev workflow is active) they are left untouched.
+# ISOLATION: this runner starts its OWN api-server + mobile static server on
+# dedicated smoke ports plus a tiny path-routing proxy (scripts/smoke-proxy.mjs)
+# that mimics the shared proxy, and points Playwright at it via SMOKE_BASE_URL.
+# It never touches the main workflow's ports (8080 / 8099 / 80), so
+# overlapping smoke runs and main-server restarts can no longer collide
+# (EADDRINUSE → CONNECTION LOST gate). Its ports are also distinct from
+# coach-smoke's, so the two suites can overlap safely.
 #
 # Usage:
 #   bash scripts/run-mobile-smoke.sh          # run all smoke tests
 #   bash scripts/run-mobile-smoke.sh --headed  # pass-through Playwright flags
 set -euo pipefail
 
-# ── Port constants (must match artifact.toml) ─────────────────────────────────
-API_PORT=8080
-MOBILE_PORT=8099
+# ── Dedicated smoke ports (distinct from artifact.toml AND coach-smoke) ──────
+API_PORT=19080
+MOBILE_PORT=19099
+PROXY_PORT=19000
 
 # ── Process tracking for cleanup ──────────────────────────────────────────────
 PIDS=()
@@ -54,11 +58,11 @@ wait_for_port() {
   echo "[mobile-smoke] Port $port is ready (${elapsed}s)"
 }
 
-# ── Start services if not already running ─────────────────────────────────────
+# ── Start isolated smoke stack (reuse if a previous run left it up) ──────────
 if port_open "$API_PORT"; then
-  echo "[mobile-smoke] API server already running on :$API_PORT"
+  echo "[mobile-smoke] Smoke API server already running on :$API_PORT"
 else
-  echo "[mobile-smoke] Starting API server on :$API_PORT"
+  echo "[mobile-smoke] Starting smoke API server on :$API_PORT"
   PORT=$API_PORT pnpm --filter @workspace/api-server run dev \
     >/tmp/mobile-smoke-api.log 2>&1 &
   PIDS+=($!)
@@ -66,7 +70,7 @@ else
 fi
 
 if port_open "$MOBILE_PORT"; then
-  echo "[mobile-smoke] Mobile static server already running on :$MOBILE_PORT"
+  echo "[mobile-smoke] Smoke mobile static server already running on :$MOBILE_PORT"
 else
   # Ensure a built dist/ exists before serving.
   DIST_DIR="artifacts/frame-mobile/dist"
@@ -77,7 +81,7 @@ else
     echo "[mobile-smoke] Build complete."
   fi
 
-  echo "[mobile-smoke] Starting mobile static server on :$MOBILE_PORT"
+  echo "[mobile-smoke] Starting smoke mobile static server on :$MOBILE_PORT"
   PORT=$MOBILE_PORT BASE_PATH=/mobile/ \
     node artifacts/frame-mobile/serve-static.mjs \
     >/tmp/mobile-smoke-static.log 2>&1 &
@@ -85,6 +89,18 @@ else
   wait_for_port "$MOBILE_PORT" 30
 fi
 
-# ── Run Playwright suite ──────────────────────────────────────────────────────
+if port_open "$PROXY_PORT"; then
+  echo "[mobile-smoke] Smoke proxy already running on :$PROXY_PORT"
+else
+  echo "[mobile-smoke] Starting smoke proxy on :$PROXY_PORT"
+  PROXY_PORT=$PROXY_PORT API_PORT=$API_PORT APP_PORT=$MOBILE_PORT \
+    node scripts/smoke-proxy.mjs \
+    >/tmp/mobile-smoke-proxy.log 2>&1 &
+  PIDS+=($!)
+  wait_for_port "$PROXY_PORT" 15
+fi
+
+# ── Run Playwright suite against the isolated stack ──────────────────────────
 echo "[mobile-smoke] Running Playwright mobile-smoke suite..."
-exec pnpm playwright test e2e/mobile-smoke.spec.ts "$@"
+SMOKE_BASE_URL="http://localhost:$PROXY_PORT" \
+  exec pnpm playwright test e2e/mobile-smoke.spec.ts "$@"

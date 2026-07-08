@@ -23,7 +23,12 @@ SystemUI.setBackgroundColorAsync("#050505").catch(() => null);
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
 
 const domain = process.env.EXPO_PUBLIC_DOMAIN ?? "";
-if (domain) {
+if (typeof window !== "undefined" && window.location?.origin) {
+  // Web export: always talk to the same origin that served the app so the
+  // app works behind any proxy (dev preview, prod, or an isolated smoke
+  // stack) instead of hard-coding the build-time domain.
+  setApiBase(`${window.location.origin}/api`);
+} else if (domain) {
   setApiBase(`https://${domain}/api`);
 }
 
