@@ -4,14 +4,27 @@ import { Shield, Camera, Loader2, ChevronRight } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CosmicOrb, ORB_PALETTE } from "@/components/cosmic-orb";
 import { BottomNav } from "@/components/bottom-nav";
-import { CompetitionBanner } from "@/components/competition-banner";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
-import { useFrameState } from "@/hooks/use-frame-state";
+import { useFrameState, type FrameStateLabel } from "@/hooks/use-frame-state";
 import { useAnalyses } from "@/hooks/use-analysis";
+import { useTodayCheckin } from "@/hooks/use-checkin";
 import { api, heroFileUrl } from "@/lib/api";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+// One coaching cue per interpretive state. Deterministic — keyed to the same
+// honestly-derived state as the orb label, never generated, never a metric.
+const STATE_CUE: Record<FrameStateLabel, string> = {
+  Dormant: "Step in. The frame reads what you feed it.",
+  Stable: "Narrow the decision tree.",
+  Loaded: "Trade speed for position.",
+  Recovering: "Protect the rebuild.",
+  Tight: "Commit earlier than comfort wants.",
+  Volatile: "Anchor the breath before the exchange.",
+  Composed: "Hold the standard. Add pressure, not pace.",
+  Overextended: "Cut volume. Keep structure.",
+};
 
 export default function HomePage() {
   const { data: fighterData } = useFighter();
@@ -22,6 +35,17 @@ export default function HomePage() {
 
   const analysesQuery = useAnalyses();
   const latest = analysesQuery.data?.analyses?.[0] ?? null;
+
+  // Same readiness priority as the Home dashboard: today's self-reported
+  // check-in composite first, else the last analysed session's score.
+  const checkinQuery = useTodayCheckin();
+  const checkin = checkinQuery.data?.checkin ?? null;
+  const checkinScore = checkin
+    ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
+    : null;
+  const sessionScore = latest ? Math.round(latest.sessionScore) : null;
+  const readiness = checkinScore ?? sessionScore;
+  const readinessSource = checkinScore != null ? "today" : "last session";
 
   // Warms the shared ["conversation"] cache Chat reuses; lets the doorway read
   // "Continue" only when there's a real prior session (not keyed on analyses).
@@ -66,7 +90,7 @@ export default function HomePage() {
     <div
       className="relative grid h-[100dvh] text-foreground overflow-hidden"
       style={{
-        gridTemplateRows: "auto auto minmax(0,1fr) auto auto",
+        gridTemplateRows: "auto minmax(0,1fr) auto auto",
         background: "#000",
       }}
     >
@@ -82,7 +106,7 @@ export default function HomePage() {
             aria-hidden
             className="w-full h-full object-cover frame-ambient-in"
             style={{
-              opacity: 0.32,
+              opacity: 0.15,
               filter: "blur(2px) saturate(0.82) contrast(1.02)",
               transform: "scale(1.06)",
               // Follow the athlete's saved focal point (zoom stays ambient here).
@@ -174,10 +198,6 @@ export default function HomePage() {
         </div>
       </header>
 
-      <div className="relative z-10">
-        <CompetitionBanner />
-      </div>
-
       <main className="relative z-10 min-h-0 grid place-items-center overflow-hidden px-6">
         <div className="frame-fade-in h-full w-full grid place-items-center">
           <CosmicOrb
@@ -205,29 +225,30 @@ export default function HomePage() {
             {frameState.label}
           </div>
           <div className="frame-state-caption-bottom font-mono text-[10px] uppercase tracking-[0.45em] text-foreground/65 font-light pt-2">
-            Narrow the decision tree.
+            {STATE_CUE[frameState.label]}
           </div>
         </div>
 
         {/* ─── Fight readiness — real, or an honest prompt ─────────────
-            The number is only ever the composite from the most recently
-            analysed session. No session, no number — never "calibrating". */}
+            Same priority as the Home dashboard: today's self-reported
+            check-in composite, else the last analysed session's score.
+            No data, no number — never "calibrating". */}
         <Link
-          href="/analyse"
+          href={readiness != null && checkinScore != null ? "/home" : "/analyse"}
           className="group frame-readiness-in flex items-center gap-3 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg px-3 py-1"
-          aria-label={latest ? "View session analysis" : "Analyse a session"}
+          aria-label={readiness != null ? "View readiness detail" : "Analyse a session"}
         >
           <span className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 font-light">
             Fight readiness
           </span>
           <span aria-hidden className="w-px h-3 bg-white/10" />
-          {latest ? (
+          {readiness != null ? (
             <span className="flex items-baseline gap-1.5">
               <span className="font-sans font-light text-[19px] tabular-nums leading-none text-primary/90">
-                {Math.round(latest.sessionScore)}
+                {readiness}
               </span>
               <span className="font-mono text-[9px] uppercase tracking-widest text-foreground/40">
-                / 100 · last session
+                / 100 · {readinessSource}
               </span>
             </span>
           ) : (
@@ -303,7 +324,7 @@ export default function HomePage() {
 
         @keyframes frame-ambient-in {
           from { opacity: 0; }
-          to   { opacity: 0.32; }
+          to   { opacity: 0.15; }
         }
         .frame-ambient-in {
           animation: frame-ambient-in 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;

@@ -9,6 +9,7 @@ import {
   Tooltip,
   YAxis,
 } from "recharts";
+import { AthleteModel } from "@/components/athlete-model";
 import { BottomNav } from "@/components/bottom-nav";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { FrameReportCard } from "@/components/frame-report-card";
@@ -340,6 +341,7 @@ export default function AnalysePage() {
               onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
             />
           )}
+          {!result && openId == null && <AthleteModel variant="mobile" />}
         </div>
       </main>
 
@@ -510,6 +512,8 @@ export default function AnalysePage() {
                 compareId={compareId}
                 onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
               />
+
+              <AthleteModel />
             </div>
           </>
         )}

@@ -1,0 +1,88 @@
+The original screen worked because it had a single focus:
+
+Orb
+State
+One sentence
+Continue
+
+Now it has:
+
+Base Camp
+Athlete name
+Weigh-in
+Days
+Readiness
+Last session
+Background image
+Orb
+State
+Continue
+
+It feels cluttered and loses the premium, cinematic look.
+
+What I would do instead
+
+Keep this screen almost exactly like your original. Its job is not to show data—it's to create anticipation.
+
+It should contain only:
+
+FRAME logo
+Animated orb
+Current state (e.g. TIGHT)
+One coaching cue (e.g. "Narrow the decision tree.")
+One readiness value (66 / 100)
+Continue button
+Bottom navigation
+
+That's it.
+
+No athlete name.
+No weigh-in countdown.
+No base camp.
+No last session.
+No background photo unless it's extremely subtle (10–20% opacity at most).
+
+Think of it like the boot screen of an operating system.
+
+Prompt to fix it
+
+Revert the Landing Hub to its original minimalist design. The purpose of this screen is to be a cinematic transition into FRAME, not an information dashboard. Remove the athlete name, Base Camp section, weigh-in countdown, days remaining, last session text, and any other profile or competition metadata. Keep only the FRAME logo, the animated orb, the current athlete state (e.g. TIGHT), one short coaching cue beneath it, the fight readiness score (e.g. 66/100), a single Continue button, and the bottom navigation. Reduce visual noise and maximize negative space. If a background image is used, it should be heavily darkened and secondary to the orb. The screen should feel calm, premium, and focused, like the opening screen of an elite operating system—not a dashboard.
+
+I also think the architecture should be:
+
+Landing Hub
+
+Orb
+State
+Readiness
+Continue
+
+↓
+
+Home
+
+Dashboard (like your Screenshot 1)
+
+↓
+
+Chat
+
+Coach
+
+↓
+
+Analyse
+
+Everything: observations, weaknesses, patterns, graphs, hypotheses, calibration, session history
+
+↓
+
+Profile
+
+Name
+Archetype
+Discipline
+Rank
+Maybe one sentence describing the athlete
+
+That separation gives each screen a single purpose instead of trying to fit everything everywhere.

@@ -189,10 +189,10 @@ test("profile page loads without JS errors", async ({ page }) => {
   await expect(bottomNav).toBeVisible({ timeout: 8_000 });
 
   // The page should not have crashed — some profile content should be visible.
-  // We look for the "FRAME RANK" card header or the athlete-state section.
+  // Profile is now a passport: look for its "Passport" header landmark.
   const hasContent =
-    (await page.getByText("FRAME RANK").count()) > 0 ||
-    (await page.getByText("CALIBRATION SYSTEM").count()) > 0;
+    (await page.getByText("Passport", { exact: false }).count()) > 0 ||
+    (await page.getByText("Sign out", { exact: false }).count()) > 0;
   expect(hasContent, "Profile page rendered no expected content").toBe(true);
 
   // No critical JS errors
