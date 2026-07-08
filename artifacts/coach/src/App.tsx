@@ -10,6 +10,7 @@ import NotFound from "@/pages/not-found";
 import ChatPage from "@/pages/chat";
 import OnboardingPage from "@/pages/onboarding";
 import HomePage from "@/pages/home";
+import DashboardPage from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
 import HistoryPage from "@/pages/history";
 import CampPage from "@/pages/planner";
@@ -303,6 +304,11 @@ function AppRoutes() {
               </Authed>
             </Route>
             <Route path="/" component={HomeRoute} />
+            <Route path="/home">
+              <Authed>
+                <DashboardPage />
+              </Authed>
+            </Route>
             <Route path="/chat">
               <Authed>
                 <ChatPage />

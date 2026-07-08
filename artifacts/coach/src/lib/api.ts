@@ -843,6 +843,38 @@ export const SESSION_TYPE_LABEL: Record<SessionType, string> = {
   mobility: "Mobility",
 };
 
+// ── Daily readiness check-in (all values athlete-entered, one row per day) ──
+
+export type DailyCheckin = {
+  id: number;
+  fighterId: number;
+  checkinDate: string; // YYYY-MM-DD
+  sleep: number;
+  energy: number;
+  soreness: number;
+  stress: number;
+  restingHr: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DailyCheckinInput = {
+  sleep: number;
+  energy: number;
+  soreness: number;
+  stress: number;
+  restingHr?: number | null;
+};
+
+export const checkinApi = {
+  today: () => jsonFetch<{ checkin: DailyCheckin | null; date: string }>("api/checkin/today"),
+  save: (input: DailyCheckinInput) =>
+    jsonFetch<{ checkin: DailyCheckin; date: string }>("api/checkin", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+};
+
 export const coachChatUrl = `${base}api/coach/chat`;
 export const attachmentFileUrl = (id: number) => `${base}api/attachments/${id}/file`;
 // Cache-busted with the fighter's updatedAt so a new upload shows immediately.

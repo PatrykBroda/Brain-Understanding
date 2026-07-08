@@ -48,3 +48,6 @@ Thumbs.db
 .cache/
 .local/
 test-results/
+
+# User-uploaded media (hero images, analysis clips) — never commit user files
+artifacts/api-server/uploads/

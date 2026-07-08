@@ -9,6 +9,7 @@ import attachmentsRouter from "./attachments";
 import plannerRouter from "./planner";
 import analysisRouter from "./analysis";
 import competitionRouter from "./competition";
+import checkinRouter from "./checkin";
 import { googlePublicRouter, googleRouter } from "./google";
 import { requireAuth } from "../middlewares/authMiddleware";
 
@@ -31,6 +32,7 @@ router.use(attachmentsRouter);
 router.use(plannerRouter);
 router.use(analysisRouter);
 router.use(competitionRouter);
+router.use(checkinRouter);
 router.use(googleRouter);
 router.use(coachRouter);
 

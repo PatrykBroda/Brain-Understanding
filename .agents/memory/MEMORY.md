@@ -6,8 +6,8 @@
 - [Mobile smoke testing](mobile-smoke-testing.md) — frame-mobile is a static export: rebuild dist before smoke, and trust test-results/.last-run.json (nohup logs swallow output).
 - [Mobile pose frame extraction](mobile-pose-extraction.md) — iOS needs play-through + rVFC sampling, not detached currentTime-seek (hangs at ~1%); start play() inside the user gesture.
 - [SSRF IP-literal bypass](ssrf-ip-literal-bypass.md) — Node skips the request `lookup` option for IP-literal hosts, so DNS-based SSRF guards must ALSO check IP literals explicitly on every redirect hop.
-- [Smoke port race → CONNECTION LOST](smoke-port-race-connection-lost.md) — RESOLVED: smoke runners now run isolated stacks on dedicated ports behind scripts/smoke-proxy.mjs (SMOKE_BASE_URL); history kept for diagnosing lookalike gates.
-- [Smoke fresh servers / pid1 squatting](smoke-fresh-servers.md) — runners use randomized per-run ports + pidfile teardown; pid1 holds any once-bound port forever and answers 502, so raw TCP checks and fixed ports are unreliable.
+- [Smoke port race → CONNECTION LOST](smoke-port-race-connection-lost.md) — RESOLVED: smoke runners use isolated stacks behind smoke-proxy; kept for diagnosing lookalike gates.
+- [Smoke fresh servers / pid1 squatting](smoke-fresh-servers.md) — pid1 holds any once-bound port forever and answers 502; randomized per-run ports + pidfile teardown, never fixed ports.
 - [Playwright Chromium in Replit](playwright-chromium-replit.md) — smoke tests MUST use Nix Chromium (auto-discovered in playwright.config.ts); bundled browser crashes on launch.
 - [frame-mobile static-export preview](frame-mobile-static-export-preview.md) — previewed from prebuilt dist/ (no live reload): rebuild (bg, >2min) + restart to see changes; gated screens redirect to landing so can't screenshot signed-out.
 - [PWA SW shared-origin scope](pwa-sw-shared-origin.md) — coach SW at "/" claims whole origin; navigateFallbackDenylist must exclude /api,/mobile,/healthz matching bare+subpath via `(?:/|$)`.
@@ -15,5 +15,5 @@
 - [Clerk proxy URL — runtime computation](clerk-proxy-url-fix.md) — never use VITE_CLERK_PROXY_URL (build-time); compute from window.location at runtime or proxy is undefined in prod → third-party cookies blocked → 401.
 - [Clerk 429 on published sign-up](clerk-prod-rate-limit.md) — "Too many requests" on the live app = deploy still on dev/test keys hitting strict caps; not a code bug, fix = re-publish for live keys, don't bump @clerk or edit keys.
 - [SSE coach-chat resilience](sse-chat-resilience.md) — a stream that closes without a `{done:true}` sentinel is a FAILURE; client needs an inactivity watchdog; server persists partial replies so retry-dedup can't safely auto-delete them.
-- [Mobile smoke tests](mobile-smoke-tests.md) — 5 Playwright tests in e2e/mobile-smoke.spec.ts; auth via @clerk/testing ticket strategy; test 2 is API-only (POST /fighter); rebuild dist + restart workflow after mobile code changes before running.
+- [Mobile smoke tests](mobile-smoke-tests.md) — auth via @clerk/testing ticket strategy; rebuild dist + restart workflow after mobile code changes before running.
 - [frame-mobile e.filter crash](frame-mobile-efilter-crash.md) — useQuery data default (= []) doesn't guard against null from TanStack Query; use Array.isArray(rawFacts) ? rawFacts : [] after destructuring.

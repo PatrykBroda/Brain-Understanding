@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Home, MessageSquare, User, Calendar, Film } from "lucide-react";
 
 const TABS = [
-  { path: "/", label: "Home", Icon: Home },
+  { path: "/home", label: "Home", Icon: Home },
   { path: "/chat", label: "Chat", Icon: MessageSquare },
   { path: "/analyse", label: "Analyse", Icon: Film },
   { path: "/profile", label: "Profile", Icon: User },
