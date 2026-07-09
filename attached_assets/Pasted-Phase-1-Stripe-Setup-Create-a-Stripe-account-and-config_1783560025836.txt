@@ -1,0 +1,154 @@
+Phase 1 — Stripe Setup
+
+Create a Stripe account and configure:
+
+Product: FRAME+
+Price: £6.99/month
+Monthly recurring subscription
+Free trial (optional, e.g. 7 days)
+Customer Portal enabled (so users can manage/cancel subscriptions)
+Test mode first, then switch to Live when everything works.
+Phase 2 — Database
+
+Add subscription fields to your users table.
+
+stripe_customer_id
+stripe_subscription_id
+subscription_status
+plan
+current_period_end
+
+Example:
+
+plan = free
+plan = frame_plus
+
+subscription_status = active
+subscription_status = cancelled
+subscription_status = past_due
+
+Never rely solely on the frontend to determine access.
+
+Phase 3 — Backend
+
+Create endpoints such as:
+
+POST /api/billing/create-checkout-session
+
+POST /api/billing/webhook
+
+GET /api/billing/status
+
+POST /api/billing/create-portal-session
+
+The webhook is the source of truth. When Stripe sends events like:
+
+checkout.session.completed
+customer.subscription.created
+customer.subscription.updated
+customer.subscription.deleted
+
+update the user's subscription status in your database.
+
+Phase 4 — App Logic
+
+Every time the app loads:
+
+User logs in
+
+↓
+
+Fetch subscription
+
+↓
+
+if active
+
+FRAME+
+
+else
+
+Free
+
+Do not trust local storage or client-side flags.
+
+Phase 5 — Locking Features
+
+Instead of locking entire pages, lock individual features.
+
+For example:
+
+Free
+20 coaching responses/day
+Latest session analysis
+Compressed athlete profile
+Basic readiness
+One weekly mission preview
+FRAME+
+Unlimited coaching
+Full athlete model
+Historical analysis
+Full weekly missions
+Complete athlete dossier
+Future premium AI features
+
+When a user taps a locked feature, show the upgrade modal instead of blocking the entire page.
+
+Phase 6 — Upgrade Flow
+Locked Feature
+
+↓
+
+FRAME+ Modal
+
+↓
+
+Continue
+
+↓
+
+Stripe Checkout
+
+↓
+
+Payment Success
+
+↓
+
+Webhook
+
+↓
+
+Database Updated
+
+↓
+
+App Refreshes
+
+↓
+
+FRAME+ unlocked instantly
+
+No manual refresh should be required.
+
+Phase 7 — Persistent FRAME+ Button
+
+Keep the upgrade entry point visible throughout the app.
+
+Examples:
+
+Small FRAME+ pill in the header
+Profile page
+Settings page
+Locked feature modals
+
+Once subscribed:
+
+FRAME+
+ACTIVE
+
+instead of an upgrade button.
+
+Prompt for your AI developer
+
+Integrate Stripe Billing for FRAME+ subscriptions using Stripe Checkout and the Stripe Customer Portal. Create a recurring monthly subscription priced at £6.99/month. Implement secure backend endpoints for creating Checkout Sessions, handling Stripe webhooks, checking subscription status, and opening the Customer Portal. Store the Stripe Customer ID, Subscription ID, subscription status, plan type, and current billing period end in the database. Use Stripe webhooks as the source of truth to update subscription state. On app startup, fetch the user's subscription status and unlock FRAME+ features automatically when the subscription is active. Do not gate entire pages; instead, lock specific premium features such as unlimited coaching, full athlete model, historical analysis, weekly missions, and future premium capabilities. When a free user taps a locked feature, present a premium upgrade modal that explains the benefits of FRAME+ and launches Stripe Checkout. After a successful purchase, the app should immediately refresh the user's subscription state and unlock premium features without requiring a new login. Enable the Stripe Customer Portal so users can manage or cancel their subscription from within the app. Build the integration with test mode first using environment variables (STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET) and ensure the code can be switched to live mode by replacing the keys.
