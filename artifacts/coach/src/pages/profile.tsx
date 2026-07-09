@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useClerk, useUser } from "@clerk/react";
 import { useFighter } from "@/hooks/use-fighter";
 import { useMemory } from "@/hooks/use-memory";
@@ -9,8 +10,16 @@ import { ProfileEdit } from "@/components/profile-edit";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
 import { primaryFocus, primaryStrength } from "@/lib/primary-focus";
 import { Link } from "wouter";
-import { ChevronLeft, LogOut, Pencil } from "lucide-react";
-import { heroFileUrl } from "@/lib/api";
+import {
+  Camera,
+  ChevronLeft,
+  Loader2,
+  LogOut,
+  Pencil,
+  Settings,
+  Trash2,
+} from "lucide-react";
+import { api, heroFileUrl } from "@/lib/api";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -47,9 +56,41 @@ function LineItem({
 export default function ProfilePage() {
   const { data: fighterData } = useFighter();
   const fighter = fighterData?.fighter ?? null;
-  const { signOut } = useClerk();
+  const { signOut, openUserProfile } = useClerk();
   const { user } = useUser();
   const [isEditing, setIsEditing] = useState(false);
+
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const uploadHero = useMutation({
+    mutationFn: (file: File) => api.uploadHero(file),
+    onSuccess: () => {
+      setUploadError(null);
+      qc.invalidateQueries({ queryKey: ["fighter"] });
+    },
+    onError: (e) =>
+      setUploadError(e instanceof Error ? e.message : "Upload failed"),
+  });
+
+  const removeHero = useMutation({
+    mutationFn: () => api.removeHero(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["fighter"] }),
+  });
+
+  const onPickHero = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 12 * 1024 * 1024) {
+      setUploadError("Image too large (max 12MB).");
+      return;
+    }
+    uploadHero.mutate(file);
+  };
+
+  const heroBusy = uploadHero.isPending || removeHero.isPending;
 
   const memoryQuery = useMemory(!!fighter);
   const rawFacts = memoryQuery.data?.facts;
@@ -91,14 +132,24 @@ export default function ProfilePage() {
           </div>
         </div>
         {fighter && !isEditing ? (
-          <button
-            type="button"
-            onClick={() => setIsEditing(true)}
-            className="text-muted-foreground hover:text-primary transition-colors"
-            aria-label="Edit profile"
-          >
-            <Pencil className="w-4 h-4" strokeWidth={1.5} />
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => openUserProfile()}
+              className="text-muted-foreground hover:text-primary transition-colors"
+              aria-label="Account settings"
+            >
+              <Settings className="w-4 h-4" strokeWidth={1.5} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="text-muted-foreground hover:text-primary transition-colors"
+              aria-label="Edit profile"
+            >
+              <Pencil className="w-4 h-4" strokeWidth={1.5} />
+            </button>
+          </div>
         ) : (
           <div className="w-5" />
         )}
@@ -147,6 +198,41 @@ export default function ProfilePage() {
                   />
                 </div>
 
+                {/* Cover-photo controls */}
+                <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5">
+                  {hasHero && (
+                    <button
+                      type="button"
+                      onClick={() => removeHero.mutate()}
+                      disabled={heroBusy}
+                      aria-label="Remove cover photo"
+                      className="w-7 h-7 flex items-center justify-center border border-white/15 bg-black/40 text-muted-foreground/80 hover:text-foreground hover:border-white/30 transition-colors disabled:opacity-40"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={heroBusy}
+                    aria-label={hasHero ? "Change cover photo" : "Add cover photo"}
+                    className="w-7 h-7 flex items-center justify-center border border-white/15 bg-black/40 text-muted-foreground/80 hover:text-primary hover:border-primary/40 transition-colors disabled:opacity-40"
+                  >
+                    {heroBusy ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.5} />
+                    ) : (
+                      <Camera className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    )}
+                  </button>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={onPickHero}
+                  />
+                </div>
+
                 <div className="relative z-[1] flex flex-col justify-end h-full min-h-[190px] px-4 pt-8 pb-4">
                   <div className="font-mono text-[8px] uppercase tracking-[0.55em] text-muted-foreground/60 mb-1.5">
                     Identity
@@ -165,6 +251,12 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
+
+              {uploadError && (
+                <div className="border-x border-b border-white/[0.08] px-4 py-2 font-mono text-[10px] text-destructive tracking-wide">
+                  {uploadError}
+                </div>
+              )}
 
               {/* ─── RANK — the belt IS the identity ───────────────── */}
               <div className="border-x border-b border-white/[0.08] px-4 py-4">
@@ -209,6 +301,14 @@ export default function ProfilePage() {
                     {user.primaryEmailAddress.emailAddress}
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={() => openUserProfile()}
+                  className="w-full flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 hover:text-primary text-foreground/75 transition-colors py-2.5 font-mono text-[10px] uppercase tracking-[0.3em]"
+                >
+                  <Settings className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  Account &amp; security
+                </button>
                 <button
                   type="button"
                   onClick={() => signOut({ redirectUrl: basePath || "/" })}
