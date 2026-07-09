@@ -1,0 +1,128 @@
+FRAME+ (£6.99/month)
+Included
+Unlimited Coaching
+Unlimited Video Analysis
+Full Athlete Model
+Weekly Missions
+All Future FRAME+ Features
+
+I'd rename "Full Athlete Profile Visibility" to "Complete Athlete Model" because that's the language you've built throughout the app.
+
+Upgrade Entry Points
+
+I like the philosophy, but I'd tweak them.
+
+Instead of:
+
+Permanent FRAME+ button on Home Screen
+Locked Athlete Profile sections
+Locked Weekly Mission sections
+Video Analysis
+Message Limit Reached
+
+I'd make them:
+
+Video Analysis (after first free analysis)
+Fight Readiness (advanced readiness insights)
+Complete Athlete Model (advanced AI-derived insights)
+Weekly Mission (personalised missions)
+Message Limit Reached
+
+I wouldn't permanently lock the Athlete Model itself. Let free users see the model growing—they should just hit a point where the deeper insights are reserved for FRAME+.
+
+The Upgrade Screen
+
+Instead of saying:
+
+Unlimited Coaching
+
+I'd make it feel like joining the operating system.
+
+For example:
+
+FRAME+
+
+Your Athlete Model never stops evolving.
+
+Unlimited coaching.
+Unlimited analysis.
+Continuous calibration.
+One system that grows with every session.
+
+Then a simple CTA:
+
+Start FRAME+ — £6.99/month
+
+No salesy language.
+
+Stripe Prompt for Replit
+Implement Stripe subscriptions for FRAME+.
+
+Pricing:
+- £6.99/month
+- No annual plan for V1.
+
+Integrate Stripe Checkout and Customer Portal.
+
+Store:
+
+- stripe_customer_id
+- stripe_subscription_id
+- subscription_status
+- subscription_tier
+- current_period_end
+
+Protect FRAME+ features using backend middleware.
+
+FRAME+ unlocks:
+
+- Unlimited AI coaching
+- Unlimited Video Analysis
+- Complete Athlete Model
+- Weekly Missions
+- Future premium features
+
+Free users receive:
+
+- Limited AI coaching
+- Athlete Model
+- Camp Mode
+- Session logging
+- Limited Fight Readiness
+- One free Video Analysis
+
+Upgrade entry points:
+
+- After free Video Analysis is used
+- When message limit is reached
+- When attempting to access Weekly Missions
+- When attempting to access Complete Athlete Model insights
+
+Do not block core functionality.
+
+The app should demonstrate value before asking users to subscribe.
+
+Use Stripe webhooks to synchronise subscription state:
+
+- checkout.session.completed
+- customer.subscription.created
+- customer.subscription.updated
+- customer.subscription.deleted
+- invoice.paid
+- invoice.payment_failed
+
+Never trust frontend subscription state.
+
+Always validate subscription status on the backend.
+
+Enable Stripe Customer Portal so users can manage or cancel their subscription without contacting support.
+One suggestion I'd make
+
+I wouldn't lock Video Analysis completely.
+
+Instead:
+
+Free: 1 video analysis per month
+FRAME+: Unlimited video analysis
+
+That's because video analysis is likely to become your biggest conversion feature. If users never experience it, they don't know what they're paying for. One high-quality free analysis can be the feature that convinces them FRAME is worth £6.99/month. The same principle applies to the Athlete Model: let people see enough to appreciate its value, then make the more advanced, evolving insights part of FRAME+.
