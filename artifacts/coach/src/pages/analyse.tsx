@@ -106,6 +106,10 @@ export default function AnalysePage() {
   // status is unavailable, let the request through; the server 402 is the
   // authority and the catch blocks map it to the upgrade modal.
   const knownFree = billingStatus?.plan === "free";
+  // First analysis ever is free (one-time taster). Only pre-gate when we KNOW
+  // the free allowance is already spent; otherwise the server decides.
+  const freeAnalysisUsed =
+    knownFree && (analyses.data?.analyses?.length ?? 0) >= 1;
   const fileRef = useRef<HTMLInputElement>(null);
   const mobileScrollRef = useRef<HTMLElement>(null);
   const desktopRightScrollRef = useRef<HTMLDivElement>(null);
@@ -161,9 +165,10 @@ export default function AnalysePage() {
     (!!pendingFile.current || (sourceMode === "link" && !!lastLink.current));
 
   async function runAnalysis(file: File) {
-    // Video analysis is FRAME+: prompt the upgrade BEFORE burning minutes of
-    // on-device pose work. Server enforces the same gate on POST /analysis.
-    if (knownFree) {
+    // The first analysis is free; after that it's FRAME+. Prompt the upgrade
+    // BEFORE burning minutes of on-device pose work. Server enforces the same
+    // gate on POST /analysis.
+    if (freeAnalysisUsed) {
       openUpgrade("video_analysis");
       return;
     }
@@ -255,7 +260,7 @@ export default function AnalysePage() {
   async function runFromLink(url: string) {
     const trimmed = url.trim();
     if (!trimmed) return;
-    if (knownFree) {
+    if (freeAnalysisUsed) {
       openUpgrade("video_analysis");
       return;
     }

@@ -20,28 +20,35 @@ const FEATURE_COPY: Record<string, { title: string; line: string }> = {
     line: "The free tier keeps your latest FRAME REPORT open. FRAME+ unlocks every past session — progress is a pattern, not a snapshot.",
   },
   weekly_mission: {
-    title: "The full mission is locked",
-    line: "The free tier previews your first mission item. FRAME+ opens the whole week — every item, every rationale, regenerate any time.",
+    title: "Your weekly mission is FRAME+",
+    line: "Personalised missions built from your recorded model — every item cited to something FRAME actually knows about you. The free tier previews the first item.",
   },
   video_analysis: {
-    title: "Video analysis is FRAME+",
-    line: "Footage is where FRAME reads what your body does under pressure. FRAME+ unlocks the full analysis engine — upload or link a clip, get the report.",
+    title: "Your free analysis is used",
+    line: "Your first FRAME REPORT was on the house. FRAME+ makes analysis unlimited — every session read, every pattern tracked over time.",
   },
   athlete_model: {
-    title: "The full model is FRAME+",
-    line: "The free tier shows the surface read. FRAME+ opens the complete athlete model — every recorded observation, every dimension FRAME tracks.",
+    title: "The Complete Athlete Model is FRAME+",
+    line: "Your model keeps growing on the free tier — the advanced AI-derived insights sit behind FRAME+: the full DNA read, every recorded observation, every dimension FRAME tracks.",
+  },
+  fight_readiness: {
+    title: "Advanced readiness is FRAME+",
+    line: "Today's check-in stays free. FRAME+ reads the trend underneath it — how your readiness moves across days, built only from what you've actually logged.",
   },
   default: {
     title: "This is a FRAME+ feature",
-    line: "FRAME+ removes the free-tier limits across coaching, analysis history and the weekly mission.",
+    line: "FRAME+ removes the free-tier limits across coaching, analysis and the athlete model.",
   },
 };
 
+// The upgrade screen reads like joining the operating system, not a sales
+// pitch — short declaratives under one manifesto line.
+const MANIFESTO = "Your Athlete Model never stops evolving.";
 const BENEFITS = [
-  "Unlimited coaching, every day",
-  "Video analysis — full history and session-over-session comparison",
-  "Complete athlete model visibility",
-  "Complete weekly mission with regeneration",
+  "Unlimited coaching.",
+  "Unlimited analysis.",
+  "Continuous calibration.",
+  "One system that grows with every session.",
 ];
 
 type FramePlusContextValue = {
@@ -125,17 +132,22 @@ function FramePlusModal({
           {copy.line}
         </p>
 
-        <ul className="mt-5 space-y-2.5">
-          {BENEFITS.map((b) => (
-            <li key={b} className="flex items-start gap-3 text-sm text-foreground/85">
-              <span
-                aria-hidden
-                className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-primary"
-              />
-              {b}
-            </li>
-          ))}
-        </ul>
+        <div className="mt-6 border-t border-white/[0.06] pt-5">
+          <p className="text-[15px] font-light tracking-wide text-foreground/95">
+            {MANIFESTO}
+          </p>
+          <ul className="mt-4 space-y-2">
+            {BENEFITS.map((b) => (
+              <li key={b} className="flex items-start gap-3 text-sm text-foreground/80">
+                <span
+                  aria-hidden
+                  className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-primary"
+                />
+                {b}
+              </li>
+            ))}
+          </ul>
+        </div>
 
         {isFramePlus ? (
           <div className="mt-6 border-t border-white/[0.06] pt-4 font-mono text-[11px] uppercase tracking-[0.25em] text-primary">
@@ -152,8 +164,8 @@ function FramePlusModal({
               {checkoutPending
                 ? "Opening checkout"
                 : priceLabel
-                  ? `Upgrade — ${priceLabel}`
-                  : "Upgrade to FRAME+"}
+                  ? `Start FRAME+ — ${priceLabel}`
+                  : "Start FRAME+"}
             </button>
             {checkoutError != null && (
               <p className="mt-3 text-xs text-destructive">
@@ -174,28 +186,18 @@ function FramePlusModal({
   );
 }
 
-// Small entitlement pill for headers. Free tier: tappable, opens the upgrade
-// modal. FRAME+: static "FRAME+ ACTIVE" marker.
+// Subtle subscriber status marker for headers. Free tier renders NOTHING —
+// upgrade entry points are contextual (locked sections, used-up allowances),
+// never a permanent button. The Profile membership section carries the only
+// standing upsell.
 export function FramePlusPill() {
   const { isFramePlus, isLoading } = useSubscription();
-  const { openUpgrade } = useFramePlus();
 
-  if (isLoading) return null;
+  if (isLoading || !isFramePlus) return null;
 
-  if (isFramePlus) {
-    return (
-      <span className="border border-primary/40 bg-primary/10 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.25em] text-primary">
-        FRAME+ active
-      </span>
-    );
-  }
   return (
-    <button
-      type="button"
-      onClick={() => openUpgrade()}
-      className="border border-white/[0.12] px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/70 transition-colors hover:border-primary/50 hover:text-primary"
-    >
-      FRAME+
-    </button>
+    <span className="border border-primary/40 bg-primary/10 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.25em] text-primary">
+      FRAME+ active
+    </span>
   );
 }

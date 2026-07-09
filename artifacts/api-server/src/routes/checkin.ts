@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { db, dailyCheckinsTable, insertDailyCheckinSchema } from "@workspace/db";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, gte } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
+import { getEntitlementForClerkUser } from "../lib/subscriptionService";
 
 const router: IRouter = Router();
 
@@ -29,6 +30,39 @@ router.get("/checkin/today", async (req, res) => {
     )
     .limit(1);
   res.json({ checkin: checkin ?? null, date });
+});
+
+// Readiness trend — the last 30 days of self-reported check-ins, oldest first.
+// Advanced readiness insight is FRAME+ (the daily check-in itself stays free).
+router.get("/checkin/history", async (req, res) => {
+  const fighter = await getUserFighter(req);
+  if (!fighter) {
+    res.json({ checkins: [] });
+    return;
+  }
+  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  if (entitlement.plan === "free") {
+    res.status(402).json({
+      error: "The readiness trend is a FRAME+ feature. Today's check-in stays free.",
+      code: "FRAME_PLUS_REQUIRED",
+      feature: "fight_readiness",
+    });
+    return;
+  }
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  const checkins = await db
+    .select()
+    .from(dailyCheckinsTable)
+    .where(
+      and(
+        eq(dailyCheckinsTable.fighterId, fighter.id),
+        gte(dailyCheckinsTable.checkinDate, since),
+      ),
+    )
+    .orderBy(asc(dailyCheckinsTable.checkinDate));
+  res.json({ checkins });
 });
 
 // Upsert today's check-in. All values are athlete-entered; one row per day.

@@ -901,6 +901,8 @@ export type DailyCheckinInput = {
 
 export const checkinApi = {
   today: () => jsonFetch<{ checkin: DailyCheckin | null; date: string }>("api/checkin/today"),
+  // FRAME+ only — the server answers 402 fight_readiness for the free tier.
+  history: () => jsonFetch<{ checkins: DailyCheckin[] }>("api/checkin/history"),
   save: (input: DailyCheckinInput) =>
     jsonFetch<{ checkin: DailyCheckin; date: string }>("api/checkin", {
       method: "POST",

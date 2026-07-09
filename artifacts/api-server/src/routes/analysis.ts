@@ -126,16 +126,24 @@ router.post("/analysis", async (req, res) => {
     return;
   }
 
-  // Video analysis is a FRAME+ feature: free tier keeps viewing its existing
-  // latest report, but creating a new analysis requires the subscription.
+  // Video analysis: the FIRST analysis is free (one-time taster — the feature
+  // has to demonstrate its value before asking for the subscription). Every
+  // analysis after that requires FRAME+.
   const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
   if (entitlement.plan === "free") {
-    res.status(402).json({
-      error: "Video analysis is a FRAME+ feature.",
-      code: "FRAME_PLUS_REQUIRED",
-      feature: "video_analysis",
-    });
-    return;
+    const [existing] = await db
+      .select({ id: videoAnalysesTable.id })
+      .from(videoAnalysesTable)
+      .where(eq(videoAnalysesTable.fighterId, fighter.id))
+      .limit(1);
+    if (existing) {
+      res.status(402).json({
+        error: "Your free analysis is used. FRAME+ makes video analysis unlimited.",
+        code: "FRAME_PLUS_REQUIRED",
+        feature: "video_analysis",
+      });
+      return;
+    }
   }
 
   const body = req.body as {
@@ -523,15 +531,26 @@ let inFlightRemote = 0;
 
 router.post("/analysis/fetch-remote", async (req, res) => {
   // Gate BEFORE any heavy work (yt-dlp / large downloads land in RAM-backed
-  // /tmp) — free tier can't analyse, so it shouldn't be able to fetch either.
+  // /tmp). Mirrors POST /analysis: the first analysis is a free taster, so a
+  // free user with no prior analysis may fetch; after that it's FRAME+.
   const remoteEntitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
   if (remoteEntitlement.plan === "free") {
-    res.status(402).json({
-      error: "Video analysis is a FRAME+ feature.",
-      code: "FRAME_PLUS_REQUIRED",
-      feature: "video_analysis",
-    });
-    return;
+    const remoteFighter = await getUserFighter(req);
+    const [existing] = remoteFighter
+      ? await db
+          .select({ id: videoAnalysesTable.id })
+          .from(videoAnalysesTable)
+          .where(eq(videoAnalysesTable.fighterId, remoteFighter.id))
+          .limit(1)
+      : [];
+    if (existing) {
+      res.status(402).json({
+        error: "Your free analysis is used. FRAME+ makes video analysis unlimited.",
+        code: "FRAME_PLUS_REQUIRED",
+        feature: "video_analysis",
+      });
+      return;
+    }
   }
 
   const raw = typeof (req.body as { url?: unknown })?.url === "string" ? (req.body as { url: string }).url.trim() : "";

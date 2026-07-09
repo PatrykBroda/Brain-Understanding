@@ -16,6 +16,18 @@ export function useTodayCheckin() {
   });
 }
 
+// Readiness trend (FRAME+). Only fetched when the plan is known frame_plus —
+// free tier renders a locked teaser without burning a guaranteed 402.
+export function useCheckinHistory(enabled: boolean) {
+  const { data: fighterData } = useFighter();
+  return useQuery({
+    queryKey: ["checkin", "history"],
+    queryFn: () => checkinApi.history(),
+    enabled: enabled && !!fighterData?.fighter,
+    staleTime: 60_000,
+  });
+}
+
 export function useSaveCheckin() {
   const qc = useQueryClient();
   return useMutation({
@@ -23,6 +35,8 @@ export function useSaveCheckin() {
     onSuccess: (data) => {
       // data.date is the server's UTC day — matches useTodayCheckin's key.
       qc.setQueryData(["checkin", "today", data.date], data);
+      // A new check-in changes the trend — refetch it (FRAME+ dashboards).
+      qc.invalidateQueries({ queryKey: ["checkin", "history"] });
     },
   });
 }

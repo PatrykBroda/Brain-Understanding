@@ -1,13 +1,14 @@
 import { useRef, useState } from "react";
 import { Link } from "wouter";
-import { ChevronRight, Pencil, Move } from "lucide-react";
+import { ChevronRight, Pencil, Move, Lock } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
 import { CompetitionBanner } from "@/components/competition-banner";
-import { FramePlusPill } from "@/components/frame-plus-modal";
+import { FramePlusPill, useFramePlus } from "@/components/frame-plus-modal";
+import { useSubscription } from "@/hooks/use-subscription";
 import { useFighter, useUpdateFighter } from "@/hooks/use-fighter";
 import { useAnalyses } from "@/hooks/use-analysis";
 import { useActiveCompetition } from "@/hooks/use-competition";
-import { useTodayCheckin, useSaveCheckin } from "@/hooks/use-checkin";
+import { useTodayCheckin, useSaveCheckin, useCheckinHistory } from "@/hooks/use-checkin";
 import { useMemory } from "@/hooks/use-memory";
 import { primaryFocus } from "@/lib/primary-focus";
 import { heroFileUrl, type DailyCheckin } from "@/lib/api";
@@ -146,6 +147,69 @@ function CheckinForm({
   );
 }
 
+// Readiness trend (FRAME+) — daily composites from REAL logged check-ins only.
+// A trend needs at least two days; below that we say so instead of drawing one.
+function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
+  const points = checkins.map((c) => ({
+    date: c.checkinDate,
+    score: Math.round((c.sleep + c.energy + c.soreness + c.stress) / 4),
+  }));
+
+  if (points.length < 2) {
+    return (
+      <div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55">
+          Readiness trend
+        </div>
+        <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/35 leading-relaxed">
+          {points.length === 0
+            ? "No check-ins in the last 30 days — log one to start the trend."
+            : "One check-in logged — the trend starts at two."}
+        </p>
+      </div>
+    );
+  }
+
+  const shortDay = (iso: string) => {
+    const d = new Date(`${iso}T00:00:00Z`);
+    return `${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
+  };
+  const first = points[0];
+  const last = points[points.length - 1];
+  const delta = last.score - first.score;
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-4">
+        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55">
+          Readiness trend
+        </div>
+        <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/35">
+          {points.length} days · {delta === 0 ? "level" : delta > 0 ? `+${delta}` : `${delta}`}
+        </div>
+      </div>
+      <div
+        className="mt-4 flex items-end gap-[3px] h-14"
+        role="img"
+        aria-label={`Readiness composites over the last ${points.length} logged days, from ${first.score} to ${last.score}`}
+      >
+        {points.map((p) => (
+          <div
+            key={p.date}
+            title={`${p.date}: ${p.score}`}
+            className={`flex-1 rounded-t-[1px] ${p.date === last.date ? "bg-primary/80" : "bg-foreground/25"}`}
+            style={{ height: `${Math.max(6, p.score)}%` }}
+          />
+        ))}
+      </div>
+      <div className="mt-2 flex justify-between font-mono text-[8px] uppercase tracking-[0.25em] text-foreground/30" aria-hidden>
+        <span>{shortDay(first.date)}</span>
+        <span>{shortDay(last.date)}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { data: fighterData } = useFighter();
   const fighter = fighterData?.fighter ?? null;
@@ -156,6 +220,12 @@ export default function DashboardPage() {
 
   const checkinQuery = useTodayCheckin();
   const checkin = checkinQuery.data?.checkin ?? null;
+
+  // Readiness trend is FRAME+ — only fetch when entitled; free shows a teaser.
+  const { isFramePlus } = useSubscription();
+  const { openUpgrade } = useFramePlus();
+  const historyQuery = useCheckinHistory(isFramePlus);
+  const historyCheckins = historyQuery.data?.checkins ?? [];
 
   const activeComp = useActiveCompetition();
   const competition = activeComp.data?.competition ?? null;
@@ -536,6 +606,30 @@ export default function DashboardPage() {
           </div>
 
           {editing && <CheckinForm existing={checkin} onDone={() => setEditing(false)} />}
+
+          {/* Readiness trend — advanced readiness insight (FRAME+). Built ONLY
+              from real logged check-ins; free tier sees a locked teaser. */}
+          <div className="mt-7 border-t border-white/[0.05] pt-5">
+            {isFramePlus ? (
+              <ReadinessTrend checkins={historyCheckins} />
+            ) : (
+              <button
+                type="button"
+                onClick={() => openUpgrade("fight_readiness")}
+                className="w-full flex items-center justify-between gap-4 py-1 text-left group"
+              >
+                <span className="flex items-center gap-3">
+                  <Lock className="w-3.5 h-3.5 text-foreground/35" strokeWidth={1.5} />
+                  <span className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55 group-hover:text-foreground/80 transition-colors">
+                    Readiness trend
+                  </span>
+                </span>
+                <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary/70 group-hover:text-primary transition-colors">
+                  FRAME+
+                </span>
+              </button>
+            )}
+          </div>
         </section>
 
         {/* ─── Competition context — real camp or a quiet empty state ────── */}

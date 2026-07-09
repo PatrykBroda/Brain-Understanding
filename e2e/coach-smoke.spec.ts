@@ -37,6 +37,7 @@
 import path from "node:path";
 import { test, expect, type Page } from "@playwright/test";
 import { clerk, setupClerkTestingToken } from "@clerk/testing/playwright";
+import { Client } from "pg";
 import { TEST_MAIN_EMAIL, TEST_FRESH_EMAIL } from "./global-setup";
 
 // A short, valid VP8/WebM clip (open-source-Chromium decodable). It contains a
@@ -299,13 +300,15 @@ test("onboarding page loads and POST /api/fighter uses camelCase fields", async 
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Test 5: Video analysis is FRAME+ — free tier gets an honest 402, not a run
+// Test 5: First analysis is free (one-time taster); the second one is FRAME+
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// The FRESH smoke user is pinned to the free plan by global-setup. The server
-// must refuse to create an analysis with 402 { code: "FRAME_PLUS_REQUIRED",
-// feature: "video_analysis" } — the client maps this to the upgrade modal.
-test("free tier POST /api/analysis is refused with 402 FRAME_PLUS_REQUIRED", async ({
+// The FRESH smoke user is pinned to the free plan by global-setup (which also
+// deletes its fighter — cascading away any analyses from earlier runs). The
+// entitlement gate counts existing analyses: 0 → allowed through to normal
+// validation (400 here, since we send no signals — proof the gate passed),
+// ≥1 → 402 { code: "FRAME_PLUS_REQUIRED", feature: "video_analysis" }.
+test("free tier: first POST /api/analysis passes the gate, second is 402", async ({
   page,
 }) => {
   await page.goto("/");
@@ -314,13 +317,13 @@ test("free tier POST /api/analysis is refused with 402 FRAME_PLUS_REQUIRED", asy
   await page.goto("/");
   await page.waitForURL(isHomeOrOnboarding, { timeout: 40_000 });
 
-  const result = await page.evaluate(async () => {
+  const fighterId = await page.evaluate(async () => {
     // The route checks fighter BEFORE entitlement — ensure one exists (the
     // onboarding test usually created it; re-POST is a safe no-op check).
     const check = await fetch("/api/fighter", { credentials: "include" });
-    const hasFighter = check.ok && (await check.json()).fighter !== null;
-    if (!hasFighter) {
-      await fetch("/api/fighter", {
+    let fighter = check.ok ? (await check.json()).fighter : null;
+    if (!fighter) {
+      const created = await fetch("/api/fighter", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -333,31 +336,66 @@ test("free tier POST /api/analysis is refused with 402 FRAME_PLUS_REQUIRED", asy
           trainingFrequency: "3-4",
         }),
       });
+      fighter = created.ok ? (await created.json()).fighter : null;
     }
+    return fighter ? (fighter.id as number) : null;
+  });
+  expect(fighterId, "fresh smoke user has no fighter and POST /api/fighter failed").not.toBeNull();
 
-    const res = await fetch("/api/analysis", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: "sparring" }),
+  const db = new Client({ connectionString: process.env.DATABASE_URL });
+  await db.connect();
+  try {
+    // Make the run idempotent under Playwright retries: clear any analyses
+    // this fresh fighter accumulated within THIS run.
+    await db.query("DELETE FROM video_analyses WHERE fighter_id = $1", [fighterId]);
+
+    const postAnalysis = () =>
+      page.evaluate(async () => {
+        const res = await fetch("/api/analysis", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind: "sparring" }),
+        });
+        let body: unknown = null;
+        try {
+          body = await res.json();
+        } catch {
+          /* non-JSON body — assertion below will surface it */
+        }
+        return { status: res.status, body };
+      });
+
+    // 1) Zero analyses on record → the free taster: the entitlement gate must
+    //    let the request through. It then fails ordinary validation (400 — no
+    //    signals in the payload), which is exactly the proof we want: NOT 402.
+    const first = await postAnalysis();
+    expect(
+      first.status,
+      `First free analysis should pass the entitlement gate (expected 400 validation, not 402): ${JSON.stringify(first.body)}`
+    ).toBe(400);
+
+    // 2) Seed one analysis row (a real one would need a full Claude round-trip;
+    //    the gate only counts rows) → the taster is spent.
+    await db.query(
+      `INSERT INTO video_analyses
+         (fighter_id, kind, nervous_system_load, summary, findings, metrics, keyframes)
+       VALUES ($1, 'sparring', 'low', 'smoke seed', '[]', '{}', '[]')`,
+      [fighterId]
+    );
+
+    const second = await postAnalysis();
+    expect(
+      second.status,
+      `Expected 402 once the free analysis is used, got ${second.status}: ${JSON.stringify(second.body)}`
+    ).toBe(402);
+    expect(second.body).toMatchObject({
+      code: "FRAME_PLUS_REQUIRED",
+      feature: "video_analysis",
     });
-    let body: unknown = null;
-    try {
-      body = await res.json();
-    } catch {
-      /* non-JSON body — assertion below will surface it */
-    }
-    return { status: res.status, body };
-  });
-
-  expect(
-    result.status,
-    `Expected 402 for free-tier analysis create, got ${result.status}: ${JSON.stringify(result.body)}`
-  ).toBe(402);
-  expect(result.body).toMatchObject({
-    code: "FRAME_PLUS_REQUIRED",
-    feature: "video_analysis",
-  });
+  } finally {
+    await db.end();
+  }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
