@@ -1,20 +1,48 @@
 import { useState } from "react";
 import { useClerk, useUser } from "@clerk/react";
 import { useFighter } from "@/hooks/use-fighter";
+import { useMemory } from "@/hooks/use-memory";
+import { useActiveCompetition } from "@/hooks/use-competition";
 import { BottomNav } from "@/components/bottom-nav";
 import { Belt } from "@/components/belt";
 import { ProfileEdit } from "@/components/profile-edit";
-import { sportLabel } from "@/lib/fighter-options";
-import { getArchetype } from "@workspace/archetypes";
+import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
+import { primaryFocus, primaryStrength } from "@/lib/primary-focus";
 import { Link } from "wouter";
 import { ChevronLeft, LogOut, Pencil } from "lucide-react";
 import { heroFileUrl } from "@/lib/api";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-// ─── Profile = passport. "Who am I" — nothing else. ─────────────────────────
-// Name, archetype, discipline, rank, one sentence. The full athlete model
-// (observations, hypotheses, graphs, coverage) lives on Analyse now.
+// ─── Profile = who I am, in one glance. ──────────────────────────────────────
+// Identity (archetype · belt · mode), one Focus line, one Strength line,
+// Continue Calibration. Everything deeper lives in Analyse — the laboratory.
+
+function LineItem({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+}) {
+  return (
+    <div className="px-4 py-3.5 flex items-baseline justify-between gap-4">
+      <div className="flex-none font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground/65 w-20">
+        {label}
+      </div>
+      <div className="min-w-0 text-right">
+        <div
+          className="font-mono text-[12px] uppercase tracking-[0.12em] text-foreground/95 truncate"
+          title={sub}
+        >
+          {value}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const { data: fighterData } = useFighter();
@@ -23,11 +51,24 @@ export default function ProfilePage() {
   const { user } = useUser();
   const [isEditing, setIsEditing] = useState(false);
 
+  const memoryQuery = useMemory(!!fighter);
+  const rawFacts = memoryQuery.data?.facts;
+  const facts = Array.isArray(rawFacts) ? rawFacts : [];
+
+  const compQuery = useActiveCompetition();
+
   const arch = fighter?.spiritAnimal ? getArchetype(fighter.spiritAnimal) : null;
-  // The one sentence describing the athlete: their own tagline first,
-  // else the archetype essence. Both are real, recorded identity — no synthesis.
-  const sentence =
-    (fighter?.spiritAnimalTagline ?? "").trim() || arch?.essence || null;
+
+  const mode = fighter
+    ? computeCoachingMode({
+        hasActiveCompetition: !!compQuery.data?.competition,
+        level: fighter.level,
+        modelSize: facts.length,
+      })
+    : null;
+
+  const focus = fighter ? primaryFocus(fighter, facts) : null;
+  const strength = primaryStrength(facts);
 
   const hasHero = !!fighter && fighter.heroImageUrl.trim() !== "";
   const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
@@ -64,14 +105,14 @@ export default function ProfilePage() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-y-auto">
-        <div className="max-w-md mx-auto h-full flex flex-col px-5 py-5">
+        <div className="max-w-md mx-auto px-5 py-5">
           {fighter && isEditing ? (
             <ProfileEdit fighter={fighter} onClose={() => setIsEditing(false)} />
           ) : fighter ? (
             <>
               {/* ─── IDENTITY BAND ─────────────────────────────────── */}
               <div
-                className="relative flex-none overflow-hidden border border-white/[0.08] passport-in"
+                className="relative overflow-hidden border border-white/[0.08] passport-in"
                 style={{ minHeight: 190 }}
               >
                 <div className="absolute inset-0 overflow-hidden">
@@ -108,65 +149,61 @@ export default function ProfilePage() {
 
                 <div className="relative z-[1] flex flex-col justify-end h-full min-h-[190px] px-4 pt-8 pb-4">
                   <div className="font-mono text-[8px] uppercase tracking-[0.55em] text-muted-foreground/60 mb-1.5">
-                    Athlete
+                    Identity
                   </div>
                   <div className="font-mono text-3xl uppercase tracking-[0.1em] text-foreground leading-none truncate">
                     {fighter.name}
                   </div>
-                  {arch ? (
+                  {(arch || fighter.spiritAnimal) && (
                     <div
                       className="font-mono text-[10px] uppercase tracking-[0.4em] mt-2"
                       style={{ color: "hsl(32,54%,52%)" }}
                     >
-                      {arch.name} Archetype
+                      {arch ? arch.name : fighter.spiritAnimal}
+                      {mode ? ` · ${mode.label}` : ""}
                     </div>
-                  ) : fighter.spiritAnimal ? (
-                    <div
-                      className="font-mono text-[10px] uppercase tracking-[0.4em] mt-2"
-                      style={{ color: "hsl(32,54%,52%)" }}
-                    >
-                      {fighter.spiritAnimal}
-                    </div>
-                  ) : null}
+                  )}
                 </div>
               </div>
 
-              {/* ─── DISCIPLINE ────────────────────────────────────── */}
-              <div className="flex-none grid grid-cols-2 border-x border-b border-white/[0.08] divide-x divide-white/[0.06]">
-                <div className="px-4 py-3">
-                  <div className="font-mono text-[8px] uppercase tracking-[0.4em] text-muted-foreground/45 mb-1">
-                    Discipline
-                  </div>
-                  <div className="font-mono text-[13px] tracking-wide text-foreground/90 truncate">
-                    {fighter.primarySport ? sportLabel(fighter.primarySport) : fighter.art || "—"}
-                  </div>
-                </div>
-                <div className="px-4 py-3">
-                  <div className="font-mono text-[8px] uppercase tracking-[0.4em] text-muted-foreground/45 mb-1">
-                    Level
-                  </div>
-                  <div className="font-mono text-[13px] tracking-wide text-foreground/90 capitalize truncate">
-                    {fighter.level}
-                  </div>
-                </div>
+              {/* ─── RANK — the belt IS the identity ───────────────── */}
+              <div className="border-x border-b border-white/[0.08] px-4 py-4">
+                <Belt level={fighter.level} showMeaning />
               </div>
 
-              {/* ─── ONE SENTENCE ──────────────────────────────────── */}
-              {sentence && (
-                <p className="flex-none text-[13px] italic text-foreground/60 leading-relaxed px-1 pt-4">
-                  {sentence}
-                </p>
-              )}
-
-              {/* ─── RANK ──────────────────────────────────────────── */}
-              <div className="flex-1 min-h-0 flex items-center py-3">
-                <div className="w-full">
-                  <Belt level={fighter.level} showMeaning />
-                </div>
+              {/* ─── FOCUS · STRENGTH ──────────────────────────────── */}
+              <div className="border-x border-b border-white/[0.08] divide-y divide-white/[0.06]">
+                {focus && (
+                  <LineItem label="Focus" value={focus.label} sub={focus.source} />
+                )}
+                {strength ? (
+                  <LineItem
+                    label="Strength"
+                    value={strength.label}
+                    sub={strength.source}
+                  />
+                ) : arch ? (
+                  <LineItem
+                    label="Gift"
+                    value={arch.gift.split(/[.!]/)[0].trim()}
+                    sub="your archetype's gift — FRAME hasn't observed a strength yet"
+                  />
+                ) : null}
+                <Link
+                  href="/chat"
+                  className="flex items-center justify-between px-4 py-3.5 hover:bg-white/[0.02] transition-colors group"
+                >
+                  <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary/70 group-hover:text-primary transition-colors">
+                    Continue Calibration
+                  </span>
+                  <span className="font-mono text-[11px] text-foreground/40 group-hover:text-primary transition-colors">
+                    →
+                  </span>
+                </Link>
               </div>
 
               {/* ─── ACCOUNT ───────────────────────────────────────── */}
-              <div className="flex-none space-y-2.5 pb-2">
+              <div className="space-y-2.5 pt-6 pb-2">
                 {user?.primaryEmailAddress?.emailAddress && (
                   <div className="font-mono text-[10px] text-muted-foreground/60 tracking-wide text-center">
                     {user.primaryEmailAddress.emailAddress}

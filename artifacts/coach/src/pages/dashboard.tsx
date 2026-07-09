@@ -7,6 +7,8 @@ import { useFighter, useUpdateFighter } from "@/hooks/use-fighter";
 import { useAnalyses } from "@/hooks/use-analysis";
 import { useActiveCompetition } from "@/hooks/use-competition";
 import { useTodayCheckin, useSaveCheckin } from "@/hooks/use-checkin";
+import { useMemory } from "@/hooks/use-memory";
+import { primaryFocus } from "@/lib/primary-focus";
 import { heroFileUrl, type DailyCheckin } from "@/lib/api";
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -156,6 +158,13 @@ export default function DashboardPage() {
   const activeComp = useActiveCompetition();
   const competition = activeComp.data?.competition ?? null;
   const pressure = activeComp.data?.pressure ?? null;
+
+  const memoryQuery = useMemory(!!fighter);
+  const rawFacts = memoryQuery.data?.facts;
+  const facts = Array.isArray(rawFacts) ? rawFacts : [];
+  // The one highest-value insight — the coach's voice, not an analytics dump.
+  const focus = fighter ? primaryFocus(fighter, facts) : null;
+  const hasFocus = !!focus && focus.label !== "Not yet identified";
 
   const [editing, setEditing] = useState(false);
 
@@ -403,6 +412,35 @@ export default function DashboardPage() {
         <div className="px-0">
           <CompetitionBanner />
         </div>
+
+        {/* ─── Today's focus — the one insight, coach's voice ────────────── */}
+        {hasFocus && focus && (
+          <section className="px-6 pt-7">
+            <div className="border-b border-white/[0.07] pb-2">
+              <h2 className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/60">
+                Today's focus
+              </h2>
+            </div>
+            <Link
+              href="/chat"
+              className="block pt-4 group outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg"
+              title={focus.source}
+            >
+              <div className="flex items-baseline justify-between gap-4">
+                <p className="font-sans font-light text-[1.15rem] text-foreground/95 leading-snug">
+                  {focus.label}
+                </p>
+                <ChevronRight
+                  className="flex-none w-4 h-4 text-foreground/30 group-hover:text-primary transition-colors translate-y-0.5"
+                  strokeWidth={1.5}
+                />
+              </div>
+              <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/35 mt-2">
+                {focus.source}
+              </div>
+            </Link>
+          </section>
+        )}
 
         {/* ─── Fight readiness — real composite or an honest prompt ──────── */}
         <section className="px-6 pt-7 pb-2">

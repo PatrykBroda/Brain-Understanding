@@ -1,25 +1,13 @@
 import { useFrameState } from "@/hooks/use-frame-state";
 import { useActiveCompetition } from "@/hooks/use-competition";
 import { computeCoachingMode } from "@workspace/archetypes";
+import { primaryFocus } from "@/lib/primary-focus";
 import type { Fighter, AthleteFact } from "@/lib/api";
 
 // Honest Athlete State — a single card of REAL signal only. Every row is either
 // derived from recorded facts / scheduled data, or it honestly says "not yet".
 // Deliberately NO motivation score, recovery %, readiness index, or training
 // load — those would be fabricated. This is the no-fake-biometrics pillar.
-
-function primaryFocus(fighter: Fighter, facts: AthleteFact[]): { label: string; source: string } {
-  const weaknesses = facts
-    .filter((f) => f.category === "weakness")
-    .sort((a, b) => b.confidence - a.confidence || (a.createdAt < b.createdAt ? 1 : -1));
-  if (weaknesses.length > 0) {
-    const top = weaknesses[0];
-    return { label: top.topic || top.content, source: "highest-confidence recorded weakness" };
-  }
-  const stated = (fighter.weaknesses || "").split(/[,.;\n]/).map((s) => s.trim()).filter(Boolean)[0];
-  if (stated) return { label: stated, source: "from your onboarding" };
-  return { label: "Not yet identified", source: "no weakness recorded yet" };
-}
 
 function Row({
   label,
