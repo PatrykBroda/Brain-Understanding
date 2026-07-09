@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Shield, Camera, Loader2, ChevronRight } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CosmicOrb, ORB_PALETTE } from "@/components/cosmic-orb";
+import { FramePlusPill } from "@/components/frame-plus-modal";
 import { BottomNav } from "@/components/bottom-nav";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
@@ -140,6 +141,7 @@ export default function HomePage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <FramePlusPill />
           <button
             type="button"
             onClick={() => fileRef.current?.click()}

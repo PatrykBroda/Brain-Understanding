@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { Lock } from "lucide-react";
 import { useFighter } from "@/hooks/use-fighter";
 import { useMemory } from "@/hooks/use-memory";
+import { useSubscription } from "@/hooks/use-subscription";
+import { useFramePlus } from "@/components/frame-plus-modal";
 import { AthleteStatePanel } from "@/components/athlete-state-panel";
 import { sportLabel } from "@/lib/fighter-options";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
@@ -302,6 +305,42 @@ function Panel({
 
 // ─── Fact confidence — pips + label, real 1–5 confidence only ────────────────
 
+// Locked stub for FRAME+ gated sections — section stays visible (never a
+// full-page block), the body is replaced with a tap-to-upgrade row.
+function LockedSection({
+  overline,
+  title,
+  note,
+  onTap,
+}: {
+  overline: string;
+  title: string;
+  note: string;
+  onTap: () => void;
+}) {
+  return (
+    <Panel>
+      <div className="px-5 pt-5 pb-3">
+        <SectionHead overline={overline} title={title} />
+      </div>
+      <button
+        type="button"
+        onClick={onTap}
+        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors group"
+        style={{ borderTop: "1px solid hsla(0,0%,100%,0.05)" }}
+      >
+        <span className="flex items-start gap-2.5 min-w-0">
+          <Lock className="h-3.5 w-3.5 flex-none mt-0.5 text-foreground/40" strokeWidth={1.5} />
+          <span className="text-[0.8rem] text-foreground/55 leading-relaxed">{note}</span>
+        </span>
+        <span className="flex-none font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 group-hover:text-primary transition-colors">
+          FRAME+
+        </span>
+      </button>
+    </Panel>
+  );
+}
+
 function FactConfidence({ value }: { value: number }) {
   const v = Math.max(0, Math.min(5, value));
   return (
@@ -356,6 +395,11 @@ function IdentityRow({
 // stay a passport ("who am I") and Analyse holds the data ("everything").
 
 export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "desktop" }) {
+  const { isFramePlus, isLoading: subLoading } = useSubscription();
+  const { openUpgrade } = useFramePlus();
+  // Full model visibility is FRAME+. While the status is loading we show
+  // nothing gated-open — locked is the safe default only once we KNOW free.
+  const modelLocked = !subLoading && !isFramePlus;
   const { data: fighterData } = useFighter();
   const fighter = fighterData?.fighter ?? null;
   const memoryQuery = useMemory(true);
@@ -606,18 +650,27 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
       <AthleteStatePanel fighter={fighter} facts={facts} />
 
       {/* ─── 5. ATHLETE DNA ──────────────────────────────────── */}
-      <Panel>
-        <div className="px-5 pt-5 pb-3">
-          <SectionHead overline="Model coverage" title="Athlete DNA" />
-        </div>
-        <div className="px-4 pt-3 pb-5">
-          <RadarChart dims={computed.radarData} />
-          <p className="text-[0.75rem] text-foreground/40 leading-relaxed text-center mt-2">
-            Confidence bands — how well FRAME understands each dimension.
-            Not scored 1–100.
-          </p>
-        </div>
-      </Panel>
+      {modelLocked ? (
+        <LockedSection
+          overline="Model coverage"
+          title="Athlete DNA"
+          note="The DNA radar — how well FRAME reads each dimension of your game — is part of the full athlete model."
+          onTap={() => openUpgrade("athlete_model")}
+        />
+      ) : (
+        <Panel>
+          <div className="px-5 pt-5 pb-3">
+            <SectionHead overline="Model coverage" title="Athlete DNA" />
+          </div>
+          <div className="px-4 pt-3 pb-5">
+            <RadarChart dims={computed.radarData} />
+            <p className="text-[0.75rem] text-foreground/40 leading-relaxed text-center mt-2">
+              Confidence bands — how well FRAME understands each dimension.
+              Not scored 1–100.
+            </p>
+          </div>
+        </Panel>
+      )}
 
       {/* ─── ATHLETE IDENTITY ─────────────────────────────────── */}
       {(computed.topStrength || computed.topWeakness || computed.topPattern || arch) && (
@@ -736,7 +789,27 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
           </Link>
         </div>
 
-        {facts.length === 0 ? (
+        {modelLocked ? (
+          <Panel>
+            <button
+              type="button"
+              onClick={() => openUpgrade("athlete_model")}
+              className="w-full flex items-center justify-between gap-4 px-5 py-5 text-left hover:bg-white/[0.02] transition-colors group"
+            >
+              <span className="flex items-start gap-2.5 min-w-0">
+                <Lock className="h-3.5 w-3.5 flex-none mt-0.5 text-foreground/40" strokeWidth={1.5} />
+                <span className="text-[0.85rem] text-foreground/55 leading-relaxed">
+                  {facts.length === 0
+                    ? "FRAME records durable observations as you train and talk. The full model is a FRAME+ feature."
+                    : `FRAME holds ${facts.length} recorded observation${facts.length === 1 ? "" : "s"} on you. The full breakdown is a FRAME+ feature.`}
+                </span>
+              </span>
+              <span className="flex-none font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 group-hover:text-primary transition-colors">
+                FRAME+
+              </span>
+            </button>
+          </Panel>
+        ) : facts.length === 0 ? (
           <Panel className="px-5 py-6">
             <p className="text-[0.95rem] text-foreground/55 leading-relaxed">
               The model sharpens with use. As you talk to the coach, FRAME records durable

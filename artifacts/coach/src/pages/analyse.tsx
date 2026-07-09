@@ -22,7 +22,8 @@ import {
   type ExtractResult,
 } from "@/lib/pose";
 import { computeMetrics } from "@/lib/analysis-metrics";
-import { useFramePlus } from "@/components/frame-plus-modal";
+import { useFramePlus, FramePlusPill } from "@/components/frame-plus-modal";
+import { useSubscription } from "@/hooks/use-subscription";
 import { ApiError, fetchRemoteVideo } from "@/lib/api";
 import type {
   AnalysisKind,
@@ -99,6 +100,12 @@ export default function AnalysePage() {
   const fighter = fighterData?.fighter ?? null;
   const analyses = useAnalyses();
   const create = useCreateAnalysis();
+  const { status: billingStatus } = useSubscription();
+  const { openUpgrade } = useFramePlus();
+  // Client convenience gate only fires on a KNOWN free plan — if billing
+  // status is unavailable, let the request through; the server 402 is the
+  // authority and the catch blocks map it to the upgrade modal.
+  const knownFree = billingStatus?.plan === "free";
   const fileRef = useRef<HTMLInputElement>(null);
   const mobileScrollRef = useRef<HTMLElement>(null);
   const desktopRightScrollRef = useRef<HTMLDivElement>(null);
@@ -154,6 +161,12 @@ export default function AnalysePage() {
     (!!pendingFile.current || (sourceMode === "link" && !!lastLink.current));
 
   async function runAnalysis(file: File) {
+    // Video analysis is FRAME+: prompt the upgrade BEFORE burning minutes of
+    // on-device pose work. Server enforces the same gate on POST /analysis.
+    if (knownFree) {
+      openUpgrade("video_analysis");
+      return;
+    }
     setResult(null);
     setOpenId(null);
     if (file.size > MAX_VIDEO_BYTES) {
@@ -228,7 +241,12 @@ export default function AnalysePage() {
         setVideoUrl(url);
       }
     } catch (err) {
-      setPhase(toErrorPhase(err));
+      if (err instanceof ApiError && err.kind === "upgrade_required") {
+        setPhase({ stage: "idle" });
+        openUpgrade(err.feature || "video_analysis");
+      } else {
+        setPhase(toErrorPhase(err));
+      }
     } finally {
       if (extract) disposeExtract(extract);
     }
@@ -237,6 +255,10 @@ export default function AnalysePage() {
   async function runFromLink(url: string) {
     const trimmed = url.trim();
     if (!trimmed) return;
+    if (knownFree) {
+      openUpgrade("video_analysis");
+      return;
+    }
     lastLink.current = trimmed;
     pendingFile.current = null;
     setResult(null);
@@ -246,6 +268,11 @@ export default function AnalysePage() {
     try {
       file = await fetchRemoteVideo(trimmed);
     } catch (err) {
+      if (err instanceof ApiError && err.kind === "upgrade_required") {
+        setPhase({ stage: "idle" });
+        openUpgrade(err.feature || "video_analysis");
+        return;
+      }
       setPhase(toErrorPhase(err));
       return;
     }
@@ -286,9 +313,11 @@ export default function AnalysePage() {
   return (
     <div className="flex flex-col h-[100dvh] bg-background text-foreground">
       <header className="flex-none flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3 border-b border-border/40">
-        <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
-          <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
-        </Link>
+        <div className="flex-1 flex justify-start">
+          <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+            <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
+          </Link>
+        </div>
         <div className="text-center flex flex-col items-center gap-1.5">
           <img
             src={`${basePath}/frame-logo.png`}
@@ -302,7 +331,9 @@ export default function AnalysePage() {
             Analyse
           </div>
         </div>
-        <div className="w-5" />
+        <div className="flex-1 flex justify-end">
+          <FramePlusPill />
+        </div>
       </header>
 
       {/* ------------------------------------------------------------------ */}

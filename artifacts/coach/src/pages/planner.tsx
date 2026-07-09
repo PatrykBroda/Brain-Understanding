@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { ChevronLeft, Pencil, X } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
+import { FramePlusPill } from "@/components/frame-plus-modal";
 import { CampMission } from "@/components/camp-mission";
 import { CampSchedule } from "@/components/camp-schedule";
 import { GoogleCalendarSync } from "@/components/google-calendar-sync";
@@ -89,6 +90,9 @@ export default function CampPage() {
               FIGHT CAMP
             </div>
           </div>
+        </div>
+        <div className="ml-auto">
+          <FramePlusPill />
         </div>
       </header>
 

@@ -126,6 +126,18 @@ router.post("/analysis", async (req, res) => {
     return;
   }
 
+  // Video analysis is a FRAME+ feature: free tier keeps viewing its existing
+  // latest report, but creating a new analysis requires the subscription.
+  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  if (entitlement.plan === "free") {
+    res.status(402).json({
+      error: "Video analysis is a FRAME+ feature.",
+      code: "FRAME_PLUS_REQUIRED",
+      feature: "video_analysis",
+    });
+    return;
+  }
+
   const body = req.body as {
     kind?: unknown;
     focus?: unknown;
@@ -510,6 +522,18 @@ const MAX_INFLIGHT_REMOTE = 2;
 let inFlightRemote = 0;
 
 router.post("/analysis/fetch-remote", async (req, res) => {
+  // Gate BEFORE any heavy work (yt-dlp / large downloads land in RAM-backed
+  // /tmp) — free tier can't analyse, so it shouldn't be able to fetch either.
+  const remoteEntitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  if (remoteEntitlement.plan === "free") {
+    res.status(402).json({
+      error: "Video analysis is a FRAME+ feature.",
+      code: "FRAME_PLUS_REQUIRED",
+      feature: "video_analysis",
+    });
+    return;
+  }
+
   const raw = typeof (req.body as { url?: unknown })?.url === "string" ? (req.body as { url: string }).url.trim() : "";
   if (!raw) {
     res.status(400).json({ error: "No link provided." });

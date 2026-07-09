@@ -1,9 +1,11 @@
 import { useMemo } from "react";
 import { Link } from "wouter";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
 import { useMemory } from "@/hooks/use-memory";
 import { useAnalyses } from "@/hooks/use-analysis";
+import { useSubscription } from "@/hooks/use-subscription";
+import { useFramePlus } from "@/components/frame-plus-modal";
 import type { AthleteFact, FactCategory, AnalysisListItem } from "@/lib/api";
 
 // Local, self-owned label map — human-readable names for each fact category.
@@ -81,6 +83,10 @@ function ConfidenceDots({ value, source }: { value: number; source?: string }) {
 export default function HistoryPage() {
   const memoryQuery = useMemory(true);
   const analysesQuery = useAnalyses();
+  const { isFramePlus, isLoading: subLoading } = useSubscription();
+  const { openUpgrade } = useFramePlus();
+  // Full observation history is part of the FRAME+ athlete model.
+  const modelLocked = !subLoading && !isFramePlus;
 
   const facts = memoryQuery.data?.facts ?? [];
   // Locked stubs (free tier) carry no real data and their detail routes 402 —
@@ -317,24 +323,42 @@ export default function HistoryPage() {
                             )}
                           </div>
 
-                          <div className="mt-4 space-y-4">
-                            {day.facts.map((f) => (
-                              <div
-                                key={`f-${f.id}`}
-                                className="border-l border-white/[0.08] pl-3.5"
-                              >
-                                <div className="flex items-baseline justify-between gap-3 mb-1">
-                                  <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 truncate">
-                                    {CATEGORY_LABELS[f.category]}
+                          {modelLocked ? (
+                            <button
+                              type="button"
+                              onClick={() => openUpgrade("athlete_model")}
+                              className="mt-4 w-full flex items-center justify-between gap-3 border-l border-white/[0.08] pl-3.5 py-2 text-left group"
+                            >
+                              <span className="flex items-center gap-2.5 min-w-0">
+                                <Lock className="h-3.5 w-3.5 flex-none text-foreground/40" strokeWidth={1.5} />
+                                <span className="text-[0.85rem] text-foreground/55 leading-relaxed">
+                                  {day.facts.length} observation{day.facts.length === 1 ? "" : "s"} recorded — the full model is FRAME+
+                                </span>
+                              </span>
+                              <span className="flex-none font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 group-hover:text-primary transition-colors">
+                                FRAME+
+                              </span>
+                            </button>
+                          ) : (
+                            <div className="mt-4 space-y-4">
+                              {day.facts.map((f) => (
+                                <div
+                                  key={`f-${f.id}`}
+                                  className="border-l border-white/[0.08] pl-3.5"
+                                >
+                                  <div className="flex items-baseline justify-between gap-3 mb-1">
+                                    <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 truncate">
+                                      {CATEGORY_LABELS[f.category]}
+                                    </div>
+                                    <ConfidenceDots value={f.confidence} source={f.source} />
                                   </div>
-                                  <ConfidenceDots value={f.confidence} source={f.source} />
+                                  <div className="text-[0.95rem] leading-relaxed text-foreground/90">
+                                    {f.content}
+                                  </div>
                                 </div>
-                                <div className="text-[0.95rem] leading-relaxed text-foreground/90">
-                                  {f.content}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

@@ -7,6 +7,7 @@ import { useFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { MessageContent } from "@/components/message-content";
 import { NervousSystemOrb } from "@/components/nervous-system-orb";
+import { FramePlusPill } from "@/components/frame-plus-modal";
 import { EntrySequence } from "@/components/entry-sequence";
 import { BottomNav } from "@/components/bottom-nav";
 import { CompetitionBanner } from "@/components/competition-banner";
@@ -220,6 +221,7 @@ export default function ChatPage() {
               </div>
             )}
             <NervousSystemOrb state={orbState} label={orbLabel} />
+            <FramePlusPill />
           </div>
           <Button
             variant="ghost"

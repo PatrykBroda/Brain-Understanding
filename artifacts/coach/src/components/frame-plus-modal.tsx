@@ -23,6 +23,14 @@ const FEATURE_COPY: Record<string, { title: string; line: string }> = {
     title: "The full mission is locked",
     line: "The free tier previews your first mission item. FRAME+ opens the whole week — every item, every rationale, regenerate any time.",
   },
+  video_analysis: {
+    title: "Video analysis is FRAME+",
+    line: "Footage is where FRAME reads what your body does under pressure. FRAME+ unlocks the full analysis engine — upload or link a clip, get the report.",
+  },
+  athlete_model: {
+    title: "The full model is FRAME+",
+    line: "The free tier shows the surface read. FRAME+ opens the complete athlete model — every recorded observation, every dimension FRAME tracks.",
+  },
   default: {
     title: "This is a FRAME+ feature",
     line: "FRAME+ removes the free-tier limits across coaching, analysis history and the weekly mission.",
@@ -31,7 +39,8 @@ const FEATURE_COPY: Record<string, { title: string; line: string }> = {
 
 const BENEFITS = [
   "Unlimited coaching, every day",
-  "Full analysis history and session-over-session comparison",
+  "Video analysis — full history and session-over-session comparison",
+  "Complete athlete model visibility",
   "Complete weekly mission with regeneration",
 ];
 

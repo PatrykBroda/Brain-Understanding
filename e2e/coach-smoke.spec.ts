@@ -299,7 +299,69 @@ test("onboarding page loads and POST /api/fighter uses camelCase fields", async 
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Test 5: Analyse never silently hangs — the extraction loop always terminates
+// Test 5: Video analysis is FRAME+ — free tier gets an honest 402, not a run
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// The FRESH smoke user is pinned to the free plan by global-setup. The server
+// must refuse to create an analysis with 402 { code: "FRAME_PLUS_REQUIRED",
+// feature: "video_analysis" } — the client maps this to the upgrade modal.
+test("free tier POST /api/analysis is refused with 402 FRAME_PLUS_REQUIRED", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await setupClerkTestingToken({ page });
+  await clerk.signIn({ page, emailAddress: TEST_FRESH_EMAIL });
+  await page.goto("/");
+  await page.waitForURL(isHomeOrOnboarding, { timeout: 40_000 });
+
+  const result = await page.evaluate(async () => {
+    // The route checks fighter BEFORE entitlement — ensure one exists (the
+    // onboarding test usually created it; re-POST is a safe no-op check).
+    const check = await fetch("/api/fighter", { credentials: "include" });
+    const hasFighter = check.ok && (await check.json()).fighter !== null;
+    if (!hasFighter) {
+      await fetch("/api/fighter", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Web Smoke Fighter",
+          dateOfBirth: "1990-06-15",
+          art: "bjj",
+          primarySport: "bjj",
+          level: "white",
+          trainingFrequency: "3-4",
+        }),
+      });
+    }
+
+    const res = await fetch("/api/analysis", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "sparring" }),
+    });
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      /* non-JSON body — assertion below will surface it */
+    }
+    return { status: res.status, body };
+  });
+
+  expect(
+    result.status,
+    `Expected 402 for free-tier analysis create, got ${result.status}: ${JSON.stringify(result.body)}`
+  ).toBe(402);
+  expect(result.body).toMatchObject({
+    code: "FRAME_PLUS_REQUIRED",
+    feature: "video_analysis",
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 6: Analyse never silently hangs — the extraction loop always terminates
 // ─────────────────────────────────────────────────────────────────────────────
 //
 // The regression this guards: the on-device pose extractor used to stall
