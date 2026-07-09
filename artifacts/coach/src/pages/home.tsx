@@ -9,7 +9,7 @@ import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { useFrameState, type FrameStateLabel } from "@/hooks/use-frame-state";
 import { useAnalyses } from "@/hooks/use-analysis";
 import { useTodayCheckin } from "@/hooks/use-checkin";
-import { api, heroFileUrl } from "@/lib/api";
+import { api } from "@/lib/api";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -83,7 +83,6 @@ export default function HomePage() {
   const labelGlow = `0 0 48px hsla(${hue}, ${Math.round(sat * 100)}%, ${Math.round(light * 100)}%, 0.38), 0 2px 12px rgba(0,0,0,0.6)`;
 
   const hasHero = !!fighter && fighter.heroImageUrl.trim() !== "";
-  const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
   const uploading = uploadHero.isPending;
 
   return (
@@ -94,37 +93,9 @@ export default function HomePage() {
         background: "#000",
       }}
     >
-      {/* ─── Ambient environment ─────────────────────────────────────
-          The fighter's own photo, dropped almost to a whisper: blurred,
-          desaturated, low opacity, then buried under layered dark gradients
-          so it reads as atmosphere, not a picture. Matte fallback when unset. */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        {heroSrc && (
-          <img
-            src={heroSrc}
-            alt=""
-            aria-hidden
-            className="w-full h-full object-cover frame-ambient-in"
-            style={{
-              opacity: 0.15,
-              filter: "blur(2px) saturate(0.82) contrast(1.02)",
-              transform: "scale(1.06)",
-              // Follow the athlete's saved focal point (zoom stays ambient here).
-              objectPosition: `${fighter?.heroPosX ?? 50}% ${fighter?.heroPosY ?? 50}%`,
-            }}
-            draggable={false}
-          />
-        )}
-        {/* Depth wash — top + bottom pulled to near-black so type/orb stay legible */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: heroSrc
-              ? "linear-gradient(180deg, rgba(0,0,0,0.74) 0%, rgba(0,0,0,0.40) 40%, rgba(0,0,0,0.62) 72%, rgba(0,0,0,0.9) 100%)"
-              : "transparent",
-          }}
-        />
-      </div>
+      {/* ─── Ambient environment — pure OLED black. No photo here by request:
+          the hub is just the orb, the state and readiness on true black.
+          (The uploaded hero still drives the Home-tab + Profile surfaces.) */}
 
       {/* Page-wide vignette — anchored on the orb, eases off so it doesn't eat the CTA */}
       <div
@@ -322,14 +293,6 @@ export default function HomePage() {
           animation: frame-fade-in 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
         }
 
-        @keyframes frame-ambient-in {
-          from { opacity: 0; }
-          to   { opacity: 0.15; }
-        }
-        .frame-ambient-in {
-          animation: frame-ambient-in 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-        }
-
         @keyframes frame-caption-in {
           from { opacity: 0; }
           to   { opacity: 1; }
@@ -356,7 +319,6 @@ export default function HomePage() {
 
         @media (prefers-reduced-motion: reduce) {
           .frame-fade-in,
-          .frame-ambient-in,
           .frame-state-caption-top,
           .frame-state-label,
           .frame-state-caption-bottom,

@@ -16,7 +16,6 @@ import HistoryPage from "@/pages/history";
 import CampPage from "@/pages/planner";
 import AnalysePage from "@/pages/analyse";
 import SplashPage from "@/pages/splash";
-import DailyBriefingPage from "@/pages/daily-briefing";
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
 import PublicLandingPage from "@/pages/landing";
@@ -120,21 +119,14 @@ function SplashGate({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
   useEffect(() => {
     try {
-      const todayStr = new Date().toISOString().slice(0, 10);
       const introSeen = localStorage.getItem("frame:intro-seen");
-      const lastVisit = localStorage.getItem("frame:last-visit-date");
-      // Always stamp today so same-day re-opens are detected correctly
-      localStorage.setItem("frame:last-visit-date", todayStr);
       if (!introSeen) {
-        // First ever launch — show cinematic intro (sets intro-seen + last-visit on exit)
+        // First ever launch — show cinematic intro (splash sets intro-seen on exit)
         setLocation("/splash", { replace: true });
-      } else if (lastVisit !== todayStr) {
-        // Returning after at least one calendar day — show daily briefing
-        setLocation("/daily-briefing", { replace: true });
       }
-      // Same-day return: fall through to home with no interruption
+      // Returning athletes go straight to the hub — no interstitial briefing.
     } catch {
-      // storage blocked — skip both screens
+      // storage blocked — skip the intro
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -298,10 +290,9 @@ function AppRoutes() {
                 <SplashPage />
               </Authed>
             </Route>
+            {/* Retired interstitial — send old bookmarks/history entries home */}
             <Route path="/daily-briefing">
-              <Authed>
-                <DailyBriefingPage />
-              </Authed>
+              <Redirect to="/" />
             </Route>
             <Route path="/" component={HomeRoute} />
             <Route path="/home">

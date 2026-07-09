@@ -21,9 +21,7 @@ export default function SplashPage() {
     if (leaving) return;
     setLeaving(true);
     try {
-      const today = new Date().toISOString().slice(0, 10);
       localStorage.setItem("frame:intro-seen", "1");
-      localStorage.setItem("frame:last-visit-date", today);
     } catch {
       // storage blocked — ignore
     }
