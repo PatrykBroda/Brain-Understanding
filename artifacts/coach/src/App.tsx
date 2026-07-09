@@ -21,6 +21,7 @@ import SignUpPage from "@/pages/sign-up";
 import PublicLandingPage from "@/pages/landing";
 import { useFighter } from "@/hooks/use-fighter";
 import { ApiError } from "@/lib/api";
+import { FramePlusProvider } from "@/components/frame-plus-modal";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -282,6 +283,7 @@ function AppRoutes() {
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>
+          <FramePlusProvider>
           <Switch>
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
@@ -334,6 +336,7 @@ function AppRoutes() {
             <Route component={NotFound} />
           </Switch>
           <Toaster />
+          </FramePlusProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </ClerkProvider>

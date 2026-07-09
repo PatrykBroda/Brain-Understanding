@@ -14,6 +14,7 @@ import {
 import { and, desc, eq, lt } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { getActiveFacts, addFact } from "../lib/factsService";
+import { getEntitlementForClerkUser } from "../lib/subscriptionService";
 import {
   generateAnalysis,
   buildComparison,
@@ -314,7 +315,32 @@ router.get("/analysis", async (req, res) => {
     .where(eq(videoAnalysesTable.fighterId, fighter.id))
     .orderBy(desc(videoAnalysesTable.createdAt))
     .limit(20);
-  res.json({ analyses: rows });
+
+  // Free tier: latest analysis only. Older rows come back as locked stubs —
+  // id + date survive so the history list can render upgrade affordances,
+  // but scores/summary/profile are stripped server-side.
+  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  if (entitlement.plan === "free") {
+    const gated = rows.map((r, i) =>
+      i === 0
+        ? { ...r, locked: false }
+        : {
+            id: r.id,
+            kind: r.kind,
+            nervousSystemLoad: null,
+            sessionScore: null,
+            styleProfile: null,
+            summary: null,
+            durationSec: r.durationSec,
+            createdAt: r.createdAt,
+            scores: null,
+            locked: true,
+          },
+    );
+    res.json({ analyses: gated });
+    return;
+  }
+  res.json({ analyses: rows.map((r) => ({ ...r, locked: false })) });
 });
 
 router.get("/analysis/:id", async (req, res) => {
@@ -335,6 +361,33 @@ router.get("/analysis/:id", async (req, res) => {
     .limit(1);
   if (!row || row.fighterId !== fighter.id) {
     res.status(404).json({ error: "not found" });
+    return;
+  }
+
+  // Free tier: only the most recent analysis is viewable in full.
+  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  const isFreeTier = entitlement.plan === "free";
+  if (isFreeTier) {
+    const [latest] = await db
+      .select({ id: videoAnalysesTable.id })
+      .from(videoAnalysesTable)
+      .where(eq(videoAnalysesTable.fighterId, fighter.id))
+      .orderBy(desc(videoAnalysesTable.createdAt))
+      .limit(1);
+    if (latest && latest.id !== row.id) {
+      res.status(402).json({
+        error: "Analysis history is a FRAME+ feature. Your latest session stays free.",
+        code: "FRAME_PLUS_REQUIRED",
+        feature: "analysis_history",
+      });
+      return;
+    }
+  }
+
+  // Session-over-session comparison + the signal-history trail are FRAME+
+  // features — a free user's latest report must not leak prior-session data.
+  if (isFreeTier) {
+    res.json({ analysis: { ...row, prevSignals: null, signalHistory: [] } });
     return;
   }
 

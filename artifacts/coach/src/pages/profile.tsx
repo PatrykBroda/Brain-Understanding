@@ -1,7 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useClerk, useUser } from "@clerk/react";
+import { useLocation } from "wouter";
 import { useFighter } from "@/hooks/use-fighter";
+import { useSubscription } from "@/hooks/use-subscription";
+import { useFramePlus } from "@/components/frame-plus-modal";
 import { useMemory } from "@/hooks/use-memory";
 import { useActiveCompetition } from "@/hooks/use-competition";
 import { BottomNav } from "@/components/bottom-nav";
@@ -59,6 +62,48 @@ export default function ProfilePage() {
   const { signOut, openUserProfile } = useClerk();
   const { user } = useUser();
   const [isEditing, setIsEditing] = useState(false);
+  const [, setLocation] = useLocation();
+
+  // ─── FRAME+ membership ────────────────────────────────────────────────
+  const sub = useSubscription();
+  const { openUpgrade } = useFramePlus();
+  const [upgradeNote, setUpgradeNote] = useState<
+    "confirming" | "active" | "pending" | "cancelled" | null
+  >(null);
+  const confirmedRef = useRef(false);
+
+  // Handle the Stripe Checkout return (?upgrade=success&session_id=... /
+  // ?upgrade=cancelled): confirm server-side, then strip the query params.
+  useEffect(() => {
+    if (confirmedRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const upgrade = params.get("upgrade");
+    if (!upgrade) return;
+    confirmedRef.current = true;
+
+    if (upgrade === "cancelled") {
+      setUpgradeNote("cancelled");
+      setLocation("/profile", { replace: true });
+      return;
+    }
+    if (upgrade === "success") {
+      const sessionId = params.get("session_id");
+      setLocation("/profile", { replace: true });
+      if (!sessionId) return;
+      setUpgradeNote("confirming");
+      sub
+        .confirm(sessionId)
+        .then((ent) => {
+          setUpgradeNote(ent.plan === "frame_plus" ? "active" : "pending");
+        })
+        .catch(() => {
+          // Webhook remains the source of truth — refetch and stay honest.
+          void sub.refetchStatus();
+          setUpgradeNote("pending");
+        });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -292,6 +337,78 @@ export default function ProfilePage() {
                     →
                   </span>
                 </Link>
+              </div>
+
+              {/* ─── MEMBERSHIP ────────────────────────────────────── */}
+              <div className="pt-6">
+                {upgradeNote === "confirming" && (
+                  <div className="mb-2.5 border-l-2 border-primary/50 bg-primary/[0.05] px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-primary/85">
+                    Confirming your upgrade
+                  </div>
+                )}
+                {upgradeNote === "active" && (
+                  <div className="mb-2.5 border-l-2 border-primary/60 bg-primary/[0.07] px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
+                    FRAME+ unlocked — everything is open
+                  </div>
+                )}
+                {upgradeNote === "pending" && (
+                  <div className="mb-2.5 border-l-2 border-border/60 bg-white/[0.02] px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                    Payment processing — this can take a moment
+                  </div>
+                )}
+                {upgradeNote === "cancelled" && (
+                  <div className="mb-2.5 border-l-2 border-border/60 bg-white/[0.02] px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                    Checkout cancelled — nothing was charged
+                  </div>
+                )}
+                {sub.isFramePlus ? (
+                  <div className="border border-primary/25 bg-primary/[0.04]">
+                    <div className="flex items-center justify-between px-4 py-3.5">
+                      <div>
+                        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary">
+                          FRAME+ active
+                        </div>
+                        {sub.status?.currentPeriodEnd && (
+                          <div className="font-mono text-[9px] tracking-wide text-muted-foreground/70 mt-1">
+                            {sub.status.cancelAtPeriodEnd ? "Ends" : "Renews"}{" "}
+                            {new Date(sub.status.currentPeriodEnd).toLocaleDateString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={sub.openPortal}
+                        disabled={sub.portalPending}
+                        className="border border-border/60 hover:border-primary/40 hover:text-primary text-foreground/75 transition-colors px-3 py-2 font-mono text-[9px] uppercase tracking-[0.25em] disabled:opacity-50"
+                      >
+                        {sub.portalPending ? "Opening" : "Manage"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openUpgrade()}
+                    className="w-full flex items-center justify-between border border-border/60 hover:border-primary/40 transition-colors px-4 py-3.5 text-left group"
+                  >
+                    <div>
+                      <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/85 group-hover:text-primary transition-colors">
+                        FRAME+
+                      </div>
+                      <div className="font-mono text-[9px] tracking-wide text-muted-foreground/70 mt-1">
+                        Unlimited coaching · full history · full mission
+                        {sub.priceLabel ? ` · ${sub.priceLabel}` : ""}
+                      </div>
+                    </div>
+                    <span className="font-mono text-[11px] text-foreground/40 group-hover:text-primary transition-colors">
+                      →
+                    </span>
+                  </button>
+                )}
               </div>
 
               {/* ─── ACCOUNT ───────────────────────────────────────── */}

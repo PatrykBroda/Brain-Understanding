@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { HelpCircle, RefreshCcw, X } from "lucide-react";
+import { HelpCircle, Lock, RefreshCcw, X } from "lucide-react";
 import { FrameOctagon } from "@/components/frame-octagon";
+import { useFramePlus } from "@/components/frame-plus-modal";
 import { useFighter } from "@/hooks/use-fighter";
 import {
   usePlanner,
   useRegeneratePlanner,
   useTogglePlannerItem,
 } from "@/hooks/use-planner";
-import type { PlanCategory, PlanItem } from "@/lib/api";
+import { ApiError, type PlanCategory, type PlanItem } from "@/lib/api";
 
 const CATEGORY_ORDER: PlanCategory[] = ["fix", "goal_step", "train", "technique", "regulate"];
 
@@ -61,7 +62,9 @@ export function CampMission() {
   const regen = useRegeneratePlanner();
   const toggle = useTogglePlannerItem();
   const [help, setHelp] = useState(false);
+  const { openUpgrade } = useFramePlus();
 
+  const isPreview = planner.data?.preview === true;
   const plan = planner.data?.plan ?? null;
   const completions = new Set(planner.data?.completions ?? []);
   const weekStart = planner.data?.weekStart ?? new Date().toISOString();
@@ -101,7 +104,15 @@ export function CampMission() {
           </button>
           <button
             type="button"
-            onClick={() => regen.mutate()}
+            onClick={() =>
+              regen.mutate(undefined, {
+                onError: (e) => {
+                  if (e instanceof ApiError && e.kind === "upgrade_required") {
+                    openUpgrade("weekly_mission");
+                  }
+                },
+              })
+            }
             disabled={regen.isPending}
             className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40 flex items-center gap-1.5"
           >
@@ -160,10 +171,29 @@ export function CampMission() {
         })}
       </section>
 
-      {regen.isError && (
+      {regen.isError &&
+        !(regen.error instanceof ApiError && regen.error.kind === "upgrade_required") && (
         <div className="border-l-2 border-destructive/70 bg-destructive/8 px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
           {(regen.error as Error).message || "generation failed"}
         </div>
+      )}
+
+      {isPreview && plan && (
+        <button
+          type="button"
+          onClick={() => openUpgrade("weekly_mission")}
+          className="w-full text-left border-l-2 border-primary/60 bg-primary/[0.06] px-4 py-3 transition-colors hover:bg-primary/[0.1]"
+        >
+          <div className="flex items-center gap-2.5">
+            <Lock className="w-3.5 h-3.5 flex-none text-primary/80" strokeWidth={1.5} />
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/90">
+              Mission preview
+            </span>
+          </div>
+          <p className="text-[0.8rem] text-foreground/60 leading-relaxed mt-1.5">
+            Your first directive is open. FRAME+ unlocks the full week — every item, every rationale.
+          </p>
+        </button>
       )}
 
       {planner.isLoading ? (
@@ -298,6 +328,7 @@ export function CampMission() {
                         onToggle={(done) =>
                           toggle.mutate({ key: item.key, completed: done })
                         }
+                        onLockedTap={() => openUpgrade("weekly_mission")}
                       />
                     ))}
                   </div>
@@ -336,6 +367,7 @@ function PlanItemCard({
   done,
   disabled,
   onToggle,
+  onLockedTap,
 }: {
   item: PlanItem;
   cat: PlanCategory;
@@ -343,9 +375,41 @@ function PlanItemCard({
   done: boolean;
   disabled: boolean;
   onToggle: (done: boolean) => void;
+  onLockedTap: () => void;
 }) {
   const col = CATEGORY_COLOR[cat];
   const doneBar = "hsla(32,54%,46%,0.85)";
+
+  if (item.locked) {
+    // Free-tier preview stub: title + category only, tap opens the upgrade modal.
+    return (
+      <button
+        type="button"
+        onClick={onLockedTap}
+        className="plan-item w-full text-left transition-colors duration-300 hover:bg-white/[0.02]"
+        style={{
+          borderLeft: `3px solid hsla(0,0%,100%,0.12)`,
+          borderTop: "1px solid hsla(0,0%,100%,0.07)",
+          borderRight: "1px solid hsla(0,0%,100%,0.04)",
+          borderBottom: "1px solid hsla(0,0%,100%,0.04)",
+          animationDelay: `${index * 0.07}s`,
+        }}
+      >
+        <div className="flex items-start gap-3.5 px-5 py-4">
+          <Lock className="flex-none mt-0.5 w-[18px] h-[18px] text-muted-foreground/40" strokeWidth={1.5} />
+          <div className="flex-1 min-w-0">
+            <div className="text-[0.95rem] leading-snug font-light text-foreground/45 mb-1.5">
+              {item.title}
+            </div>
+            <span className="font-mono text-[9px] uppercase tracking-widest text-primary/60 border border-primary/25 px-1.5 py-0.5">
+              FRAME+ unlocks this
+            </span>
+          </div>
+        </div>
+      </button>
+    );
+  }
+
   return (
     <div
       className="plan-item relative transition-all duration-400"

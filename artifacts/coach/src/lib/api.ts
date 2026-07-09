@@ -128,6 +128,7 @@ export type ApiErrorKind =
   | "auth"
   | "payload"
   | "rate_limit"
+  | "upgrade_required"
   | "server"
   | "unknown";
 
@@ -138,6 +139,8 @@ export class ApiError extends Error {
   causes: string[];
   retryable: boolean;
   detail: string;
+  /** Set on kind "upgrade_required": which gated feature triggered the 402. */
+  feature: string;
 
   constructor(opts: {
     kind: ApiErrorKind;
@@ -146,6 +149,7 @@ export class ApiError extends Error {
     causes: string[];
     retryable: boolean;
     detail?: string;
+    feature?: string;
   }) {
     // Base `message` carries title + causes so legacy callers that only read
     // `err.message` still surface actionable detail; structured fields below
@@ -158,6 +162,7 @@ export class ApiError extends Error {
     this.causes = opts.causes;
     this.retryable = opts.retryable;
     this.detail = opts.detail ?? "";
+    this.feature = opts.feature ?? "";
   }
 }
 
@@ -195,6 +200,24 @@ function classifyStatus(status: number, body: string): ApiError {
       causes: [msg || "The clip did not show recognisable combat sports training."],
       retryable: false,
       detail: body,
+    });
+  }
+  if (status === 402) {
+    let msg = body.trim();
+    let feature = "";
+    try {
+      const parsed = JSON.parse(body);
+      if (parsed?.error) msg = String(parsed.error);
+      if (parsed?.feature) feature = String(parsed.feature);
+    } catch {}
+    return new ApiError({
+      kind: "upgrade_required",
+      status,
+      title: "FRAME+ required",
+      causes: [msg || "This is a FRAME+ feature."],
+      retryable: false,
+      detail: body,
+      feature,
     });
   }
   if (status === 429) {
@@ -382,6 +405,8 @@ export type PlanItem = {
   sourceFactIds: number[];
   sourceCalibrationKeys: string[];
   sourceLabel: string;
+  // Free tier: server strips detail on all but the first item and marks them locked.
+  locked?: boolean;
 };
 
 export type WeeklyPlan = {
@@ -398,6 +423,8 @@ export type PlannerResponse = {
   plan: WeeklyPlan | null;
   completions: string[];
   weekStart: string;
+  // True when the server returned a free-tier mission preview.
+  preview?: boolean;
 };
 
 export const plannerApi = {
@@ -506,13 +533,16 @@ export type VideoAnalysis = {
 export type AnalysisListItem = {
   id: number;
   kind: AnalysisKind;
-  nervousSystemLoad: NervousSystemLoad;
-  sessionScore: number;
-  styleProfile: string;
-  summary: string;
+  // Nullable: on the free tier the server strips everything but id/kind/date
+  // from all rows except the most recent, and flags them locked.
+  nervousSystemLoad: NervousSystemLoad | null;
+  sessionScore: number | null;
+  styleProfile: string | null;
+  summary: string | null;
   durationSec: number;
   createdAt: string;
-  scores: AnalysisScore[];
+  scores: AnalysisScore[] | null;
+  locked?: boolean;
 };
 
 export type CreateAnalysisInput = {
@@ -876,6 +906,34 @@ export const checkinApi = {
       method: "POST",
       body: JSON.stringify(input),
     }),
+};
+
+// ── FRAME+ billing ──
+
+export type PlanKey = "free" | "frame_plus";
+
+export type Entitlement = {
+  plan: PlanKey;
+  status: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+};
+
+export type BillingStatus = Entitlement & {
+  price: { unitAmount: number; currency: string } | null;
+};
+
+export const billingApi = {
+  status: () => jsonFetch<BillingStatus>("api/billing/status"),
+  checkout: () =>
+    jsonFetch<{ url: string }>("api/billing/checkout", { method: "POST" }),
+  confirm: (sessionId: string) =>
+    jsonFetch<Entitlement>("api/billing/confirm", {
+      method: "POST",
+      body: JSON.stringify({ sessionId }),
+    }),
+  portal: () =>
+    jsonFetch<{ url: string }>("api/billing/portal", { method: "POST" }),
 };
 
 export const coachChatUrl = `${base}api/coach/chat`;

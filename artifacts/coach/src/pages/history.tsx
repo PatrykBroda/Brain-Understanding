@@ -83,7 +83,11 @@ export default function HistoryPage() {
   const analysesQuery = useAnalyses();
 
   const facts = memoryQuery.data?.facts ?? [];
-  const analyses = analysesQuery.data?.analyses ?? [];
+  // Locked stubs (free tier) carry no real data and their detail routes 402 —
+  // keep the history timeline to sessions this athlete can actually open.
+  const analyses = (analysesQuery.data?.analyses ?? []).filter(
+    (a) => !a.locked && a.sessionScore != null,
+  );
   const isLoading = memoryQuery.isLoading || analysesQuery.isLoading;
 
   const days = useMemo<DayBucket[]>(() => {
@@ -285,7 +289,7 @@ export default function HistoryPage() {
                               Session score
                             </span>
                             <span className="font-sans font-light text-[17px] tabular-nums leading-none text-primary/90">
-                              {Math.round(a.sessionScore)}
+                              {Math.round(a.sessionScore ?? 0)}
                             </span>
                           </div>
                         </Link>

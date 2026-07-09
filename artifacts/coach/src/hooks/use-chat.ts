@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, coachChatUrl, type AiProvider, type AttachmentDto, type ServerMessage } from "@/lib/api";
+import { useFramePlus } from "@/components/frame-plus-modal";
 
 export type ChatMessage = {
   id: string;
@@ -28,6 +29,7 @@ const STREAM_IDLE_TIMEOUT_MS = 30_000;
 
 export function useChat() {
   const qc = useQueryClient();
+  const { openUpgrade } = useFramePlus();
   const conversationQuery = useQuery({
     queryKey: ["conversation"],
     queryFn: () => api.getActiveConversation(),
@@ -144,6 +146,26 @@ export function useChat() {
           }),
           signal: ctrl.signal,
         });
+        if (res.status === 402) {
+          // Free-tier daily limit. Not a failed turn: drop the optimistic
+          // bubbles, restore the draft so nothing is lost, open the upgrade
+          // modal. No error banner, no retry affordance.
+          let payload: { code?: string } = {};
+          try {
+            payload = (await res.json()) as { code?: string };
+          } catch {}
+          lastAttemptRef.current = null;
+          setLocalMessages((prev) =>
+            prev.filter((m) => m.id !== userBubbleId && m.id !== assistantId),
+          );
+          setInput(trimmed);
+          if (payload.code === "FRAME_PLUS_REQUIRED") {
+            openUpgrade("coaching");
+          } else {
+            setError("That message couldn't be sent.");
+          }
+          return;
+        }
         if (!res.ok || !res.body) {
           throw new Error(`Stream failed: ${res.status}`);
         }
@@ -217,7 +239,7 @@ export function useChat() {
         abortRef.current = null;
       }
     },
-    [isStreaming, qc, stop],
+    [isStreaming, qc, stop, openUpgrade],
   );
 
   const retry = useCallback(() => {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
-import { ChevronLeft, Upload, Film, X, Download, ArrowUpRight, ArrowDownRight, Minus, Link2 } from "lucide-react";
+import { ChevronLeft, Upload, Film, X, Download, ArrowUpRight, ArrowDownRight, Minus, Link2, Lock } from "lucide-react";
 import { toPng } from "html-to-image";
 import {
   LineChart,
@@ -22,6 +22,7 @@ import {
   type ExtractResult,
 } from "@/lib/pose";
 import { computeMetrics } from "@/lib/analysis-metrics";
+import { useFramePlus } from "@/components/frame-plus-modal";
 import { ApiError, fetchRemoteVideo } from "@/lib/api";
 import type {
   AnalysisKind,
@@ -731,7 +732,7 @@ function UploadControls({
   linkUrl: string;
   setLinkUrl: (v: string) => void;
   onSubmitLink: () => void;
-  analyses: { id: number; kind: string; nervousSystemLoad: NervousSystemLoad; sessionScore: number; styleProfile: string; summary: string; createdAt: string }[];
+  analyses: AnalysisListItem[];
   analysesLoading: boolean;
   onOpen: (id: number) => void;
   compareId: number | null;
@@ -2040,20 +2041,13 @@ function History({
   compareId,
   onSetCompare,
 }: {
-  items: {
-    id: number;
-    kind: string;
-    nervousSystemLoad: NervousSystemLoad;
-    sessionScore: number;
-    styleProfile: string;
-    summary: string;
-    createdAt: string;
-  }[];
+  items: AnalysisListItem[];
   loading: boolean;
   onOpen: (id: number) => void;
   compareId: number | null;
   onSetCompare: (id: number) => void;
 }) {
+  const { openUpgrade } = useFramePlus();
   if (loading) return null;
   if (items.length === 0) return null;
 
@@ -2088,6 +2082,44 @@ function History({
       <div className="space-y-[3px]">
         {items.map((a, idx) => {
           const isBaseline = a.id === compareId;
+          if (a.locked) {
+            // Free tier: everything except the latest session is server-locked.
+            return (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => openUpgrade("analysis_history")}
+                className="w-full text-left px-4 py-3.5 transition-colors duration-200 hover:bg-white/[0.02]"
+                style={{
+                  borderLeft: "2px solid hsla(0,0%,100%,0.08)",
+                  borderTop: "1px solid hsla(0,0%,100%,0.05)",
+                  background: idx % 2 === 0 ? "hsla(0,0%,100%,0.015)" : "transparent",
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <Lock className="w-[14px] h-[14px] flex-none text-muted-foreground/40" strokeWidth={1.5} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/45">
+                        {a.kind}
+                      </span>
+                      <span className="font-mono text-[8px] uppercase tracking-widest text-primary/60 border border-primary/25 px-1.5 py-0.5">
+                        FRAME+
+                      </span>
+                    </div>
+                    <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/35 mt-1.5">
+                      {new Date(a.createdAt).toLocaleString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            );
+          }
           return (
             <div
               key={a.id}
@@ -2133,12 +2165,14 @@ function History({
                         )}
                       </span>
                       <span className="flex items-baseline gap-2">
-                        {a.sessionScore > 0 && (
+                        {(a.sessionScore ?? 0) > 0 && (
                           <span className="font-mono text-[12px] font-light text-foreground/90">{a.sessionScore}</span>
                         )}
-                        <span className={`font-mono text-[9px] uppercase tracking-widest ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}>
-                          {LOAD_LABEL[a.nervousSystemLoad]}
-                        </span>
+                        {a.nervousSystemLoad != null && (
+                          <span className={`font-mono text-[9px] uppercase tracking-widest ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}>
+                            {LOAD_LABEL[a.nervousSystemLoad]}
+                          </span>
+                        )}
                       </span>
                     </div>
                     <p className="text-[0.78rem] text-foreground/55 leading-snug line-clamp-2">

@@ -28,6 +28,8 @@ import {
 } from "../lib/competitionService";
 import { getUpcomingSessions } from "../lib/trainingSessionService";
 import { computeVocabulary, vocabularyPromptBlock } from "../lib/vocabulary";
+import { getEntitlementForClerkUser } from "../lib/subscriptionService";
+import { countUserMessagesToday, FREE_DAILY_COACHING_LIMIT } from "../lib/featureGates";
 
 // Build the active-camp coach directive: pressure + phase + honest weight-cut +
 // upcoming scheduled sessions. Null when no camp is live.
@@ -318,6 +320,23 @@ router.post("/coach/chat", async (req, res) => {
     res.status(400).json({ error: "no fighter — complete onboarding first" });
     return;
   }
+
+  // Server-enforced free-tier gate: 20 coaching messages per UTC day.
+  // Checked BEFORE the SSE stream starts so the client gets clean JSON.
+  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  if (entitlement.plan === "free") {
+    const used = await countUserMessagesToday(fighter.id);
+    if (used >= FREE_DAILY_COACHING_LIMIT) {
+      res.status(402).json({
+        error: `Daily coaching limit reached (${FREE_DAILY_COACHING_LIMIT} messages on the free tier). FRAME+ removes the cap.`,
+        code: "FRAME_PLUS_REQUIRED",
+        feature: "coaching",
+        limit: FREE_DAILY_COACHING_LIMIT,
+      });
+      return;
+    }
+  }
+
   const conversation = await getOrCreateActiveConversation(fighter.id);
 
   // Reuse an immediately-preceding identical, unanswered user message instead of

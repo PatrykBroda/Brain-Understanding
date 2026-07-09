@@ -18,7 +18,30 @@ import {
   isoMondayUTC,
 } from "../lib/plannerService";
 import { getOrCreateActiveConversation } from "./conversation";
+import { getEntitlementForClerkUser } from "../lib/subscriptionService";
+import type { PlanItem } from "@workspace/db";
 import { getUserFighter } from "../middlewares/authMiddleware";
+
+// Free tier sees a mission preview: the first item in full, the rest as
+// title+category stubs. Shape stays PlanItem-compatible so clients don't break.
+function previewPlan(plan: WeeklyPlan): WeeklyPlan {
+  const items = plan.items.map((item, i): PlanItem & { locked?: boolean } =>
+    i === 0
+      ? { ...item, locked: false }
+      : {
+          key: item.key,
+          category: item.category,
+          title: item.title,
+          detail: "",
+          suggestedDays: "",
+          sourceFactIds: [],
+          sourceCalibrationKeys: [],
+          sourceLabel: "",
+          locked: true,
+        },
+  );
+  return { ...plan, items };
+}
 
 const router: IRouter = Router();
 
@@ -122,10 +145,13 @@ router.get("/planner/current", async (req, res) => {
     }
   }
   const completions = plan ? await listCompletions(plan.id) : [];
+  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  const isFree = entitlement.plan === "free";
   res.json({
-    plan,
+    plan: plan && isFree ? previewPlan(plan) : plan,
     completions: completions.map((c) => c.itemKey),
     weekStart: isoMondayUTC().toISOString(),
+    ...(isFree && plan ? { preview: true } : {}),
   });
 });
 
@@ -133,6 +159,15 @@ router.post("/planner/regenerate", async (req, res) => {
   const fighter = await getUserFighter(req);
   if (!fighter) {
     res.status(400).json({ error: "no fighter" });
+    return;
+  }
+  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  if (entitlement.plan === "free") {
+    res.status(402).json({
+      error: "Regenerating the weekly mission is a FRAME+ feature.",
+      code: "FRAME_PLUS_REQUIRED",
+      feature: "weekly_mission",
+    });
     return;
   }
   const result = await runGeneration(fighter.id, req, true);

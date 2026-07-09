@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { ChevronRight, Pencil, Move } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
 import { CompetitionBanner } from "@/components/competition-banner";
+import { FramePlusPill } from "@/components/frame-plus-modal";
 import { useFighter, useUpdateFighter } from "@/hooks/use-fighter";
 import { useAnalyses } from "@/hooks/use-analysis";
 import { useActiveCompetition } from "@/hooks/use-competition";
@@ -150,7 +151,8 @@ export default function DashboardPage() {
   const fighter = fighterData?.fighter ?? null;
 
   const analysesQuery = useAnalyses();
-  const latest = analysesQuery.data?.analyses?.[0] ?? null;
+  const latest =
+    analysesQuery.data?.analyses?.find((a) => !a.locked && a.sessionScore != null) ?? null;
 
   const checkinQuery = useTodayCheckin();
   const checkin = checkinQuery.data?.checkin ?? null;
@@ -173,7 +175,7 @@ export default function DashboardPage() {
   const checkinScore = checkin
     ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
     : null;
-  const sessionScore = latest ? Math.round(latest.sessionScore) : null;
+  const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
   const readiness = checkinScore ?? sessionScore;
   const provenance =
     checkinScore != null
@@ -316,16 +318,19 @@ export default function DashboardPage() {
                   </span>
                 </div>
               </div>
-              {hasHero && !adjusting && (
-                <button
-                  type="button"
-                  onClick={startAdjust}
-                  aria-label="Adjust hero image framing"
-                  className="w-8 h-8 flex items-center justify-center border border-white/15 bg-black/40 text-foreground/60 hover:text-primary hover:border-primary/40 transition-colors"
-                >
-                  <Move className="w-3.5 h-3.5" strokeWidth={1.5} />
-                </button>
-              )}
+              <div className="flex items-center gap-2.5">
+                <FramePlusPill />
+                {hasHero && !adjusting && (
+                  <button
+                    type="button"
+                    onClick={startAdjust}
+                    aria-label="Adjust hero image framing"
+                    className="w-8 h-8 flex items-center justify-center border border-white/15 bg-black/40 text-foreground/60 hover:text-primary hover:border-primary/40 transition-colors"
+                  >
+                    <Move className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  </button>
+                )}
+              </div>
             </header>
 
             {/* Framing controls (adjust mode) */}

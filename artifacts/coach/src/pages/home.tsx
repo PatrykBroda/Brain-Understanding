@@ -34,7 +34,8 @@ export default function HomePage() {
   const frameState = useFrameState();
 
   const analysesQuery = useAnalyses();
-  const latest = analysesQuery.data?.analyses?.[0] ?? null;
+  const latest =
+    analysesQuery.data?.analyses?.find((a) => !a.locked && a.sessionScore != null) ?? null;
 
   // Same readiness priority as the Home dashboard: today's self-reported
   // check-in composite first, else the last analysed session's score.
@@ -43,7 +44,7 @@ export default function HomePage() {
   const checkinScore = checkin
     ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
     : null;
-  const sessionScore = latest ? Math.round(latest.sessionScore) : null;
+  const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
   const readiness = checkinScore ?? sessionScore;
   const readinessSource = checkinScore != null ? "today" : "last session";
 

@@ -71,7 +71,8 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const analysesQuery = useAnalyses();
-  const latest = analysesQuery.data?.analyses?.[0] ?? null;
+  const latest =
+    analysesQuery.data?.analyses?.find((a) => !a.locked && a.sessionScore != null) ?? null;
 
   const compQuery = useActiveCompetition();
   const pressure = compQuery.data?.pressure ?? null;
@@ -225,7 +226,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
           <>
             <div className="flex items-end gap-4 mb-4">
               <div className="font-mono text-5xl tabular-nums text-foreground leading-none">
-                {Math.round(latest.sessionScore)}
+                {Math.round(latest.sessionScore ?? 0)}
                 <span className="text-lg text-muted-foreground/50">/100</span>
               </div>
               <div className="pb-1 min-w-0">

@@ -17,3 +17,4 @@
 - [SSE coach-chat resilience](sse-chat-resilience.md) — a stream that closes without a `{done:true}` sentinel is a FAILURE; client needs an inactivity watchdog; server persists partial replies so retry-dedup can't safely auto-delete them.
 - [Mobile smoke tests](mobile-smoke-tests.md) — auth via @clerk/testing ticket strategy; rebuild dist + restart workflow after mobile code changes before running.
 - [frame-mobile e.filter crash](frame-mobile-efilter-crash.md) — useQuery data default (= []) doesn't guard against null from TanStack Query; use Array.isArray(rawFacts) ? rawFacts : [] after destructuring.
+- [Premium gating — indirect leaks](premium-gating-leaks.md) — a per-record 402 gate isn't enough: strip compare params/history trails/sibling-row fields from responses free tier can still reach.

@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { initStripe } from "./lib/initStripe";
 
 const rawPort = process.env["PORT"];
 
@@ -42,3 +43,7 @@ function startListening(attempt = 1): void {
 }
 
 startListening();
+
+// Fire-and-forget: Stripe schema/webhook/backfill must never block or crash
+// boot (see boot-reliability constraint). Billing degrades gracefully.
+void initStripe();
