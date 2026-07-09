@@ -16,6 +16,13 @@ Do NOT add a `postbuild` (or any) hook that runs the vitest suite to `artifacts/
 
 **How to apply:** tests belong to the dedicated `test` / `api-server-tests` workflows + the validation system, never the build. Consequence to accept: prod deploys are no longer test-gated by the build step itself.
 
+## Rule 3 — concurrent api-server builds must not share one dist/
+Two smoke runners (or a smoke runner + the dev workflow) building the api-server at the same time corrupt each other: one build `rm`s and rewrites `dist/` while the other's `node` is importing it, yielding a truncated `index.mjs` and `SyntaxError: Unexpected end of input` at boot (health check sees HTTP 000 until timeout).
+
+**Why:** the validation system runs coach-smoke and mobile-smoke in parallel; both ran `pnpm --filter api-server run dev` (= build && start) into the same in-place `dist/`.
+
+**How to apply:** `build.mjs` + the `start` script honor `API_SERVER_DIST`; each smoke runner sets its own dir (`/tmp/{coach,mobile}-smoke-api-dist`). The synochi prebuild writes its generated file atomically (tmp + rename) for the same reason. Any new runner that boots the api-server must set its own `API_SERVER_DIST`.
+
 ## Rule 2 — listen() must handle EADDRINUSE, not assume a callback error arg
 `app.listen(port, cb)`'s callback is a `listening` listener and receives NO error argument — so `app.listen(port, (err) => { if (err) … })` is dead code and `EADDRINUSE` surfaces as an unhandled `error` event that crashes the process.
 

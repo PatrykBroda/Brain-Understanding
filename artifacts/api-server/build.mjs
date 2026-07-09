@@ -11,7 +11,13 @@ globalThis.require = createRequire(import.meta.url);
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
 
 async function buildAll() {
-  const distDir = path.resolve(artifactDir, "dist");
+  // API_SERVER_DIST lets isolated runners (smoke tests) build into their own
+  // directory. Two concurrent builds sharing one dist/ corrupt each other:
+  // one rm's + rewrites files while the other's `node` is importing them,
+  // yielding a truncated index.mjs and "Unexpected end of input" at boot.
+  const distDir = process.env.API_SERVER_DIST
+    ? path.resolve(process.env.API_SERVER_DIST)
+    : path.resolve(artifactDir, "dist");
   await rm(distDir, { recursive: true, force: true });
 
   await esbuild({

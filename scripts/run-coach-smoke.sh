@@ -124,7 +124,8 @@ wait_for_http() {
 echo "[coach-smoke] Fresh run — ports: api=$API_PORT coach=$COACH_PORT proxy=$PROXY_PORT (randomized per run; stale servers can never be reused)"
 
 echo "[coach-smoke] Starting FRESH smoke API server on :$API_PORT (current code)"
-PORT=$API_PORT pnpm --filter @workspace/api-server run dev \
+PORT=$API_PORT API_SERVER_DIST=/tmp/coach-smoke-api-dist \
+  pnpm --filter @workspace/api-server run dev \
   >/tmp/coach-smoke-api.log 2>&1 &
 track $!
 wait_for_http "API server" "http://127.0.0.1:$API_PORT/api/healthz" 90 200

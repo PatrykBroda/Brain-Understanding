@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, writeFileSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync, statSync, renameSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -88,7 +88,13 @@ const ts =
   `export const SYNOCHI_VAULT = ${JSON.stringify(vault)};\n` +
   `export const SYNOCHI_DEEP: Record<"MODELS" | "MECHANISMS", Record<string, string>> = ${JSON.stringify(deep)};\n`;
 
-writeFileSync(OUT, ts);
+// Atomic write (tmp + rename): concurrent builds (dev workflow + smoke
+// runners) regenerate this file with identical content; a plain write lets
+// one build read a half-written file from another. rename() is atomic, so
+// readers always see a complete old or new file.
+const tmpOut = `${OUT}.tmp-${process.pid}`;
+writeFileSync(tmpOut, ts);
+renameSync(tmpOut, OUT);
 
 const deepCount = Object.values(deep).reduce((s, m) => s + Object.keys(m).length, 0);
 const deepChars = Object.values(deep).reduce(
