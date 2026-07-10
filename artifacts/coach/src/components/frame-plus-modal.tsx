@@ -9,46 +9,26 @@ import {
 import { X } from "lucide-react";
 import { useSubscription } from "@/hooks/use-subscription";
 
-// Feature-key → headline copy. Keys match the server's 402 `feature` field.
-const FEATURE_COPY: Record<string, { title: string; line: string }> = {
-  coaching: {
-    title: "You hit today's limit",
-    line: "The free tier covers 20 coaching messages a day. FRAME+ removes the cap — the coach stays in your corner all day.",
-  },
-  analysis_history: {
-    title: "Your history is waiting",
-    line: "The free tier keeps your latest FRAME REPORT open. FRAME+ unlocks every past session — progress is a pattern, not a snapshot.",
-  },
-  weekly_mission: {
-    title: "Your weekly mission is FRAME+",
-    line: "Personalised missions built from your recorded model — every item cited to something FRAME actually knows about you. The free tier previews the first item.",
-  },
-  video_analysis: {
-    title: "Your free analysis is used",
-    line: "Your first FRAME REPORT was on the house. FRAME+ makes analysis unlimited — every session read, every pattern tracked over time.",
-  },
-  athlete_model: {
-    title: "The Complete Athlete Model is FRAME+",
-    line: "Your model keeps growing on the free tier — the advanced AI-derived insights sit behind FRAME+: the full DNA read, every recorded observation, every dimension FRAME tracks.",
-  },
-  fight_readiness: {
-    title: "Advanced readiness is FRAME+",
-    line: "Today's check-in stays free. FRAME+ reads the trend underneath it — how your readiness moves across days, built only from what you've actually logged.",
-  },
-  default: {
-    title: "This is a FRAME+ feature",
-    line: "FRAME+ removes the free-tier limits across coaching, analysis and the athlete model.",
-  },
+// Feature-key → one short contextual reason. Keys match the server's 402
+// `feature` field. Kept intentionally terse: it tells the athlete why the card
+// opened without competing with the identity statement. "default" has no reason.
+const FEATURE_REASON: Record<string, string> = {
+  coaching: "You've reached today's coaching limit.",
+  analysis_history: "Your past sessions live in FRAME+.",
+  weekly_mission: "Your weekly mission is FRAME+.",
+  video_analysis: "You've used your free analysis.",
+  athlete_model: "The complete Athlete Model is FRAME+.",
+  fight_readiness: "Advanced readiness is FRAME+.",
+  default: "",
 };
 
-// The upgrade screen reads like joining the operating system, not a sales
-// pitch — short declaratives under one manifesto line.
-const MANIFESTO = "Your Athlete Model never stops evolving.";
-const BENEFITS = [
-  "Unlimited coaching.",
-  "Unlimited analysis.",
-  "Continuous calibration.",
-  "One system that grows with every session.",
+// The upgrade card sells identity, not a feature list: one manifesto line, then
+// three short identity-framed lines. Much less text than a spec sheet.
+const IDENTITY = "Train with a model that evolves with you.";
+const IDENTITY_LINES = [
+  "An evolving athlete model",
+  "Unlimited analysis",
+  "Continuous calibration",
 ];
 
 type FramePlusContextValue = {
@@ -69,7 +49,7 @@ export function FramePlusProvider({ children }: { children: ReactNode }) {
   const [feature, setFeature] = useState<string | null>(null);
 
   const openUpgrade = useCallback((f?: string) => {
-    setFeature(f && f in FEATURE_COPY ? f : "default");
+    setFeature(f && f in FEATURE_REASON ? f : "default");
   }, []);
   const closeUpgrade = useCallback(() => setFeature(null), []);
 
@@ -97,7 +77,7 @@ function FramePlusModal({
 }) {
   const { priceLabel, startCheckout, checkoutPending, checkoutError, isFramePlus } =
     useSubscription();
-  const copy = FEATURE_COPY[feature] ?? FEATURE_COPY["default"]!;
+  const reason = FEATURE_REASON[feature] ?? "";
 
   return (
     <div
@@ -108,64 +88,68 @@ function FramePlusModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-t-2xl border border-white/[0.08] bg-[hsl(0,0%,5%)] p-6 pb-8 sm:rounded-2xl sm:pb-6"
+        className="frame-plus-breath w-full max-w-md rounded-t-2xl border bg-[hsl(0,0%,5%)] p-7 pb-9 sm:rounded-2xl sm:p-8"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
-          <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary">
+          <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary">
             FRAME+
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="-mr-1 -mt-1 rounded p-1 text-foreground/50 transition-colors hover:text-foreground"
+            className="-mr-1 -mt-1 rounded p-1 text-foreground/40 transition-colors hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <h2 className="mt-4 text-lg font-light tracking-wide text-foreground/95">
-          {copy.title}
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {copy.line}
-        </p>
-
-        <div className="mt-6 border-t border-white/[0.06] pt-5">
-          <p className="text-[15px] font-light tracking-wide text-foreground/95">
-            {MANIFESTO}
+        {reason !== "" && (
+          <p className="mt-6 text-xs tracking-wide text-muted-foreground">
+            {reason}
           </p>
-          <ul className="mt-4 space-y-2">
-            {BENEFITS.map((b) => (
-              <li key={b} className="flex items-start gap-3 text-sm text-foreground/80">
-                <span
-                  aria-hidden
-                  className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-primary"
-                />
-                {b}
-              </li>
-            ))}
-          </ul>
-        </div>
+        )}
+
+        <h2
+          className={`${reason !== "" ? "mt-3" : "mt-8"} max-w-[15ch] text-2xl font-light leading-snug tracking-wide text-foreground/95`}
+        >
+          {IDENTITY}
+        </h2>
+
+        <ul className="mt-8 space-y-3">
+          {IDENTITY_LINES.map((line) => (
+            <li
+              key={line}
+              className="flex items-center gap-3 text-[15px] font-light tracking-wide text-foreground/85"
+            >
+              <span
+                aria-hidden
+                className="h-px w-5 shrink-0 bg-primary/70"
+              />
+              {line}
+            </li>
+          ))}
+        </ul>
 
         {isFramePlus ? (
-          <div className="mt-6 border-t border-white/[0.06] pt-4 font-mono text-[11px] uppercase tracking-[0.25em] text-primary">
+          <div className="mt-9 border-t border-white/[0.06] pt-5 font-mono text-[11px] uppercase tracking-[0.25em] text-primary">
             FRAME+ active — you're covered
           </div>
         ) : (
-          <>
+          <div className="mt-9">
+            {priceLabel !== "" && (
+              <p className="text-sm font-light tracking-wide text-foreground/70">
+                {priceLabel}
+              </p>
+            )}
             <button
               type="button"
               onClick={startCheckout}
               disabled={checkoutPending}
-              className="mt-6 w-full bg-primary py-3 font-mono text-[11px] uppercase tracking-[0.25em] text-black transition-colors hover:bg-primary/90 disabled:opacity-60"
+              className="mt-4 w-full bg-primary py-3.5 font-mono text-[11px] uppercase tracking-[0.3em] text-black transition-colors hover:bg-primary/90 disabled:opacity-60"
             >
-              {checkoutPending
-                ? "Opening checkout"
-                : priceLabel
-                  ? `Start FRAME+ — ${priceLabel}`
-                  : "Start FRAME+"}
+              {checkoutPending ? "Opening checkout" : "Unlock FRAME+"}
             </button>
             {checkoutError != null && (
               <p className="mt-3 text-xs text-destructive">
@@ -179,7 +163,7 @@ function FramePlusModal({
             >
               Not now
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>

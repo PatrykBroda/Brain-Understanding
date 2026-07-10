@@ -303,3 +303,32 @@
     animation: none;
   }
 }
+
+/* FRAME+ upgrade card — slow, low-amplitude ambient border "breath" (~9s),
+   echoing the home orb so the upsell reads as a living tier, not a panel. */
+.frame-plus-breath {
+  animation: frame-plus-breath 9s ease-in-out infinite;
+}
+
+@keyframes frame-plus-breath {
+  0%,
+  100% {
+    border-color: hsl(var(--primary) / 0.16);
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.04),
+      0 0 34px -14px hsl(var(--primary) / 0.16);
+  }
+  50% {
+    border-color: hsl(var(--primary) / 0.44);
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.12),
+      0 0 46px -8px hsl(var(--primary) / 0.34);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame-plus-breath {
+    animation: none;
+    border-color: hsl(var(--primary) / 0.32);
+  }
+}
