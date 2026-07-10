@@ -1,0 +1,442 @@
+1. FRAME+ Doesn't Feel Premium Yet
+
+Looking at the screenshot, the problem isn't the design.
+
+It's the hierarchy.
+
+Right now it feels like a navigation card.
+
+It should feel like entering another tier of the operating system.
+
+Currently I see:
+
+FRAME+
+
+Unlimited coaching • full history • full mission • £6.99/month →
+
+That doesn't create desire.
+
+I'd redesign it like this
+━━━━━━━━━━━━━━━━━━━━━━
+
+FRAME+
+
+Your Athlete Model never stops evolving.
+
+Unlimited coaching
+
+Unlimited video analysis
+
+Continuous calibration
+
+£6.99 / month
+
+[ Unlock FRAME+ ]
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+Much less text.
+
+Much more confidence.
+
+Even better...
+
+Give it movement.
+
+Not flashy.
+
+Imagine the border has an almost imperceptible pulse every 8–10 seconds.
+
+The orb already breathes.
+
+FRAME+ should too.
+
+Almost like:
+
+"This system is alive."
+
+Don't Sell Features
+
+Sell Identity.
+
+Bad:
+
+Unlimited Coaching
+
+Good:
+
+Train with a model that evolves with you.
+
+Bad:
+
+Unlimited Messages
+
+Good:
+
+No limits on calibration.
+
+Bad:
+
+Premium
+
+Good:
+
+Continuous Athlete Model
+
+You're selling the relationship.
+
+Not the messages.
+
+2. Video Analysis
+
+This is where I think FRAME could become something nobody else has.
+
+Most AI video apps do this:
+
+Upload
+
+↓
+
+AI analyses
+
+↓
+
+Big paragraph
+
+↓
+
+Done
+
+That's boring.
+
+FRAME should feel like an assistant coach reviewing film.
+
+The FRAME Analysis Flow
+Step 1
+
+Upload
+
+or
+
+Paste YouTube link
+
+Step 2
+
+FRAME asks
+
+What are we looking for today?
+
+Not:
+
+"What sport?"
+
+Instead
+
+Overall
+
+Striking
+
+Footwork
+
+Distance
+
+Defence
+
+Pace
+
+Wrestling
+
+BJJ
+
+Fight IQ
+
+Specific question
+
+Or...
+
+User types:
+
+"Why do I keep getting caught exiting?"
+
+Now the AI has context.
+
+Step 3
+
+FRAME watches.
+
+Don't immediately produce coaching.
+
+Instead...
+
+Building movement model...
+
+Finding exchanges...
+
+Tracking movement...
+
+Comparing recurring behaviours...
+
+Building observations...
+
+This feels premium.
+
+Step 4
+
+Not a report.
+
+A review.
+
+Example
+
+Overall
+
+Composed
+
+──────────
+
+Primary Strength
+
+Excellent distance management.
+
+──────────
+
+Primary Leak
+
+Rear hand consistently drops after combinations.
+
+──────────
+
+Best Sequence
+
+02:43
+
+Good angle change before counter.
+
+──────────
+
+Needs Work
+
+05:11
+
+Exited on a straight line.
+
+──────────
+
+Prescription
+
+Throw one fewer strike.
+
+Exit sooner.
+
+
+Notice:
+
+Very little text.
+
+Very actionable.
+
+Then...
+
+This is the important part.
+
+FRAME asks ONE question.
+
+Example:
+
+Were you trying to pressure here, or was this a reaction?
+
+The user's answer becomes context.
+
+That makes the next analysis better.
+
+Then...
+
+Athlete Model updates.
+
+Model Updated
+
++2%
+
+New observations
+
+✓ Better pacing than previous session
+
+✓ Rear hand drops after combinations
+
+✓ Improved composure under pressure
+
+This loop is addictive.
+
+Then...
+
+Compare.
+
+Imagine after five uploads.
+
+FRAME says
+
+Compared with
+3 weeks ago
+
+Decision speed
+
+↑
+
+Distance management
+
+↑
+
+Exit discipline
+
+↓
+
+
+That's insane value.
+
+Then...
+
+Camp.
+
+If Camp Mode exists.
+
+Every analysed video belongs to that camp.
+
+Camp 1
+
+12 videos
+
+4 sparring
+
+2 competitions
+
+6 technical
+
+
+Now before the fight...
+
+FRAME can say
+
+Across this camp your biggest improvement has been patience under pressure.
+
+That's incredible.
+
+Then...
+
+Opponent mode.
+
+User uploads opponent footage.
+
+FRAME builds
+
+Opponent Model
+
+Pressure
+
+High
+
+Southpaw
+
+No
+
+Favourite Entry
+
+Double jab
+
+Weakness
+
+Leaves lead hook exposed
+
+
+Then...
+
+FRAME compares.
+
+Your biggest advantage
+
+Range.
+
+Your biggest risk
+
+Standing in front after combinations.
+
+This is genuinely useful.
+
+This is the BIG idea
+
+I actually don't think the product is:
+
+AI Video Analysis
+
+I think it's
+
+Performance Intelligence
+
+The video is just one source of evidence.
+
+So every video contributes to:
+
+Athlete Model
+Fight Readiness
+Archetype
+Weekly Mission
+Camp Review
+Training recommendations
+Opponent preparation
+
+Everything gets smarter together.
+
+One feature I would build that nobody else has
+FRAME Replay
+
+After analysis...
+
+FRAME creates:
+
+Three Moments
+
+1
+
+Best decision
+
+2
+
+Worst habit
+
+3
+
+Biggest opportunity
+
+Each with a timestamp.
+
+Clicking one jumps to that moment in the video.
+
+Not because AI is summarising.
+
+Because AI is teaching.
+
+The feature that becomes your moat
+
+If I could build one feature that no other MMA app has, it would be this:
+
+Every uploaded video, every chat, every session recap, every competition reflection, and every weekly mission contributes to a single evolving Athlete Graph.
+
+Not a memory.
+
+Not notes.
+
+A graph of evidence.
+
+FRAME doesn't remember that you said you struggle with exits—it knows that because:
+
+14 analysed videos show it.
+Your coach mentioned it twice.
+You admitted it after sparring.
+It appeared again in competition footage.
+
+When FRAME eventually says:
+
+"This pattern has appeared in 19 separate observations across the last six months. It's now your highest-confidence technical weakness."
+
+...that's no longer a chatbot talking. That's a performance system that has built an evidence-based understanding of the athlete over time.
+
+That's the moat. Not the chat. Not the UI. The continuously evolving athlete intelligence model that everything in the app feeds into.
