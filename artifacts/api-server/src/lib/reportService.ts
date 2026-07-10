@@ -304,7 +304,11 @@ export async function buildWeeklyReport(fighter: Fighter): Promise<WeeklyReport>
     );
   const analysesThisWeek = analysisRows.length;
 
-  // ── Snapshot upsert + honest delta (reproducible, server-owned) ──
+  // ── Snapshot write + honest delta (reproducible, server-owned) ──
+  // First-view idempotent: the row is written ONCE per ISO week and never
+  // rewritten on later views. This freezes each week's baseline so the
+  // week-over-week delta is reproducible and cannot drift depending on when
+  // (or whether) the athlete reopened the report.
   const weekStartYmd = ymd(weekStart);
   await db
     .insert(modelSnapshotsTable)
@@ -314,13 +318,8 @@ export async function buildWeeklyReport(fighter: Fighter): Promise<WeeklyReport>
       completeness: maturity.completeness,
       factCount: facts.length,
     })
-    .onConflictDoUpdate({
+    .onConflictDoNothing({
       target: [modelSnapshotsTable.fighterId, modelSnapshotsTable.weekStart],
-      set: {
-        completeness: maturity.completeness,
-        factCount: facts.length,
-        updatedAt: new Date(),
-      },
     });
 
   const [prior] = await db

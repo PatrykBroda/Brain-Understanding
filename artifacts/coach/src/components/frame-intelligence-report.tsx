@@ -194,12 +194,13 @@ export const FrameIntelligenceReport = forwardRef<
             )}
           </div>
 
-          {/* stat trio — only real counts */}
-          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+          {/* stat quad — only real counts */}
+          <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
             {[
+              { n: report.evidenceThisWeek, l: "Evidence" },
               { n: report.observationsThisWeek, l: "New reads" },
               { n: report.confirmationsThisWeek, l: "Confirmed" },
-              { n: report.analysesThisWeek, l: "Sessions read" },
+              { n: report.analysesThisWeek, l: "Sessions" },
             ].map((s, i) => (
               <div
                 key={i}
@@ -302,8 +303,23 @@ export const FrameIntelligenceReport = forwardRef<
           <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: GOLD, marginTop: 5 }}>
             {report.archetype.name}
           </div>
-          <div style={{ fontSize: 10, lineHeight: 1.45, color: "#b8b0a4", marginTop: 4 }}>
-            {report.archetype.gift}
+          <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 7, letterSpacing: "0.2em", textTransform: "uppercase", color: GOLD_SOFT }}>
+                Gift
+              </div>
+              <div style={{ fontSize: 10, lineHeight: 1.45, color: "#b8b0a4", marginTop: 3 }}>
+                {report.archetype.gift}
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 7, letterSpacing: "0.2em", textTransform: "uppercase", color: MUTE }}>
+                Shadow
+              </div>
+              <div style={{ fontSize: 10, lineHeight: 1.45, color: "#9aa0a6", marginTop: 3 }}>
+                {report.archetype.shadow}
+              </div>
+            </div>
           </div>
         </div>
       )}
