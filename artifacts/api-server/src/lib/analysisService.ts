@@ -160,6 +160,9 @@ export function buildReplayMoments(
   const usedIndices = new Set<number>();
   for (const ref of refs) {
     if (out.length >= 3) break;
+    // A moment with no note is just a labelled frame with no insight — drop it
+    // (without consuming the role/index slot) so a later valid ref can take it.
+    if (!ref.note || !ref.note.trim()) continue;
     if (usedRoles.has(ref.role) || usedIndices.has(ref.keyframeIndex)) continue;
     const kf = keyframes[ref.keyframeIndex];
     if (!kf) continue;

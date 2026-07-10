@@ -288,6 +288,25 @@ describe("buildReplayMoments", () => {
     expect(buildReplayMoments(refs, keyframes)).toEqual([]);
   });
 
+  it("drops a ref with an empty or whitespace-only note (no blank cards)", () => {
+    const refs: ReplayRef[] = [
+      { role: "best_decision", keyframeIndex: 0, note: "" },
+      { role: "worst_habit", keyframeIndex: 1, note: "   " },
+    ];
+    expect(buildReplayMoments(refs, keyframes)).toEqual([]);
+  });
+
+  it("an empty-note ref does not consume the role slot for a later valid one", () => {
+    const refs: ReplayRef[] = [
+      { role: "best_decision", keyframeIndex: 0, note: "" },
+      { role: "best_decision", keyframeIndex: 1, note: "clean entry" },
+    ];
+    const out = buildReplayMoments(refs, keyframes);
+    expect(out).toHaveLength(1);
+    expect(out[0].note).toBe("clean entry");
+    expect(out[0].timestamp).toBe(3.4);
+  });
+
   it("keeps only the first ref for a duplicated role", () => {
     const refs: ReplayRef[] = [
       { role: "best_decision", keyframeIndex: 0, note: "first" },
