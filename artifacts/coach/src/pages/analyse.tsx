@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { AthleteModel } from "@/components/athlete-model";
 import { BottomNav } from "@/components/bottom-nav";
+import { ModelUpdateCard } from "@/components/model-update-card";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { FrameReportCard } from "@/components/frame-report-card";
 import { useFighter } from "@/hooks/use-fighter";
@@ -29,6 +30,7 @@ import type {
   AnalysisKind,
   AnalysisKeyframe,
   AnalysisListItem,
+  AnalysisModelUpdate,
   DetectedEvent,
   NervousSystemLoad,
   VideoAnalysis,
@@ -139,6 +141,9 @@ export default function AnalysePage() {
   }
   const [phase, setPhase] = useState<Phase>({ stage: "idle" });
   const [result, setResult] = useState<VideoAnalysis | null>(null);
+  // "Athlete Model Updated" — only present right after a NEW analysis; the
+  // server computes it from real DB writes, so it never renders for saved reports.
+  const [modelUpdate, setModelUpdate] = useState<AnalysisModelUpdate | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
   const [compareId, setCompareId] = useState<number | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -173,6 +178,7 @@ export default function AnalysePage() {
       return;
     }
     setResult(null);
+    setModelUpdate(null);
     setOpenId(null);
     if (file.size > MAX_VIDEO_BYTES) {
       setPhase({
@@ -237,6 +243,7 @@ export default function AnalysePage() {
         keyframes,
       });
       setResult(res.analysis);
+      setModelUpdate(res.modelUpdate ?? null);
       setPhase({ stage: "idle" });
       // Create a blob URL for the desktop video player — revoke the previous one first
       if (pendingFile.current) {
@@ -267,6 +274,7 @@ export default function AnalysePage() {
     lastLink.current = trimmed;
     pendingFile.current = null;
     setResult(null);
+    setModelUpdate(null);
     setOpenId(null);
     setPhase({ stage: "fetching" });
     let file: File;
@@ -287,6 +295,7 @@ export default function AnalysePage() {
 
   function clearResult() {
     setResult(null);
+    setModelUpdate(null);
     if (videoUrlRef.current) {
       URL.revokeObjectURL(videoUrlRef.current);
       videoUrlRef.current = null;
@@ -347,8 +356,9 @@ export default function AnalysePage() {
       <main ref={mobileScrollRef} className="flex-1 min-h-0 overflow-y-auto md:hidden">
         <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
           {result ? (
-            <div style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
+            <div className="space-y-6" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
               <Report analysis={result} fighter={fighter} onClose={clearResult} onSelectSession={onSelectSession} />
+              {modelUpdate && <ModelUpdateCard update={modelUpdate} />}
             </div>
           ) : openId != null ? (
             <div style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
@@ -404,7 +414,10 @@ export default function AnalysePage() {
             {/* RIGHT — FRAME REPORT card + findings + scores */}
             <div ref={desktopRightScrollRef} className="flex-1 overflow-y-auto px-7 py-6" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
               {result ? (
-                <WorkstationRight analysis={result} fighter={fighter} onClose={clearResult} onSelectSession={onSelectSession} />
+                <div className="space-y-6">
+                  <WorkstationRight analysis={result} fighter={fighter} onClose={clearResult} onSelectSession={onSelectSession} />
+                  {modelUpdate && <ModelUpdateCard update={modelUpdate} />}
+                </div>
               ) : openId != null ? (
                 <SavedWorkstationRight id={openId} compareId={compareId} fighter={fighter} onClose={() => setOpenId(null)} onSelectSession={onSelectSession} />
               ) : null}

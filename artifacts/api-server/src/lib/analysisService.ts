@@ -13,6 +13,7 @@ import {
   type Fighter,
   type AthleteFact,
 } from "@workspace/db";
+import { ONTOLOGY_KEYS, isOntologyKey } from "@workspace/ontology";
 import { COACH_SYSTEM_PROMPT_STATIC, buildDynamicContext } from "./synochi";
 
 let _anthropic: Anthropic | null = null;
@@ -44,6 +45,8 @@ HARD RULES:
 - styleParallels: 1-2 KNOWN fighters whose tendencies this resembles. GROUNDED and HEDGED — never "you ARE X". Each note explains the SPECIFIC resemblance ("your entry timing and stance-switching resembles early McGregor — not identical, but the way you freeze before committing is similar"). Credibility over flattery. If nothing fits, return an empty list.
 - aiComment: ONE or TWO sentences of dry, human personality. Observational, lightly wry, never meme-y, never hype. e.g. "You fight like someone who enjoys chaos slightly too much — but people are starting to react to your feints instead of your power." No emojis.
 - findings: 3 to 5. Each = a concrete mechanical observation + its nervous-system framing. Order by what matters most. severity low|medium|high, honest. area = short tag ("guard","stance","shoulders","transitions","pacing").
+- If a finding is NEW EVIDENCE for one of the athlete's existing recorded observations (listed with ids in the athlete context), set matchesFactId to that id. Only when it is the SAME observation seen again — not merely the same body part or topic. Otherwise omit it.
+- For findings without a match, set subcategory to the fitting ontology key when one clearly applies; omit otherwise.
 - summary: 2-4 sentences. The through-line of this clip as one nervous-system story. Direct, structural, FRAME's voice. No padding, no emojis.
 - If a focus was requested, weight the whole read toward it.
 - comparisonNote: ONLY if previous-session deltas are provided below — 1-2 sentences on what changed and what it means ("you're less reactive under pressure than last upload; still overcommitting after combinations"). Omit if no prior session.
@@ -77,6 +80,16 @@ const REPORT_TOOL: Anthropic.Tool = {
             nervousSystemFraming: { type: "string" },
             severity: { type: "string", enum: ["low", "medium", "high"] },
             area: { type: "string" },
+            matchesFactId: {
+              type: "integer",
+              description:
+                "id of an EXISTING recorded observation this finding is new evidence for (same observation seen again). Omit if none.",
+            },
+            subcategory: {
+              type: "string",
+              enum: [...ONTOLOGY_KEYS],
+              description: "Ontology key for a NEW observation when one clearly fits. Omit otherwise.",
+            },
           },
           required: ["title", "observation", "nervousSystemFraming", "severity", "area"],
         },
@@ -138,13 +151,24 @@ function normalise(raw: Record<string, unknown>): AnalysisNarrative {
         | "low"
         | "medium"
         | "high";
-      findings.push({
+      const finding: AnalysisFinding = {
         title,
         observation,
         nervousSystemFraming: asStr(it["nervousSystemFraming"], 600),
         severity,
         area: asStr(it["area"], 40) || "general",
-      });
+      };
+      // AI-proposed merge target — the route validates it belongs to this
+      // fighter and is active before anything is written.
+      const matchId = it["matchesFactId"];
+      if (typeof matchId === "number" && Number.isInteger(matchId) && matchId > 0) {
+        finding.matchesFactId = matchId;
+      }
+      const sub = it["subcategory"];
+      if (typeof sub === "string" && isOntologyKey(sub)) {
+        finding.subcategory = sub;
+      }
+      findings.push(finding);
     }
   }
 

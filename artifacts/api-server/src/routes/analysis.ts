@@ -13,7 +13,7 @@ import {
 } from "@workspace/db";
 import { and, desc, eq, lt } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
-import { getActiveFacts, addFact } from "../lib/factsService";
+import { getActiveFacts, addFact, confirmFact, findActiveFactByTopic } from "../lib/factsService";
 import { getEntitlementForClerkUser } from "../lib/subscriptionService";
 import {
   generateAnalysis,
@@ -32,6 +32,28 @@ import {
   RemoteFetchError,
 } from "../lib/remoteFetch";
 import { downloadYouTube, YtDlpError } from "../lib/ytdlp";
+
+// The "Athlete Model Updated" payload — every value read back from the DB
+// after real writes, never estimated. Rendered under the FRAME REPORT.
+export type AnalysisModelUpdate = {
+  newObservations: {
+    id: number;
+    category: string;
+    subcategory: string | null;
+    topic: string;
+    content: string;
+    confidence: number;
+  }[];
+  confirmed: {
+    id: number;
+    topic: string;
+    content: string;
+    evidenceCount: number;
+    previousConfidence: number;
+    confidence: number;
+  }[];
+  confidencePointsDelta: number;
+};
 
 const router: IRouter = Router();
 
@@ -275,18 +297,88 @@ router.post("/analysis", async (req, res) => {
       })
       .returning();
 
+    // Knowledge Loop: feed the athlete model. A finding that matches an
+    // existing observation STRENGTHENS it (new evidence appended, confidence
+    // recomputed server-side); only genuinely new observations create rows.
+    // The resulting modelUpdate is computed from real before/after DB state.
+    const modelUpdate: AnalysisModelUpdate = {
+      newObservations: [],
+      confirmed: [],
+      confidencePointsDelta: 0,
+    };
     if (row) {
-      // Feed the model: each high/medium finding becomes a low-confidence pattern fact
-      // sourced to this analysis so it informs future coaching without overweighting.
+      const source = { type: "video", ref: `video:${row.id}` };
+      // One clip = one sighting. If several findings map to the same fact,
+      // only the first counts — otherwise a single video would inflate
+      // evidenceCount as if it were independent corroboration.
+      const touchedFactIds = new Set<number>();
       for (const f of narrative.findings) {
         if (f.severity === "low") continue;
-        await addFact(fighter.id, {
-          category: f.severity === "high" ? "weakness" : "pattern",
-          topic: `${body.kind}: ${f.title}`.slice(0, 120),
-          content: `${f.observation} ${f.nervousSystemFraming}`.trim().slice(0, 600),
-          confidence: 2,
-          source: `video:${row.id}`,
-        }).catch((err) => req.log.error({ err }, "analysis fact write failed"));
+        const topic = `${body.kind}: ${f.title}`.slice(0, 120);
+        const content = `${f.observation} ${f.nervousSystemFraming}`.trim().slice(0, 600);
+        try {
+          // 1. AI-proposed merge target — confirmFact validates the id
+          //    belongs to this fighter and is still active; invalid ids fall
+          //    through to the deterministic paths.
+          if (f.matchesFactId && touchedFactIds.has(f.matchesFactId)) continue;
+          if (f.matchesFactId) {
+            const confirmed = await confirmFact(fighter.id, f.matchesFactId, source);
+            if (confirmed) {
+              touchedFactIds.add(confirmed.fact.id);
+              modelUpdate.confirmed.push({
+                id: confirmed.fact.id,
+                topic: confirmed.fact.topic,
+                content: confirmed.fact.content,
+                evidenceCount: confirmed.fact.evidenceCount,
+                previousConfidence: confirmed.previousConfidence,
+                confidence: confirmed.fact.confidence,
+              });
+              modelUpdate.confidencePointsDelta +=
+                confirmed.fact.confidence - confirmed.previousConfidence;
+              continue;
+            }
+          }
+          // 2. Deterministic merge: an identical normalized topic from a prior
+          //    analysis is the same observation seen again.
+          const existing = await findActiveFactByTopic(fighter.id, topic);
+          if (existing) {
+            if (touchedFactIds.has(existing.id)) continue;
+            const confirmed = await confirmFact(fighter.id, existing.id, source);
+            if (confirmed) {
+              touchedFactIds.add(confirmed.fact.id);
+              modelUpdate.confirmed.push({
+                id: confirmed.fact.id,
+                topic: confirmed.fact.topic,
+                content: confirmed.fact.content,
+                evidenceCount: confirmed.fact.evidenceCount,
+                previousConfidence: confirmed.previousConfidence,
+                confidence: confirmed.fact.confidence,
+              });
+              modelUpdate.confidencePointsDelta +=
+                confirmed.fact.confidence - confirmed.previousConfidence;
+              continue;
+            }
+          }
+          // 3. Genuinely new observation.
+          const created = await addFact(fighter.id, {
+            category: f.severity === "high" ? "weakness" : "pattern",
+            topic,
+            content,
+            source,
+            subcategory: f.subcategory ?? null,
+          });
+          touchedFactIds.add(created.id);
+          modelUpdate.newObservations.push({
+            id: created.id,
+            category: created.category,
+            subcategory: created.subcategory,
+            topic: created.topic,
+            content: created.content,
+            confidence: created.confidence,
+          });
+        } catch (err) {
+          req.log.error({ err }, "analysis fact write failed");
+        }
       }
     }
 
@@ -302,7 +394,7 @@ router.post("/analysis", async (req, res) => {
       }))
       .filter((r) => r.signals.length > 0);
 
-    res.json({ analysis: { ...row, prevSignals, signalHistory } });
+    res.json({ analysis: { ...row, prevSignals, signalHistory }, modelUpdate });
   } catch (err) {
     if (err instanceof ContentValidationError) {
       res.status(422).json({ error: err.message, code: "INVALID_CONTENT" });

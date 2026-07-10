@@ -53,6 +53,7 @@
     "@workspace/api-client-react": "workspace:*",
     "@workspace/archetypes": "workspace:*",
     "@workspace/breath": "workspace:*",
+    "@workspace/ontology": "workspace:*",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "cmdk": "^1.1.1",

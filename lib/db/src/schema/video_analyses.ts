@@ -20,6 +20,11 @@ export type AnalysisFinding = {
   nervousSystemFraming: string;
   severity: "low" | "medium" | "high";
   area: string;
+  // Knowledge Loop: id of an EXISTING athlete_facts row this finding is new
+  // evidence for (AI-proposed, server-validated before any merge).
+  matchesFactId?: number;
+  // Fixed-ontology key (lib/ontology) for NEW observations, e.g. "striking.exits".
+  subcategory?: string;
 };
 
 export type AnalysisSignal = {

@@ -2,6 +2,7 @@ import { SYNOCHI_VAULT } from "./synochi.generated";
 import type { RetrievedNode } from "./vaultRetrieval";
 import type { Fighter, Calibration, AthleteFact } from "@workspace/db";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
+import { computeModelMaturity } from "@workspace/ontology";
 
 export const COACH_SYSTEM_PROMPT_STATIC = `You are FRAME.
 
@@ -400,6 +401,35 @@ export function buildDynamicContext(
   });
   const coachingModeBlock = `\n\n# Coaching mode — ${mode.label}\n\n${mode.directive} This is a derived posture, not a label to announce — never tell the athlete "you're in Builder mode." It sets how hard you push and what you prioritise, layered on top of (not replacing) adaptive friction scaling and the competition tier.`;
 
+  // Model maturity — how deep the accumulated model is, derived deterministically
+  // from real evidence (fact count, category breadth, corroboration, cross-source).
+  // Sets how much earned specificity the coach may speak with.
+  const maturity = computeModelMaturity(
+    facts.map((f) => ({
+      category: f.category,
+      confidence: f.confidence,
+      evidenceCount: f.evidenceCount,
+      sources: Array.isArray(f.sources) ? f.sources : [],
+    })),
+  );
+  const maturityBlock = `\n\n# Model maturity — ${maturity.stage.label}\n\n${maturity.stage.directive} (Derived from the model itself: ${maturity.factCount} active observations across ${maturity.distinctCategories} categories, ${maturity.corroborated} corroborated by repeat sightings, ${maturity.crossSource} confirmed across independent sources. Never announce the stage name to the athlete.)`;
+
+  // Feedback-style preferences — recorded preference facts steer HOW feedback
+  // lands (bluntness, technical depth, banter), never WHAT the standard is.
+  const styleFacts = facts.filter(
+    (f) =>
+      f.category === "preference" &&
+      /\b(blunt|direct|harsh|soft|gentle|encourag|technical|detail|banter|humou?r|joke|serious|no.?nonsense|straight)/i.test(
+        `${f.topic} ${f.content}`,
+      ),
+  );
+  const styleBlock =
+    styleFacts.length === 0
+      ? ""
+      : `\n\n# Recorded feedback-style preferences\n\nThe athlete has stated how they want feedback delivered. Honor these in HOW you speak — they never soften the standard itself:\n${styleFacts
+          .map((f) => `- (id ${f.id}) ${f.topic}: ${f.content}`)
+          .join("\n")}`;
+
   const grouped = groupFacts(facts);
   const factsBlock =
     facts.length === 0
@@ -433,7 +463,7 @@ export function buildDynamicContext(
 
   return `# Athlete profile (baseline)
 
-${profile}${sportBlock}${coachingModeBlock}
+${profile}${sportBlock}${coachingModeBlock}${maturityBlock}${styleBlock}
 ${competitionBlock ? `\n${competitionBlock}\n` : ""}
 # Accumulated athlete model (working memory — treat as evidence, supersede when wrong)
 

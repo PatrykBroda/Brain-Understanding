@@ -9,6 +9,7 @@ import { useFramePlus } from "@/components/frame-plus-modal";
 import { AthleteStatePanel } from "@/components/athlete-state-panel";
 import { sportLabel } from "@/lib/fighter-options";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
+import { ontologyDomainOf, computeModelMaturity } from "@workspace/ontology";
 import { api, type FactCategory } from "@/lib/api";
 
 const CATEGORY_LABELS: Record<FactCategory, string> = {
@@ -33,17 +34,19 @@ const CATEGORY_ORDER: FactCategory[] = [
   "context",
 ];
 
-// Fighter-specific DNA dimensions. Each aggregates any observation whose
-// topic/content matches its keywords (a fact can feed several) plus a category
-// hint. Confidence bands — how well FRAME understands each area — never a
-// 1-100 attribute score.
+// Fighter-specific DNA dimensions. A structured ontology tag on the fact
+// (subcategory "<domain>.<facet>") is the preferred signal; keyword/category
+// matching remains as the fallback for legacy untagged rows. Confidence
+// bands — how well FRAME understands each area — never a 1-100 attribute score.
 const RADAR_DIMS: {
   label: string;
+  domains: string[]; // ontology domain keys — authoritative when the fact is tagged
   keywords: string[];
   categories?: FactCategory[];
 }[] = [
   {
     label: "Striking",
+    domains: ["striking"],
     keywords: [
       "strik", "punch", "kick", "elbow", "knee", "jab", "cross", "hook",
       "box", "muay", "stance", "footwork", "combination", "range", "distance",
@@ -51,6 +54,7 @@ const RADAR_DIMS: {
   },
   {
     label: "Grappling",
+    domains: ["grappling"],
     keywords: [
       "grappl", "guard", "mount", "takedown", "wrestl", "submission", "choke",
       "armbar", "sweep", "pass", "clinch", "control", "ground", "bjj", "judo",
@@ -59,6 +63,7 @@ const RADAR_DIMS: {
   },
   {
     label: "Competition",
+    domains: ["competition"],
     keywords: [
       "comp", "tournament", "match", "fight", "spar", "opponent", "weigh",
       "cut", "event", "prep", "medal", "bracket",
@@ -67,6 +72,7 @@ const RADAR_DIMS: {
   },
   {
     label: "Recovery",
+    domains: ["recovery"],
     keywords: [
       "recover", "rest", "sleep", "fatigue", "gas", "cardio", "conditioning",
       "breath", "injur", "sore", "heal", "tired", "energy",
@@ -74,6 +80,7 @@ const RADAR_DIMS: {
   },
   {
     label: "Decision Making",
+    domains: ["decision_making"],
     keywords: [
       "decision", "choice", "react", "read", "anticipat", "tactical", "pace",
       "timing", "adapt", "plan", "patient", "hesitat", "commit", "impos",
@@ -82,6 +89,7 @@ const RADAR_DIMS: {
   },
   {
     label: "Mental Game",
+    domains: ["mindset", "identity"],
     keywords: [
       "mental", "mind", "confidence", "focus", "calm", "compos", "anxiet",
       "fear", "tilt", "emotion", "motivat", "doubt", "frustrat", "nervous",
@@ -441,10 +449,17 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
       .sort((a, b) => categoryCoverage[a] - categoryCoverage[b])
       .slice(0, 3);
 
-    // ── Radar data (6 fighter-specific dims via keyword buckets) ──────
+    // ── Radar data (6 fighter-specific dims) ──────────────────────────
+    // Ontology-tagged facts route by their domain (authoritative, no keyword
+    // guessing); untagged legacy facts fall back to keyword/category matching.
     const radarData = RADAR_DIMS.map((dim) => {
       let sum = 0;
       for (const f of facts) {
+        const domain = ontologyDomainOf(f.subcategory);
+        if (domain) {
+          if (dim.domains.includes(domain)) sum += f.confidence;
+          continue;
+        }
         const hay = `${f.topic} ${f.content}`.toLowerCase();
         const kwHit = dim.keywords.some((k) => hay.includes(k));
         const catHit = dim.categories?.includes(f.category) ?? false;
@@ -492,6 +507,10 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
       modelSize: facts.length,
     });
 
+    // Adaptive-intelligence stage — same deterministic derivation the coach
+    // prompt uses (shared lib), from real evidence only.
+    const maturity = computeModelMaturity(facts);
+
     return {
       frameConfidence,
       lowestCategories,
@@ -504,6 +523,7 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
       integritySegments,
       integrityLabel,
       coachingMode,
+      maturity,
     };
   }, [facts, messages, fighter, grouped]);
 
@@ -578,6 +598,18 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
               Updated {formatHeartbeat(computed.lastUpdated)}
             </div>
           )}
+
+          <div
+            className="flex items-baseline justify-between gap-3 mb-4"
+            title={`${computed.maturity.stage.meaning} Derived from ${computed.maturity.factCount} observations across ${computed.maturity.distinctCategories} categories — ${computed.maturity.corroborated} corroborated, ${computed.maturity.crossSource} cross-source.`}
+          >
+            <span className="font-mono text-[9px] uppercase tracking-[0.45em] text-foreground/50">
+              Stage
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/85">
+              {computed.maturity.stage.label}
+            </span>
+          </div>
 
           <ConfidenceBar pct={computed.frameConfidence} segments={20} />
 
@@ -845,7 +877,17 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
                       >
                         {f.topic || f.content}
                       </div>
-                      <FactConfidence value={f.confidence} />
+                      <div className="flex items-baseline gap-2.5 flex-none">
+                        {(f.evidenceCount ?? 1) > 1 && (
+                          <span
+                            className="font-mono text-[9px] tabular-nums text-primary/70"
+                            title={`Seen ${f.evidenceCount} times across chat, footage and calibration`}
+                          >
+                            ×{f.evidenceCount}
+                          </span>
+                        )}
+                        <FactConfidence value={f.confidence} />
+                      </div>
                     </div>
                   ))}
                 </div>

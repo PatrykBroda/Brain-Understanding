@@ -106,15 +106,28 @@ export type FactCategory =
   | "goal"
   | "context";
 
+// One sighting in a fact's evidence trail (server-owned; confidence is
+// derived from these — the client only ever displays them).
+export type FactSourceEntry = {
+  type: string;
+  ref: string;
+  at: string;
+};
+
 export type AthleteFact = {
   id: number;
   fighterId: number;
   category: FactCategory;
+  // Fixed-ontology "<domain>.<facet>" key (e.g. "striking.exits"), null for legacy rows
+  subcategory?: string | null;
   topic: string;
   content: string;
   confidence: number;
   status: "active" | "superseded" | "resolved";
   source: string;
+  sources?: FactSourceEntry[];
+  evidenceCount?: number;
+  lastConfirmedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -545,6 +558,28 @@ export type AnalysisListItem = {
   locked?: boolean;
 };
 
+// "Athlete Model Updated" payload returned by POST /api/analysis — every
+// value read back from the DB after real writes, never estimated client-side.
+export type AnalysisModelUpdate = {
+  newObservations: {
+    id: number;
+    category: string;
+    subcategory: string | null;
+    topic: string;
+    content: string;
+    confidence: number;
+  }[];
+  confirmed: {
+    id: number;
+    topic: string;
+    content: string;
+    evidenceCount: number;
+    previousConfidence: number;
+    confidence: number;
+  }[];
+  confidencePointsDelta: number;
+};
+
 export type CreateAnalysisInput = {
   kind: AnalysisKind;
   focus: string;
@@ -661,7 +696,7 @@ export const analysisApi = {
     return jsonFetch<{ analysis: VideoAnalysis }>(`api/analysis/${id}${qs}`);
   },
   create: (input: CreateAnalysisInput) =>
-    jsonFetch<{ analysis: VideoAnalysis }>("api/analysis", {
+    jsonFetch<{ analysis: VideoAnalysis; modelUpdate?: AnalysisModelUpdate | null }>("api/analysis", {
       method: "POST",
       body: JSON.stringify(input),
     }),
