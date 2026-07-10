@@ -13,3 +13,4 @@ export * from "./training_sessions";
 export * from "./google_calendar_connections";
 export * from "./daily_checkins";
 export * from "./google_oauth_states";
+export * from "./model_snapshots";

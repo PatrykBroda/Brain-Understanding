@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
-import { ChevronLeft, Upload, Film, X, Download, ArrowUpRight, ArrowDownRight, Minus, Link2, Lock } from "lucide-react";
+import { ChevronLeft, Upload, Film, X, Download, ArrowUpRight, ArrowDownRight, Minus, Link2, Lock, ScrollText } from "lucide-react";
 import { toPng } from "html-to-image";
 import {
   LineChart,
@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { AthleteModel } from "@/components/athlete-model";
+import { WeeklyReportOverlay } from "@/components/weekly-report-overlay";
 import { BottomNav } from "@/components/bottom-nav";
 import { ModelUpdateCard } from "@/components/model-update-card";
 import { FrameOctagon } from "@/components/frame-octagon";
@@ -120,6 +121,7 @@ export default function AnalysePage() {
   const [focus, setFocus] = useState("");
 
   const [reportVisible, setReportVisible] = useState(true);
+  const [weeklyReportOpen, setWeeklyReportOpen] = useState(false);
 
   function onSelectSession(id: number) {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -388,7 +390,19 @@ export default function AnalysePage() {
               onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
             />
           )}
-          {!result && openId == null && <AthleteModel variant="mobile" />}
+          {!result && openId == null && (
+            <>
+              <button
+                type="button"
+                onClick={() => setWeeklyReportOpen(true)}
+                className="w-full inline-flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/40 hover:border-primary/70 px-4 py-3 text-foreground/90 transition-colors"
+              >
+                <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Weekly intelligence report
+              </button>
+              <AthleteModel variant="mobile" />
+            </>
+          )}
         </div>
       </main>
 
@@ -563,6 +577,15 @@ export default function AnalysePage() {
                 onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
               />
 
+              <button
+                type="button"
+                onClick={() => setWeeklyReportOpen(true)}
+                className="w-full inline-flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/40 hover:border-primary/70 px-4 py-3 text-foreground/90 transition-colors"
+              >
+                <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Weekly intelligence report
+              </button>
+
               <AthleteModel />
             </div>
           </>
@@ -578,6 +601,8 @@ export default function AnalysePage() {
       />
 
       <BottomNav />
+
+      <WeeklyReportOverlay open={weeklyReportOpen} onClose={() => setWeeklyReportOpen(false)} />
 
       {busy && (
         <CinematicOverlay phase={phase} kindLabel={KINDS.find((k) => k.value === kind)?.label ?? ""} />

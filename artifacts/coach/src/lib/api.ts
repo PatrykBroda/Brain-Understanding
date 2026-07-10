@@ -707,6 +707,68 @@ export const analysisApi = {
     }),
 };
 
+// ─── FRAME Intelligence Report (weekly dossier) ──────────────────────────────
+// Mirrors the server's WeeklyReport shape. Every value is derived server-side
+// from real recorded evidence; the AI never emits numbers here.
+
+export type WeeklyReportLearnedItem = {
+  id: number;
+  category: string;
+  domainLabel: string | null;
+  topic: string;
+  content: string;
+  evidenceCount: number;
+};
+
+export type WeeklyReportDomainBand = {
+  key: string;
+  label: string;
+  coverage: number;
+  factCount: number;
+};
+
+export type WeeklyReport = {
+  weekStart: string;
+  weekEnd: string;
+  weekLabel: string;
+  generatedAt: string;
+  confidence: number;
+  confidenceDelta: number | null;
+  priorWeekStart: string | null;
+  priorWeekLabel: string | null;
+  priorIsLastWeek: boolean;
+  stage: { key: string; label: string; meaning: string };
+  learned: {
+    confirmed: WeeklyReportLearnedItem[];
+    observed: WeeklyReportLearnedItem[];
+    hypotheses: WeeklyReportLearnedItem[];
+  };
+  evidenceThisWeek: number;
+  observationsThisWeek: number;
+  confirmationsThisWeek: number;
+  mostReinforced: {
+    topic: string;
+    domainLabel: string | null;
+    evidenceCount: number;
+    sightingsThisWeek: number;
+    sourceBreakdown: { type: string; count: number }[];
+  } | null;
+  biggestOpportunity: {
+    topic: string;
+    content: string;
+    domainLabel: string | null;
+  } | null;
+  domains: WeeklyReportDomainBand[];
+  analysesThisWeek: number;
+  archetype: { key: string; name: string; gift: string; shadow: string } | null;
+  totalFacts: number;
+  hasActivity: boolean;
+};
+
+export const reportApi = {
+  getWeekly: () => jsonFetch<{ report: WeeklyReport | null }>("api/report/weekly"),
+};
+
 export type Competition = {
   id: number;
   fighterId: number;
