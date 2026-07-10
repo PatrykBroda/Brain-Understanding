@@ -11,6 +11,15 @@ export function useAnalyses() {
   });
 }
 
+export function useOpponentAnalyses() {
+  const { data: fighterData } = useFighter();
+  return useQuery({
+    queryKey: ["analyses", "opponent"],
+    queryFn: () => analysisApi.listOpponents(),
+    enabled: !!fighterData?.fighter,
+  });
+}
+
 export function useAnalysis(id: number | null, compareId?: number | null) {
   return useQuery({
     queryKey: ["analysis", id, compareId ?? null],

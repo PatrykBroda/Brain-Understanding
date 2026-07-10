@@ -4,6 +4,7 @@ vi.mock("@workspace/db", () => ({
   ANALYSIS_KINDS: ["sparring", "drilling", "padwork", "bag_work"],
   NERVOUS_SYSTEM_LOADS: ["low", "moderate", "elevated", "high"],
   REPLAY_ROLES: ["best_decision", "worst_habit", "biggest_opportunity"],
+  ANALYSIS_SUBJECTS: ["self", "opponent"],
 }));
 
 vi.mock("../synochi", () => ({
@@ -24,13 +25,17 @@ import {
   stripEmoji,
   buildReplayMoments,
   buildCampReview,
+  isValidSubject,
+  gateMatchup,
+  MIN_FACTS_FOR_MATCHUP,
+  MIN_SIGNALS_FOR_MATCHUP,
   REPLAY_ROLE_LABELS,
   CANONICAL_SCORE_KEYS,
   type ReplayRef,
   type CampReviewAnalysis,
 } from "../lib/analysisService";
 
-import type { AnalysisScore, AnalysisKeyframe, AnalysisFinding } from "@workspace/db";
+import type { AnalysisScore, AnalysisKeyframe, AnalysisFinding, Matchup } from "@workspace/db";
 
 function makeScores(overrides: Partial<Record<string, number>> = {}): AnalysisScore[] {
   const defaults: Record<string, number> = {
@@ -539,5 +544,56 @@ describe("buildCampReview", () => {
     // both areas recur in 2 sessions; guard is encountered first -> wins the tie
     expect(r.mostPersistentLeak?.area).toBe("guard");
     expect(r.mostPersistentLeak?.sessions).toBe(2);
+  });
+});
+
+// ─── Opponent Mode ───────────────────────────────────────────────────────────
+
+describe("isValidSubject", () => {
+  it("accepts the two known subjects", () => {
+    expect(isValidSubject("self")).toBe(true);
+    expect(isValidSubject("opponent")).toBe(true);
+  });
+  it("rejects unknown strings and non-strings", () => {
+    expect(isValidSubject("coach")).toBe(false);
+    expect(isValidSubject("")).toBe(false);
+    expect(isValidSubject(undefined)).toBe(false);
+    expect(isValidSubject(null)).toBe(false);
+    expect(isValidSubject(5)).toBe(false);
+    expect(isValidSubject({})).toBe(false);
+  });
+});
+
+describe("gateMatchup", () => {
+  const sampleMatchup: NonNullable<Matchup> = {
+    advantage: { title: "Your pressure vs their fade", note: "They reset backwards under pressure." },
+    risk: { title: "Their counter timing", note: "Sharp on the retreat — respect the check." },
+    notes: ["Grounded in 2 recorded weaknesses and their tracked tendencies."],
+  };
+
+  it("returns null when the matchup itself is null, regardless of evidence", () => {
+    expect(gateMatchup(null, 99, 99)).toBeNull();
+  });
+
+  it("returns null when the athlete model is too thin", () => {
+    expect(
+      gateMatchup(sampleMatchup, MIN_FACTS_FOR_MATCHUP - 1, MIN_SIGNALS_FOR_MATCHUP),
+    ).toBeNull();
+  });
+
+  it("returns null when the opponent clip has too few tracked signals", () => {
+    expect(
+      gateMatchup(sampleMatchup, MIN_FACTS_FOR_MATCHUP, MIN_SIGNALS_FOR_MATCHUP - 1),
+    ).toBeNull();
+  });
+
+  it("returns the matchup when both floors are met exactly", () => {
+    expect(
+      gateMatchup(sampleMatchup, MIN_FACTS_FOR_MATCHUP, MIN_SIGNALS_FOR_MATCHUP),
+    ).toBe(sampleMatchup);
+  });
+
+  it("returns the matchup when both sides are well above the floors", () => {
+    expect(gateMatchup(sampleMatchup, 12, 9)).toBe(sampleMatchup);
   });
 });

@@ -62,6 +62,9 @@ router.get("/competition/active", async (req, res) => {
           and(
             eq(videoAnalysesTable.campId, competition.id),
             eq(videoAnalysesTable.fighterId, fighter.id),
+            // Camp review is a read of the ATHLETE's own progression — opponent
+            // scouting rows share the campId but must never feed it.
+            eq(videoAnalysesTable.subject, "self"),
           ),
         )
         .orderBy(asc(videoAnalysesTable.createdAt));

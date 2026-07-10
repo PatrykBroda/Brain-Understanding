@@ -8,6 +8,7 @@ import {
   type AnalysisMetrics,
   type AnalysisSignal,
   type AnalysisScore,
+  type AnalysisSubject,
   type DetectedEvent,
   type NervousSystemLoad,
 } from "@workspace/db";
@@ -18,10 +19,13 @@ import { getEntitlementForClerkUser } from "../lib/subscriptionService";
 import { getActiveCompetition } from "../lib/competitionService";
 import {
   generateAnalysis,
+  generateOpponentAnalysis,
+  gateMatchup,
   buildComparison,
   buildReplayMoments,
   isValidKind,
   isValidLoad,
+  isValidSubject,
   hasCanonicalScores,
   recomputeSessionScore,
   ContentValidationError,
@@ -150,28 +154,10 @@ router.post("/analysis", async (req, res) => {
     return;
   }
 
-  // Video analysis: the FIRST analysis is free (one-time taster — the feature
-  // has to demonstrate its value before asking for the subscription). Every
-  // analysis after that requires FRAME+.
-  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
-  if (entitlement.plan === "free") {
-    const [existing] = await db
-      .select({ id: videoAnalysesTable.id })
-      .from(videoAnalysesTable)
-      .where(eq(videoAnalysesTable.fighterId, fighter.id))
-      .limit(1);
-    if (existing) {
-      res.status(402).json({
-        error: "Your free analysis is used. FRAME+ makes video analysis unlimited.",
-        code: "FRAME_PLUS_REQUIRED",
-        feature: "video_analysis",
-      });
-      return;
-    }
-  }
-
   const body = req.body as {
     kind?: unknown;
+    subject?: unknown;
+    opponentName?: unknown;
     focus?: unknown;
     load?: unknown;
     fragmentationRisk?: unknown;
@@ -185,6 +171,46 @@ router.post("/analysis", async (req, res) => {
     detectedEvents?: unknown;
     keyframes?: unknown;
   };
+
+  // "self" = the athlete's own footage (scored FRAME REPORT). "opponent" = a
+  // scouting read of someone they may face (categorical only, matchup vs the
+  // athlete's recorded model). Defaults to self for older clients.
+  const subject: AnalysisSubject = isValidSubject(body.subject) ? body.subject : "self";
+
+  // Entitlement. Self: the FIRST self analysis is a free one-time taster, then
+  // FRAME+. Opponent scouting is FRAME+ from the first upload — it only earns
+  // its keep once the athlete has a model to contrast against.
+  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  if (entitlement.plan === "free") {
+    if (subject === "opponent") {
+      res.status(402).json({
+        error: "Opponent scouting is a FRAME+ feature.",
+        code: "FRAME_PLUS_REQUIRED",
+        feature: "opponent_analysis",
+      });
+      return;
+    }
+    const [existing] = await db
+      .select({ id: videoAnalysesTable.id })
+      .from(videoAnalysesTable)
+      .where(
+        and(
+          eq(videoAnalysesTable.fighterId, fighter.id),
+          // Only the athlete's OWN reads consume the free taster — an opponent
+          // scout (FRAME+ only anyway) never burns it.
+          eq(videoAnalysesTable.subject, "self"),
+        ),
+      )
+      .limit(1);
+    if (existing) {
+      res.status(402).json({
+        error: "Your free analysis is used. FRAME+ makes video analysis unlimited.",
+        code: "FRAME_PLUS_REQUIRED",
+        feature: "video_analysis",
+      });
+      return;
+    }
+  }
 
   if (!isValidKind(body.kind)) {
     res.status(400).json({ error: "invalid or missing kind" });
@@ -207,16 +233,24 @@ router.post("/analysis", async (req, res) => {
     return;
   }
 
-  if (!hasCanonicalScores(scores)) {
+  // Self reads carry the four-attribute FRAME REPORT scorecard. Opponent reads are
+  // deliberately categorical — no 0-100 scores — so their scorecard is empty and the
+  // canonical-score requirement does not apply.
+  if (subject === "self" && !hasCanonicalScores(scores)) {
     res.status(400).json({ error: "scores must include the four FRAME REPORT attributes" });
     return;
   }
 
   const focus = typeof body.focus === "string" ? body.focus.slice(0, 280) : "";
+  const opponentName =
+    subject === "opponent" && typeof body.opponentName === "string"
+      ? body.opponentName.trim().slice(0, 80)
+      : "";
   // The headline SESSION SCORE is the composite of the (deterministic, pose-derived) attribute
   // values. Recompute it server-side from the accepted scores so it can't be a fabricated
-  // free-floating value — it is always internally consistent with the attributes shown.
-  const sessionScore = recomputeSessionScore(scores, fragmentationRisk);
+  // free-floating value — it is always internally consistent with the attributes shown. Opponent
+  // reads have no scorecard, so there is no session score (stored as 0, never shown).
+  const sessionScore = subject === "opponent" ? 0 : recomputeSessionScore(scores, fragmentationRisk);
   const durationSec =
     typeof body.durationSec === "number" && Number.isFinite(body.durationSec) ? body.durationSec : 0;
 
@@ -237,7 +271,60 @@ router.post("/analysis", async (req, res) => {
   try {
     const facts = await getActiveFacts(fighter.id);
 
-    // Up to 5 prior sessions — used for "what changed" and the signal history trail
+    // ---- Opponent scouting branch: categorical read + matchup, no scorecard,
+    // no knowledge-loop writes, no self progression. Returns before any of the
+    // self-only progression queries below. ----
+    if (subject === "opponent") {
+      const oppNarrative = await generateOpponentAnalysis({
+        fighter,
+        facts,
+        kind: body.kind,
+        focus,
+        opponentName,
+        load: body.load,
+        metrics,
+        keyframes,
+      });
+      // Deterministic honesty gate: keep the matchup only when the athlete has a
+      // real recorded model AND the opponent clip has enough tracked movement.
+      const matchup = gateMatchup(oppNarrative.matchup, facts.length, signals.length);
+      // Stamp the live camp so the scout is filed under this fight, but opponent
+      // rows are excluded from the camp REVIEW (that's self-progression only).
+      const activeCamp = await getActiveCompetition(fighter.id);
+      const [row] = await db
+        .insert(videoAnalysesTable)
+        .values({
+          fighterId: fighter.id,
+          campId: activeCamp?.id ?? null,
+          subject: "opponent",
+          opponentName,
+          kind: body.kind,
+          focus,
+          nervousSystemLoad: body.load,
+          fragmentationRisk,
+          sessionScore: 0,
+          styleProfile: oppNarrative.styleProfile,
+          aiComment: "",
+          summary: oppNarrative.summary,
+          findings: oppNarrative.findings,
+          scores: [],
+          styleParallels: oppNarrative.styleParallels,
+          detectedEvents,
+          comparison: null,
+          matchup,
+          metrics,
+          keyframes,
+          reviewQuestion: "",
+          replayMoments: [],
+          durationSec,
+        })
+        .returning();
+      res.json({ analysis: row });
+      return;
+    }
+
+    // Up to 5 prior sessions — used for "what changed" and the signal history trail.
+    // Self rows only: opponent scouts never enter the athlete's own progression.
     const prevRows = await db
       .select({
         id: videoAnalysesTable.id,
@@ -246,7 +333,12 @@ router.post("/analysis", async (req, res) => {
         metrics: videoAnalysesTable.metrics,
       })
       .from(videoAnalysesTable)
-      .where(eq(videoAnalysesTable.fighterId, fighter.id))
+      .where(
+        and(
+          eq(videoAnalysesTable.fighterId, fighter.id),
+          eq(videoAnalysesTable.subject, "self"),
+        ),
+      )
       .orderBy(desc(videoAnalysesTable.createdAt))
       .limit(5);
     const prevScores =
@@ -502,6 +594,44 @@ router.get("/analysis", async (req, res) => {
     res.json({ analyses: [] });
     return;
   }
+
+  // Opponent scouting list — a separate, clearly-distinct track from the self
+  // timeline. Categorical only (no scores), FRAME+ only, so no free-tier taster
+  // gating applies (free users have no opponent rows to begin with).
+  if (req.query.subject === "opponent") {
+    const oppRows = await db
+      .select({
+        id: videoAnalysesTable.id,
+        kind: videoAnalysesTable.kind,
+        opponentName: videoAnalysesTable.opponentName,
+        nervousSystemLoad: videoAnalysesTable.nervousSystemLoad,
+        durationSec: videoAnalysesTable.durationSec,
+        createdAt: videoAnalysesTable.createdAt,
+        matchup: videoAnalysesTable.matchup,
+      })
+      .from(videoAnalysesTable)
+      .where(
+        and(
+          eq(videoAnalysesTable.fighterId, fighter.id),
+          eq(videoAnalysesTable.subject, "opponent"),
+        ),
+      )
+      .orderBy(desc(videoAnalysesTable.createdAt))
+      .limit(20);
+    res.json({
+      opponents: oppRows.map((r) => ({
+        id: r.id,
+        kind: r.kind,
+        opponentName: r.opponentName,
+        nervousSystemLoad: r.nervousSystemLoad,
+        durationSec: r.durationSec,
+        createdAt: r.createdAt,
+        hasMatchup: r.matchup != null,
+      })),
+    });
+    return;
+  }
+
   const rows = await db
     .select({
       id: videoAnalysesTable.id,
@@ -515,7 +645,14 @@ router.get("/analysis", async (req, res) => {
       scores: videoAnalysesTable.scores,
     })
     .from(videoAnalysesTable)
-    .where(eq(videoAnalysesTable.fighterId, fighter.id))
+    // Athlete's own history only — opponent scouting rows live outside the
+    // self timeline (their own view, never the progression list).
+    .where(
+      and(
+        eq(videoAnalysesTable.fighterId, fighter.id),
+        eq(videoAnalysesTable.subject, "self"),
+      ),
+    )
     .orderBy(desc(videoAnalysesTable.createdAt))
     .limit(20);
 
@@ -567,6 +704,14 @@ router.get("/analysis/:id", async (req, res) => {
     return;
   }
 
+  // Opponent scouting rows are self-contained categorical reads — no session
+  // scorecard, no progression trail, no comparison. Return as-is (opponent mode
+  // is FRAME+ only, so no free-tier gating applies).
+  if (row.subject === "opponent") {
+    res.json({ analysis: { ...row, prevSignals: null, signalHistory: [] } });
+    return;
+  }
+
   // Free tier: only the most recent analysis is viewable in full.
   const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
   const isFreeTier = entitlement.plan === "free";
@@ -574,7 +719,12 @@ router.get("/analysis/:id", async (req, res) => {
     const [latest] = await db
       .select({ id: videoAnalysesTable.id })
       .from(videoAnalysesTable)
-      .where(eq(videoAnalysesTable.fighterId, fighter.id))
+      .where(
+        and(
+          eq(videoAnalysesTable.fighterId, fighter.id),
+          eq(videoAnalysesTable.subject, "self"),
+        ),
+      )
       .orderBy(desc(videoAnalysesTable.createdAt))
       .limit(1);
     if (latest && latest.id !== row.id) {
@@ -602,7 +752,8 @@ router.get("/analysis/:id", async (req, res) => {
     const [compareRow] = await db
       .select({ metrics: videoAnalysesTable.metrics, scores: videoAnalysesTable.scores, fighterId: videoAnalysesTable.fighterId })
       .from(videoAnalysesTable)
-      .where(eq(videoAnalysesTable.id, compareId))
+      // Comparison baselines are always the athlete's own scored sessions.
+      .where(and(eq(videoAnalysesTable.id, compareId), eq(videoAnalysesTable.subject, "self")))
       .limit(1);
 
     // Security: only allow comparisons within the same fighter's data
@@ -638,6 +789,8 @@ router.get("/analysis/:id", async (req, res) => {
     .where(
       and(
         eq(videoAnalysesTable.fighterId, row.fighterId),
+        // Self progression trail only — never fold an opponent scout's signals in.
+        eq(videoAnalysesTable.subject, "self"),
         lt(videoAnalysesTable.createdAt, row.createdAt),
       ),
     )
@@ -723,7 +876,13 @@ router.post("/analysis/fetch-remote", async (req, res) => {
       ? await db
           .select({ id: videoAnalysesTable.id })
           .from(videoAnalysesTable)
-          .where(eq(videoAnalysesTable.fighterId, remoteFighter.id))
+          .where(
+            and(
+              eq(videoAnalysesTable.fighterId, remoteFighter.id),
+              // Only the athlete's own reads consume the free taster.
+              eq(videoAnalysesTable.subject, "self"),
+            ),
+          )
           .limit(1)
       : [];
     if (existing) {

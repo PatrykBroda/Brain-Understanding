@@ -15,6 +15,12 @@ export type AnalysisKind = (typeof ANALYSIS_KINDS)[number];
 export const NERVOUS_SYSTEM_LOADS = ["low", "moderate", "elevated", "high"] as const;
 export type NervousSystemLoad = (typeof NERVOUS_SYSTEM_LOADS)[number];
 
+// Who the footage is OF. "self" is the athlete's own read (the FRAME REPORT with
+// real pose-measured 0-100 scores). "opponent" is a scouting read: categorical
+// tendencies only (no fabricated scores) plus a matchup vs the athlete's model.
+export const ANALYSIS_SUBJECTS = ["self", "opponent"] as const;
+export type AnalysisSubject = (typeof ANALYSIS_SUBJECTS)[number];
+
 export type AnalysisFinding = {
   title: string;
   observation: string;
@@ -92,6 +98,20 @@ export type ReplayMoment = {
   note: string; // AI narrative, grounded — never numbers
 };
 
+// Opponent Mode matchup read: a categorical contrast of the athlete's recorded
+// model vs an opponent's detected tendencies. Narrative only — never numbers. Null
+// when there isn't enough grounded evidence on either side to call it honestly.
+export type MatchupEdge = {
+  title: string;
+  note: string;
+};
+
+export type Matchup = {
+  advantage: MatchupEdge;
+  risk: MatchupEdge;
+  notes: string[];
+} | null;
+
 export const videoAnalysesTable = pgTable("video_analyses", {
   id: serial("id").primaryKey(),
   fighterId: integer("fighter_id")
@@ -103,6 +123,14 @@ export const videoAnalysesTable = pgTable("video_analyses", {
   campId: integer("camp_id").references(() => competitionsTable.id, {
     onDelete: "set null",
   }),
+  // Opponent Mode discriminator. "self" rows are the athlete's own reads (scored
+  // FRAME REPORT + knowledge-loop). "opponent" rows are scouting reads: categorical
+  // only (scores stay []), never feed athlete_facts, and are excluded from every
+  // self-progression query (history comparison, camp review, free-tier taster).
+  subject: text("subject", { enum: ANALYSIS_SUBJECTS }).notNull().default("self"),
+  // Free-text opponent name for opponent rows (prefilled from the active camp's
+  // opponent when present). Always "" for self rows.
+  opponentName: text("opponent_name").notNull().default(""),
   kind: text("kind", { enum: ANALYSIS_KINDS }).notNull(),
   focus: text("focus").notNull().default(""),
   nervousSystemLoad: text("nervous_system_load", { enum: NERVOUS_SYSTEM_LOADS }).notNull(),
@@ -118,6 +146,10 @@ export const videoAnalysesTable = pgTable("video_analyses", {
   styleParallels: jsonb("style_parallels").$type<StyleParallel[]>().notNull().default([]),
   detectedEvents: jsonb("detected_events").$type<DetectedEvent[]>().notNull().default([]),
   comparison: jsonb("comparison").$type<AnalysisComparison | null>(),
+  // Opponent Mode only: the grounded matchup read (advantage/risk/notes) vs the
+  // athlete's recorded model. Null on self rows and on opponent rows where evidence
+  // was too thin to call the matchup honestly.
+  matchup: jsonb("matchup").$type<Matchup>(),
   metrics: jsonb("metrics").$type<AnalysisMetrics>().notNull(),
   keyframes: jsonb("keyframes").$type<AnalysisKeyframe[]>().notNull(),
   keyframeNotes: jsonb("keyframe_notes").$type<Record<number, string>>().notNull().default({}),

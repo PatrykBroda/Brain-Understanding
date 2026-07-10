@@ -526,10 +526,29 @@ export type ReplayMoment = {
   note: string;
 };
 
+// Opponent Mode: a scouting read is a categorical opponent model (no scores) plus
+// an optional MATCHUP contrast against the athlete's recorded model. Mirrors the
+// server/db shape. Narrative only — never numbers.
+export type AnalysisSubject = "self" | "opponent";
+
+export type MatchupEdge = {
+  title: string;
+  note: string;
+};
+
+export type Matchup = {
+  advantage: MatchupEdge;
+  risk: MatchupEdge;
+  notes: string[];
+} | null;
+
 export type VideoAnalysis = {
   id: number;
   fighterId: number;
   campId: number | null;
+  subject: AnalysisSubject;
+  opponentName: string;
+  matchup: Matchup;
   kind: AnalysisKind;
   focus: string;
   nervousSystemLoad: NervousSystemLoad;
@@ -571,6 +590,18 @@ export type AnalysisListItem = {
   locked?: boolean;
 };
 
+// Opponent scouting list item — the browsable "Scouting reads" track, kept
+// entirely separate from the self history. Categorical only, never scored.
+export type OpponentListItem = {
+  id: number;
+  kind: AnalysisKind;
+  opponentName: string;
+  nervousSystemLoad: NervousSystemLoad | null;
+  durationSec: number;
+  createdAt: string;
+  hasMatchup: boolean;
+};
+
 // "Athlete Model Updated" payload returned by POST /api/analysis — every
 // value read back from the DB after real writes, never estimated client-side.
 export type AnalysisModelUpdate = {
@@ -604,9 +635,13 @@ export type CreateAnalysisInput = {
   framesAnalysed: number;
   poseFrames: number;
   signals: AnalysisSignal[];
+  // Empty [] for opponent reads — a scout is categorical, never a scorecard.
   scores: AnalysisScore[];
   detectedEvents: DetectedEvent[];
   keyframes: AnalysisKeyframe[];
+  // Opponent Mode. Defaults to a "self" read server-side when omitted.
+  subject?: AnalysisSubject;
+  opponentName?: string;
 };
 
 // Fetch a pasted video link via the server proxy and return it as a File so the
@@ -704,6 +739,8 @@ export async function fetchRemoteVideo(url: string): Promise<File> {
 
 export const analysisApi = {
   list: () => jsonFetch<{ analyses: AnalysisListItem[] }>("api/analysis"),
+  listOpponents: () =>
+    jsonFetch<{ opponents: OpponentListItem[] }>("api/analysis?subject=opponent"),
   get: (id: number, compareId?: number | null) => {
     const qs = compareId != null ? `?compareId=${compareId}` : "";
     return jsonFetch<{ analysis: VideoAnalysis }>(`api/analysis/${id}${qs}`);

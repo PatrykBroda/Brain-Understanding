@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
-import { ChevronLeft, Upload, Film, X, Download, ArrowUpRight, ArrowDownRight, Minus, Link2, Lock, ScrollText } from "lucide-react";
+import { ChevronLeft, Upload, Film, Crosshair, X, Download, ArrowUpRight, ArrowDownRight, Minus, Link2, Lock, ScrollText } from "lucide-react";
 import { toPng } from "html-to-image";
 import {
   LineChart,
@@ -15,10 +15,13 @@ import { BottomNav } from "@/components/bottom-nav";
 import { ModelUpdateCard } from "@/components/model-update-card";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { FrameReportCard } from "@/components/frame-report-card";
+import { OpponentReport, SavedOpponentReport } from "@/components/opponent-report";
 import { useFighter } from "@/hooks/use-fighter";
+import { useActiveCompetition } from "@/hooks/use-competition";
 import {
   useAnalyses,
   useAnalysis,
+  useOpponentAnalyses,
   useCreateAnalysis,
   useUpdateKeyframeNotes,
   useAnswerReview,
@@ -38,8 +41,10 @@ import type {
   AnalysisKeyframe,
   AnalysisListItem,
   AnalysisModelUpdate,
+  AnalysisSubject,
   DetectedEvent,
   NervousSystemLoad,
+  OpponentListItem,
   ReplayMoment,
   VideoAnalysis,
   Fighter,
@@ -109,6 +114,8 @@ export default function AnalysePage() {
   const { data: fighterData } = useFighter();
   const fighter = fighterData?.fighter ?? null;
   const analyses = useAnalyses();
+  const opponentAnalyses = useOpponentAnalyses();
+  const activeCompetition = useActiveCompetition();
   const create = useCreateAnalysis();
   const { status: billingStatus } = useSubscription();
   const { openUpgrade } = useFramePlus();
@@ -126,6 +133,18 @@ export default function AnalysePage() {
 
   const [kind, setKind] = useState<AnalysisKind>("sparring");
   const [focus, setFocus] = useState("");
+  // Opponent Mode: "self" reads score the athlete; "opponent" builds a categorical
+  // scout + a matchup against the athlete's recorded model. Kept clearly distinct.
+  const [subject, setSubject] = useState<AnalysisSubject>("self");
+  const [opponentName, setOpponentName] = useState("");
+  const [openOpponentId, setOpenOpponentId] = useState<number | null>(null);
+
+  // Prefill the scout's opponent name from the active camp's opponent, if any —
+  // but never clobber something the athlete has already typed.
+  const campOpponent = activeCompetition.data?.competition?.opponent?.trim() ?? "";
+  useEffect(() => {
+    if (campOpponent) setOpponentName((prev) => prev || campOpponent);
+  }, [campOpponent]);
 
   const [reportVisible, setReportVisible] = useState(true);
   const [weeklyReportOpen, setWeeklyReportOpen] = useState(false);
@@ -135,6 +154,7 @@ export default function AnalysePage() {
     if (reduced) {
       clearResult();
       setOpenId(id);
+      setOpenOpponentId(null);
       mobileScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
       desktopRightScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
       return;
@@ -143,6 +163,7 @@ export default function AnalysePage() {
     setTimeout(() => {
       clearResult();
       setOpenId(id);
+      setOpenOpponentId(null);
       mobileScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
       desktopRightScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
       requestAnimationFrame(() => setReportVisible(true));
@@ -182,13 +203,16 @@ export default function AnalysePage() {
     // The first analysis is free; after that it's FRAME+. Prompt the upgrade
     // BEFORE burning minutes of on-device pose work. Server enforces the same
     // gate on POST /analysis.
-    if (freeAnalysisUsed) {
-      openUpgrade("video_analysis");
+    // Opponent scouting is FRAME+ only (no free taster); self reads get one free.
+    const opponentMode = subject === "opponent";
+    if (opponentMode ? knownFree : freeAnalysisUsed) {
+      openUpgrade(opponentMode ? "opponent_analysis" : "video_analysis");
       return;
     }
     setResult(null);
     setModelUpdate(null);
     setOpenId(null);
+    setOpenOpponentId(null);
     if (file.size > MAX_VIDEO_BYTES) {
       setPhase({
         stage: "error",
@@ -242,14 +266,19 @@ export default function AnalysePage() {
         load: metrics.load,
         fragmentationRisk: metrics.fragmentationRisk,
         loadBasis: metrics.loadBasis,
-        sessionScore: metrics.sessionScore,
+        // A scout is categorical — never a scorecard. Send no composite / no
+        // scores for opponent reads; the server also zeroes these server-side.
+        sessionScore: opponentMode ? 0 : metrics.sessionScore,
         durationSec: extract.durationSec,
         framesAnalysed: metrics.framesAnalysed,
         poseFrames: metrics.poseFrames,
         signals: metrics.signals,
-        scores: metrics.scores,
+        scores: opponentMode ? [] : metrics.scores,
         detectedEvents,
         keyframes,
+        ...(opponentMode
+          ? { subject: "opponent" as const, opponentName: opponentName.trim() }
+          : {}),
       });
       setResult(res.analysis);
       setModelUpdate(res.modelUpdate ?? null);
@@ -276,8 +305,9 @@ export default function AnalysePage() {
   async function runFromLink(url: string) {
     const trimmed = url.trim();
     if (!trimmed) return;
-    if (freeAnalysisUsed) {
-      openUpgrade("video_analysis");
+    const opponentMode = subject === "opponent";
+    if (opponentMode ? knownFree : freeAnalysisUsed) {
+      openUpgrade(opponentMode ? "opponent_analysis" : "video_analysis");
       return;
     }
     lastLink.current = trimmed;
@@ -285,6 +315,7 @@ export default function AnalysePage() {
     setResult(null);
     setModelUpdate(null);
     setOpenId(null);
+    setOpenOpponentId(null);
     setPhase({ stage: "fetching" });
     let file: File;
     try {
@@ -331,7 +362,14 @@ export default function AnalysePage() {
     }
   }
 
-  const showingReport = result != null || openId != null;
+  // Opponent reads live in the same `result`/list surface but render a distinct,
+  // score-free scout. Split them out so self and opponent never blur together.
+  const opponentResult =
+    result != null && result.subject === "opponent" ? result : null;
+  const selfResult =
+    result != null && result.subject !== "opponent" ? result : null;
+  const showingOpponent = opponentResult != null || openOpponentId != null;
+  const showingReport = selfResult != null || openId != null;
 
   return (
     <div className="flex flex-col h-[100dvh] bg-background text-foreground">
@@ -364,9 +402,17 @@ export default function AnalysePage() {
       {/* ------------------------------------------------------------------ */}
       <main ref={mobileScrollRef} className="flex-1 min-h-0 overflow-y-auto md:hidden">
         <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
-          {result ? (
+          {opponentResult ? (
             <div className="space-y-6" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
-              <Report analysis={result} fighter={fighter} videoUrl={videoUrl} onClose={clearResult} onSelectSession={onSelectSession} />
+              <OpponentReport analysis={opponentResult} fighter={fighter} onClose={clearResult} />
+            </div>
+          ) : openOpponentId != null ? (
+            <div style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
+              <SavedOpponentReport id={openOpponentId} fighter={fighter} onClose={() => setOpenOpponentId(null)} />
+            </div>
+          ) : selfResult ? (
+            <div className="space-y-6" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
+              <Report analysis={selfResult} fighter={fighter} videoUrl={videoUrl} onClose={clearResult} onSelectSession={onSelectSession} />
               {modelUpdate && <ModelUpdateCard update={modelUpdate} />}
             </div>
           ) : openId != null ? (
@@ -395,9 +441,16 @@ export default function AnalysePage() {
               onOpen={(id) => setOpenId(id)}
               compareId={compareId}
               onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
+              subject={subject}
+              setSubject={setSubject}
+              opponentName={opponentName}
+              setOpponentName={setOpponentName}
+              opponentItems={opponentAnalyses.data?.opponents ?? []}
+              opponentLoading={opponentAnalyses.isLoading}
+              onOpenOpponent={(id) => setOpenOpponentId(id)}
             />
           )}
-          {!result && openId == null && (
+          {!result && openId == null && openOpponentId == null && (
             <>
               <button
                 type="button"
@@ -417,7 +470,24 @@ export default function AnalysePage() {
       {/* DESKTOP workstation layout — two panels, side by side               */}
       {/* ------------------------------------------------------------------ */}
       <main className="flex-1 min-h-0 hidden md:flex divide-x divide-border/30">
-        {showingReport ? (
+        {showingOpponent ? (
+          <div
+            className="flex-1 overflow-y-auto px-7 py-8"
+            style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}
+          >
+            <div className="max-w-2xl mx-auto">
+              {opponentResult ? (
+                <OpponentReport analysis={opponentResult} fighter={fighter} onClose={clearResult} />
+              ) : openOpponentId != null ? (
+                <SavedOpponentReport
+                  id={openOpponentId}
+                  fighter={fighter}
+                  onClose={() => setOpenOpponentId(null)}
+                />
+              ) : null}
+            </div>
+          </div>
+        ) : showingReport ? (
           <>
             {/* LEFT — video player + filmstrip */}
             <div className="flex flex-col w-[46%] min-w-0 overflow-y-auto bg-black/20" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
@@ -450,16 +520,25 @@ export default function AnalysePage() {
             <div className="flex flex-col justify-center items-center w-[46%] min-w-0 px-10 py-10 gap-8">
               <div className="w-full max-w-sm space-y-3">
                 <div
-                  className="border-l-2 border-destructive/50 pl-4 py-1"
-                  style={{ background: "linear-gradient(90deg, hsla(0,68%,46%,0.05), transparent 80%)" }}
+                  className="pl-4 py-1"
+                  style={{
+                    borderLeft: `2px solid ${subject === "opponent" ? "hsla(199,84%,56%,0.5)" : "hsla(0,68%,46%,0.5)"}`,
+                    background:
+                      subject === "opponent"
+                        ? "linear-gradient(90deg, hsla(199,84%,56%,0.05), transparent 80%)"
+                        : "linear-gradient(90deg, hsla(0,68%,46%,0.05), transparent 80%)",
+                  }}
                 >
-                  <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/70 mb-1.5">
-                    Analyst Workstation
+                  <div
+                    className="font-mono text-[9px] uppercase tracking-[0.45em] mb-1.5"
+                    style={{ color: subject === "opponent" ? "hsla(199,84%,56%,0.85)" : "hsla(0,68%,46%,0.7)" }}
+                  >
+                    {subject === "opponent" ? "Opponent scout" : "Analyst Workstation"}
                   </div>
                   <p className="text-sm text-foreground/75 leading-relaxed">
-                    Upload a clip. The system reads your movement directly — guard, base,
-                    shoulders, output rhythm — scores it against itself, and tells you what
-                    your nervous system is doing under load.
+                    {subject === "opponent"
+                      ? "Upload footage of your opponent. The system reads their movement — guard, base, output rhythm — builds a categorical scouting model, and contrasts it against your own recorded model for the matchup."
+                      : "Upload a clip. The system reads your movement directly — guard, base, shoulders, output rhythm — scores it against itself, and tells you what your nervous system is doing under load."}
                   </p>
                   <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45 mt-2">
                     Processed on device · only the read is kept
@@ -504,6 +583,23 @@ export default function AnalysePage() {
 
             {/* RIGHT — controls + history */}
             <div className="flex-1 overflow-y-auto px-7 py-6 space-y-6">
+              <SubjectToggle subject={subject} setSubject={setSubject} disabled={busy} />
+              {subject === "opponent" && (
+                <section className="space-y-2">
+                  <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+                    Opponent name{" "}
+                    <span className="font-sans normal-case tracking-normal text-muted-foreground/40 text-[11px]">optional</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={opponentName}
+                    onChange={(e) => setOpponentName(e.target.value.slice(0, 80))}
+                    disabled={busy}
+                    placeholder="who are you scouting?"
+                    className="w-full bg-transparent border border-border/50 focus:border-primary/50 outline-none px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/50 transition-colors disabled:opacity-40"
+                  />
+                </section>
+              )}
               <section className="space-y-2">
                 <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
                   Clip type
@@ -576,13 +672,21 @@ export default function AnalysePage() {
                 </div>
               )}
 
-              <History
-                items={analyses.data?.analyses ?? []}
-                loading={analyses.isLoading}
-                onOpen={(id) => setOpenId(id)}
-                compareId={compareId}
-                onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
-              />
+              {subject === "opponent" ? (
+                <OpponentHistory
+                  items={opponentAnalyses.data?.opponents ?? []}
+                  loading={opponentAnalyses.isLoading}
+                  onOpen={(id) => setOpenOpponentId(id)}
+                />
+              ) : (
+                <History
+                  items={analyses.data?.analyses ?? []}
+                  loading={analyses.isLoading}
+                  onOpen={(id) => setOpenId(id)}
+                  compareId={compareId}
+                  onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
+                />
+              )}
 
               <button
                 type="button"
@@ -797,6 +901,13 @@ function UploadControls({
   onOpen,
   compareId,
   onSetCompare,
+  subject,
+  setSubject,
+  opponentName,
+  setOpponentName,
+  opponentItems,
+  opponentLoading,
+  onOpenOpponent,
 }: {
   kind: AnalysisKind;
   setKind: (k: AnalysisKind) => void;
@@ -818,26 +929,61 @@ function UploadControls({
   onOpen: (id: number) => void;
   compareId: number | null;
   onSetCompare: (id: number) => void;
+  subject: AnalysisSubject;
+  setSubject: (s: AnalysisSubject) => void;
+  opponentName: string;
+  setOpponentName: (v: string) => void;
+  opponentItems: OpponentListItem[];
+  opponentLoading: boolean;
+  onOpenOpponent: (id: number) => void;
 }) {
   return (
     <>
+      <SubjectToggle subject={subject} setSubject={setSubject} disabled={busy} />
+
       {/* Atmospheric intro block */}
       <section
-        className="relative border-l-2 border-destructive/50 pl-4 py-1"
-        style={{ background: "linear-gradient(90deg, hsla(0,68%,46%,0.05), transparent 80%)" }}
+        className="relative pl-4 py-1"
+        style={{
+          borderLeft: `2px solid ${subject === "opponent" ? "hsla(199,84%,56%,0.5)" : "hsla(0,68%,46%,0.5)"}`,
+          background:
+            subject === "opponent"
+              ? "linear-gradient(90deg, hsla(199,84%,56%,0.05), transparent 80%)"
+              : "linear-gradient(90deg, hsla(0,68%,46%,0.05), transparent 80%)",
+        }}
       >
-        <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/70 mb-2">
-          Movement read
+        <div
+          className="font-mono text-[9px] uppercase tracking-[0.45em] mb-2"
+          style={{ color: subject === "opponent" ? "hsla(199,84%,56%,0.85)" : "hsla(0,68%,46%,0.7)" }}
+        >
+          {subject === "opponent" ? "Opponent scout" : "Movement read"}
         </div>
         <p className="text-sm text-foreground/75 leading-relaxed">
-          Upload a clip. The system reads your movement directly — guard, base, shoulders,
-          output rhythm — scores it against itself, and tells you what your nervous system
-          is doing under load.
+          {subject === "opponent"
+            ? "Upload footage of your opponent. The system builds a categorical scouting model and contrasts it against your own recorded model for the matchup."
+            : "Upload a clip. The system reads your movement directly — guard, base, shoulders, output rhythm — scores it against itself, and tells you what your nervous system is doing under load."}
         </p>
         <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45 mt-2">
           Processed on device · only the read is kept
         </p>
       </section>
+
+      {subject === "opponent" && (
+        <section className="space-y-2">
+          <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+            Opponent name{" "}
+            <span className="font-sans normal-case tracking-normal text-muted-foreground/40 text-[11px]">optional</span>
+          </div>
+          <input
+            type="text"
+            value={opponentName}
+            onChange={(e) => setOpponentName(e.target.value.slice(0, 80))}
+            disabled={busy}
+            placeholder="who are you scouting?"
+            className="w-full bg-transparent border-b border-border/40 focus:border-primary/40 outline-none py-2.5 text-sm text-foreground/85 placeholder:text-muted-foreground/35 transition-colors disabled:opacity-40"
+          />
+        </section>
+      )}
 
       {/* Clip type selector */}
       <section className="space-y-2">
@@ -948,13 +1094,17 @@ function UploadControls({
         </div>
       )}
 
-      <History
-        items={analyses}
-        loading={analysesLoading}
-        onOpen={onOpen}
-        compareId={compareId}
-        onSetCompare={onSetCompare}
-      />
+      {subject === "opponent" ? (
+        <OpponentHistory items={opponentItems} loading={opponentLoading} onOpen={onOpenOpponent} />
+      ) : (
+        <History
+          items={analyses}
+          loading={analysesLoading}
+          onOpen={onOpen}
+          compareId={compareId}
+          onSetCompare={onSetCompare}
+        />
+      )}
     </>
   );
 }
@@ -2320,6 +2470,138 @@ function deltaIcon(d: number) {
   if (d > 1) return <ArrowUpRight className="w-3.5 h-3.5 text-emerald-300/90" strokeWidth={2} />;
   if (d < -1) return <ArrowDownRight className="w-3.5 h-3.5 text-red-400/90" strokeWidth={2} />;
   return <Minus className="w-3.5 h-3.5 text-muted-foreground/70" strokeWidth={2} />;
+}
+
+function SubjectToggle({
+  subject,
+  setSubject,
+  disabled,
+}: {
+  subject: AnalysisSubject;
+  setSubject: (s: AnalysisSubject) => void;
+  disabled: boolean;
+}) {
+  const opts: { value: AnalysisSubject; label: string; accent: string; text: string }[] = [
+    { value: "self", label: "Your read", accent: "0,68%,46%", text: "hsl(0,55%,65%)" },
+    { value: "opponent", label: "Opponent scout", accent: "199,84%,56%", text: "hsl(199,70%,70%)" },
+  ];
+  return (
+    <section className="space-y-2">
+      <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+        Mode
+      </div>
+      <div className="grid grid-cols-2 gap-[3px]">
+        {opts.map((o) => {
+          const active = subject === o.value;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => setSubject(o.value)}
+              disabled={disabled}
+              className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
+              style={{
+                borderLeft: `2px solid ${active ? `hsla(${o.accent},0.9)` : "hsla(0,0%,100%,0.1)"}`,
+                borderTop: `1px solid ${active ? `hsla(${o.accent},0.2)` : "hsla(0,0%,100%,0.06)"}`,
+                borderRight: "1px solid hsla(0,0%,100%,0.04)",
+                borderBottom: "1px solid hsla(0,0%,100%,0.04)",
+                background: active ? `hsla(${o.accent},0.08)` : "transparent",
+                color: active ? o.text : "hsla(0,0%,100%,0.55)",
+              }}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function OpponentHistory({
+  items,
+  loading,
+  onOpen,
+}: {
+  items: OpponentListItem[];
+  loading: boolean;
+  onOpen: (id: number) => void;
+}) {
+  if (loading) return null;
+  if (items.length === 0) return null;
+  const SCOUT = "199,84%,56%";
+  return (
+    <section className="space-y-3 pt-2">
+      <div
+        className="flex items-center gap-3 pb-1.5"
+        style={{ borderBottom: "1px solid hsla(0,0%,100%,0.07)" }}
+      >
+        <span
+          className="h-[5px] w-[5px] rounded-full flex-none"
+          style={{ background: `hsla(${SCOUT},0.7)` }}
+        />
+        <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-muted-foreground/70">
+          Scouting reads
+        </div>
+      </div>
+      <div className="space-y-[3px]">
+        {items.map((a, idx) => (
+          <button
+            key={a.id}
+            type="button"
+            onClick={() => onOpen(a.id)}
+            className="w-full text-left transition-all duration-200 px-4 py-3.5"
+            style={{
+              borderLeft: `2px solid hsla(${SCOUT},0.35)`,
+              borderTop: "1px solid hsla(0,0%,100%,0.05)",
+              background: idx % 2 === 0 ? "hsla(0,0%,100%,0.015)" : "transparent",
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <Crosshair
+                className="w-[14px] h-[14px] mt-0.5 flex-none"
+                style={{ color: `hsla(${SCOUT},0.6)` }}
+                strokeWidth={1.5}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-3 mb-1">
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/80 truncate">
+                    {a.opponentName || "Unnamed"}
+                    <span className="text-muted-foreground/50"> · {a.kind}</span>
+                  </span>
+                  <span className="flex items-baseline gap-2 flex-none">
+                    {a.hasMatchup && (
+                      <span
+                        className="font-mono text-[8px] uppercase tracking-widest px-1.5 py-0.5"
+                        style={{ color: `hsla(${SCOUT},0.85)`, border: `1px solid hsla(${SCOUT},0.3)` }}
+                      >
+                        matchup
+                      </span>
+                    )}
+                    {a.nervousSystemLoad != null && (
+                      <span
+                        className={`font-mono text-[9px] uppercase tracking-widest ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}
+                      >
+                        {LOAD_LABEL[a.nervousSystemLoad]}
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/35 mt-1.5">
+                  {new Date(a.createdAt).toLocaleString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </div>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function History({

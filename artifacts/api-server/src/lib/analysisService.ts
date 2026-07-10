@@ -1,8 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import {
   ANALYSIS_KINDS,
+  ANALYSIS_SUBJECTS,
   NERVOUS_SYSTEM_LOADS,
   type AnalysisKind,
+  type AnalysisSubject,
   type NervousSystemLoad,
   type AnalysisFinding,
   type AnalysisMetrics,
@@ -10,6 +12,8 @@ import {
   type AnalysisScore,
   type StyleParallel,
   type AnalysisComparison,
+  type Matchup,
+  type MatchupEdge,
   type Fighter,
   type AthleteFact,
   type ReplayMoment,
@@ -638,6 +642,307 @@ export async function generateAnalysis(args: {
     }
   }
   throw new Error("analysis: claude returned no tool_use");
+}
+
+// ---- Opponent Mode: scouting read + matchup (categorical only) ----
+//
+// An opponent upload runs the SAME on-device pose pass, but the read is
+// deliberately categorical: NO 0-100 scorecard, no composite session score. The
+// opponent's tendencies are the deterministic movement signals (each with a real
+// basis) plus the AI's grounded narrative. The matchup contrasts the athlete's
+// RECORDED model against those tendencies. Opponent reads never write athlete_facts.
+
+export function isValidSubject(s: unknown): s is AnalysisSubject {
+  return typeof s === "string" && (ANALYSIS_SUBJECTS as readonly string[]).includes(s);
+}
+
+// The matchup is only honest when there's enough real evidence on BOTH sides: the
+// athlete needs a recorded model to contrast against, and the opponent clip needs
+// enough tracked movement to describe. Below either floor we return null and the
+// UI shows an honest empty state instead of a fabricated read.
+export const MIN_FACTS_FOR_MATCHUP = 3;
+export const MIN_SIGNALS_FOR_MATCHUP = 2;
+
+export type OpponentNarrative = {
+  styleProfile: string;
+  styleParallels: StyleParallel[];
+  summary: string;
+  // The opponent's exploitable habits (= the athlete's openings). Describes the
+  // OPPONENT, never the athlete, and never feeds athlete_facts.
+  findings: AnalysisFinding[];
+  matchup: Matchup;
+};
+
+const OPPONENT_INSTRUCTIONS = `You are FRAME scouting an OPPONENT from footage the athlete uploaded. The browser ran pose tracking and computed real categorical movement signals (below). This is a SCOUTING read, not the athlete's own report — you are describing someone the athlete may have to face.
+
+CONTENT VALIDATION — MANDATORY FIRST STEP:
+Look at the key frames. Does the footage show a person performing combat sports (BJJ, MMA, boxing, Muay Thai, kickboxing, wrestling, judo, sparring, padwork, shadowboxing, drilling, clinchwork, bag work)? If it clearly shows something else — dancing, general fitness, yoga, everyday activity, or no person at all — set contentValid=false, write a 1-sentence factual description of what you actually see in summary, and do not attempt a read.
+
+HARD RULES — this is a categorical scouting read:
+- NEVER output numbers, scores, percentages or ratings of any kind. No "70% aggressive", no "/100". Describe tendencies in words only, grounded in the computed signals and what is visible in the key frames.
+- Every claim about the opponent must tie back to a computed movement signal or a visible key frame. If the footage is thin, say so and hedge — do not invent tendencies.
+- styleProfile: a short scouting label for how this opponent fights (e.g. "Pressure Forward Pusher", "Reactive Counter Fighter", "Stalling Grappler"). 2-4 words, must fit the signals.
+- styleParallels: 0-2 KNOWN fighters this opponent's tendencies resemble. GROUNDED and HEDGED, never "they ARE X". Empty list if nothing fits.
+- summary: 2-4 sentences — the opponent's fighting shape as one read. FRAME's voice, direct, structural, no hype, no emojis.
+- findings: 2-4 of the opponent's EXPLOITABLE HABITS. Each = a concrete mechanical tendency (observation) + why it is an opening the athlete can attack (nervousSystemFraming). severity = how reliably exploitable (low|medium|high). area = short tag ("guard","pressure","base","pace","exits"). These describe the OPPONENT, not the athlete.
+- matchup: contrast the athlete's OWN recorded model (their strengths, weaknesses, patterns — listed in the athlete context above) against this opponent's tendencies:
+    - advantage: the athlete's single biggest edge in this matchup — title (a few words) + note (1-2 sentences on why, tied to a REAL recorded strength of the athlete AND a real opponent tendency).
+    - risk: the athlete's single biggest danger — title + note (1-2 sentences, tied to a REAL recorded weakness of the athlete AND a real opponent tendency).
+    - notes: 0-3 short tactical lines, each grounded.
+  If the athlete's recorded model is too thin to contrast honestly, leave the matchup fields empty — never fabricate a matchup.
+- Voice: calm, precise, tactical. A scout, not a hype machine. No motivational filler, no emojis.`;
+
+const OPPONENT_REPORT_TOOL: Anthropic.Tool = {
+  name: "emit_opponent_read",
+  description:
+    "Emit the structured categorical scouting read of the opponent plus a grounded matchup vs the athlete's recorded model. Never output numbers or scores.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      styleProfile: { type: "string" },
+      styleParallels: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: { name: { type: "string" }, note: { type: "string" } },
+          required: ["name", "note"],
+        },
+      },
+      summary: { type: "string" },
+      findings: {
+        type: "array",
+        description: "2-4 of the OPPONENT's exploitable habits (the athlete's openings).",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            observation: { type: "string" },
+            nervousSystemFraming: {
+              type: "string",
+              description: "Why this tendency is an opening the athlete can attack.",
+            },
+            severity: { type: "string", enum: ["low", "medium", "high"] },
+            area: { type: "string" },
+          },
+          required: ["title", "observation", "severity", "area"],
+        },
+      },
+      matchup: {
+        type: "object",
+        description:
+          "Grounded contrast of the athlete's recorded model vs this opponent. Omit entirely if the athlete's model is too thin to call honestly.",
+        properties: {
+          advantage: {
+            type: "object",
+            properties: { title: { type: "string" }, note: { type: "string" } },
+            required: ["title", "note"],
+          },
+          risk: {
+            type: "object",
+            properties: { title: { type: "string" }, note: { type: "string" } },
+            required: ["title", "note"],
+          },
+          notes: { type: "array", items: { type: "string" } },
+        },
+      },
+      contentValid: {
+        type: "boolean",
+        description: "true if the footage shows combat sports, false otherwise",
+      },
+    },
+    required: ["contentValid", "styleProfile", "summary", "findings"],
+  },
+};
+
+function normaliseMatchup(raw: unknown): Matchup {
+  if (!raw || typeof raw !== "object") return null;
+  const m = raw as Record<string, unknown>;
+  const edge = (v: unknown): MatchupEdge | null => {
+    if (!v || typeof v !== "object") return null;
+    const e = v as Record<string, unknown>;
+    const title = asStr(e["title"], 80);
+    const note = asStr(e["note"], 400);
+    if (!title || !note) return null;
+    return { title, note };
+  };
+  const advantage = edge(m["advantage"]);
+  const risk = edge(m["risk"]);
+  // A one-sided matchup (only an edge or only a risk) reads as spin. Require both.
+  if (!advantage || !risk) return null;
+  const notes: string[] = [];
+  if (Array.isArray(m["notes"])) {
+    for (const n of (m["notes"] as unknown[]).slice(0, 3)) {
+      const s = asStr(n, 240);
+      if (s) notes.push(s);
+    }
+  }
+  return { advantage, risk, notes };
+}
+
+function normaliseOpponent(raw: Record<string, unknown>): OpponentNarrative {
+  if (raw["contentValid"] === false) {
+    const desc =
+      typeof raw["summary"] === "string" && raw["summary"]
+        ? raw["summary"]
+        : "The footage does not appear to show combat sports.";
+    throw new ContentValidationError(desc);
+  }
+  const findings: AnalysisFinding[] = [];
+  if (Array.isArray(raw["findings"])) {
+    for (const f of (raw["findings"] as unknown[]).slice(0, 4)) {
+      const it = f as Record<string, unknown>;
+      const title = asStr(it["title"], 120);
+      const observation = asStr(it["observation"], 600);
+      if (!title || !observation) continue;
+      const sevRaw = typeof it["severity"] === "string" ? it["severity"] : "medium";
+      const severity = (["low", "medium", "high"].includes(sevRaw) ? sevRaw : "medium") as
+        | "low"
+        | "medium"
+        | "high";
+      findings.push({
+        title,
+        observation,
+        nervousSystemFraming: asStr(it["nervousSystemFraming"], 600),
+        severity,
+        area: asStr(it["area"], 40) || "general",
+      });
+    }
+  }
+
+  const styleParallels: StyleParallel[] = [];
+  if (Array.isArray(raw["styleParallels"])) {
+    for (const p of (raw["styleParallels"] as unknown[]).slice(0, 2)) {
+      const it = p as Record<string, unknown>;
+      const name = asStr(it["name"], 60);
+      if (!name) continue;
+      styleParallels.push({ name, note: asStr(it["note"], 240) });
+    }
+  }
+
+  return {
+    styleProfile: asStr(raw["styleProfile"], 48),
+    styleParallels,
+    summary: asStr(raw["summary"], 800),
+    findings,
+    matchup: normaliseMatchup(raw["matchup"]),
+  };
+}
+
+// Deterministic honesty gate — the matchup is only kept when there's enough real
+// evidence on both sides. The AI may emit a matchup, but if the athlete's model or
+// the opponent read is too thin, we drop it (never fabricate a contrast). Pure.
+export function gateMatchup(
+  matchup: Matchup,
+  athleteFactCount: number,
+  opponentSignalCount: number,
+): Matchup {
+  if (!matchup) return null;
+  if (athleteFactCount < MIN_FACTS_FOR_MATCHUP) return null;
+  if (opponentSignalCount < MIN_SIGNALS_FOR_MATCHUP) return null;
+  return matchup;
+}
+
+function opponentMetricsText(args: {
+  kind: AnalysisKind;
+  focus: string;
+  opponentName: string;
+  load: NervousSystemLoad;
+  metrics: AnalysisMetrics;
+  keyframes: AnalysisKeyframe[];
+}): string {
+  const { kind, focus, opponentName, load, metrics, keyframes } = args;
+  const sig = metrics.signals.map((s) => `- ${s.label}: ${s.value} — ${s.detail}`);
+  const parts = [
+    `# Opponent clip`,
+    opponentName ? `opponent: ${opponentName}` : `opponent: (unnamed)`,
+    `kind: ${kind}`,
+    focus ? `athlete asked to focus the scout on: ${focus}` : `no specific focus requested`,
+    `duration analysed: ${metrics.durationSec.toFixed(1)}s`,
+    `frames sampled: ${metrics.framesAnalysed}, frames with a clear pose lock: ${metrics.poseFrames}`,
+    ``,
+    `# Opponent nervous-system read (categorical — describe in words, NEVER as a number)`,
+    `load: ${load.toUpperCase()}`,
+    `basis: ${metrics.loadBasis}`,
+    ``,
+    `# Opponent movement signals (the real detected tendencies — ground every claim here)`,
+    ...sig,
+  ];
+  if (keyframes.length) {
+    const kfLines = keyframes.map((kf, i) => {
+      const evt = kf.eventType ? ` [${kf.eventType}]` : "";
+      const img = i < 4 ? " (image supplied)" : "";
+      return `- index ${i}: @ ${kf.timestamp.toFixed(1)}s${evt} — ${kf.caption}${img}`;
+    });
+    parts.push(``, `# Key moments`, ...kfLines);
+  }
+  return parts.join("\n");
+}
+
+export async function generateOpponentAnalysis(args: {
+  fighter: Fighter;
+  facts: AthleteFact[];
+  kind: AnalysisKind;
+  focus: string;
+  opponentName: string;
+  load: NervousSystemLoad;
+  metrics: AnalysisMetrics;
+  keyframes: AnalysisKeyframe[];
+}): Promise<OpponentNarrative> {
+  const { fighter, facts, kind, focus, opponentName, load, metrics, keyframes } = args;
+
+  const dynamic =
+    buildDynamicContext(fighter, facts, [], []) +
+    "\n\n" +
+    OPPONENT_INSTRUCTIONS +
+    "\n\n" +
+    opponentMetricsText({ kind, focus, opponentName, load, metrics, keyframes });
+
+  const content: Anthropic.ContentBlockParam[] = [];
+  for (const kf of keyframes.slice(0, 4)) {
+    const parsed = parseDataUrl(kf.imageBase64);
+    if (parsed && CLAUDE_IMAGE_MIME.has(parsed.mediaType)) {
+      content.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: parsed.mediaType as "image/jpeg" | "image/png" | "image/webp",
+          data: parsed.data,
+        },
+      });
+      content.push({
+        type: "text",
+        text: `opponent key frame @ ${kf.timestamp.toFixed(1)}s — ${kf.caption}`,
+      });
+    }
+  }
+  content.push({
+    type: "text",
+    text: "Scout this opponent now. Use the emit_opponent_read tool. Categorical only — never emit numbers or scores.",
+  });
+
+  const resp = await getAnthropic().messages.create(
+    {
+      model: "claude-sonnet-4-6",
+      max_tokens: 2200,
+      system: [
+        { type: "text", text: COACH_SYSTEM_PROMPT_STATIC, cache_control: { type: "ephemeral" } },
+        { type: "text", text: dynamic },
+      ],
+      tools: [OPPONENT_REPORT_TOOL],
+      tool_choice: { type: "tool", name: "emit_opponent_read" },
+      messages: [{ role: "user", content }],
+    },
+    { timeout: 55_000, maxRetries: 0 },
+  );
+
+  for (const block of resp.content) {
+    if (block.type === "tool_use" && block.name === "emit_opponent_read") {
+      const out = normaliseOpponent(block.input as Record<string, unknown>);
+      if (out.summary && out.styleProfile) return out;
+      throw new Error("opponent analysis returned incomplete narrative");
+    }
+  }
+  throw new Error("opponent analysis: claude returned no tool_use");
 }
 
 function parseDataUrl(input: string): { mediaType: string; data: string } | null {
