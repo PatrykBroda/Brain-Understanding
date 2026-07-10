@@ -209,6 +209,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
+      '@workspace/ontology':
+        specifier: workspace:*
+        version: link:../../lib/ontology
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
@@ -871,6 +874,8 @@ importers:
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
+
+  lib/ontology: {}
 
   scripts:
     devDependencies:

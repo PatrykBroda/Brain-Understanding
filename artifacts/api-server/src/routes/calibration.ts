@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, calibrationsTable } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
 import { CALIBRATION_BANK, pickNextQuestion, answerToSignal } from "../lib/calibrationBank";
-import { addFact } from "../lib/factsService";
+import { addFact, confirmFact, findActiveFactByTopic } from "../lib/factsService";
 import { getUserFighter } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
@@ -52,13 +52,26 @@ router.post("/calibration/answer", async (req, res) => {
   });
   const signalText = answerToSignal(question, body.answer);
   if (signalText) {
-    await addFact(fighter.id, {
-      category: "pattern",
-      topic: question.key,
-      content: signalText,
-      confidence: 2,
-      source: "calibration",
-    });
+    // Calibration topics are deterministic (topic == question key), so a
+    // repeat answer strengthens the existing observation instead of piling
+    // up duplicates. The refined content reflects the latest answer.
+    const existing = await findActiveFactByTopic(fighter.id, question.key, "pattern");
+    if (existing) {
+      await confirmFact(
+        fighter.id,
+        existing.id,
+        { type: "calibration", ref: `calibration:${question.key}` },
+        signalText,
+      );
+    } else {
+      await addFact(fighter.id, {
+        category: "pattern",
+        topic: question.key,
+        content: signalText,
+        source: { type: "calibration", ref: `calibration:${question.key}` },
+        athleteStated: true,
+      });
+    }
   }
   res.json({ ok: true });
 });

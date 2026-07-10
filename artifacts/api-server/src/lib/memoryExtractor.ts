@@ -2,7 +2,14 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { Logger } from "pino";
 import type { AthleteFact, Fighter, FactCategory } from "@workspace/db";
 import { FACT_CATEGORIES } from "@workspace/db";
-import { addFact, getActiveFacts, resolveFact, supersedeFact } from "./factsService";
+import { ONTOLOGY_KEYS } from "@workspace/ontology";
+import {
+  addFact,
+  confirmFact,
+  getActiveFacts,
+  resolveFact,
+  supersedeFact,
+} from "./factsService";
 
 const baseURL = process.env["AI_INTEGRATIONS_ANTHROPIC_BASE_URL"];
 const apiKey = process.env["AI_INTEGRATIONS_ANTHROPIC_API_KEY"];
@@ -15,42 +22,68 @@ const SYSTEM = `You are the memory writer for a personal BJJ + nervous-system co
 
 Rules:
 - Only record DURABLE observations — patterns, knowledge level, named weaknesses/strengths, stated preferences, events, goals, life context that affects training. Do NOT record one-off moods or single-session noise unless the athlete states it as a recurring thing.
-- Prefer SUPERSEDING an existing fact over adding a near-duplicate. If the athlete refines or corrects an earlier observation, supersede it.
+- If this exchange provides NEW INDEPENDENT EVIDENCE for an observation that ALREADY EXISTS in the facts list, call confirm_fact with its id — do NOT add a near-duplicate. Only confirm when it is the SAME observation, not merely the same topic. This is how the model's confidence grows.
+- SUPERSEDE an existing fact only when the athlete corrects it — the old wording was wrong or outdated.
 - RESOLVE a fact when it's clearly no longer true (a weakness has been closed, a goal hit, a context that has passed).
-- Confidence: 1 = tentative single mention, 3 = evidenced, 5 = repeated/definitive.
+- You never assign confidence. The system derives it from evidence: how many independent sightings, from how many different sources, and whether the athlete confirmed it.
+- Set athlete_stated=true only when the athlete asserts the observation about themselves in their own words; leave it false for your inferences.
+- When the observation clearly fits one of the ontology domains, set subcategory; otherwise omit it.
 - For technical_knowledge facts: topic = the position/concept (e.g. "half-guard pass", "deep half"). Content describes WHAT the athlete knows and at what level (foundational / working / advanced).
 - Be terse. One sentence per fact. No padding.
 - If nothing durable happened this turn, call no tools.
 
-You have these tools: add_fact, supersede_fact, resolve_fact. Use them. Do not write prose.`;
+You have these tools: add_fact, confirm_fact, supersede_fact, resolve_fact. Use them. Do not write prose.`;
 
 const tools: Anthropic.Tool[] = [
   {
     name: "add_fact",
-    description: "Record a new durable observation about the athlete.",
+    description: "Record a NEW durable observation about the athlete (no existing fact covers it).",
     input_schema: {
       type: "object",
       properties: {
         category: { type: "string", enum: [...FACT_CATEGORIES] },
         topic: { type: "string", description: "Short tag, e.g. 'half-guard pass', 'competition anxiety', 'left knee'." },
         content: { type: "string", description: "One sentence stating the observation." },
-        confidence: { type: "integer", minimum: 1, maximum: 5 },
+        athlete_stated: {
+          type: "boolean",
+          description: "true ONLY if the athlete asserted this about themselves in their own words.",
+        },
+        subcategory: {
+          type: "string",
+          enum: [...ONTOLOGY_KEYS],
+          description: "Ontology domain key when the observation clearly fits one. Omit otherwise.",
+        },
       },
-      required: ["category", "topic", "content", "confidence"],
+      required: ["category", "topic", "content"],
+    },
+  },
+  {
+    name: "confirm_fact",
+    description:
+      "This exchange provides new independent evidence for an EXISTING fact (same observation, use the id from the facts list). Strengthens it instead of duplicating.",
+    input_schema: {
+      type: "object",
+      properties: {
+        id: { type: "integer" },
+        refined_content: {
+          type: "string",
+          description: "Optional: better wording for the SAME observation. Omit to keep current wording.",
+        },
+      },
+      required: ["id"],
     },
   },
   {
     name: "supersede_fact",
-    description: "Replace an existing fact with a refined or corrected version. Use the id from the current facts list.",
+    description: "Replace an existing fact ONLY when it was wrong or outdated and the athlete corrected it. Use the id from the current facts list.",
     input_schema: {
       type: "object",
       properties: {
         id: { type: "integer" },
         replacement_content: { type: "string" },
-        confidence: { type: "integer", minimum: 1, maximum: 5 },
         reason: { type: "string", description: "Why the previous fact no longer fits." },
       },
-      required: ["id", "replacement_content", "confidence", "reason"],
+      required: ["id", "replacement_content", "reason"],
     },
   },
   {
@@ -72,7 +105,7 @@ function formatFacts(facts: AthleteFact[]): string {
   return facts
     .map(
       (f) =>
-        `- id=${f.id} [${f.category}] topic="${f.topic}" conf=${f.confidence} :: ${f.content}`,
+        `- id=${f.id} [${f.category}${f.subcategory ? ` · ${f.subcategory}` : ""}] topic="${f.topic}" conf=${f.confidence} evidence=${f.evidenceCount} :: ${f.content}`,
     )
     .join("\n");
 }
@@ -110,6 +143,7 @@ Update the model. Call tools only. No prose.`;
     });
 
     let added = 0;
+    let confirmed = 0;
     let superseded = 0;
     let resolved = 0;
     for (const block of response.content) {
@@ -123,16 +157,25 @@ Update the model. Call tools only. No prose.`;
             category: cat as FactCategory,
             topic: String(input["topic"] ?? ""),
             content: String(input["content"] ?? ""),
-            confidence: Number(input["confidence"] ?? 3),
-            source: "chat",
+            source: { type: "chat" },
+            subcategory: typeof input["subcategory"] === "string" ? input["subcategory"] : null,
+            athleteStated: input["athlete_stated"] === true,
           });
           added++;
+        } else if (block.name === "confirm_fact") {
+          const refined = input["refined_content"];
+          await confirmFact(
+            fighter.id,
+            Number(input["id"]),
+            { type: "chat" },
+            typeof refined === "string" ? refined : undefined,
+          );
+          confirmed++;
         } else if (block.name === "supersede_fact") {
           await supersedeFact(fighter.id, Number(input["id"]), {
             content: String(input["replacement_content"] ?? ""),
-            confidence: Number(input["confidence"] ?? 3),
             reason: String(input["reason"] ?? ""),
-            source: "chat",
+            source: { type: "chat" },
           });
           superseded++;
         } else if (block.name === "resolve_fact") {
@@ -143,8 +186,8 @@ Update the model. Call tools only. No prose.`;
         log.warn({ err, tool: block.name }, "memory tool call failed");
       }
     }
-    if (added + superseded + resolved > 0) {
-      log.info({ added, superseded, resolved }, "memory updated");
+    if (added + confirmed + superseded + resolved > 0) {
+      log.info({ added, confirmed, superseded, resolved }, "memory updated");
     }
   } catch (err) {
     log.error({ err }, "memory extraction failed");

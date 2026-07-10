@@ -1,0 +1,328 @@
+Right now, most AI coaching apps have disconnected features:
+
+Chat
+Video analysis
+Notes
+Progress
+
+They don't talk to each other.
+
+FRAME should have one central brain: the Athlete Model.
+
+Everything feeds it.
+
+The FRAME Knowledge Loop
+            Chat
+              │
+              ▼
+      Athlete Model ◄──────── Video Analysis
+              ▲                  │
+              │                  ▼
+      Session Reflections    Competition Reviews
+              ▲                  │
+              │                  ▼
+        Camp Updates ◄──── Weekly Missions
+
+Nothing exists in isolation.
+
+Every interaction updates the model.
+
+Video Analysis Shouldn't Produce a Report
+
+It should produce evidence.
+
+Example:
+
+Video analysis detects:
+
+Rear hand drops after combinations.
+
+Confidence:
+High
+
+Evidence:
+Observed consistently across 11 exchanges.
+
+FRAME doesn't just show this.
+
+It writes it into the Athlete Model.
+
+Athlete Model Structure
+
+Instead of storing paragraphs, store structured observations.
+
+{
+  "category": "Striking Defence",
+  "observation": "Rear hand drops after combinations",
+  "confidence": 0.92,
+  "source": "Video Analysis",
+  "evidence_count": 11,
+  "first_seen": "2026-07-10",
+  "last_confirmed": "2026-07-10"
+}
+
+Every observation becomes a memory.
+
+Multiple Sources Can Strengthen the Same Observation
+
+Imagine:
+
+Video says:
+
+Rear hand drops after combinations.
+
+Later in chat the athlete says:
+
+I always get caught exiting.
+
+Competition review says:
+
+Opponent landed repeatedly after combinations.
+
+FRAME should merge these.
+
+Now the model becomes:
+
+Observation
+
+Rear hand drops after combinations
+
+Confidence
+
+98%
+
+Sources
+
+✓ Video
+✓ Chat
+✓ Competition Review
+
+That's much more powerful than three disconnected notes.
+
+Confidence Should Grow with Evidence
+
+Not every observation should immediately become "truth."
+
+For example:
+
+First video
+
+Linear exits.
+
+Confidence
+
+42%
+
+Second sparring session
+
+Linear exits.
+
+Confidence
+
+61%
+
+Coach confirms in chat
+
+Linear exits.
+
+Confidence
+
+84%
+
+Now FRAME is genuinely learning, not just remembering.
+
+Athlete Model Categories
+
+Everything should map into a fixed ontology, for example:
+
+Identity
+Preferred stance
+Style
+Archetype
+Striking
+Distance management
+Guard discipline
+Combinations
+Exits
+Entries
+Grappling
+Takedown entries
+Scramble behaviour
+Top control
+Bottom escapes
+Decision Making
+Pace
+Shot selection
+Adaptability
+Competition
+Fight week habits
+Pressure response
+Warm-up routine
+Recovery
+Sleep
+Fatigue
+Recovery behaviours
+Mindset
+Confidence
+Emotional regulation
+Self-talk
+
+This keeps the model organised instead of becoming a giant memory dump.
+
+After Every Video
+
+FRAME should say something like:
+
+Analysis Complete
+
+Athlete Model Updated
+
++2 New Observations
+
+Confidence
+
++1.8%
+
+Newly Confirmed
+
+✓ Maintains distance well
+
+✓ Rear hand drops after combinations
+
+1 hypothesis strengthened
+
+Decision speed remains stable under pressure.
+
+That feedback loop is incredibly satisfying.
+
+Even Better...
+
+Some observations should become Hypotheses first.
+
+Example:
+
+FRAME Hypothesis
+
+You may rush finishes once you hurt an opponent.
+
+Confidence
+
+Low
+
+Status
+
+Needs more evidence.
+
+Then...
+
+Next video...
+
+Competition recap...
+
+Chat...
+
+Eventually:
+
+Confirmed Pattern
+
+You consistently increase tempo after successful exchanges,
+reducing defensive awareness.
+
+Confidence
+
+91%
+
+That's exactly how a human coach builds trust in their observations over months.
+
+This is the architecture I'd tell Replit to build
+VIDEO ANALYSIS → ATHLETE MODEL INTEGRATION
+
+Video Analysis is not a standalone feature.
+
+Every completed analysis must update the Athlete Model.
+
+Architecture:
+
+Video Upload
+↓
+
+AI Analysis
+↓
+
+Extract structured observations
+
+↓
+
+Map each observation to an Athlete Model category
+
+↓
+
+Compare against existing observations
+
+↓
+
+If observation already exists:
+- increase confidence
+- update last confirmed timestamp
+- increment evidence count
+
+If observation is new:
+- create a new observation
+- assign an initial confidence based on AI certainty
+- mark it as "Emerging" if confidence is below the confirmation threshold
+
+↓
+
+Recalculate:
+- Model Confidence
+- Fight Readiness inputs
+- Athlete Identity
+- FRAME Notes
+- Athlete DNA confidence bands
+
+↓
+
+Display:
+
+Athlete Model Updated
+
+New observations:
+✓ ...
+✓ ...
+
+Confidence increased:
++X%
+
+Do not store long-form AI paragraphs as the source of truth.
+
+Store structured observations with:
+
+- category
+- observation
+- confidence
+- source
+- evidence count
+- first seen
+- last confirmed
+- supporting evidence
+
+The Athlete Model should be the single source of truth.
+
+Chat, Session Reflections, Competition Reviews, Weekly Missions and Video Analysis must all read from and write to this same model.
+The long-term vision
+
+This is what I think makes FRAME genuinely different.
+
+The AI shouldn't remember conversations.
+
+It should remember evidence.
+
+After six months, FRAME shouldn't be able to say:
+
+"You told me you struggle with exits."
+
+It should be able to say:
+
+"Across 14 sparring videos, 6 post-session reflections, and 3 competition reviews, one pattern has remained consistent: your defensive structure breaks down during exits after multi-strike combinations. That pattern has strengthened over time, not weakened."
+
+That's the moment users stop feeling like they're talking to a chatbot and start feeling like they have a coach that's been studying them over an entire career.

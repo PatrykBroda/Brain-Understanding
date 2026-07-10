@@ -210,8 +210,7 @@ router.post("/planner/items/:key/complete", async (req, res) => {
       category: "pattern",
       topic: `planner: ${item.title}`.slice(0, 120),
       content: `Completed planner item (${item.category}) — ${item.detail}`.slice(0, 600),
-      confidence: 2,
-      source: `planner:item:${key}`,
+      source: { type: "planner", ref: `planner:item:${key}` },
     });
   }
   res.json({ ok: true });

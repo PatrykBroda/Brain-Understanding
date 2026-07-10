@@ -10,6 +10,9 @@
       "path": "./lib/archetypes"
     },
     {
+      "path": "./lib/ontology"
+    },
+    {
       "path": "./lib/breath"
     },
     {
