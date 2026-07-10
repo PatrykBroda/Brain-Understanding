@@ -15,6 +15,7 @@ import { and, desc, eq, lt } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { getActiveFacts, addFact, confirmFact, findActiveFactByTopic } from "../lib/factsService";
 import { getEntitlementForClerkUser } from "../lib/subscriptionService";
+import { getActiveCompetition } from "../lib/competitionService";
 import {
   generateAnalysis,
   buildComparison,
@@ -278,10 +279,16 @@ router.post("/analysis", async (req, res) => {
     // are persisted below, so every moment points at a real stored frame.
     const replayMoments = buildReplayMoments(narrative.replay, keyframes);
 
+    // Camp intelligence: stamp the camp that is live RIGHT NOW so this footage
+    // rolls up into that camp's review. Null when no camp is active — camp
+    // membership is decided once, at write time, never re-derived by date later.
+    const activeCamp = await getActiveCompetition(fighter.id);
+
     const [row] = await db
       .insert(videoAnalysesTable)
       .values({
         fighterId: fighter.id,
+        campId: activeCamp?.id ?? null,
         kind: body.kind,
         focus,
         nervousSystemLoad: body.load,

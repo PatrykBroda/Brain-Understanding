@@ -23,12 +23,14 @@ import {
   buildComparison,
   stripEmoji,
   buildReplayMoments,
+  buildCampReview,
   REPLAY_ROLE_LABELS,
   CANONICAL_SCORE_KEYS,
   type ReplayRef,
+  type CampReviewAnalysis,
 } from "../lib/analysisService";
 
-import type { AnalysisScore, AnalysisKeyframe } from "@workspace/db";
+import type { AnalysisScore, AnalysisKeyframe, AnalysisFinding } from "@workspace/db";
 
 function makeScores(overrides: Partial<Record<string, number>> = {}): AnalysisScore[] {
   const defaults: Record<string, number> = {
@@ -351,5 +353,191 @@ describe("buildReplayMoments", () => {
       { role: "best_decision", keyframeIndex: 3, note: "d" },
     ];
     expect(buildReplayMoments(refs, keyframes).length).toBeLessThanOrEqual(3);
+  });
+});
+
+function makeFinding(overrides: Partial<AnalysisFinding> = {}): AnalysisFinding {
+  return {
+    title: "Chin lifts under pressure",
+    observation: "obs",
+    nervousSystemFraming: "framing",
+    severity: "medium",
+    area: "defense",
+    ...overrides,
+  };
+}
+
+function makeAnalysis(overrides: Partial<CampReviewAnalysis> = {}): CampReviewAnalysis {
+  return {
+    id: 1,
+    kind: "sparring",
+    scores: makeScores(),
+    findings: [],
+    createdAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+describe("buildCampReview", () => {
+  it("returns honest zeros/nulls for an empty camp", () => {
+    const r = buildCampReview([]);
+    expect(r.totalAnalyses).toBe(0);
+    expect(r.countsByKind).toEqual([]);
+    expect(r.biggestImprovement).toBeNull();
+    expect(r.mostPersistentLeak).toBeNull();
+    expect(r.spanFrom).toBeNull();
+    expect(r.spanTo).toBeNull();
+  });
+
+  it("counts by kind and follows the canonical kind order regardless of input order", () => {
+    const r = buildCampReview([
+      makeAnalysis({ id: 1, kind: "drilling" }),
+      makeAnalysis({ id: 2, kind: "sparring" }),
+      makeAnalysis({ id: 3, kind: "sparring" }),
+    ]);
+    expect(r.totalAnalyses).toBe(3);
+    // Mock ANALYSIS_KINDS = ["sparring","drilling","padwork","bag_work"]
+    expect(r.countsByKind).toEqual([
+      { kind: "sparring", label: "Sparring", count: 2 },
+      { kind: "drilling", label: "Drilling", count: 1 },
+    ]);
+  });
+
+  it("sorts by createdAt and reports the real span endpoints", () => {
+    const r = buildCampReview([
+      makeAnalysis({ id: 2, createdAt: "2026-02-10T00:00:00.000Z" }),
+      makeAnalysis({ id: 1, createdAt: "2026-01-05T00:00:00.000Z" }),
+      makeAnalysis({ id: 3, createdAt: "2026-03-01T00:00:00.000Z" }),
+    ]);
+    expect(r.spanFrom).toBe("2026-01-05T00:00:00.000Z");
+    expect(r.spanTo).toBe("2026-03-01T00:00:00.000Z");
+  });
+
+  it("picks the biggest positive delta between the earliest and latest scored analysis", () => {
+    const r = buildCampReview([
+      makeAnalysis({
+        id: 1,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        scores: makeScores({ composure: 50, aggression: 60 }),
+      }),
+      makeAnalysis({
+        id: 2,
+        createdAt: "2026-02-01T00:00:00.000Z",
+        scores: makeScores({ composure: 72, aggression: 64 }),
+      }),
+    ]);
+    expect(r.biggestImprovement).not.toBeNull();
+    expect(r.biggestImprovement?.key).toBe("composure");
+    expect(r.biggestImprovement?.from).toBe(50);
+    expect(r.biggestImprovement?.to).toBe(72);
+    expect(r.biggestImprovement?.delta).toBe(22);
+    expect(r.biggestImprovement?.fromAt).toBe("2026-01-01T00:00:00.000Z");
+    expect(r.biggestImprovement?.toAt).toBe("2026-02-01T00:00:00.000Z");
+  });
+
+  it("compares only first vs last — a big middle swing does not count", () => {
+    const r = buildCampReview([
+      makeAnalysis({ id: 1, createdAt: "2026-01-01T00:00:00.000Z", scores: makeScores({ composure: 50 }) }),
+      makeAnalysis({ id: 2, createdAt: "2026-02-01T00:00:00.000Z", scores: makeScores({ composure: 95 }) }),
+      makeAnalysis({ id: 3, createdAt: "2026-03-01T00:00:00.000Z", scores: makeScores({ composure: 52 }) }),
+    ]);
+    // first (50) vs last (52) => +2, not the +45 middle spike
+    expect(r.biggestImprovement?.key).toBe("composure");
+    expect(r.biggestImprovement?.delta).toBe(2);
+  });
+
+  it("breaks improvement ties by canonical key order", () => {
+    const r = buildCampReview([
+      makeAnalysis({
+        id: 1,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        scores: makeScores({ aggression: 50, composure: 50 }),
+      }),
+      makeAnalysis({
+        id: 2,
+        createdAt: "2026-02-01T00:00:00.000Z",
+        scores: makeScores({ aggression: 60, composure: 60 }),
+      }),
+    ]);
+    // aggression precedes composure in CANONICAL_SCORE_KEYS
+    expect(CANONICAL_SCORE_KEYS[0]).toBe("aggression");
+    expect(r.biggestImprovement?.key).toBe("aggression");
+  });
+
+  it("returns null improvement with fewer than two scored analyses", () => {
+    const r = buildCampReview([makeAnalysis({ id: 1 })]);
+    expect(r.biggestImprovement).toBeNull();
+  });
+
+  it("returns null improvement when nothing rose (held or dipped)", () => {
+    const r = buildCampReview([
+      makeAnalysis({ id: 1, createdAt: "2026-01-01T00:00:00.000Z", scores: makeScores({ composure: 70 }) }),
+      makeAnalysis({ id: 2, createdAt: "2026-02-01T00:00:00.000Z", scores: makeScores({ composure: 60 }) }),
+    ]);
+    expect(r.biggestImprovement).toBeNull();
+  });
+
+  it("names the most persistent leak by recurrence across sessions", () => {
+    const r = buildCampReview([
+      makeAnalysis({ id: 1, findings: [makeFinding({ area: "guard", title: "Guard opens early" })] }),
+      makeAnalysis({ id: 2, findings: [makeFinding({ area: "Guard", title: "Guard collapses" })] }),
+      makeAnalysis({ id: 3, findings: [makeFinding({ area: "footwork", title: "Flat feet" })] }),
+    ]);
+    expect(r.mostPersistentLeak).not.toBeNull();
+    expect(r.mostPersistentLeak?.area).toBe("guard");
+    expect(r.mostPersistentLeak?.sessions).toBe(2);
+    expect(r.mostPersistentLeak?.total).toBe(3);
+    // label is the most recent occurrence's title
+    expect(r.mostPersistentLeak?.label).toBe("Guard collapses");
+  });
+
+  it("requires a leak to recur across at least two sessions", () => {
+    const r = buildCampReview([
+      makeAnalysis({ id: 1, findings: [makeFinding({ area: "guard" })] }),
+      makeAnalysis({ id: 2, findings: [makeFinding({ area: "footwork" })] }),
+    ]);
+    expect(r.mostPersistentLeak).toBeNull();
+  });
+
+  it("counts an area at most once per analysis", () => {
+    const r = buildCampReview([
+      makeAnalysis({
+        id: 1,
+        findings: [
+          makeFinding({ area: "guard", title: "a" }),
+          makeFinding({ area: "guard", title: "b" }),
+        ],
+      }),
+    ]);
+    // one analysis, area seen twice -> still one session -> not persistent
+    expect(r.mostPersistentLeak).toBeNull();
+  });
+
+  it("ignores low-severity findings and the 'general' fallback area", () => {
+    const r = buildCampReview([
+      makeAnalysis({ id: 1, findings: [makeFinding({ area: "guard", severity: "low" })] }),
+      makeAnalysis({ id: 2, findings: [makeFinding({ area: "guard", severity: "low" })] }),
+      makeAnalysis({ id: 3, findings: [makeFinding({ area: "general", severity: "high" })] }),
+      makeAnalysis({ id: 4, findings: [makeFinding({ area: "general", severity: "high" })] }),
+    ]);
+    expect(r.mostPersistentLeak).toBeNull();
+  });
+
+  it("breaks leak ties by first-encountered area (chronological order)", () => {
+    const r = buildCampReview([
+      makeAnalysis({
+        id: 1,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        findings: [makeFinding({ area: "guard" }), makeFinding({ area: "footwork" })],
+      }),
+      makeAnalysis({
+        id: 2,
+        createdAt: "2026-02-01T00:00:00.000Z",
+        findings: [makeFinding({ area: "footwork" }), makeFinding({ area: "guard" })],
+      }),
+    ]);
+    // both areas recur in 2 sessions; guard is encountered first -> wins the tie
+    expect(r.mostPersistentLeak?.area).toBe("guard");
+    expect(r.mostPersistentLeak?.sessions).toBe(2);
   });
 });

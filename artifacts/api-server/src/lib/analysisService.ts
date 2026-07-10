@@ -402,6 +402,149 @@ export function recomputeSessionScore(
   );
 }
 
+// ---- Camp review: cross-analysis intelligence, real evidence only ----
+//
+// Everything below is derived deterministically from the camp's OWN analyses.
+// No aggregate score is invented: the "biggest improvement" is two real recorded
+// endpoint values (first vs last analysis in the camp) and the dates they were
+// measured; the "most persistent leak" is a real count of how many of the camp's
+// sessions flagged the same area at medium/high severity. Honest nulls when there
+// isn't enough evidence (one honesty pillar applied to the camp summary itself).
+
+// The slim analysis shape the review needs — the route selects only these columns
+// (never keyframes: those are huge base64 blobs).
+export type CampReviewAnalysis = {
+  id: number;
+  kind: AnalysisKind;
+  scores: AnalysisScore[];
+  findings: AnalysisFinding[];
+  createdAt: Date | string;
+};
+
+export type CampReviewImprovement = {
+  key: string;
+  label: string;
+  from: number; // earliest recorded value in the camp
+  to: number; // latest recorded value in the camp
+  delta: number; // to - from (always > 0 when present)
+  fromAt: string; // ISO date of the earliest analysis compared
+  toAt: string; // ISO date of the latest analysis compared
+};
+
+export type CampReviewLeak = {
+  area: string; // normalized area tag (e.g. "guard")
+  label: string; // representative finding title (most recent occurrence)
+  sessions: number; // how many camp analyses flagged this area at med/high
+  total: number; // total analyses in the camp
+};
+
+export type CampReview = {
+  totalAnalyses: number;
+  countsByKind: { kind: AnalysisKind; label: string; count: number }[];
+  biggestImprovement: CampReviewImprovement | null;
+  mostPersistentLeak: CampReviewLeak | null;
+  spanFrom: string | null; // ISO date of the first analysis in the camp
+  spanTo: string | null; // ISO date of the most recent analysis in the camp
+};
+
+function kindLabel(kind: string): string {
+  return kind ? kind.charAt(0).toUpperCase() + kind.slice(1) : kind;
+}
+
+function toMs(v: Date | string): number {
+  return v instanceof Date ? v.getTime() : new Date(v).getTime();
+}
+
+function toIso(v: Date | string): string {
+  return v instanceof Date ? v.toISOString() : new Date(v).toISOString();
+}
+
+/**
+ * Summarise a camp from its own analyses. Pure — unit-tested. Every field is
+ * grounded in real records; there is no fabricated aggregate. Callers pass the
+ * camp's analyses in any order.
+ */
+export function buildCampReview(analyses: CampReviewAnalysis[]): CampReview {
+  const sorted = analyses.slice().sort((a, b) => toMs(a.createdAt) - toMs(b.createdAt));
+  const total = sorted.length;
+
+  // Counts by kind — ordered by the canonical ANALYSIS_KINDS, only kinds present.
+  const kindCounts = new Map<AnalysisKind, number>();
+  for (const a of sorted) kindCounts.set(a.kind, (kindCounts.get(a.kind) ?? 0) + 1);
+  const countsByKind = (ANALYSIS_KINDS as readonly AnalysisKind[])
+    .filter((k) => kindCounts.has(k))
+    .map((k) => ({ kind: k, label: kindLabel(k), count: kindCounts.get(k) as number }));
+
+  const spanFrom = total ? toIso(sorted[0]!.createdAt) : null;
+  const spanTo = total ? toIso(sorted[total - 1]!.createdAt) : null;
+
+  // Biggest improvement: earliest-with-scores vs latest-with-scores. First and
+  // last are two REAL recorded values shown verbatim — never an average that
+  // exists in no record. Needs >=2 scored analyses and a positive delta.
+  let biggestImprovement: CampReviewImprovement | null = null;
+  const scored = sorted.filter((a) => hasCanonicalScores(a.scores));
+  if (scored.length >= 2) {
+    const first = scored[0]!;
+    const last = scored[scored.length - 1]!;
+    const firstByKey = new Map(first.scores.map((s) => [s.key, s]));
+    const lastByKey = new Map(last.scores.map((s) => [s.key, s]));
+    for (const key of CANONICAL_SCORE_KEYS) {
+      const f = firstByKey.get(key);
+      const l = lastByKey.get(key);
+      if (!f || !l) continue;
+      const delta = l.value - f.value;
+      // Strict > keeps the first canonical key on ties — deterministic.
+      if (delta > 0 && (!biggestImprovement || delta > biggestImprovement.delta)) {
+        biggestImprovement = {
+          key,
+          label: l.label,
+          from: f.value,
+          to: l.value,
+          delta,
+          fromAt: toIso(first.createdAt),
+          toAt: toIso(last.createdAt),
+        };
+      }
+    }
+  }
+
+  // Most persistent leak: how many DISTINCT camp sessions flagged the same area
+  // at medium/high severity. One analysis counts an area at most once. The
+  // "general" fallback area is meaningless as a leak, so it is excluded.
+  const areaSessions = new Map<string, number>();
+  const areaLabel = new Map<string, string>();
+  for (const a of sorted) {
+    const seen = new Set<string>();
+    for (const f of a.findings) {
+      if (f.severity !== "medium" && f.severity !== "high") continue;
+      const area = (f.area || "").trim().toLowerCase();
+      if (!area || area === "general") continue;
+      if (!seen.has(area)) {
+        seen.add(area);
+        areaSessions.set(area, (areaSessions.get(area) ?? 0) + 1);
+      }
+      // sorted ascending, so the last write is the most recent finding title.
+      if (f.title) areaLabel.set(area, f.title);
+    }
+  }
+  let mostPersistentLeak: CampReviewLeak | null = null;
+  for (const [area, sessions] of areaSessions) {
+    if (sessions < 2) continue; // persistent = recurred across >=2 sessions
+    if (!mostPersistentLeak || sessions > mostPersistentLeak.sessions) {
+      mostPersistentLeak = { area, label: areaLabel.get(area) ?? area, sessions, total };
+    }
+  }
+
+  return {
+    totalAnalyses: total,
+    countsByKind,
+    biggestImprovement,
+    mostPersistentLeak,
+    spanFrom,
+    spanTo,
+  };
+}
+
 export function buildComparison(
   scores: AnalysisScore[],
   prevScores: AnalysisScore[] | null,

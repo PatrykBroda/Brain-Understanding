@@ -1,5 +1,6 @@
 import { pgTable, serial, integer, text, timestamp, jsonb, real } from "drizzle-orm/pg-core";
 import { fightersTable } from "./fighters";
+import { competitionsTable } from "./competitions";
 
 export const ANALYSIS_KINDS = [
   "sparring",
@@ -96,6 +97,12 @@ export const videoAnalysesTable = pgTable("video_analyses", {
   fighterId: integer("fighter_id")
     .notNull()
     .references(() => fightersTable.id, { onDelete: "cascade" }),
+  // The active camp at the moment this analysis was created (null when none was
+  // live). Stamped at write time — camp membership is never re-derived by date,
+  // so creating/cancelling a camp later never silently reassigns past footage.
+  campId: integer("camp_id").references(() => competitionsTable.id, {
+    onDelete: "set null",
+  }),
   kind: text("kind", { enum: ANALYSIS_KINDS }).notNull(),
   focus: text("focus").notNull().default(""),
   nervousSystemLoad: text("nervous_system_load", { enum: NERVOUS_SYSTEM_LOADS }).notNull(),

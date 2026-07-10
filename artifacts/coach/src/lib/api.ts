@@ -529,6 +529,7 @@ export type ReplayMoment = {
 export type VideoAnalysis = {
   id: number;
   fighterId: number;
+  campId: number | null;
   kind: AnalysisKind;
   focus: string;
   nervousSystemLoad: NervousSystemLoad;
@@ -890,11 +891,41 @@ export type TrainingSessionInput = {
   completed?: boolean;
 };
 
+// Cross-analysis intelligence over ONE camp's footage. Every field is grounded
+// in real records (server-computed by buildCampReview) — no fabricated aggregate.
+// `null` on ActiveCompetition means the review is FRAME+-gated for this user.
+export type CampReviewImprovement = {
+  key: string;
+  label: string;
+  from: number;
+  to: number;
+  delta: number;
+  fromAt: string;
+  toAt: string;
+};
+
+export type CampReviewLeak = {
+  area: string;
+  label: string;
+  sessions: number;
+  total: number;
+};
+
+export type CampReview = {
+  totalAnalyses: number;
+  countsByKind: { kind: AnalysisKind; label: string; count: number }[];
+  biggestImprovement: CampReviewImprovement | null;
+  mostPersistentLeak: CampReviewLeak | null;
+  spanFrom: string | null;
+  spanTo: string | null;
+};
+
 export type ActiveCompetition = {
   competition: Competition | null;
   pressure: CompetitionPressure | null;
   weightCut: WeightCut | null;
   sessions: TrainingSession[];
+  review: CampReview | null;
 };
 
 export const competitionApi = {

@@ -2,16 +2,19 @@ import { Router, type IRouter } from "express";
 import {
   db,
   competitionsTable,
+  videoAnalysesTable,
   insertCompetitionSchema,
   insertTrainingSessionSchema,
 } from "@workspace/db";
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import {
   getActiveCompetition,
   pressureFor,
   weightCutFor,
 } from "../lib/competitionService";
+import { buildCampReview, type CampReview } from "../lib/analysisService";
+import { getEntitlementForClerkUser } from "../lib/subscriptionService";
 import {
   ownedCampId,
   listSessions,
@@ -28,18 +31,50 @@ const router: IRouter = Router();
 router.get("/competition/active", async (req, res) => {
   const fighter = await getUserFighter(req);
   if (!fighter) {
-    res.json({ competition: null, pressure: null, weightCut: null, sessions: [] });
+    res.json({ competition: null, pressure: null, weightCut: null, sessions: [], review: null });
     return;
   }
   const competition = await getActiveCompetition(fighter.id);
   const sessions = competition
     ? await listSessions(competition.id, fighter.id)
     : [];
+
+  // Camp review — cross-analysis intelligence over THIS camp's footage only.
+  // Gated to FRAME+: the review reads across every analysis in the camp, and
+  // GET /analysis locks all but the latest for free users, so returning it
+  // unconditionally would leak scores/finding titles from locked analyses.
+  let review: CampReview | null = null;
+  if (competition) {
+    const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+    if (entitlement.plan !== "free") {
+      // Slim select — never keyframes (huge base64 blobs). fighterId in the
+      // WHERE is defense-in-depth on top of the campId scope.
+      const rows = await db
+        .select({
+          id: videoAnalysesTable.id,
+          kind: videoAnalysesTable.kind,
+          scores: videoAnalysesTable.scores,
+          findings: videoAnalysesTable.findings,
+          createdAt: videoAnalysesTable.createdAt,
+        })
+        .from(videoAnalysesTable)
+        .where(
+          and(
+            eq(videoAnalysesTable.campId, competition.id),
+            eq(videoAnalysesTable.fighterId, fighter.id),
+          ),
+        )
+        .orderBy(asc(videoAnalysesTable.createdAt));
+      review = buildCampReview(rows);
+    }
+  }
+
   res.json({
     competition,
     pressure: competition ? pressureFor(competition) : null,
     weightCut: competition ? weightCutFor(competition) : null,
     sessions,
+    review,
   });
 });
 

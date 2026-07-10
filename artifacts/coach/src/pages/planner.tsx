@@ -13,6 +13,7 @@ import {
   useUpdateCompetition,
 } from "@/hooks/use-competition";
 import type {
+  CampReview,
   Competition,
   CompetitionInput,
   CompetitionPressure,
@@ -123,6 +124,13 @@ export default function CampPage() {
                   onEdit={() => setEditing(true)}
                 />
               )}
+
+              {!editing &&
+                (data?.review ? (
+                  <CampReviewSection review={data.review} />
+                ) : (
+                  <CampReviewLocked />
+                ))}
 
               {/* Primary vs secondary view toggle */}
               <div className="grid grid-cols-2 gap-2">
@@ -283,6 +291,133 @@ function CampDashboard({
       >
         {cancel.isPending ? "Ending" : "End camp"}
       </button>
+    </section>
+  );
+}
+
+// Camp review — cross-analysis intelligence over THIS camp's footage. Every
+// number shown is a real recorded value or a real session count; honest empty
+// states when there isn't enough footage to say anything true yet.
+function CampReviewSection({ review }: { review: CampReview }) {
+  const { totalAnalyses, countsByKind, biggestImprovement, mostPersistentLeak } = review;
+
+  return (
+    <section className="border border-white/[0.08]">
+      <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-foreground/70">
+          Camp review
+        </div>
+        <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/40">
+          {totalAnalyses === 1 ? "1 analysis" : `${totalAnalyses} analyses`}
+        </div>
+      </div>
+
+      {totalAnalyses === 0 ? (
+        <div className="px-4 py-6">
+          <p className="text-[12px] leading-relaxed text-foreground/50">
+            No footage analysed in this camp yet. Upload a round on{" "}
+            <Link href="/analyse" className="text-primary hover:underline">
+              Analyse
+            </Link>{" "}
+            and this camp starts reading your trend, session over session.
+          </p>
+        </div>
+      ) : (
+        <div className="divide-y divide-white/[0.06]">
+          {/* Session mix — a real count per kind */}
+          <div className="px-4 py-3 flex flex-wrap gap-x-4 gap-y-1.5">
+            {countsByKind.map((c) => (
+              <div key={c.kind} className="flex items-baseline gap-1.5">
+                <span className="font-sans font-extralight tabular-nums text-[15px] text-foreground/90">
+                  {c.count}
+                </span>
+                <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/45">
+                  {c.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Biggest real improvement — two recorded endpoint values + dates */}
+          <div className="px-4 py-4">
+            <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/45">
+              Biggest improvement
+            </div>
+            {biggestImprovement ? (
+              <div className="mt-2.5">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/85">
+                    {biggestImprovement.label}
+                  </span>
+                  <span
+                    className="font-sans font-extralight tabular-nums text-[13px]"
+                    style={{ color: "hsl(140 55% 55%)" }}
+                  >
+                    +{biggestImprovement.delta}
+                  </span>
+                </div>
+                <div className="mt-1 font-mono text-[10px] tabular-nums text-foreground/55">
+                  {biggestImprovement.from} → {biggestImprovement.to}
+                </div>
+                <div className="mt-1 text-[10px] text-foreground/40">
+                  {formatDay(biggestImprovement.fromAt)} → {formatDay(biggestImprovement.toAt)}
+                </div>
+              </div>
+            ) : (
+              <p className="mt-2 text-[11px] leading-relaxed text-foreground/45">
+                {totalAnalyses < 2
+                  ? "One session in — log a second analysis and the trend appears here."
+                  : "No attribute rose between your first and latest session this camp. Held or dipped — no gain to claim yet."}
+              </p>
+            )}
+          </div>
+
+          {/* Most persistent real leak — a real recurrence count */}
+          <div className="px-4 py-4">
+            <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/45">
+              Most persistent leak
+            </div>
+            {mostPersistentLeak ? (
+              <div className="mt-2.5">
+                <div className="font-sans text-[13px] leading-snug text-foreground/85">
+                  {mostPersistentLeak.label}
+                </div>
+                <div className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/50">
+                  Flagged in {mostPersistentLeak.sessions} of {mostPersistentLeak.total} sessions
+                </div>
+              </div>
+            ) : (
+              <p className="mt-2 text-[11px] leading-relaxed text-foreground/45">
+                {totalAnalyses < 2
+                  ? "A leak has to recur across sessions to count. One session in, nothing to call persistent."
+                  : "No single leak has recurred across your sessions this camp."}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// Free tier: the review reads across every analysis in the camp, which is a
+// FRAME+ capability. Honest teaser — no fabricated preview numbers.
+function CampReviewLocked() {
+  return (
+    <section className="border border-white/[0.08]">
+      <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-foreground/70">
+          Camp review
+        </div>
+        <FramePlusPill />
+      </div>
+      <div className="px-4 py-6">
+        <p className="text-[12px] leading-relaxed text-foreground/50">
+          Camp review reads across every analysis in this camp to surface your biggest real gain
+          and the leak that keeps recurring — grounded in your recorded sessions, never invented.
+          Part of FRAME+.
+        </p>
+      </div>
     </section>
   );
 }
