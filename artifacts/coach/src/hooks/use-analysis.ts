@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { analysisApi, type CreateAnalysisInput } from "@/lib/api";
+import { analysisApi, type CreateAnalysisInput, type VideoAnalysis } from "@/lib/api";
 import { useFighter } from "@/hooks/use-fighter";
 
 export function useAnalyses() {
@@ -36,6 +36,29 @@ export function useUpdateKeyframeNotes(analysisId: number) {
     mutationFn: (notes: Record<number, string>) => analysisApi.updateNotes(analysisId, notes),
     onSuccess: (data) => {
       qc.setQueryData(["analysis", analysisId], data);
+    },
+  });
+}
+
+export function useAnswerReview(analysisId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (answer: string) => analysisApi.answer(analysisId, answer),
+    onSuccess: (data) => {
+      // Patch only reviewAnswer into every cached variant of this analysis
+      // (the query key carries a compareId), preserving prevSignals/history
+      // that the answer endpoint doesn't return. setQueriesData matches by
+      // prefix so both the plain and compare views update in place.
+      qc.setQueriesData<{ analysis: VideoAnalysis } | undefined>(
+        { queryKey: ["analysis", analysisId] },
+        (old) =>
+          old?.analysis
+            ? { ...old, analysis: { ...old.analysis, reviewAnswer: data.analysis.reviewAnswer } }
+            : old,
+      );
+      // The answer became a recorded athlete_fact — refresh the model views.
+      qc.invalidateQueries({ queryKey: ["memory"] });
+      qc.invalidateQueries({ queryKey: ["analyses"] });
     },
   });
 }

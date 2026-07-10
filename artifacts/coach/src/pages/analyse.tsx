@@ -16,7 +16,13 @@ import { ModelUpdateCard } from "@/components/model-update-card";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { FrameReportCard } from "@/components/frame-report-card";
 import { useFighter } from "@/hooks/use-fighter";
-import { useAnalyses, useAnalysis, useCreateAnalysis, useUpdateKeyframeNotes } from "@/hooks/use-analysis";
+import {
+  useAnalyses,
+  useAnalysis,
+  useCreateAnalysis,
+  useUpdateKeyframeNotes,
+  useAnswerReview,
+} from "@/hooks/use-analysis";
 import {
   extractPoseFrames,
   captureKeyframe,
@@ -34,6 +40,7 @@ import type {
   AnalysisModelUpdate,
   DetectedEvent,
   NervousSystemLoad,
+  ReplayMoment,
   VideoAnalysis,
   Fighter,
 } from "@/lib/api";
@@ -359,7 +366,7 @@ export default function AnalysePage() {
         <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
           {result ? (
             <div className="space-y-6" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
-              <Report analysis={result} fighter={fighter} onClose={clearResult} onSelectSession={onSelectSession} />
+              <Report analysis={result} fighter={fighter} videoUrl={videoUrl} onClose={clearResult} onSelectSession={onSelectSession} />
               {modelUpdate && <ModelUpdateCard update={modelUpdate} />}
             </div>
           ) : openId != null ? (
@@ -1113,6 +1120,13 @@ function WorkstationLeft({
           </div>
         </div>
       )}
+
+      {/* FRAME Replay — curated moments, click to seek the footage */}
+      {analysis.replayMoments.length > 0 && (
+        <div className="flex-none border-t border-border/30 bg-black/40 px-4 py-3 max-h-[42%] overflow-y-auto">
+          <ReplaySection analysis={analysis} onSeek={seekTo} />
+        </div>
+      )}
     </div>
   );
 }
@@ -1172,6 +1186,9 @@ function WorkstationRight({
       <p className="text-[0.95rem] text-foreground/90 leading-relaxed border-l-2 border-primary/60 pl-4">
         {analysis.summary}
       </p>
+
+      {/* FRAME asks one grounded question about this read */}
+      <FeedbackCard analysis={analysis} />
 
       {/* findings table */}
       {analysis.findings.length > 0 && (
@@ -1672,17 +1689,188 @@ function ScoreProvenance({ analysis }: { analysis: VideoAnalysis }) {
 }
 
 // ---------------------------------------------------------------------------
+// FRAME Replay — up to three curated moments, each tied to a real keyframe
+// ---------------------------------------------------------------------------
+
+const REPLAY_ROLE_META: Record<ReplayMoment["role"], { label: string; accent: string }> = {
+  best_decision: { label: "Best decision", accent: "text-emerald-400/90 border-emerald-400/40" },
+  worst_habit: { label: "Worst habit", accent: "text-destructive/90 border-destructive/40" },
+  biggest_opportunity: {
+    label: "Biggest opportunity",
+    accent: "text-primary/90 border-primary/40",
+  },
+};
+
+function ReplayMomentRow({
+  moment,
+  keyframe,
+  index,
+  onSeek,
+}: {
+  moment: ReplayMoment;
+  keyframe: AnalysisKeyframe | null;
+  index: number;
+  onSeek?: (ts: number, idx: number) => void;
+}) {
+  const meta = REPLAY_ROLE_META[moment.role];
+  const seekable = !!onSeek && index >= 0;
+  const inner = (
+    <>
+      {keyframe && (
+        <img
+          src={keyframe.imageBase64}
+          alt={keyframe.caption}
+          className="flex-none w-20 h-14 object-cover border border-border/40"
+        />
+      )}
+      <div className="flex-1 min-w-0 space-y-1">
+        <div
+          className={`inline-block font-mono text-[8px] uppercase tracking-[0.25em] border px-1.5 py-0.5 ${meta.accent}`}
+        >
+          {meta.label}
+        </div>
+        <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
+          {moment.timestamp.toFixed(1)}s{moment.label ? ` · ${moment.label}` : ""}
+        </div>
+        <p className="text-[0.85rem] text-foreground/90 leading-snug">{moment.note}</p>
+      </div>
+    </>
+  );
+  if (seekable) {
+    return (
+      <button
+        type="button"
+        onClick={() => onSeek!(moment.timestamp, index)}
+        className="w-full flex gap-3 items-stretch text-left border border-border/40 bg-black/20 p-2 transition-colors hover:border-primary/50"
+      >
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <div className="w-full flex gap-3 items-stretch text-left border border-border/40 bg-black/20 p-2">
+      {inner}
+    </div>
+  );
+}
+
+function ReplaySection({
+  analysis,
+  onSeek,
+}: {
+  analysis: VideoAnalysis;
+  onSeek?: (ts: number, idx: number) => void;
+}) {
+  const moments = analysis.replayMoments;
+  if (!moments || moments.length === 0) return null;
+
+  return (
+    <section className="space-y-3">
+      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+        FRAME Replay
+      </div>
+      <div className="space-y-2">
+        {moments.map((m, i) => {
+          const idx = analysis.keyframes.findIndex(
+            (k) => Math.abs(k.timestamp - m.timestamp) < 0.05,
+          );
+          return (
+            <ReplayMomentRow
+              key={i}
+              moment={m}
+              keyframe={idx >= 0 ? analysis.keyframes[idx] : null}
+              index={idx}
+              onSeek={onSeek}
+            />
+          );
+        })}
+      </div>
+      {onSeek && (
+        <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/50">
+          tap a moment to jump to that frame
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// FRAME asks — one grounded question after the read; the answer is recorded
+// ---------------------------------------------------------------------------
+
+function FeedbackCard({ analysis }: { analysis: VideoAnalysis }) {
+  const question = analysis.reviewQuestion;
+  const [draft, setDraft] = useState("");
+  const answerMutation = useAnswerReview(analysis.id);
+
+  if (!question) return null;
+
+  const recorded = answerMutation.data?.analysis.reviewAnswer || analysis.reviewAnswer;
+
+  return (
+    <section className="space-y-3 border border-primary/30 bg-primary/[0.03] p-4">
+      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/80">
+        FRAME asks
+      </div>
+      <p className="text-[0.95rem] text-foreground/90 leading-relaxed">{question}</p>
+
+      {recorded ? (
+        <div className="space-y-1.5">
+          <div className="border-l-2 border-primary/60 pl-3 text-[0.9rem] text-foreground/85 leading-relaxed">
+            {recorded}
+          </div>
+          <div className="font-mono text-[8px] uppercase tracking-widest text-primary/70">
+            Recorded — FRAME will hold this
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            maxLength={500}
+            rows={3}
+            placeholder="Answer honestly — one or two lines is enough."
+            className="w-full bg-black/30 border border-border/40 focus:border-primary/50 outline-none text-[0.9rem] text-foreground/90 placeholder:text-muted-foreground/35 p-2.5 resize-none transition-colors"
+          />
+          <div className="flex items-center justify-between gap-3">
+            <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/50">
+              {draft.trim().length}/500
+            </div>
+            <button
+              type="button"
+              disabled={!draft.trim() || answerMutation.isPending}
+              onClick={() => answerMutation.mutate(draft.trim())}
+              className="font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/50 hover:border-primary px-4 py-2 text-foreground/85 transition-colors disabled:opacity-40"
+            >
+              {answerMutation.isPending ? "Recording…" : "Record"}
+            </button>
+          </div>
+          {answerMutation.isError && (
+            <div className="font-mono text-[9px] uppercase tracking-widest text-destructive/80">
+              could not record — try again
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Mobile-only Report component (identical to original, uses shared sub-components)
 // ---------------------------------------------------------------------------
 
 function Report({
   analysis,
   fighter,
+  videoUrl,
   onClose,
   onSelectSession,
 }: {
   analysis: VideoAnalysis;
   fighter: Fighter | null;
+  videoUrl: string | null;
   onClose: () => void;
   onSelectSession?: (id: number) => void;
 }) {
@@ -1712,10 +1900,19 @@ function Report({
 
   const [localNotes, setLocalNotes] = useState<Record<number, string>>(analysis.keyframeNotes ?? {});
   const updateNotes = useUpdateKeyframeNotes(analysis.id);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const kf = analysis.keyframes[activeKf];
 
   function commitNote(notes: Record<number, string>) {
     void updateNotes.mutate(notes);
+  }
+
+  function seekTo(ts: number, idx: number) {
+    setActiveKf(idx);
+    if (videoRef.current) {
+      videoRef.current.currentTime = ts;
+      videoRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
   }
 
   return (
@@ -1757,6 +1954,9 @@ function Report({
         {analysis.summary}
       </p>
 
+      {/* FRAME asks one grounded question about this read */}
+      <FeedbackCard analysis={analysis} />
+
       {/* comparison vs selected or last session */}
       {(() => {
         const cmp = analysis.liveComparison ?? analysis.comparison;
@@ -1764,6 +1964,20 @@ function Report({
           <ComparisonSection comparison={cmp} isCustomBaseline={!!analysis.liveComparison} />
         ) : null;
       })()}
+
+      {/* inline footage — only for the fresh upload; seeked by keyframes + replay */}
+      {videoUrl && (
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          controls
+          playsInline
+          className="w-full rounded border border-border/40 bg-black"
+        />
+      )}
+
+      {/* FRAME Replay — up to three curated moments, tap to seek */}
+      <ReplaySection analysis={analysis} onSeek={seekTo} />
 
       {/* detected events — clickable keyframes + note annotation */}
       {analysis.keyframes.length > 0 && (
@@ -1793,7 +2007,7 @@ function Report({
               <button
                 key={i}
                 type="button"
-                onClick={() => setActiveKf(i)}
+                onClick={() => seekTo(k.timestamp, i)}
                 className={`flex-none w-20 border transition-colors ${
                   i === activeKf ? "border-primary/70" : "border-border/40 hover:border-primary/40"
                 }`}
@@ -1901,7 +2115,7 @@ function SavedReport({
       </div>
     );
   }
-  return <Report analysis={data.analysis} fighter={fighter} onClose={onClose} onSelectSession={onSelectSession} />;
+  return <Report analysis={data.analysis} fighter={fighter} videoUrl={null} onClose={onClose} onSelectSession={onSelectSession} />;
 }
 
 // ---------------------------------------------------------------------------

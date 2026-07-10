@@ -517,6 +517,15 @@ export type AnalysisComparison = {
   note: string;
 };
 
+export type ReplayRole = "best_decision" | "worst_habit" | "biggest_opportunity";
+
+export type ReplayMoment = {
+  role: ReplayRole;
+  timestamp: number;
+  label: string;
+  note: string;
+};
+
 export type VideoAnalysis = {
   id: number;
   fighterId: number;
@@ -536,6 +545,9 @@ export type VideoAnalysis = {
   metrics: AnalysisMetrics;
   keyframes: AnalysisKeyframe[];
   keyframeNotes: Record<number, string>;
+  reviewQuestion: string;
+  reviewAnswer: string;
+  replayMoments: ReplayMoment[];
   durationSec: number;
   createdAt: string;
   prevSignals?: AnalysisSignal[] | null;
@@ -704,6 +716,11 @@ export const analysisApi = {
     jsonFetch<{ analysis: VideoAnalysis }>(`api/analysis/${id}/notes`, {
       method: "PATCH",
       body: JSON.stringify({ notes }),
+    }),
+  answer: (id: number, answer: string) =>
+    jsonFetch<{ analysis: VideoAnalysis; fact: unknown | null }>(`api/analysis/${id}/answer`, {
+      method: "POST",
+      body: JSON.stringify({ answer }),
     }),
 };
 

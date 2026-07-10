@@ -77,6 +77,20 @@ export type AnalysisKeyframe = {
   eventType?: string;
 };
 
+// FRAME Replay: up to three curated film-review moments. The AI selects among the
+// REAL detected keyframes and writes the `note`; the `timestamp` is always copied
+// from a real stored keyframe server-side (never emitted by the AI) so it can seek
+// the footage to a genuine moment.
+export const REPLAY_ROLES = ["best_decision", "worst_habit", "biggest_opportunity"] as const;
+export type ReplayRole = (typeof REPLAY_ROLES)[number];
+
+export type ReplayMoment = {
+  role: ReplayRole;
+  timestamp: number; // copied from a real keyframe.timestamp
+  label: string; // human label, e.g. "Best decision"
+  note: string; // AI narrative, grounded — never numbers
+};
+
 export const videoAnalysesTable = pgTable("video_analyses", {
   id: serial("id").primaryKey(),
   fighterId: integer("fighter_id")
@@ -100,6 +114,12 @@ export const videoAnalysesTable = pgTable("video_analyses", {
   metrics: jsonb("metrics").$type<AnalysisMetrics>().notNull(),
   keyframes: jsonb("keyframes").$type<AnalysisKeyframe[]>().notNull(),
   keyframeNotes: jsonb("keyframe_notes").$type<Record<number, string>>().notNull().default({}),
+  // Film-review loop: ONE grounded follow-up question FRAME asks after the read,
+  // and the athlete's recorded answer (empty until answered).
+  reviewQuestion: text("review_question").notNull().default(""),
+  reviewAnswer: text("review_answer").notNull().default(""),
+  // FRAME Replay — up to three curated moments tied to real keyframe timestamps.
+  replayMoments: jsonb("replay_moments").$type<ReplayMoment[]>().notNull().default([]),
   durationSec: real("duration_sec").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -12,6 +12,9 @@ import {
   type AnalysisComparison,
   type Fighter,
   type AthleteFact,
+  type ReplayMoment,
+  type ReplayRole,
+  REPLAY_ROLES,
 } from "@workspace/db";
 import { ONTOLOGY_KEYS, isOntologyKey } from "@workspace/ontology";
 import { COACH_SYSTEM_PROMPT_STATIC, buildDynamicContext } from "./synochi";
@@ -50,7 +53,9 @@ HARD RULES:
 - summary: 2-4 sentences. The through-line of this clip as one nervous-system story. Direct, structural, FRAME's voice. No padding, no emojis.
 - If a focus was requested, weight the whole read toward it.
 - comparisonNote: ONLY if previous-session deltas are provided below — 1-2 sentences on what changed and what it means ("you're less reactive under pressure than last upload; still overcommitting after combinations"). Omit if no prior session.
-- Voice: calm, observant, precise. A mirror, not a hype machine. No motivational filler, no questions back.`;
+- reviewQuestion: ONE short, specific question about THIS session that draws out context the pose cannot see — intent, gameplan, how it felt, whether something was deliberate, who they were working against. Grounded in a finding or the athlete's recorded model, phrased as a coach reviewing film beside them. One sentence. No preamble, no "let me ask you", no numbers. Leave it empty ("") if there is nothing grounded worth asking.
+- replay: the "# Key moments" list below enumerates the REAL detected moments in this clip, each with an index. Pick up to THREE of them and cast each as one of these roles: best_decision, worst_habit, biggest_opportunity. Reference the moment ONLY by its keyframeIndex from that list — never invent a moment or a time. Each replay entry needs a one-sentence grounded note explaining what the body did at that moment and why it earns that role. Use at most one entry per role. Do NOT restate the timestamp or any number in the note — the interface shows the real time. Omit any role you cannot ground in a listed moment; if no moments are listed, return an empty replay list.
+- Voice: calm, observant, precise. A mirror, not a hype machine. No motivational filler.`;
 
 const REPORT_TOOL: Anthropic.Tool = {
   name: "emit_analysis",
@@ -95,6 +100,31 @@ const REPORT_TOOL: Anthropic.Tool = {
         },
       },
       comparisonNote: { type: "string" },
+      reviewQuestion: {
+        type: "string",
+        description:
+          "ONE short grounded follow-up question about this session (context the pose can't see). No numbers. Empty string if nothing grounded to ask.",
+      },
+      replay: {
+        type: "array",
+        description:
+          "Up to 3 curated film-review moments. Reference real moments by keyframeIndex from the '# Key moments' list; never invent a time. At most one per role.",
+        items: {
+          type: "object",
+          properties: {
+            role: { type: "string", enum: [...REPLAY_ROLES] },
+            keyframeIndex: {
+              type: "integer",
+              description: "Index of the moment from the '# Key moments' list.",
+            },
+            note: {
+              type: "string",
+              description: "One grounded sentence — what the body did. No numbers or timestamps.",
+            },
+          },
+          required: ["role", "keyframeIndex", "note"],
+        },
+      },
       contentValid: {
         type: "boolean",
         description: "true if the footage shows combat sports training, false otherwise",
@@ -103,6 +133,47 @@ const REPORT_TOOL: Anthropic.Tool = {
     required: ["contentValid", "styleProfile", "aiComment", "summary", "findings"],
   },
 };
+
+export const REPLAY_ROLE_LABELS: Record<ReplayRole, string> = {
+  best_decision: "Best decision",
+  worst_habit: "Worst habit",
+  biggest_opportunity: "Biggest opportunity",
+};
+
+// The AI's raw, unvalidated replay reference (a keyframe index + role + note).
+// buildReplayMoments turns these into ReplayMoments whose timestamps come only
+// from real stored keyframes — the AI never emits a timestamp.
+export type ReplayRef = { role: ReplayRole; keyframeIndex: number; note: string };
+
+/**
+ * Resolve AI replay references against the REAL sanitised keyframes. The
+ * timestamp is copied from keyframes[keyframeIndex].timestamp so it always
+ * points at a genuine detected moment. Drops out-of-range indices, keeps the
+ * first entry per role AND per keyframe, caps at 3. Pure — unit-tested.
+ */
+export function buildReplayMoments(
+  refs: ReplayRef[],
+  keyframes: AnalysisKeyframe[],
+): ReplayMoment[] {
+  const out: ReplayMoment[] = [];
+  const usedRoles = new Set<ReplayRole>();
+  const usedIndices = new Set<number>();
+  for (const ref of refs) {
+    if (out.length >= 3) break;
+    if (usedRoles.has(ref.role) || usedIndices.has(ref.keyframeIndex)) continue;
+    const kf = keyframes[ref.keyframeIndex];
+    if (!kf) continue;
+    usedRoles.add(ref.role);
+    usedIndices.add(ref.keyframeIndex);
+    out.push({
+      role: ref.role,
+      timestamp: kf.timestamp,
+      label: REPLAY_ROLE_LABELS[ref.role],
+      note: ref.note,
+    });
+  }
+  return out;
+}
 
 // Brand hard-rule: no emojis in coach output. Strip pictographic codepoints defensively.
 const EMOJI_RE =
@@ -123,6 +194,9 @@ export type AnalysisNarrative = {
   summary: string;
   findings: AnalysisFinding[];
   comparisonNote: string;
+  reviewQuestion: string;
+  // Raw AI references — the route resolves these against the real keyframes.
+  replay: ReplayRef[];
 };
 
 export class ContentValidationError extends Error {
@@ -182,6 +256,21 @@ function normalise(raw: Record<string, unknown>): AnalysisNarrative {
     }
   }
 
+  const validRoles = new Set<string>(REPLAY_ROLES);
+  const replay: ReplayRef[] = [];
+  if (Array.isArray(raw["replay"])) {
+    for (const r of (raw["replay"] as unknown[]).slice(0, 6)) {
+      const it = r as Record<string, unknown>;
+      const role = typeof it["role"] === "string" ? it["role"] : "";
+      const idx = it["keyframeIndex"];
+      const note = asStr(it["note"], 200);
+      if (!validRoles.has(role) || typeof idx !== "number" || !Number.isInteger(idx) || idx < 0) {
+        continue;
+      }
+      replay.push({ role: role as ReplayRole, keyframeIndex: idx, note });
+    }
+  }
+
   return {
     styleProfile: asStr(raw["styleProfile"], 48),
     styleParallels,
@@ -189,6 +278,8 @@ function normalise(raw: Record<string, unknown>): AnalysisNarrative {
     summary: asStr(raw["summary"], 800),
     findings,
     comparisonNote: asStr(raw["comparisonNote"], 320),
+    reviewQuestion: asStr(raw["reviewQuestion"], 240),
+    replay,
   };
 }
 
@@ -201,8 +292,10 @@ function metricsText(args: {
   scores: AnalysisScore[];
   metrics: AnalysisMetrics;
   prevScores: AnalysisScore[] | null;
+  keyframes: AnalysisKeyframe[];
 }): string {
-  const { kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores } = args;
+  const { kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes } =
+    args;
   const sig = metrics.signals.map((s) => `- ${s.label}: ${s.value} — ${s.detail}`);
   const sc = scores.map((s) => `- ${s.label}: ${s.value}/100 — ${s.basis}`);
   const parts = [
@@ -239,6 +332,22 @@ function metricsText(args: {
     if (deltaLines.length) {
       parts.push(``, `# Change vs previous session`, ...deltaLines);
     }
+  }
+
+  // Enumerate EVERY real detected keyframe by index so the AI can cite genuine
+  // moments for FRAME Replay. Only the first few carry images (below), but the
+  // AI may reference any listed index — the timestamp is resolved server-side.
+  if (keyframes.length) {
+    const kfLines = keyframes.map((kf, i) => {
+      const evt = kf.eventType ? ` [${kf.eventType}]` : "";
+      const img = i < 4 ? " (image supplied)" : "";
+      return `- index ${i}: @ ${kf.timestamp.toFixed(1)}s${evt} — ${kf.caption}${img}`;
+    });
+    parts.push(
+      ``,
+      `# Key moments (reference by index for replay)`,
+      ...kfLines,
+    );
   }
 
   return parts.join("\n");
@@ -329,7 +438,7 @@ export async function generateAnalysis(args: {
     "\n\n" +
     ANALYSIS_INSTRUCTIONS +
     "\n\n" +
-    metricsText({ kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores });
+    metricsText({ kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes });
 
   const content: Anthropic.ContentBlockParam[] = [];
   for (const kf of keyframes.slice(0, 4)) {

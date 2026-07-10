@@ -18,6 +18,7 @@ import { getEntitlementForClerkUser } from "../lib/subscriptionService";
 import {
   generateAnalysis,
   buildComparison,
+  buildReplayMoments,
   isValidKind,
   isValidLoad,
   hasCanonicalScores,
@@ -273,6 +274,9 @@ router.post("/analysis", async (req, res) => {
     });
 
     const comparison = buildComparison(scores, prevScores, narrative.comparisonNote);
+    // Replay timestamps are resolved against the SAME sanitised keyframes that
+    // are persisted below, so every moment points at a real stored frame.
+    const replayMoments = buildReplayMoments(narrative.replay, keyframes);
 
     const [row] = await db
       .insert(videoAnalysesTable)
@@ -293,6 +297,8 @@ router.post("/analysis", async (req, res) => {
         comparison,
         metrics,
         keyframes,
+        reviewQuestion: narrative.reviewQuestion,
+        replayMoments,
         durationSec,
       })
       .returning();
@@ -403,6 +409,84 @@ router.post("/analysis", async (req, res) => {
     req.log.error({ err }, "analysis generation failed");
     res.status(500).json({ error: err instanceof Error ? err.message : "analysis failed" });
   }
+});
+
+// Film-review loop: record the athlete's answer to the ONE grounded follow-up
+// question FRAME asked. No entitlement gate — this is the free half of the loop
+// (the analysis it belongs to was already paid for or was the free taster).
+router.post("/analysis/:id/answer", async (req, res) => {
+  const fighter = await getUserFighter(req);
+  if (!fighter) {
+    res.status(400).json({ error: "no fighter" });
+    return;
+  }
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    res.status(400).json({ error: "bad id" });
+    return;
+  }
+  const body = req.body as { answer?: unknown };
+  const answer = typeof body.answer === "string" ? body.answer.trim().slice(0, 500) : "";
+  if (!answer) {
+    res.status(400).json({ error: "answer required" });
+    return;
+  }
+
+  // Load first so we can 404 cleanly and recover the question text for the fact.
+  const [current] = await db
+    .select()
+    .from(videoAnalysesTable)
+    .where(and(eq(videoAnalysesTable.id, id), eq(videoAnalysesTable.fighterId, fighter.id)))
+    .limit(1);
+  if (!current) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  if (!current.reviewQuestion) {
+    // No grounded question was ever posed for this read — nothing to answer.
+    res.status(409).json({ error: "no review question for this analysis" });
+    return;
+  }
+
+  // Race-safe first-writer-wins: only the UPDATE that flips an EMPTY answer to
+  // this one returns a row. A concurrent duplicate submit finds review_answer
+  // already set, gets no row back, and skips the fact write — so a single
+  // review can never double-record the athlete_fact.
+  const [updated] = await db
+    .update(videoAnalysesTable)
+    .set({ reviewAnswer: answer })
+    .where(
+      and(
+        eq(videoAnalysesTable.id, id),
+        eq(videoAnalysesTable.fighterId, fighter.id),
+        eq(videoAnalysesTable.reviewAnswer, ""),
+      ),
+    )
+    .returning();
+
+  if (!updated) {
+    // Already answered — idempotent no-op: return the stored row, no new fact.
+    res.json({ analysis: current, fact: null });
+    return;
+  }
+
+  // The athlete's own words about this session are durable context. athleteStated
+  // marks it as self-reported (a categorical marker, never a fabricated number).
+  let fact = null;
+  try {
+    const question = current.reviewQuestion || "Film review reflection";
+    fact = await addFact(fighter.id, {
+      category: "context",
+      topic: question.slice(0, 120),
+      content: answer,
+      source: { type: "video", ref: `video:${id}` },
+      athleteStated: true,
+    });
+  } catch (err) {
+    req.log.error({ err }, "review answer fact write failed");
+  }
+
+  res.json({ analysis: updated, fact });
 });
 
 router.get("/analysis", async (req, res) => {

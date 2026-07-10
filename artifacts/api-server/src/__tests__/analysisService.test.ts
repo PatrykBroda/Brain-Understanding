@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("@workspace/db", () => ({
   ANALYSIS_KINDS: ["sparring", "drilling", "padwork", "bag_work"],
   NERVOUS_SYSTEM_LOADS: ["low", "moderate", "elevated", "high"],
+  REPLAY_ROLES: ["best_decision", "worst_habit", "biggest_opportunity"],
 }));
 
 vi.mock("../synochi", () => ({
@@ -21,10 +22,13 @@ import {
   recomputeSessionScore,
   buildComparison,
   stripEmoji,
+  buildReplayMoments,
+  REPLAY_ROLE_LABELS,
   CANONICAL_SCORE_KEYS,
+  type ReplayRef,
 } from "../lib/analysisService";
 
-import type { AnalysisScore } from "@workspace/db";
+import type { AnalysisScore, AnalysisKeyframe } from "@workspace/db";
 
 function makeScores(overrides: Partial<Record<string, number>> = {}): AnalysisScore[] {
   const defaults: Record<string, number> = {
@@ -235,5 +239,98 @@ describe("stripEmoji", () => {
     expect(result).toContain("Your stance is solid");
     expect(result).toContain("but your guard drops");
     expect(result).toContain("under pressure.");
+  });
+});
+
+function makeKeyframes(timestamps: number[]): AnalysisKeyframe[] {
+  return timestamps.map((t, i) => ({
+    timestamp: t,
+    imageBase64: `img-${i}`,
+    caption: `frame ${i}`,
+  }));
+}
+
+describe("buildReplayMoments", () => {
+  const keyframes = makeKeyframes([1.2, 3.4, 5.6, 7.8]);
+
+  it("returns an empty array for no refs", () => {
+    expect(buildReplayMoments([], keyframes)).toEqual([]);
+  });
+
+  it("returns an empty array when there are no keyframes", () => {
+    const refs: ReplayRef[] = [{ role: "best_decision", keyframeIndex: 0, note: "clean entry" }];
+    expect(buildReplayMoments(refs, [])).toEqual([]);
+  });
+
+  it("copies the timestamp from the referenced real keyframe (AI never emits it)", () => {
+    const refs: ReplayRef[] = [{ role: "best_decision", keyframeIndex: 1, note: "clean entry" }];
+    const out = buildReplayMoments(refs, keyframes);
+    expect(out).toHaveLength(1);
+    expect(out[0].timestamp).toBe(3.4);
+    expect(out[0].note).toBe("clean entry");
+  });
+
+  it("labels each moment from REPLAY_ROLE_LABELS", () => {
+    const refs: ReplayRef[] = [
+      { role: "worst_habit", keyframeIndex: 0, note: "guard drops" },
+    ];
+    const out = buildReplayMoments(refs, keyframes);
+    expect(out[0].label).toBe(REPLAY_ROLE_LABELS.worst_habit);
+  });
+
+  it("drops a ref whose keyframeIndex is out of range (too high)", () => {
+    const refs: ReplayRef[] = [{ role: "best_decision", keyframeIndex: 99, note: "x" }];
+    expect(buildReplayMoments(refs, keyframes)).toEqual([]);
+  });
+
+  it("drops a ref whose keyframeIndex is negative", () => {
+    const refs: ReplayRef[] = [{ role: "best_decision", keyframeIndex: -1, note: "x" }];
+    expect(buildReplayMoments(refs, keyframes)).toEqual([]);
+  });
+
+  it("keeps only the first ref for a duplicated role", () => {
+    const refs: ReplayRef[] = [
+      { role: "best_decision", keyframeIndex: 0, note: "first" },
+      { role: "best_decision", keyframeIndex: 1, note: "second" },
+    ];
+    const out = buildReplayMoments(refs, keyframes);
+    expect(out).toHaveLength(1);
+    expect(out[0].note).toBe("first");
+    expect(out[0].timestamp).toBe(1.2);
+  });
+
+  it("keeps only the first ref for a duplicated keyframe index", () => {
+    const refs: ReplayRef[] = [
+      { role: "best_decision", keyframeIndex: 2, note: "first" },
+      { role: "worst_habit", keyframeIndex: 2, note: "second" },
+    ];
+    const out = buildReplayMoments(refs, keyframes);
+    expect(out).toHaveLength(1);
+    expect(out[0].role).toBe("best_decision");
+  });
+
+  it("maps all three distinct roles when each cites a distinct keyframe", () => {
+    const refs: ReplayRef[] = [
+      { role: "best_decision", keyframeIndex: 0, note: "a" },
+      { role: "worst_habit", keyframeIndex: 1, note: "b" },
+      { role: "biggest_opportunity", keyframeIndex: 2, note: "c" },
+    ];
+    const out = buildReplayMoments(refs, keyframes);
+    expect(out).toHaveLength(3);
+    expect(out.map((m) => m.role)).toEqual([
+      "best_decision",
+      "worst_habit",
+      "biggest_opportunity",
+    ]);
+  });
+
+  it("caps output at three moments", () => {
+    const refs: ReplayRef[] = [
+      { role: "best_decision", keyframeIndex: 0, note: "a" },
+      { role: "worst_habit", keyframeIndex: 1, note: "b" },
+      { role: "biggest_opportunity", keyframeIndex: 2, note: "c" },
+      { role: "best_decision", keyframeIndex: 3, note: "d" },
+    ];
+    expect(buildReplayMoments(refs, keyframes).length).toBeLessThanOrEqual(3);
   });
 });
