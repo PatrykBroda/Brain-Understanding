@@ -28,9 +28,8 @@ set -euo pipefail
 
 PIDFILE=/tmp/coach-smoke.pids
 
-# ── Randomized per-run smoke ports (range distinct from mobile-smoke's) ──────
-# 18100-18899: never overlaps main workflow ports (8080/21706/80) or
-# mobile-smoke's 19100-19899 range.
+# ── Randomized per-run smoke ports ──────────────────────────────────────────
+# 18100-18899: never overlaps main workflow ports (8080/21706/80).
 rand_port() { echo $((18100 + RANDOM % 800)); }
 API_PORT=$(rand_port)
 COACH_PORT=$(rand_port)

@@ -67,13 +67,9 @@ else
   wait_for_port "$API_PORT" 90
 fi
 
-# ── Run both smoke suites in parallel ────────────────────────────────────────
+# ── Run the coach smoke suite ────────────────────────────────────────────────
+# The standalone FRAME Mobile app has been retired — /mobile now redirects to
+# the full web app — so there is no separate mobile smoke suite to run.
 
-COACH_LOG=/tmp/post-merge-coach.log
-MOBILE_LOG=/tmp/post-merge-mobile.log
-
-bash scripts/parallel-smoke-runner.sh \
-  scripts/run-coach-smoke.sh \
-  scripts/run-mobile-smoke.sh \
-  "$COACH_LOG" \
-  "$MOBILE_LOG"
+echo "[post-merge] Running coach smoke suite..."
+bash scripts/run-coach-smoke.sh

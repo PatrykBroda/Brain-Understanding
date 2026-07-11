@@ -17,7 +17,11 @@ localPort = 8099
 run = [ "node", "/home/runner/workspace/artifacts/frame-mobile/serve-static.mjs" ]
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/frame-mobile", "run", "build" ]
+# The standalone FRAME Mobile app is retired: /mobile now 302-redirects to the
+# full web app at "/". The service only runs serve-static.mjs (a redirector),
+# so there is nothing to build — a no-op keeps a broken expo export from ever
+# failing a deploy of a retired feature.
+build = [ "true" ]
 run = [ "pnpm", "--filter", "@workspace/frame-mobile", "run", "serve" ]
 
 [services.env]
