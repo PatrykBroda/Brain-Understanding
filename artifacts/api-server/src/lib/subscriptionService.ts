@@ -63,6 +63,18 @@ export async function getOrCreateUser(clerkUserId: string): Promise<User> {
  * the first item's value.
  */
 export async function getEntitlementForUser(user: User): Promise<Entitlement> {
+  // Comp / admin accounts always have full FRAME+ access — no Stripe customer,
+  // no subscription, no payment. This bypasses every paywall gate (all of which
+  // key off `entitlement.plan === "free"`).
+  if (user.isAdmin) {
+    return {
+      plan: "frame_plus",
+      status: "admin",
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+    };
+  }
+
   if (!user.stripeCustomerId) return FREE_ENTITLEMENT;
 
   let rows: SubscriptionRow[];
