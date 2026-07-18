@@ -3,12 +3,14 @@ import { Button } from "@/components/ui/button";
 import { useUpdateFighter } from "@/hooks/use-fighter";
 import type { Fighter, FighterUpdate } from "@/lib/api";
 import {
-  ARTS,
   LEVELS,
   FREQUENCIES,
   SPORTS,
+  SPORT_STYLE_QUESTIONS,
   STANCES,
   WEIGHT_CLASSES,
+  composeArt,
+  sportLabel,
   ageFromDob,
 } from "@/lib/fighter-options";
 
@@ -98,6 +100,27 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
   };
 
   const computedAge = ageFromDob(form.dateOfBirth);
+
+  // Sport-conditional art options, value-safe: the stored art is always kept
+  // as an option even if it isn't derivable from the current sport's question
+  // (e.g. legacy values, or the sport was just changed without re-picking).
+  const artOptions = (() => {
+    const sport = form.primarySport;
+    const q = sport ? SPORT_STYLE_QUESTIONS[sport] : undefined;
+    const opts: string[] = [];
+    if (sport && q && q.storeIn === "art") {
+      for (const o of q.options) {
+        const composed = composeArt(sport, o);
+        if (!opts.includes(composed)) opts.push(composed);
+      }
+    }
+    if (sport) {
+      const base = sportLabel(sport);
+      if (!opts.includes(base)) opts.push(base);
+    }
+    if (form.art && !opts.includes(form.art)) opts.unshift(form.art);
+    return opts;
+  })();
 
   return (
     <form onSubmit={submit} className="space-y-5 border border-border/50 p-4">
@@ -293,7 +316,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
           value={form.art}
           onChange={(e) => set("art", e.target.value)}
         >
-          {ARTS.map((a) => (
+          {artOptions.map((a) => (
             <option key={a} value={a}>
               {a}
             </option>

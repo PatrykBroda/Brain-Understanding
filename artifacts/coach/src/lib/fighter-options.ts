@@ -1,4 +1,3 @@
-export const ARTS = ["BJJ", "BJJ + Striking", "MMA", "Wrestling", "Judo", "Other grappling"];
 export const LEVELS = ["White", "Blue", "Purple", "Brown", "Black", "No belt / other"];
 export const FREQUENCIES = ["1-2x / week", "3-4x / week", "5-6x / week", "Daily / pro"];
 
@@ -11,6 +10,7 @@ export const SPORTS: { value: string; label: string }[] = [
   { value: "wrestling", label: "Wrestling" },
   { value: "judo", label: "Judo" },
   { value: "karate", label: "Karate" },
+  { value: "sambo", label: "Sambo" },
   { value: "mixed", label: "Mixed / multiple" },
 ];
 
@@ -19,6 +19,72 @@ export function sportLabel(key: string): string {
 }
 
 export const STANCES = ["Orthodox", "Southpaw", "Switch", "Open"];
+
+// ---------------------------------------------------------------------------
+// Sport-conditional style question (dynamic onboarding).
+// Each sport asks at most ONE follow-up that actually means something in that
+// sport, instead of a generic "primary art" list. The answer is stored either
+// in fighters.art (style/focus questions, composed via composeArt) or in
+// fighters.stance (stance questions for the striking arts).
+// ---------------------------------------------------------------------------
+
+export type StyleQuestion = {
+  label: string;
+  options: string[];
+  /** Which fighter column the answer belongs in. */
+  storeIn: "art" | "stance";
+};
+
+const STANCE_QUESTION: StyleQuestion = {
+  label: "Preferred stance",
+  options: ["Orthodox", "Southpaw", "Switch"],
+  storeIn: "stance",
+};
+
+const MMA_STYLE_QUESTION: StyleQuestion = {
+  label: "Primary style",
+  options: [
+    "Wrestling-heavy",
+    "BJJ-heavy",
+    "Muay Thai-heavy",
+    "Boxing-heavy",
+    "Kickboxing-heavy",
+    "Pressure fighter",
+    "Counter striker",
+    "Balanced",
+    "Other",
+  ],
+  storeIn: "art",
+};
+
+export const SPORT_STYLE_QUESTIONS: Record<string, StyleQuestion> = {
+  mma: MMA_STYLE_QUESTION,
+  mixed: MMA_STYLE_QUESTION,
+  boxing: STANCE_QUESTION,
+  muay_thai: STANCE_QUESTION,
+  kickboxing: STANCE_QUESTION,
+  karate: STANCE_QUESTION,
+  wrestling: {
+    label: "Preferred style",
+    options: ["Freestyle", "Folkstyle", "Greco-Roman"],
+    storeIn: "art",
+  },
+  bjj: {
+    label: "Primary focus",
+    options: ["Guard player", "Top pressure", "Submission hunter", "Balanced"],
+    storeIn: "art",
+  },
+  // judo / sambo: no follow-up — the sport itself is the art.
+};
+
+/** Compose the fighters.art value from the sport + (optional) style answer.
+ *  e.g. ("mma", "Wrestling-heavy") → "MMA (Wrestling-heavy)"; ("judo") → "Judo". */
+export function composeArt(sport: string, styleAnswer?: string): string {
+  const base = sportLabel(sport);
+  const q = SPORT_STYLE_QUESTIONS[sport];
+  if (!q || q.storeIn !== "art" || !styleAnswer || styleAnswer === "Other") return base;
+  return `${base} (${styleAnswer})`;
+}
 
 // Combat-sport weight classes across the common promotions (kept broad since FRAME
 // spans all combat sports). Free selection — nothing is inferred or fabricated.

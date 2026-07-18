@@ -2,7 +2,14 @@ import { useState } from "react";
 import { useSaveFighter } from "@/hooks/use-fighter";
 import { Button } from "@/components/ui/button";
 import type { FighterInput } from "@/lib/api";
-import { ARTS, LEVELS, FREQUENCIES, SPORTS, ageFromDob } from "@/lib/fighter-options";
+import {
+  LEVELS,
+  FREQUENCIES,
+  SPORTS,
+  SPORT_STYLE_QUESTIONS,
+  composeArt,
+  ageFromDob,
+} from "@/lib/fighter-options";
 
 const FIELD_LABEL = "block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2";
 const INPUT_CLASS =
@@ -61,6 +68,8 @@ export default function OnboardingPage() {
   const save = useSaveFighter();
   const [step, setStep] = useState(0); // 0 = intro, 1..N = questions, N+1 = details
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  // Sport-conditional style answer (question + storage differ per sport).
+  const [styleAnswer, setStyleAnswer] = useState("");
   const [form, setForm] = useState<FighterInput>({
     name: "",
     dateOfBirth: "",
@@ -101,7 +110,15 @@ export default function OnboardingPage() {
     if (!form.name.trim() || save.isPending) return;
     // DOB is required and is the source of truth; the server derives age from it.
     if (ageFromDob(form.dateOfBirth) == null) return;
-    save.mutate({ ...form, personality: composePersonality() });
+    const sport = form.primarySport ?? "bjj";
+    const q = SPORT_STYLE_QUESTIONS[sport];
+    const answer = q ? styleAnswer || q.options[0] : undefined;
+    save.mutate({
+      ...form,
+      art: composeArt(sport, q?.storeIn === "art" ? answer : undefined),
+      ...(q?.storeIn === "stance" && answer ? { stance: answer } : {}),
+      personality: composePersonality(),
+    });
   };
 
   // Shared shell
@@ -259,7 +276,10 @@ export default function OnboardingPage() {
                 <select
                   className={INPUT_CLASS}
                   value={form.primarySport}
-                  onChange={(e) => update("primarySport", e.target.value)}
+                  onChange={(e) => {
+                    update("primarySport", e.target.value);
+                    setStyleAnswer("");
+                  }}
                 >
                   {SPORTS.map((s) => (
                     <option key={s.value} value={s.value}>
@@ -284,20 +304,26 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <div>
-              <label className={FIELD_LABEL}>Primary Art / Style</label>
-              <select
-                className={INPUT_CLASS}
-                value={form.art}
-                onChange={(e) => update("art", e.target.value)}
-              >
-                {ARTS.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {(() => {
+              const q = SPORT_STYLE_QUESTIONS[form.primarySport ?? "bjj"];
+              if (!q) return null;
+              return (
+                <div>
+                  <label className={FIELD_LABEL}>{q.label}</label>
+                  <select
+                    className={INPUT_CLASS}
+                    value={styleAnswer || q.options[0]}
+                    onChange={(e) => setStyleAnswer(e.target.value)}
+                  >
+                    {q.options.map((o) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })()}
 
             <div>
               <label className={FIELD_LABEL}>Goals — what does winning look like in 6 months</label>

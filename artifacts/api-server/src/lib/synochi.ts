@@ -341,6 +341,7 @@ const SPORT_LABELS: Record<string, string> = {
   wrestling: "Wrestling",
   judo: "Judo",
   karate: "Karate",
+  sambo: "Sambo",
   mixed: "Mixed / multiple",
 };
 

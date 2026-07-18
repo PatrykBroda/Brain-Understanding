@@ -4,6 +4,7 @@ import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "open
 import {
   db,
   messagesTable,
+  conversationsTable,
   calibrationsTable,
   attachmentsTable,
   fightersTable,
@@ -58,16 +59,40 @@ if (!baseURL || !apiKey) {
 
 const client = new Anthropic({ baseURL, apiKey });
 
-// Time-aware re-entry tiers (gap since the athlete's last message in the convo):
-//   < 2h         → silent resume (no welcome fires)
-//   2h .. 24h    → returning same day
-//   24h .. 72h   → new day / mission refresh
-//   > 72h        → lapsed / recommit
-const ENTRY_STALE_MS = 2 * 60 * 60 * 1000;
-const NEW_DAY_MS = 24 * 60 * 60 * 1000;
-const LAPSED_MS = 72 * 60 * 60 * 1000;
-
 const WELCOME_LOCK_NAMESPACE = 7411;
+
+// FRAME sends exactly ONE proactive message, ever: this fixed welcome, right
+// after onboarding, before the athlete's first word. After that FRAME is
+// completely passive — it never initiates. Deterministic copy (product-owner
+// supplied), no AI call: the model has nothing real to say about an athlete
+// it hasn't met, and pretending otherwise would violate the honesty pillar.
+const WELCOME_MESSAGE = [
+  "Welcome.",
+  "I'm still learning your game.",
+  "Right now my job isn't to tell you who you are—it's to observe, ask the right questions and build an accurate understanding over time.",
+  "Every conversation, session reflection and video analysis helps me coach you more precisely.",
+  "Let's begin.",
+].join("\n\n");
+
+/** True if this fighter has ANY message in ANY of their conversations —
+ *  spans conversation resets so a reset can never re-trigger first contact.
+ *  Accepts an optional executor so the in-lock recheck can run on the same
+ *  transaction/connection that holds the advisory lock. */
+async function fighterHasAnyMessage(
+  fighterId: number,
+  executor: Pick<typeof db, "select"> = db,
+): Promise<boolean> {
+  const [row] = await executor
+    .select({ id: messagesTable.id })
+    .from(messagesTable)
+    .innerJoin(
+      conversationsTable,
+      eq(messagesTable.conversationId, conversationsTable.id),
+    )
+    .where(eq(conversationsTable.fighterId, fighterId))
+    .limit(1);
+  return row !== undefined;
+}
 
 const CLAUDE_IMAGE_MIME = new Set([
   "image/jpeg",
@@ -82,154 +107,58 @@ router.post("/coach/welcome", async (req, res) => {
     res.status(400).json({ error: "no fighter — complete onboarding first" });
     return;
   }
-  const conversation = await getOrCreateActiveConversation(fighter.id);
 
-  const lockResult = await db.execute(
-    sql`SELECT pg_try_advisory_lock(${WELCOME_LOCK_NAMESPACE}::int, ${conversation.id}::int) AS got`,
-  );
-  const got = (lockResult.rows[0] as { got: boolean } | undefined)?.got === true;
-  if (!got) {
-    res.json({ message: null, reason: "in-progress" });
+  // Cheap pre-lock check: returning athletes (the overwhelming majority of
+  // calls) exit here without ever taking the lock.
+  if (await fighterHasAnyMessage(fighter.id)) {
+    res.json({ message: null, reason: "not first contact" });
     return;
   }
 
+  const conversation = await getOrCreateActiveConversation(fighter.id);
+
+  // Lock keyed to the FIGHTER (not the conversation — a reset changes the
+  // conversation id and would defeat the lock). Transaction-scoped
+  // (pg_try_advisory_xact_lock): lock, recheck and insert all run on the
+  // transaction's single connection, and the lock auto-releases on
+  // commit/rollback. A session lock via the pool could be "unlocked" on a
+  // DIFFERENT pooled connection and silently leak if the insert threw.
   try {
-    const [last] = await db
-      .select()
-      .from(messagesTable)
-      .where(eq(messagesTable.conversationId, conversation.id))
-      .orderBy(desc(messagesTable.createdAt))
-      .limit(1);
+    const outcome = await db.transaction(async (tx) => {
+      const lockResult = await tx.execute(
+        sql`SELECT pg_try_advisory_xact_lock(${WELCOME_LOCK_NAMESPACE}::int, ${fighter.id}::int) AS got`,
+      );
+      const got =
+        (lockResult.rows[0] as { got: boolean } | undefined)?.got === true;
+      if (!got) {
+        return { message: null, reason: "in-progress" } as const;
+      }
 
-    const gapMs = last ? Date.now() - new Date(last.createdAt).getTime() : Infinity;
-    const isStale = gapMs >= ENTRY_STALE_MS;
-    if (!isStale) {
-      res.json({ message: null, reason: "recent activity" });
-      return;
-    }
+      // Re-check inside the lock: a concurrent request may have inserted the
+      // welcome (or the athlete's first message) between check and lock.
+      if (await fighterHasAnyMessage(fighter.id, tx)) {
+        return { message: null, reason: "not first contact" } as const;
+      }
 
-    const lastSeenId = last?.id ?? null;
+      const [msg] = await tx
+        .insert(messagesTable)
+        .values({
+          conversationId: conversation.id,
+          role: "assistant",
+          content: WELCOME_MESSAGE,
+        })
+        .returning();
 
-    const facts = await getActiveFacts(fighter.id);
-    const calibrations = await db
-      .select()
-      .from(calibrationsTable)
-      .where(eq(calibrationsTable.fighterId, fighter.id))
-      .orderBy(desc(calibrationsTable.createdAt))
-      .limit(10);
+      return { message: msg } as const;
+    });
 
-    const recentTurns = await db
-      .select()
-      .from(messagesTable)
-      .where(eq(messagesTable.conversationId, conversation.id))
-      .orderBy(desc(messagesTable.createdAt))
-      .limit(6);
-    const recentText = recentTurns
-      .map((m) => m.content)
-      .filter(Boolean)
-      .join("\n\n");
-    const profileText = [fighter.goals, fighter.weaknesses].filter(Boolean).join(" ");
-    const deepNodes = selectRelevantNodes(
-      `${profileText}\n${recentText}`,
-      6,
-    );
-
-    // First contact is keyed on real conversation history, not fact count — a
-    // returning athlete with sparse facts has still been here before, and the
-    // tier branches below handle sparse-model wording honestly.
-    const noHistory = !last;
-    const gapDays = Number.isFinite(gapMs) ? Math.max(1, Math.floor(gapMs / NEW_DAY_MS)) : 0;
-
-    let entryInstruction: string;
-    if (noHistory) {
-      entryInstruction = `\n\n[ENTRY BRIEFING MODE — FIRST CONTACT]\nThis is the very first time this athlete has entered the frame. You have almost nothing on them yet — only their onboarding. Do NOT pretend to read them deeply; that would be a lie and they'll feel it.\n- Open with their name in the first 1-3 words.\n- Land ONE sharp, genuinely funny line that reads their archetype from the thin signal you DO have (their art, level, stated goal, their spirit animal "${fighter.spiritAnimal || "unassigned"}"${fighter.spiritAnimalTagline ? ` — ${fighter.spiritAnimalTagline}` : ""}). Dry, earned, specific to them — the kind of read that makes someone laugh because it's a little too accurate. Never generic, never mean, never a pun.\n- Then state plainly that you don't know them yet and the only way you sharpen is reps — every roll they bring you, every honest answer, tightens the read.\n- Offer 2 or 3 concrete first moves (e.g. "tell me your last roll", "name the position you hate", "calibrate where your game actually is").\nVoice: direct, structural, a blade with a sense of humor. No therapist energy. No questions stacked at the end — open the floor. End clean.`;
-    } else if (gapMs > LAPSED_MS) {
-      entryInstruction = `\n\n[ENTRY BRIEFING MODE — LAPSED ${gapDays} DAYS]\nThe athlete has been away from the frame for ${gapDays} days. This is a recommit moment — handle it with weight, not guilt.\n- Open with their name. Name the gap plainly and ACCURATELY: it has been ${gapDays} days since they were last in the frame. CRITICAL: this is time since their last contact HERE — you do NOT know whether they trained, rested, or were injured. Never say "you haven't trained in ${gapDays} days." Say it like a corner that noticed they've been away, then ask.\n- No shaming, no motivational-poster energy, no "where have you been."\n- Offer a clean recommit: pick the thread back up on their last recorded focus (name it from the model if you can see it), OR reset goals if the layoff may have changed things. One question max, then open the floor.\nVoice: grounded, direct, a little heavier. End clean.`;
-    } else if (gapMs >= NEW_DAY_MS) {
-      entryInstruction = `\n\n[ENTRY BRIEFING MODE — NEW DAY]\nA new training day — the athlete hasn't been in the frame since yesterday or before. Short opening (4-6 sentences, no preamble).\n- Open with their name. Mark the reset honestly ("new day").\n- Reflect ONE specific signal from their recorded model so they feel tracked, then point forward to today's work — the mission refresh.\n- Offer 2 or 3 concrete entry points (debrief the last session, sharpen their named weakness, regulate, build today's drill).\n- Do NOT fabricate metrics, training logs, or "progress since." Only reference what is actually in the model.\nVoice: clean, forward, structural. End cleanly without sign-off.`;
-    } else {
-      entryInstruction = `\n\n[ENTRY BRIEFING MODE — RETURNING SAME DAY]\nThe athlete stepped away and came back within the day. Short re-entry (3-6 sentences, no preamble).\n- Open with their name, picking the thread straight back up (continuity, not a fresh greeting).\n- Name their last recorded focus from the model (the most recent weakness/goal/pattern you can see) so the thread is unbroken. If you genuinely can't see a last focus, say you're picking up where you left off and ask what they want to move.\n- Offer 2 concrete continuations of that focus.\n- Do NOT fabricate "progress since" — you don't track training logs. Reference only what's actually in the model.\nVoice: direct, continuous, no preamble. End clean.`;
-    }
-
-    const compBlock = await buildCompBlock(fighter.id);
-
-    const dynamicText =
-      buildDynamicContext(fighter, facts, calibrations, deepNodes, compBlock) +
-      "\n\n" +
-      vocabularyPromptBlock(computeVocabulary(facts)) +
-      entryInstruction;
-
-    let text = "";
-    if (conversation.aiProvider === "openai") {
-      const completion = await openai.chat.completions.create({
-        model: OPENAI_COACH_MODEL,
-        max_completion_tokens: 600,
-        messages: [
-          { role: "system", content: COACH_SYSTEM_PROMPT_STATIC },
-          { role: "system", content: dynamicText },
-          { role: "user", content: "[athlete entering frame]" },
-        ],
-      });
-      text = (completion.choices[0]?.message?.content ?? "").trim();
-    } else {
-      const response = await client.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 600,
-        system: [
-          {
-            type: "text",
-            text: COACH_SYSTEM_PROMPT_STATIC,
-            cache_control: { type: "ephemeral" },
-          },
-          { type: "text", text: dynamicText },
-        ],
-        messages: [{ role: "user", content: "[athlete entering frame]" }],
-      });
-      text = response.content
-        .map((b) => (b.type === "text" ? b.text : ""))
-        .join("")
-        .trim();
-    }
-
-    if (!text) {
-      res.json({ message: null, reason: "empty generation" });
-      return;
-    }
-
-    const [latest] = await db
-      .select()
-      .from(messagesTable)
-      .where(eq(messagesTable.conversationId, conversation.id))
-      .orderBy(desc(messagesTable.createdAt))
-      .limit(1);
-
-    const racedByOther = latest && latest.id !== lastSeenId;
-    if (racedByOther) {
-      res.json({ message: null, reason: "raced" });
-      return;
-    }
-
-    const [msg] = await db
-      .insert(messagesTable)
-      .values({
-        conversationId: conversation.id,
-        role: "assistant",
-        content: text,
-      })
-      .returning();
-
-    res.json({ message: msg });
+    res.json(outcome);
   } catch (err) {
-    req.log.error({ err }, "welcome generation failed");
+    req.log.error({ err }, "welcome failed");
     res.status(500).json({ error: err instanceof Error ? err.message : "welcome failed" });
-  } finally {
-    await db
-      .execute(
-        sql`SELECT pg_advisory_unlock(${WELCOME_LOCK_NAMESPACE}::int, ${conversation.id}::int)`,
-      )
-      .catch((err) => req.log.error({ err }, "welcome advisory unlock failed"));
   }
 });
+
 
 async function buildOpenAIUserContent(
   text: string,

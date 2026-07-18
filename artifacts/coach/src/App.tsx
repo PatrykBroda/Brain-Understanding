@@ -253,6 +253,31 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
+// Runtime titles per route — index.html carries the SEO title for "/";
+// in-app navigation keeps the tab title honest without a helmet library.
+const DEFAULT_TITLE = "FRAME — AI Combat Sports Coach";
+const PAGE_TITLES: Record<string, string> = {
+  "/": DEFAULT_TITLE,
+  "/home": "Home · FRAME",
+  "/chat": "Chat · FRAME",
+  "/analyse": "Analyse · FRAME",
+  "/camp": "Camp · FRAME",
+  "/profile": "Profile · FRAME",
+  "/history": "History · FRAME",
+  "/splash": "FRAME",
+  "/sign-in": "Sign in · FRAME",
+  "/sign-up": "Create account · FRAME",
+};
+
+function PageTitle() {
+  const [location] = useLocation();
+  useEffect(() => {
+    const top = "/" + (location.split("/")[1] ?? "");
+    document.title = PAGE_TITLES[top === "/" ? "/" : top] ?? DEFAULT_TITLE;
+  }, [location]);
+  return null;
+}
+
 function AppRoutes() {
   const [, setLocation] = useLocation();
 
@@ -282,6 +307,7 @@ function AppRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
+        <PageTitle />
         <TooltipProvider>
           <FramePlusProvider>
           <Switch>

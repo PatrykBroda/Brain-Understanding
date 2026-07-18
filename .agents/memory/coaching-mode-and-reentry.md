@@ -19,18 +19,20 @@ both the welcome route and the chat stream automatically (both call that fn).
 **How to apply:** the prompt block tells the model NEVER to announce the mode
 ("you're in Builder mode") — it only changes how hard it pushes.
 
-# Time-aware chat re-entry tiers
+# Welcome behavior: one deterministic message, then fully passive
 
-Welcome route tiers by gap since the athlete's last message: <2h silent,
-[2h,24h) returning, [24h,72h] new-day, >72h lapsed. Boundaries are inclusive on
-the stale gate and the new-day gate (`>=`).
+The time-aware re-entry tiers (<2h/24h/72h AI-generated welcomes) were REMOVED
+in July 2026 by explicit user request. The welcome route now inserts ONE fixed,
+deterministic 5-paragraph message only when the fighter has no messages at all
+(checked across all their conversations, guarded by a fighter-keyed advisory
+lock against double-insert). After that the coach never initiates — it only
+responds.
 
-**Why (the load-bearing constraint):** the lapsed tier must NEVER claim the
-athlete hasn't TRAINED in N days. We only know silence in FRAME, not training
-logs — saying "you haven't trained" is a fabrication and breaks the no-fake-data
-pillar. Phrase strictly as time "away from the frame", then ask.
+**Why:** the user wants FRAME passive — no proactive nudges, no re-entry
+banter, no AI-variable first impressions. One controlled welcome, then silence
+until spoken to. Do NOT reintroduce tiered/AI-generated welcome or re-entry
+copy.
 
-**How to apply:** first-contact ("very first time…") must key on real
-conversation history (`!last`), NOT `facts.length === 0` — a returning athlete
-with sparse facts has still been here before; the tier text handles sparse
-models honestly on its own.
+**Durable honesty constraint (keep if proactive copy ever returns):** never
+claim the athlete hasn't TRAINED in N days — we only know silence in FRAME,
+not training logs. Phrase any gap strictly as time "away from the frame".
