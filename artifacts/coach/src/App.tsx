@@ -18,7 +18,6 @@ import AnalysePage from "@/pages/analyse";
 import SplashPage from "@/pages/splash";
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
-import PublicLandingPage from "@/pages/landing";
 import { useFighter } from "@/hooks/use-fighter";
 import { ApiError } from "@/lib/api";
 import { FramePlusProvider } from "@/components/frame-plus-modal";
@@ -230,7 +229,7 @@ function HomeRoute() {
         </Gate>
       </Show>
       <Show when="signed-out">
-        <PublicLandingPage />
+        <Redirect to="/sign-in" />
       </Show>
     </>
   );
