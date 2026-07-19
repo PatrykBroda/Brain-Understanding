@@ -25,7 +25,7 @@ export default function SplashPage() {
     } catch {
       // storage blocked — ignore
     }
-    window.setTimeout(() => setLocation("/"), 420);
+    window.setTimeout(() => setLocation("/home"), 420);
   };
 
   useEffect(() => {

@@ -27,7 +27,7 @@ const STATE_CUE: Record<FrameStateLabel, string> = {
   Overextended: "Cut volume. Keep structure.",
 };
 
-export default function HomePage() {
+export default function StatePage() {
   const { data: fighterData } = useFighter();
   const fighter = fighterData?.fighter ?? null;
 

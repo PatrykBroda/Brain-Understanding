@@ -68,7 +68,7 @@ export default function CampPage() {
     <div className="flex flex-col h-[100dvh]" style={{ background: "#000" }}>
       <header className="flex-none flex items-center gap-3 px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3 border-b border-white/[0.06]">
         <Link
-          href="/"
+          href="/home"
           aria-label="Back to home"
           className="text-foreground/50 hover:text-foreground/90 transition-colors"
         >

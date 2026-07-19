@@ -1,8 +1,9 @@
 import { Link, useLocation } from "wouter";
-import { Home, MessageSquare, User, Calendar, Film } from "lucide-react";
+import { Home, MessageSquare, User, Calendar, Film, Orbit } from "lucide-react";
 
 const TABS = [
   { path: "/home", label: "Home", Icon: Home },
+  { path: "/state", label: "State", Icon: Orbit },
   { path: "/chat", label: "Chat", Icon: MessageSquare },
   { path: "/analyse", label: "Analyse", Icon: Film },
   { path: "/profile", label: "Profile", Icon: User },
@@ -18,7 +19,7 @@ export function BottomNav() {
       style={{ background: "#000" }}
       aria-label="Primary"
     >
-      <div className="grid grid-cols-5 max-w-md mx-auto">
+      <div className="grid grid-cols-6 max-w-md mx-auto">
         {TABS.map(({ path, label, Icon }) => {
           const active =
             location === path ||

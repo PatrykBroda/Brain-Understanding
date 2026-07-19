@@ -157,7 +157,7 @@ export default function HistoryPage() {
 
       <header className="relative z-10 flex-none flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-border/60 bg-background/95 backdrop-blur-sm">
         <Link
-          href="/"
+          href="/home"
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />

@@ -6,6 +6,7 @@ import { CompetitionBanner } from "@/components/competition-banner";
 import { FramePlusPill, useFramePlus } from "@/components/frame-plus-modal";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useFighter, useUpdateFighter } from "@/hooks/use-fighter";
+import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { useAnalyses } from "@/hooks/use-analysis";
 import { useActiveCompetition } from "@/hooks/use-competition";
 import { useTodayCheckin, useSaveCheckin, useCheckinHistory } from "@/hooks/use-checkin";
@@ -212,6 +213,8 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
 
 export default function DashboardPage() {
   const { data: fighterData } = useFighter();
+  // Login lands here now — fire the one-time deterministic welcome (server-guarded, idempotent)
+  useAutoWelcome();
   const fighter = fighterData?.fighter ?? null;
 
   const analysesQuery = useAnalyses();
@@ -473,10 +476,10 @@ export default function DashboardPage() {
                 )}
                 {!hasHero && (
                   <Link
-                    href="/"
+                    href="/state"
                     className="inline-block mt-3 font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/30 hover:text-foreground/60 transition-colors"
                   >
-                    Set your frame on the hub
+                    Set your frame on the State page
                   </Link>
                 )}
               </div>

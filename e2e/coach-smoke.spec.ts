@@ -49,12 +49,14 @@ const SAMPLE_VIDEO = path.join(process.cwd(), "e2e", "fixtures", "analyse-sample
 // ─── URL predicate helpers ─────────────────────────────────────────────────
 
 function isHomePath(url: string): boolean {
-  return new URL(url).pathname === "/";
+  // "/" redirects signed-in users to the Home dashboard at /home
+  const { pathname } = new URL(url);
+  return pathname === "/" || pathname === "/home";
 }
 
 function isHomeOrOnboarding(url: string): boolean {
   const { pathname } = new URL(url);
-  return pathname === "/" || pathname === "/onboarding";
+  return pathname === "/" || pathname === "/home" || pathname === "/onboarding";
 }
 
 // ─── Auth helper ──────────────────────────────────────────────────────────────
@@ -81,18 +83,25 @@ test("sign-in lands on FRAME home with no JS errors", async ({ page }) => {
 
   await signInWeb(page);
 
-  // Main user has a fighter — should be on home (/), not onboarding
+  // Main user has a fighter — should land on the Home dashboard (/home), not onboarding
   await page.waitForURL(isHomePath, { timeout: 5_000 });
 
   // Allow React effects and async queries to settle
   await page.waitForTimeout(2_000);
 
-  // Verify home landmarks are rendered
+  // Verify Home dashboard landmarks are rendered
   // "FRAME" wordmark in the header
   await expect(page.getByText("FRAME").first()).toBeVisible();
 
+  // Fight readiness section is a fixed dashboard landmark
+  await expect(page.getByText(/Fight readiness/i).first()).toBeVisible();
+
+  // The orb now lives on its own State page — navigate there and verify
+  await page.goto("/state");
+  await page.waitForTimeout(2_000);
+
   // State section exists (font-mono "State" label)
-  await expect(page.getByText("State")).toBeVisible();
+  await expect(page.getByText("State", { exact: true }).first()).toBeVisible();
 
   // Doorway CTA present. The label is session-aware: "Enter the frame" for a
   // fresh session, "Continue session" for a returning one (the persistent test

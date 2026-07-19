@@ -9,7 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import ChatPage from "@/pages/chat";
 import OnboardingPage from "@/pages/onboarding";
-import HomePage from "@/pages/home";
+import StatePage from "@/pages/state";
 import DashboardPage from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
 import HistoryPage from "@/pages/history";
@@ -222,11 +222,7 @@ function HomeRoute() {
   return (
     <>
       <Show when="signed-in">
-        <Gate>
-          <SplashGate>
-            <HomePage />
-          </SplashGate>
-        </Gate>
+        <Redirect to="/home" />
       </Show>
       <Show when="signed-out">
         <Redirect to="/sign-in" />
@@ -258,6 +254,7 @@ const DEFAULT_TITLE = "FRAME — AI Combat Sports Coach";
 const PAGE_TITLES: Record<string, string> = {
   "/": DEFAULT_TITLE,
   "/home": "Home · FRAME",
+  "/state": "State · FRAME",
   "/chat": "Chat · FRAME",
   "/analyse": "Analyse · FRAME",
   "/camp": "Camp · FRAME",
@@ -324,7 +321,14 @@ function AppRoutes() {
             <Route path="/" component={HomeRoute} />
             <Route path="/home">
               <Authed>
-                <DashboardPage />
+                <SplashGate>
+                  <DashboardPage />
+                </SplashGate>
+              </Authed>
+            </Route>
+            <Route path="/state">
+              <Authed>
+                <StatePage />
               </Authed>
             </Route>
             <Route path="/chat">

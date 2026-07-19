@@ -163,7 +163,7 @@ export default function ProfilePage() {
     <div className="flex flex-col h-[100dvh] bg-background text-foreground">
       <header className="flex-none flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3 border-b border-border/40">
         <Link
-          href="/"
+          href="/home"
           className="text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
