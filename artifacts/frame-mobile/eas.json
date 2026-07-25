@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/eas.json",
+  "cli": {
+    "version": ">= 16.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "REPLACE_WITH_DEV_KEY",
+        "EXPO_PUBLIC_DOMAIN": "REPLACE_WITH_YOUR_REPLIT_DEV_DOMAIN"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "REPLACE_WITH_DEV_KEY",
+        "EXPO_PUBLIC_DOMAIN": "REPLACE_WITH_YOUR_REPLIT_DEV_DOMAIN"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "REPLACE_WITH_PRODUCTION_KEY",
+        "EXPO_PUBLIC_DOMAIN": "REPLACE_WITH_YOUR_REPLIT_APP_DOMAIN"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
