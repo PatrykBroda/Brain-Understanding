@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
+import crashlogRouter from "./crashlog";
 import coachRouter from "./coach";
 import fighterRouter from "./fighter";
 import conversationRouter from "./conversation";
@@ -19,6 +20,8 @@ const router: IRouter = Router();
 
 // public
 router.use(healthRouter);
+// Mobile crash + startup reports — no auth so they fire even before Clerk loads.
+router.use(crashlogRouter);
 // Google OAuth callback — Google arrives with no Clerk session; identity is
 // recovered from the signed `state`, so this MUST stay public.
 router.use(googlePublicRouter);

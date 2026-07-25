@@ -1,9 +1,12 @@
 import React, { Component, ComponentType, PropsWithChildren } from "react";
 
 import { ErrorFallback, ErrorFallbackProps } from "@/components/ErrorFallback";
+import { reportCrash } from "@/lib/crashReporter";
 
 export type ErrorBoundaryProps = PropsWithChildren<{
   FallbackComponent?: ComponentType<ErrorFallbackProps>;
+  /** Label surfaced in crash reports — use something like "ClerkProvider" or "TabsLayout" */
+  context?: string;
   onError?: (error: Error, stackTrace: string) => void;
 }>;
 
@@ -30,6 +33,7 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: { componentStack: string }): void {
+    reportCrash(error, this.props.context ?? "ErrorBoundary");
     if (typeof this.props.onError === "function") {
       this.props.onError(error, info.componentStack);
     }

@@ -15,6 +15,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FighterProvider } from "@/context/FighterContext";
 import { setApiBase, setTokenGetter } from "@/lib/api";
+import { reportStartup } from "@/lib/crashReporter";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -24,13 +25,13 @@ const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
 
 const domain = process.env.EXPO_PUBLIC_DOMAIN ?? "";
 if (typeof window !== "undefined" && window.location?.origin) {
-  // Web export: always talk to the same origin that served the app so the
-  // app works behind any proxy (dev preview, prod, or an isolated smoke
-  // stack) instead of hard-coding the build-time domain.
   setApiBase(`${window.location.origin}/api`);
 } else if (domain) {
   setApiBase(`https://${domain}/api`);
 }
+
+// Probe 1: module-level code ran — JS bundle loaded and env vars are visible.
+reportStartup(`module-init | key=${publishableKey ? "set" : "EMPTY"} | domain=${domain || "EMPTY"}`);
 
 const tokenCache = {
   async getToken(key: string) {
@@ -74,31 +75,38 @@ function ApiSetup() {
 }
 
 function RootLayoutNav() {
+  // Probe 4: inside Clerk + QueryClient + SafeArea — navigation tree is mounting.
+  useEffect(() => {
+    reportStartup("RootLayoutNav-mounted");
+  }, []);
+
   return (
-    <FighterProvider>
-      <ApiSetup />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#050505" } }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="sign-in" options={{ animation: "fade" }} />
-        <Stack.Screen name="sign-up" options={{ animation: "fade" }} />
-        <Stack.Screen name="onboarding" options={{ animation: "slide_from_right" }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="analyse"
-          options={{
-            animation: "slide_from_bottom",
-            presentation: "modal",
-          }}
-        />
-        <Stack.Screen
-          name="competition"
-          options={{
-            animation: "slide_from_bottom",
-            presentation: "modal",
-          }}
-        />
-      </Stack>
-    </FighterProvider>
+    <ErrorBoundary context="FighterProvider">
+      <FighterProvider>
+        <ApiSetup />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#050505" } }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="sign-in" options={{ animation: "fade" }} />
+          <Stack.Screen name="sign-up" options={{ animation: "fade" }} />
+          <Stack.Screen name="onboarding" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="analyse"
+            options={{
+              animation: "slide_from_bottom",
+              presentation: "modal",
+            }}
+          />
+          <Stack.Screen
+            name="competition"
+            options={{
+              animation: "slide_from_bottom",
+              presentation: "modal",
+            }}
+          />
+        </Stack>
+      </FighterProvider>
+    </ErrorBoundary>
   );
 }
 
@@ -112,8 +120,15 @@ export default function RootLayout() {
     SpaceMono_400Regular,
   });
 
+  // Probe 2: RootLayout rendered — hooks running, fonts loading.
+  useEffect(() => {
+    reportStartup("RootLayout-mounted");
+  }, []);
+
   useEffect(() => {
     if (fontsLoaded || fontError) {
+      // Probe 3: fonts resolved — splash screen about to hide.
+      reportStartup(`fonts-resolved | error=${fontError ? String(fontError) : "none"}`);
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
@@ -121,18 +136,24 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <ErrorBoundary>
-      <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-        <SafeAreaProvider>
-          <QueryClientProvider client={queryClient}>
-            <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#050505" }}>
-              <KeyboardProvider>
-                <RootLayoutNav />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </QueryClientProvider>
-        </SafeAreaProvider>
-      </ClerkProvider>
+    <ErrorBoundary context="root">
+      <ErrorBoundary context="ClerkProvider">
+        <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+          <ErrorBoundary context="SafeAreaProvider+QueryClient">
+            <SafeAreaProvider>
+              <QueryClientProvider client={queryClient}>
+                <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#050505" }}>
+                  <ErrorBoundary context="KeyboardProvider">
+                    <KeyboardProvider>
+                      <RootLayoutNav />
+                    </KeyboardProvider>
+                  </ErrorBoundary>
+                </GestureHandlerRootView>
+              </QueryClientProvider>
+            </SafeAreaProvider>
+          </ErrorBoundary>
+        </ClerkProvider>
+      </ErrorBoundary>
     </ErrorBoundary>
   );
 }
