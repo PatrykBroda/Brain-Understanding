@@ -1,15 +1,18 @@
 import { Platform } from "react-native";
 
-const APP_VERSION = "1.0.1";
+const APP_VERSION = "1.0.2";
+
+// Hardcoded production domain as fallback so logs always reach the server
+// even if the EXPO_PUBLIC_DOMAIN EAS secret wasn't provisioned.
+const FALLBACK_DOMAIN = "6b386eea-50e2-4d17-95f3-b6714c4e8099-00-nzahz4fd7fpp.riker.replit.dev";
 
 /**
- * Derives the crash-log URL directly from the build-time env var so this works
- * even before setApiBase() is called (i.e. before Clerk and fonts load).
+ * Derives the crash-log URL from env var, falling back to the hardcoded
+ * production domain. Works before setApiBase() is called (pre-Clerk, pre-font).
  * Uses globalThis.fetch (not expo/fetch) so it runs at module level.
  */
 function getCrashUrl(): string {
-  const domain = process.env.EXPO_PUBLIC_DOMAIN ?? "";
-  if (!domain) return "";
+  const domain = process.env.EXPO_PUBLIC_DOMAIN ?? FALLBACK_DOMAIN;
   return `https://${domain}/api/crash-log`;
 }
 
