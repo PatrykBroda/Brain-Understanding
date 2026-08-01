@@ -72,6 +72,11 @@ const clerkAppearance = {
   },
   elements: {
     rootBox: "w-full flex justify-center",
+    // Email-only auth: hide SSO buttons and the "or" divider so sign-in/up
+    // is a simple email + password form.
+    socialButtons: "hidden",
+    socialButtonsRoot: "hidden",
+    dividerRow: "hidden",
     cardBox:
       "bg-[hsl(0,0%,6%)] border border-white/[0.06] rounded-2xl w-full max-w-[400px] overflow-hidden",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none",
