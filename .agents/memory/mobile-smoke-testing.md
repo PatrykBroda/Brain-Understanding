@@ -10,4 +10,4 @@ description: How to reliably run/validate the frame-mobile Playwright smoke suit
 
 **Why:** validated a mobile UI fix and burned time chasing empty logs + an empty dist that were really a still-running/collided `expo export`, not a real failure.
 
-**How to apply:** to validate a mobile source change: run the suite via the `mobile-smoke` workflow (the runner rebuilds a stale dist itself; budget a few extra minutes when it does) → read `test-results/.last-run.json`. Note: detached `setsid`/`nohup` runs from the shell get killed between tool calls — use the workflow.
+**How to apply:** NOTE (Aug 2026): `scripts/run-mobile-smoke.sh` and the `mobile-smoke` workflow do NOT exist in the main repl (they lived in a task-agent repl). Validate mobile changes with typecheck + the standard `pnpm test` gates; on-device behavior needs a TestFlight build by the user.

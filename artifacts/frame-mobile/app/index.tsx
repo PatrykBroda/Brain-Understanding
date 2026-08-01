@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/clerk-expo";
 import { Redirect } from "expo-router";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -9,17 +9,51 @@ import {
   View,
 } from "react-native";
 import { useFighter } from "@/context/FighterContext";
+import { reportStartup } from "@/lib/crashReporter";
+
+const SLOW_HINT_MS = 6_000;
+
+function LoadingScreen({ label }: { label: string }) {
+  // After a few seconds of waiting, tell the athlete what's happening
+  // instead of showing an anonymous spinner.
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), SLOW_HINT_MS);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <View style={styles.loading}>
+      <ActivityIndicator color="#C9883A" />
+      {slow ? <Text style={styles.slowHint}>{label}</Text> : null}
+    </View>
+  );
+}
 
 export default function IndexScreen() {
   const { isLoaded, isSignedIn } = useAuth();
   const { fighter, isLoading: fighterLoading, error, refetch } = useFighter();
 
+  // Timing probes: when auth restore finishes and when the first screen is
+  // actually ready — the two phases the earlier probes couldn't see.
+  const clerkReported = useRef(false);
+  useEffect(() => {
+    if (isLoaded && !clerkReported.current) {
+      clerkReported.current = true;
+      reportStartup(`clerk-loaded | signedIn=${String(isSignedIn)}`);
+    }
+  }, [isLoaded, isSignedIn]);
+
+  const readyReported = useRef(false);
+  const ready = isLoaded && (!isSignedIn || (!fighterLoading && !error));
+  useEffect(() => {
+    if (ready && !readyReported.current) {
+      readyReported.current = true;
+      reportStartup("first-screen-ready");
+    }
+  }, [ready]);
+
   if (!isLoaded) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color="#C9883A" />
-      </View>
-    );
+    return <LoadingScreen label="CONNECTING · SLOW NETWORK" />;
   }
 
   if (!isSignedIn) {
@@ -27,11 +61,7 @@ export default function IndexScreen() {
   }
 
   if (fighterLoading) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color="#C9883A" />
-      </View>
-    );
+    return <LoadingScreen label="LOADING YOUR FRAME" />;
   }
 
   if (error) {
@@ -65,6 +95,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#050505",
     alignItems: "center",
     justifyContent: "center",
+  },
+  slowHint: {
+    marginTop: 16,
+    color: "#8A8A8A",
+    fontSize: 10,
+    letterSpacing: 3,
+    fontFamily: "SpaceMono_400Regular",
   },
   errorTitle: {
     color: "#C9883A",

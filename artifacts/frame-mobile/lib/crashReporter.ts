@@ -1,6 +1,15 @@
 import { Platform } from "react-native";
 
-const APP_VERSION = "1.0.2";
+const APP_VERSION = "1.0.3";
+
+// Baseline for elapsed-time measurements: when this module was evaluated
+// (≈ JS bundle start). Every probe reports ms since launch so slow phases
+// show up directly in server logs.
+const LAUNCH_TS = Date.now();
+
+export function msSinceLaunch(): number {
+  return Date.now() - LAUNCH_TS;
+}
 
 // Hardcoded production domain as fallback so logs always reach the server
 // even if the EXPO_PUBLIC_DOMAIN EAS secret wasn't provisioned.
@@ -53,7 +62,7 @@ export function reportCrash(error: Error, context: string): void {
 export function reportStartup(context: string): void {
   void post({
     type: "startup",
-    context,
+    context: `${context} | +${msSinceLaunch()}ms`,
     appVersion: APP_VERSION,
     platform: Platform.OS,
     ts: new Date().toISOString(),

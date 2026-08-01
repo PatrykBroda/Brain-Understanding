@@ -1,12 +1,23 @@
 import { BlurView } from "expo-blur";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useFighter } from "@/context/FighterContext";
+
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const { fighter, isLoading, error } = useFighter();
+
+  // Guard: if we entered tabs on a cached profile and the server has since
+  // confirmed there is no fighter, route to onboarding instead of leaving the
+  // athlete inside an app with no profile. (Errors keep the current screen —
+  // a flaky network must not eject a signed-in athlete.)
+  if (!isLoading && !error && !fighter) {
+    return <Redirect href="/onboarding" />;
+  }
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
