@@ -1,7 +1,6 @@
-import { useRef, useState } from "react";
 import { Link } from "wouter";
-import { Shield, Camera, Loader2, ChevronRight } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Shield, ChevronRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { CosmicOrb, ORB_PALETTE } from "@/components/cosmic-orb";
 import { FramePlusPill } from "@/components/frame-plus-modal";
 import { BottomNav } from "@/components/bottom-nav";
@@ -58,34 +57,10 @@ export default function StatePage() {
   });
   const hasSession = (conversationQuery.data?.messages?.length ?? 0) > 0;
 
-  const qc = useQueryClient();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploadErr, setUploadErr] = useState<string | null>(null);
-  const uploadHero = useMutation({
-    mutationFn: (file: File) => api.uploadHero(file),
-    onSuccess: () => {
-      setUploadErr(null);
-      qc.invalidateQueries({ queryKey: ["fighter"] });
-    },
-    onError: (e) => setUploadErr(e instanceof Error ? e.message : "Upload failed"),
-  });
-  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    if (file.size > 12 * 1024 * 1024) {
-      setUploadErr("Image too large (max 12MB).");
-      return;
-    }
-    uploadHero.mutate(file);
-  };
-
   const { hue, sat, light } = ORB_PALETTE[frameState.orb];
   const labelColor = `hsl(${hue}, ${Math.round(sat * 35)}%, 91%)`;
   const labelGlow = `0 0 48px hsla(${hue}, ${Math.round(sat * 100)}%, ${Math.round(light * 100)}%, 0.38), 0 2px 12px rgba(0,0,0,0.6)`;
 
-  const hasHero = !!fighter && fighter.heroImageUrl.trim() !== "";
-  const uploading = uploadHero.isPending;
 
   return (
     <div
@@ -142,19 +117,6 @@ export default function StatePage() {
         </div>
         <div className="flex items-center gap-2">
           <FramePlusPill />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            aria-label={hasHero ? "Change ambient image" : "Set ambient image"}
-            className="w-10 h-10 rounded-full border border-white/[0.06] flex items-center justify-center text-foreground/40 hover:border-primary/40 hover:text-primary/90 outline-none focus-visible:ring-1 focus-visible:ring-primary/60 transition-all duration-500 disabled:opacity-40"
-          >
-            {uploading ? (
-              <Loader2 className="w-[15px] h-[15px] animate-spin" strokeWidth={1.4} />
-            ) : (
-              <Camera className="w-[15px] h-[15px]" strokeWidth={1.2} />
-            )}
-          </button>
           <Link
             href="/profile"
             aria-label="Open profile"
@@ -162,13 +124,6 @@ export default function StatePage() {
           >
             <Shield className="w-[15px] h-[15px]" strokeWidth={1.2} />
           </Link>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            className="hidden"
-            onChange={onPick}
-          />
         </div>
       </header>
 
@@ -267,19 +222,6 @@ export default function StatePage() {
               />
             </div>
           </Link>
-          {!hasHero && (
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              className="mt-4 mx-auto block font-mono text-[9px] uppercase tracking-[0.4em] text-foreground/25 hover:text-foreground/55 transition-colors duration-500 disabled:opacity-40"
-            >
-              {uploading ? "Setting frame…" : "Set your frame"}
-            </button>
-          )}
-          {uploadErr && (
-            <p className="mt-3 text-center font-mono text-[10px] text-destructive">{uploadErr}</p>
-          )}
         </div>
       </section>
 

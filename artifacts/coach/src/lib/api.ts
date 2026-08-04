@@ -87,6 +87,8 @@ export type FighterInput = {
   competes: boolean;
   personality: string;
   bio?: string;
+  // Optional multi-select "Training background" — comma-separated sport labels.
+  trainingBackground?: string;
 };
 
 export type FighterUpdate = Partial<FighterInput> & {

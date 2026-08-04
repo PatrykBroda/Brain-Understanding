@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useUpdateFighter } from "@/hooks/use-fighter";
 import type { Fighter, FighterUpdate } from "@/lib/api";
 import {
-  LEVELS,
+  levelsForSport,
   FREQUENCIES,
   SPORTS,
   SPORT_STYLE_QUESTIONS,
@@ -286,6 +286,11 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
             onChange={(e) => set("primarySport", e.target.value)}
           >
             <option value="">Not set</option>
+            {/* Legacy sports (karate/sambo/mixed…) are no longer offered, but the
+                stored value stays selectable so old profiles aren't misrepresented. */}
+            {form.primarySport && !SPORTS.some((s) => s.value === form.primarySport) && (
+              <option value={form.primarySport}>{sportLabel(form.primarySport)}</option>
+            )}
             {SPORTS.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
@@ -300,7 +305,14 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
             value={form.level}
             onChange={(e) => set("level", e.target.value)}
           >
-            {LEVELS.map((l) => (
+            {(() => {
+              // Level ladders differ per sport — keep the stored value selectable
+              // even when it isn't in the current sport's ladder (legacy profiles).
+              const opts = levelsForSport(form.primarySport || "mma");
+              return form.level && !opts.includes(form.level)
+                ? [form.level, ...opts]
+                : opts;
+            })().map((l) => (
               <option key={l} value={l}>
                 {l}
               </option>

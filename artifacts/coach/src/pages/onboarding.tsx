@@ -3,11 +3,11 @@ import { useSaveFighter } from "@/hooks/use-fighter";
 import { Button } from "@/components/ui/button";
 import type { FighterInput } from "@/lib/api";
 import {
-  LEVELS,
   FREQUENCIES,
   SPORTS,
-  SPORT_STYLE_QUESTIONS,
-  composeArt,
+  TRAINING_BACKGROUND_OPTIONS,
+  levelsForSport,
+  sportLabel,
   ageFromDob,
 } from "@/lib/fighter-options";
 
@@ -66,16 +66,16 @@ const QUESTIONS: Question[] = [
 
 export default function OnboardingPage() {
   const save = useSaveFighter();
-  const [step, setStep] = useState(0); // 0 = intro, 1..N = questions, N+1 = details
+  const [step, setStep] = useState(0); // 0..N-1 = questions, N = details
   const [answers, setAnswers] = useState<Record<string, number>>({});
-  // Sport-conditional style answer (question + storage differ per sport).
-  const [styleAnswer, setStyleAnswer] = useState("");
+  // Optional multi-select "Training background" — other arts they've trained.
+  const [background, setBackground] = useState<string[]>([]);
   const [form, setForm] = useState<FighterInput>({
     name: "",
     dateOfBirth: "",
-    art: "BJJ",
-    primarySport: "bjj",
-    level: "Blue",
+    art: "MMA",
+    primarySport: "mma",
+    level: "Beginner",
     trainingFrequency: "3-4x / week",
     goals: "",
     weaknesses: "",
@@ -87,8 +87,13 @@ export default function OnboardingPage() {
   const update = <K extends keyof FighterInput>(k: K, v: FighterInput[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const totalSteps = QUESTIONS.length + 2; // intro + questions + details
-  const detailsStep = QUESTIONS.length + 1;
+  const totalSteps = QUESTIONS.length + 1; // questions + details
+  const detailsStep = QUESTIONS.length;
+
+  const toggleBackground = (label: string) =>
+    setBackground((b) =>
+      b.includes(label) ? b.filter((x) => x !== label) : [...b, label],
+    );
 
   const composePersonality = (): string => {
     const reads = QUESTIONS.map((q) => {
@@ -110,13 +115,12 @@ export default function OnboardingPage() {
     if (!form.name.trim() || save.isPending) return;
     // DOB is required and is the source of truth; the server derives age from it.
     if (ageFromDob(form.dateOfBirth) == null) return;
-    const sport = form.primarySport ?? "bjj";
-    const q = SPORT_STYLE_QUESTIONS[sport];
-    const answer = q ? styleAnswer || q.options[0] : undefined;
+    const sport = form.primarySport ?? "mma";
     save.mutate({
       ...form,
-      art: composeArt(sport, q?.storeIn === "art" ? answer : undefined),
-      ...(q?.storeIn === "stance" && answer ? { stance: answer } : {}),
+      name: form.name.trim(),
+      art: sportLabel(sport),
+      trainingBackground: background.join(", "),
       personality: composePersonality(),
     });
   };
@@ -144,49 +148,15 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        {/* Intro */}
-        {step === 0 && (
-          <div className="space-y-7">
-            <div className="space-y-3">
-              <h2 className="text-2xl md:text-3xl text-foreground font-light leading-tight">
-                Let's see what you become under pressure.
-              </h2>
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
-                Not your résumé. Your wiring. A few honest questions about how you move when it gets
-                hard — the system reads them to find your combat archetype. No wrong answers, only
-                true ones.
-              </p>
-            </div>
-            <div>
-              <label className={FIELD_LABEL}>Name / Callsign</label>
-              <input
-                className={INPUT_CLASS}
-                value={form.name}
-                onChange={(e) => update("name", e.target.value)}
-                placeholder="What you go by on the mat"
-                autoFocus
-              />
-            </div>
-            <Button
-              type="button"
-              disabled={!form.name.trim()}
-              onClick={() => setStep(1)}
-              className="w-full h-12 font-mono text-xs uppercase tracking-[0.25em] bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
-            >
-              Begin calibration
-            </Button>
-          </div>
-        )}
-
         {/* Behavioral questions */}
-        {step >= 1 && step <= QUESTIONS.length && (() => {
-          const q = QUESTIONS[step - 1];
+        {step < QUESTIONS.length && (() => {
+          const q = QUESTIONS[step];
           const selected = answers[q.id];
           return (
             <div className="space-y-7">
               <div className="space-y-2">
                 <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/80">
-                  Calibration {step} / {QUESTIONS.length}
+                  Calibration {step + 1} / {QUESTIONS.length}
                 </div>
                 <h2 className="text-xl md:text-2xl text-foreground font-light leading-snug">
                   {q.prompt}
@@ -214,13 +184,15 @@ export default function OnboardingPage() {
                   );
                 })}
               </div>
-              <button
-                type="button"
-                onClick={() => setStep((s) => Math.max(0, s - 1))}
-                className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
-              >
-                ← Back
-              </button>
+              {step > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setStep((s) => Math.max(0, s - 1))}
+                  className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  ← Back
+                </button>
+              )}
             </div>
           );
         })()}
@@ -230,11 +202,23 @@ export default function OnboardingPage() {
           <form onSubmit={submit} className="space-y-6">
             <div className="space-y-2 mb-2">
               <h2 className="text-xl md:text-2xl text-foreground font-light leading-snug">
-                Last thing — the hard facts.
+                Tell FRAME about your training.
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Be honest about level and what's leaking. The model sharpens with every session.
+                The basics — the model sharpens with every session.
               </p>
+            </div>
+
+            <div>
+              <label className={FIELD_LABEL}>Name / Callsign</label>
+              <input
+                className={INPUT_CLASS}
+                value={form.name}
+                onChange={(e) => update("name", e.target.value)}
+                placeholder="What you go by on the mat"
+                required
+                autoFocus
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -277,8 +261,13 @@ export default function OnboardingPage() {
                   className={INPUT_CLASS}
                   value={form.primarySport}
                   onChange={(e) => {
-                    update("primarySport", e.target.value);
-                    setStyleAnswer("");
+                    const sport = e.target.value;
+                    setForm((f) => ({
+                      ...f,
+                      primarySport: sport,
+                      // Level ladders differ per sport — reset to the first option.
+                      level: levelsForSport(sport)[0],
+                    }));
                   }}
                 >
                   {SPORTS.map((s) => (
@@ -295,7 +284,7 @@ export default function OnboardingPage() {
                   value={form.level}
                   onChange={(e) => update("level", e.target.value)}
                 >
-                  {LEVELS.map((l) => (
+                  {levelsForSport(form.primarySport ?? "mma").map((l) => (
                     <option key={l} value={l}>
                       {l}
                     </option>
@@ -304,26 +293,29 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {(() => {
-              const q = SPORT_STYLE_QUESTIONS[form.primarySport ?? "bjj"];
-              if (!q) return null;
-              return (
-                <div>
-                  <label className={FIELD_LABEL}>{q.label}</label>
-                  <select
-                    className={INPUT_CLASS}
-                    value={styleAnswer || q.options[0]}
-                    onChange={(e) => setStyleAnswer(e.target.value)}
-                  >
-                    {q.options.map((o) => (
-                      <option key={o} value={o}>
-                        {o}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              );
-            })()}
+            <div>
+              <label className={FIELD_LABEL}>Training background — other arts you've trained (optional)</label>
+              <div className="flex flex-wrap gap-2">
+                {TRAINING_BACKGROUND_OPTIONS.map((label) => {
+                  const on = background.includes(label);
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => toggleBackground(label)}
+                      aria-pressed={on}
+                      className={`px-3 py-2 border text-xs transition-colors ${
+                        on
+                          ? "border-primary text-foreground"
+                          : "border-border/70 text-foreground/70 hover:border-primary/50"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             <div>
               <label className={FIELD_LABEL}>Goals — what does winning look like in 6 months</label>

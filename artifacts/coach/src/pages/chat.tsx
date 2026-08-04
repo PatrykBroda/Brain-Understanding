@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { Send, Square, RefreshCcw, ChevronLeft, Paperclip, X, Mic } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
@@ -6,12 +6,12 @@ import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { MessageContent } from "@/components/message-content";
-import { NervousSystemOrb } from "@/components/nervous-system-orb";
 import { FramePlusPill } from "@/components/frame-plus-modal";
 import { EntrySequence } from "@/components/entry-sequence";
 import { BottomNav } from "@/components/bottom-nav";
 import { CompetitionBanner } from "@/components/competition-banner";
 import { FrameOctagon } from "@/components/frame-octagon";
+import { FrameWordmark } from "@/components/frame-wordmark";
 import { Button } from "@/components/ui/button";
 import { api, attachmentFileUrl, type AttachmentDto } from "@/lib/api";
 
@@ -128,17 +128,6 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isStreaming]);
 
-  const orbState = useMemo<"streaming" | "clean" | "idle">(
-    () => (isStreaming ? "streaming" : messages.length > 0 ? "clean" : "idle"),
-    [isStreaming, messages.length],
-  );
-
-  const orbLabel = isStreaming
-    ? "Transmitting"
-    : messages.length === 0
-      ? "Dense calm"
-      : "Coherent";
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
@@ -214,13 +203,8 @@ export default function ChatPage() {
             <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
             <span className="font-mono text-[10px] uppercase tracking-widest">Frame</span>
           </Link>
-          <div className="flex items-center gap-2">
-            {fighter && (
-              <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/80 mr-1">
-                {fighter.name}
-              </div>
-            )}
-            <NervousSystemOrb state={orbState} label={orbLabel} />
+          <div className="flex items-center gap-3">
+            <FrameWordmark size={22} />
             <FramePlusPill />
           </div>
           <Button

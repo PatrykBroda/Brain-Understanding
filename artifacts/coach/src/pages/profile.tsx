@@ -10,6 +10,7 @@ import { useActiveCompetition } from "@/hooks/use-competition";
 import { BottomNav } from "@/components/bottom-nav";
 import { Belt } from "@/components/belt";
 import { ProfileEdit } from "@/components/profile-edit";
+import { AthleteModel } from "@/components/athlete-model";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
 import { primaryFocus, primaryStrength } from "@/lib/primary-focus";
 import { Link } from "wouter";
@@ -337,6 +338,14 @@ export default function ProfilePage() {
                     →
                   </span>
                 </Link>
+              </div>
+
+              {/* ─── ATHLETE MODEL — what FRAME knows ──────────────── */}
+              <div className="pt-6">
+                <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-muted-foreground/65 mb-3">
+                  Athlete Model
+                </div>
+                <AthleteModel variant="mobile" />
               </div>
 
               {/* ─── MEMBERSHIP ────────────────────────────────────── */}

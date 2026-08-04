@@ -9,7 +9,6 @@ import {
   Tooltip,
   YAxis,
 } from "recharts";
-import { AthleteModel } from "@/components/athlete-model";
 import { WeeklyReportOverlay } from "@/components/weekly-report-overlay";
 import { BottomNav } from "@/components/bottom-nav";
 import { ModelUpdateCard } from "@/components/model-update-card";
@@ -460,7 +459,6 @@ export default function AnalysePage() {
                 <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
                 Weekly intelligence report
               </button>
-              <AthleteModel variant="mobile" />
             </>
           )}
         </div>
@@ -696,8 +694,6 @@ export default function AnalysePage() {
                 <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
                 Weekly intelligence report
               </button>
-
-              <AthleteModel />
             </div>
           </>
         )}

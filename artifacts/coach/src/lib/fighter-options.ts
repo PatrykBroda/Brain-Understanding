@@ -1,31 +1,74 @@
-export const LEVELS = ["White", "Blue", "Purple", "Brown", "Black", "No belt / other"];
 export const FREQUENCIES = ["1-2x / week", "3-4x / week", "5-6x / week", "Daily / pro"];
 
+// Primary combat sport options (FINAL_UPDATE spec order).
 export const SPORTS: { value: string; label: string }[] = [
-  { value: "bjj", label: "Brazilian Jiu-Jitsu" },
   { value: "mma", label: "MMA" },
+  { value: "bjj", label: "BJJ / Grappling" },
   { value: "boxing", label: "Boxing" },
   { value: "muay_thai", label: "Muay Thai" },
   { value: "kickboxing", label: "Kickboxing" },
   { value: "wrestling", label: "Wrestling" },
   { value: "judo", label: "Judo" },
-  { value: "karate", label: "Karate" },
-  { value: "sambo", label: "Sambo" },
-  { value: "mixed", label: "Mixed / multiple" },
+  { value: "taekwondo", label: "Taekwondo" },
+  { value: "other", label: "Other" },
 ];
 
+// Labels for sport keys that existing profiles may still carry but that are no
+// longer offered as choices. Keeps old profiles rendering correctly.
+const LEGACY_SPORT_LABELS: Record<string, string> = {
+  karate: "Karate",
+  sambo: "Sambo",
+  mixed: "Mixed / multiple",
+};
+
 export function sportLabel(key: string): string {
-  return SPORTS.find((s) => s.value === key)?.label ?? key;
+  return (
+    SPORTS.find((s) => s.value === key)?.label ?? LEGACY_SPORT_LABELS[key] ?? key
+  );
 }
+
+// ---------------------------------------------------------------------------
+// Per-sport skill levels (FINAL_UPDATE spec): belt sports get belts, the
+// striking/MMA arts get an experience ladder, wrestling gets its own ladder.
+// ---------------------------------------------------------------------------
+
+const BELT_LEVELS = ["White", "Blue", "Purple", "Brown", "Black", "No belt / other"];
+const JUDO_BELT_LEVELS = ["White", "Yellow", "Orange", "Green", "Blue", "Brown", "Black", "No belt / other"];
+const EXPERIENCE_LEVELS = [
+  "Beginner",
+  "Intermediate",
+  "Advanced",
+  "Amateur Competitor",
+  "Professional",
+];
+const WRESTLING_LEVELS = ["Beginner", "Intermediate", "Advanced", "Competitive"];
+
+// Back-compat: the historical flat list (BJJ belts) — some legacy profiles
+// store these regardless of sport.
+export const LEVELS = BELT_LEVELS;
+
+export function levelsForSport(sport: string): string[] {
+  switch (sport) {
+    case "bjj":
+      return BELT_LEVELS;
+    case "judo":
+      return JUDO_BELT_LEVELS;
+    case "wrestling":
+      return WRESTLING_LEVELS;
+    default:
+      return EXPERIENCE_LEVELS;
+  }
+}
+
+// Optional multi-select "Training background" — other arts the athlete has trained.
+// Same sport list as the primary select (labels are what gets stored).
+export const TRAINING_BACKGROUND_OPTIONS = SPORTS.map((s) => s.label);
 
 export const STANCES = ["Orthodox", "Southpaw", "Switch", "Open"];
 
 // ---------------------------------------------------------------------------
-// Sport-conditional style question (dynamic onboarding).
-// Each sport asks at most ONE follow-up that actually means something in that
-// sport, instead of a generic "primary art" list. The answer is stored either
-// in fighters.art (style/focus questions, composed via composeArt) or in
-// fighters.stance (stance questions for the striking arts).
+// Sport-conditional style question — retained for the profile editor only
+// (onboarding no longer asks it, per the FINAL_UPDATE spec).
 // ---------------------------------------------------------------------------
 
 export type StyleQuestion = {
@@ -64,6 +107,7 @@ export const SPORT_STYLE_QUESTIONS: Record<string, StyleQuestion> = {
   muay_thai: STANCE_QUESTION,
   kickboxing: STANCE_QUESTION,
   karate: STANCE_QUESTION,
+  taekwondo: STANCE_QUESTION,
   wrestling: {
     label: "Preferred style",
     options: ["Freestyle", "Folkstyle", "Greco-Roman"],
@@ -74,7 +118,7 @@ export const SPORT_STYLE_QUESTIONS: Record<string, StyleQuestion> = {
     options: ["Guard player", "Top pressure", "Submission hunter", "Balanced"],
     storeIn: "art",
   },
-  // judo / sambo: no follow-up — the sport itself is the art.
+  // judo / sambo / other: no follow-up — the sport itself is the art.
 };
 
 /** Compose the fighters.art value from the sport + (optional) style answer.

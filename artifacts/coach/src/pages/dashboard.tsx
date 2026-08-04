@@ -4,6 +4,7 @@ import { ChevronRight, Pencil, Move, Lock } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
 import { CompetitionBanner } from "@/components/competition-banner";
 import { FramePlusPill, useFramePlus } from "@/components/frame-plus-modal";
+import { FrameWordmark } from "@/components/frame-wordmark";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useFighter, useUpdateFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
@@ -375,22 +376,7 @@ export default function DashboardPage() {
 
             {/* Header over hero */}
             <header className="absolute top-0 inset-x-0 flex items-center justify-between px-6 pt-[max(1.1rem,env(safe-area-inset-top))]">
-              <div className="flex items-center gap-3">
-                <img
-                  src={`${basePath}/frame-logo.png`}
-                  alt=""
-                  aria-hidden
-                  width={30}
-                  height={30}
-                  className="object-contain opacity-90"
-                />
-                <div className="font-sans font-extralight text-[14px] tracking-[0.5em] text-foreground/95 leading-none">
-                  FRAME
-                  <span className="font-mono text-[9px] tracking-[0.4em] text-foreground/50 ml-3">
-                    · SYNOCHI
-                  </span>
-                </div>
-              </div>
+              <FrameWordmark size={30} />
               <div className="flex items-center gap-2.5">
                 <FramePlusPill />
                 {hasHero && !adjusting && (
@@ -473,14 +459,6 @@ export default function DashboardPage() {
                       </span>
                     ))}
                   </div>
-                )}
-                {!hasHero && (
-                  <Link
-                    href="/state"
-                    className="inline-block mt-3 font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/30 hover:text-foreground/60 transition-colors"
-                  >
-                    Set your frame on the State page
-                  </Link>
                 )}
               </div>
             )}
