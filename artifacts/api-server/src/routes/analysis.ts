@@ -15,7 +15,7 @@ import {
 import { and, desc, eq, lt } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { getActiveFacts, addFact, confirmFact, findActiveFactByTopic } from "../lib/factsService";
-import { getEntitlementForClerkUser } from "../lib/subscriptionService";
+import { getEntitlementForUserId } from "../lib/subscriptionService";
 import { getActiveCompetition } from "../lib/competitionService";
 import {
   generateAnalysis,
@@ -180,7 +180,7 @@ router.post("/analysis", async (req, res) => {
   // Entitlement. Self: the FIRST self analysis is a free one-time taster, then
   // FRAME+. Opponent scouting is FRAME+ from the first upload — it only earns
   // its keep once the athlete has a model to contrast against.
-  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  const entitlement = await getEntitlementForUserId(req.userId as string);
   if (entitlement.plan === "free") {
     if (subject === "opponent") {
       res.status(402).json({
@@ -659,7 +659,7 @@ router.get("/analysis", async (req, res) => {
   // Free tier: latest analysis only. Older rows come back as locked stubs —
   // id + date survive so the history list can render upgrade affordances,
   // but scores/summary/profile are stripped server-side.
-  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  const entitlement = await getEntitlementForUserId(req.userId as string);
   if (entitlement.plan === "free") {
     const gated = rows.map((r, i) =>
       i === 0
@@ -713,7 +713,7 @@ router.get("/analysis/:id", async (req, res) => {
   }
 
   // Free tier: only the most recent analysis is viewable in full.
-  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  const entitlement = await getEntitlementForUserId(req.userId as string);
   const isFreeTier = entitlement.plan === "free";
   if (isFreeTier) {
     const [latest] = await db
@@ -869,7 +869,7 @@ router.post("/analysis/fetch-remote", async (req, res) => {
   // Gate BEFORE any heavy work (yt-dlp / large downloads land in RAM-backed
   // /tmp). Mirrors POST /analysis: the first analysis is a free taster, so a
   // free user with no prior analysis may fetch; after that it's FRAME+.
-  const remoteEntitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  const remoteEntitlement = await getEntitlementForUserId(req.userId as string);
   if (remoteEntitlement.plan === "free") {
     const remoteFighter = await getUserFighter(req);
     const [existing] = remoteFighter

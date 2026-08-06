@@ -62,12 +62,12 @@ googlePublicRouter.get("/google/oauth/callback", async (req, res) => {
   }
 
   try {
-    const clerkUserId = await consumeState(state);
-    if (!clerkUserId) {
+    const userId = await consumeState(state);
+    if (!userId) {
       send("FRAME", "<h1>Link expired</h1><p>That request expired or was already used. Return to FRAME and try again.</p>", 400);
       return;
     }
-    const email = await completeLink(clerkUserId, code);
+    const email = await completeLink(userId, code);
     const who = email
       ? `<p>Linked as <span class="em">${escapeHtml(email)}</span>.</p>`
       : "<p>Your Google Calendar is linked.</p>";
@@ -87,8 +87,8 @@ googleRouter.post("/google/oauth/start", async (req, res) => {
     res.status(503).json({ error: "not_configured" });
     return;
   }
-  const clerkUserId = req.clerkUserId!;
-  const url = await beginLink(clerkUserId);
+  const userId = req.userId!;
+  const url = await beginLink(userId);
   res.json({ url });
 });
 
@@ -98,7 +98,7 @@ googleRouter.get("/google/status", async (req, res) => {
     res.json({ configured: false, connected: false, googleEmail: null, lastSyncedAt: null });
     return;
   }
-  const status = await getStatus(req.clerkUserId!);
+  const status = await getStatus(req.userId!);
   res.json({ configured: true, ...status });
 });
 
@@ -107,7 +107,7 @@ googleRouter.delete("/google/connection", async (req, res) => {
     res.status(503).json({ error: "not_configured" });
     return;
   }
-  await disconnect(req.clerkUserId!);
+  await disconnect(req.userId!);
   res.json({ ok: true });
 });
 
@@ -159,7 +159,7 @@ googleRouter.post("/google/sync/preview", async (req, res) => {
   }
   const { timeMin, timeMax } = syncWindow(camp.eventDate);
   try {
-    const items = await importPreview(req.clerkUserId!, timeMin, timeMax, parsed.data.timeZone);
+    const items = await importPreview(req.userId!, timeMin, timeMax, parsed.data.timeZone);
     res.json({ items });
   } catch (err) {
     if (err instanceof GoogleAuthRevokedError) {
@@ -229,7 +229,7 @@ googleRouter.post("/google/sync/apply", async (req, res) => {
     let exported = 0;
     if (parsed.data.exportSessions) {
       exported = await exportManualSessions(
-        req.clerkUserId!,
+        req.userId!,
         camp.id,
         fighter.id,
         parsed.data.timeZone,

@@ -14,19 +14,22 @@ import competitionRouter from "./competition";
 import checkinRouter from "./checkin";
 import billingRouter from "./billing";
 import { googlePublicRouter, googleRouter } from "./google";
+import authRouter from "./auth";
 import { requireAuth } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
 
-// public
+// public — no auth required
 router.use(healthRouter);
-// Mobile crash + startup reports — no auth so they fire even before Clerk loads.
+// Mobile crash + startup reports — no auth so they fire even before auth loads.
 router.use(crashlogRouter);
-// Google OAuth callback — Google arrives with no Clerk session; identity is
+// Custom auth routes — register, login, logout, me
+router.use(authRouter);
+// Google OAuth callback — Google arrives with no session; identity is
 // recovered from the signed `state`, so this MUST stay public.
 router.use(googlePublicRouter);
 
-// everything below requires an authenticated Clerk session
+// everything below requires a valid JWT
 router.use(requireAuth);
 
 router.use(fighterRouter);

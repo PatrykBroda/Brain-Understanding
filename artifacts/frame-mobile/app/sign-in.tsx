@@ -1,4 +1,3 @@
-import { useSignIn } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -12,9 +11,11 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/context/AuthContext";
+import { apiPost } from "@/lib/api";
 
 export default function SignInScreen() {
-  const { signIn, setActive, isLoaded } = useSignIn();
+  const { signIn } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -24,23 +25,22 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
 
   async function handleSignIn() {
-    if (!isLoaded || loading) return;
+    if (loading) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await signIn.create({ identifier: email, password });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        router.replace("/(tabs)/home");
-      } else {
-        setError("Sign-in incomplete. Try again.");
-      }
+      const data = await apiPost<{ token: string; userId: string }>(
+        "/auth/login",
+        { email, password },
+      );
+      signIn(data.token);
+      router.replace("/(tabs)/home");
     } catch (e: unknown) {
       const msg =
-        (e as { errors?: { message?: string }[] })?.errors?.[0]?.message ??
-        (e as Error)?.message ??
-        "Sign-in failed. Check your credentials.";
-      setError(msg);
+        (e as Error)?.message ?? "Sign-in failed. Check your credentials.";
+      setError(msg.includes("401") || msg.includes("Incorrect")
+        ? "Incorrect email or password."
+        : msg);
     } finally {
       setLoading(false);
     }

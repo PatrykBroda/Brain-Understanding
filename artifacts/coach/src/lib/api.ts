@@ -282,6 +282,17 @@ function classifyStatus(status: number, body: string): ApiError {
 // silently black-holed, bounding the worst-case spinner instead of hanging.
 const REQUEST_TIMEOUT_MS = 70_000;
 
+let _tokenGetter: (() => string | null) | null = null;
+/** Called once at app boot by ApiSetup in App.tsx — updates whenever token changes. */
+export function setApiTokenGetter(fn: () => string | null) {
+  _tokenGetter = fn;
+}
+
+export function authHeaders(): Record<string, string> {
+  const token = _tokenGetter?.();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -290,7 +301,11 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
     res = await fetch(`${base}${path}`, {
       ...init,
       signal: init?.signal ?? controller.signal,
-      headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+        ...(init?.headers || {}),
+      },
     });
   } catch (err) {
     // fetch only rejects on network failure or abort — never on HTTP status.
@@ -659,7 +674,7 @@ export async function fetchRemoteVideo(url: string): Promise<File> {
   try {
     res = await fetch(`${base}api/analysis/fetch-remote`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ url }),
       signal: controller.signal,
     });

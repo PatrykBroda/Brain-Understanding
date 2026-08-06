@@ -1,33 +1,34 @@
 /**
  * Coach web-app smoke tests – cover the React/Vite frontend at `/`.
  *
- * Guards three regression categories:
+ * Guards six regression categories:
  *
  *  1. sign-in-home          — signed-in user reaches the FRAME home page
  *                             with no JS errors (CosmicOrb + State label
  *                             rendered, "Enter" CTA present).
  *
- *  2. chat-SSE              — POST /api/coach/chat (cookie auth, no Bearer)
+ *  2. chat-SSE              — POST /api/coach/chat (Bearer token auth)
  *                             returns at least one {content} or {done} chunk.
  *
  *  3. profile-no-crash      — /profile loads without JS errors; athlete-state
  *                             panel and bottom nav are present in the DOM.
  *
- *  4. analyse-no-hang       — uploads a short clip to /analyse and asserts the
+ *  4. onboarding-camelCase  — fresh user POST /api/fighter uses camelCase field
+ *                             names (Zod rejects snake_case with 400).
+ *
+ *  5. free-tier-gate        — first POST /api/analysis is free (passes gate →
+ *                             400 validation); second hit is 402.
+ *
+ *  6. analyse-no-hang       — uploads a short clip to /analyse and asserts the
  *                             processing overlay advances past ~1% and reaches
  *                             a terminal state (FRAME REPORT or an honest error)
- *                             within a bounded window. Guards the regression
- *                             where the on-device pose extractor hung forever at
- *                             ~1% on mobile. Reaching the honest "couldn't lock
- *                             onto a body" error is a valid terminal state — the
- *                             test clip has no detectable body, so that error
- *                             proves the extraction loop ran to completion.
+ *                             within a bounded window.
  *
  * Auth:
- *   Same two Clerk accounts provisioned by global-setup.ts.
- *   @clerk/testing/playwright `clerk.signIn()` uses the ticket strategy.
- *   The web coach app uses cookie-based sessions (no Authorization header),
- *   so same-origin fetches from page.evaluate() carry the session automatically.
+ *   Two test accounts created by global-setup.ts via direct DB insert + bcryptjs.
+ *   `signInAs()` calls POST /api/auth/login from within the browser context and
+ *   injects the JWT into localStorage["frame:token"]. All subsequent
+ *   page.evaluate() fetches read that key and supply the Authorization header.
  *
  * Note on page.waitForURL():
  *   Playwright matches against the FULL URL string (e.g. "http://localhost:80/").
@@ -36,9 +37,8 @@
  */
 import path from "node:path";
 import { test, expect, type Page } from "@playwright/test";
-import { clerk, setupClerkTestingToken } from "@clerk/testing/playwright";
 import { Client } from "pg";
-import { TEST_MAIN_EMAIL, TEST_FRESH_EMAIL } from "./global-setup";
+import { TEST_MAIN_EMAIL, TEST_FRESH_EMAIL, TEST_PASSWORD } from "./global-setup";
 
 // A short, valid VP8/WebM clip (open-source-Chromium decodable). It contains a
 // synthetic test pattern with NO detectable body, so a healthy extraction run
@@ -49,7 +49,6 @@ const SAMPLE_VIDEO = path.join(process.cwd(), "e2e", "fixtures", "analyse-sample
 // ─── URL predicate helpers ─────────────────────────────────────────────────
 
 function isHomePath(url: string): boolean {
-  // "/" redirects signed-in users to the Home dashboard at /home
   const { pathname } = new URL(url);
   return pathname === "/" || pathname === "/home";
 }
@@ -60,15 +59,41 @@ function isHomeOrOnboarding(url: string): boolean {
 }
 
 // ─── Auth helper ──────────────────────────────────────────────────────────────
+// Calls POST /api/auth/login from within the browser context, then injects the
+// returned JWT into localStorage so the React app picks it up on navigation.
 
-async function signInWeb(page: Page): Promise<void> {
+async function signInAs(page: Page, email: string): Promise<void> {
+  // Load the SPA so we're operating in the correct origin.
+  await page.goto("/sign-in");
+
+  // Login via API — runs inside the browser, so relative URLs resolve correctly.
+  const token = await page.evaluate(
+    async ([e, p]: [string, string]) => {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: e, password: p }),
+      });
+      if (!res.ok) throw new Error(`Login failed: ${res.status} ${await res.text()}`);
+      const { token } = (await res.json()) as { token: string };
+      return token;
+    },
+    [email, TEST_PASSWORD] as [string, string],
+  );
+
+  // Inject the JWT — the React AuthProvider reads this on next navigation.
+  await page.evaluate(
+    (t: string) => localStorage.setItem("frame:token", t),
+    token,
+  );
+
   await page.goto("/");
-  await setupClerkTestingToken({ page });
-  await clerk.signIn({ page, emailAddress: TEST_MAIN_EMAIL });
-  await page.goto("/");
-  // After a successful sign-in the app either stays on / (home) or redirects
-  // to /onboarding for first-run users; main test user always has a fighter.
   await page.waitForURL(isHomeOrOnboarding, { timeout: 40_000 });
+}
+
+/** Sign in as the MAIN smoke user (has fighter + FRAME+). */
+async function signInWeb(page: Page): Promise<void> {
+  return signInAs(page, TEST_MAIN_EMAIL);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -90,59 +115,51 @@ test("sign-in lands on FRAME home with no JS errors", async ({ page }) => {
   await page.waitForTimeout(2_000);
 
   // Verify Home dashboard landmarks are rendered
-  // "FRAME" wordmark in the header
   await expect(page.getByText("FRAME").first()).toBeVisible();
-
-  // Fight readiness section is a fixed dashboard landmark
   await expect(page.getByText(/Fight readiness/i).first()).toBeVisible();
 
   // The orb now lives on its own State page — navigate there and verify
   await page.goto("/state");
   await page.waitForTimeout(2_000);
-
-  // State section exists (font-mono "State" label)
   await expect(page.getByText("State", { exact: true }).first()).toBeVisible();
 
-  // Doorway CTA present. The label is session-aware: "Enter the frame" for a
-  // fresh session, "Continue session" for a returning one (the persistent test
-  // account usually has prior history, so it reads "Continue").
   await expect(
     page.getByRole("link", { name: /Enter the frame|Continue session/ })
   ).toBeVisible();
 
-  // No unexpected JS errors (filter out known benign browser noise)
+  // No unexpected JS errors
   const criticalErrors = jsErrors.filter(
     (e) =>
       !e.includes("favicon") &&
       !e.includes("ResizeObserver") &&
       !e.includes("Non-Error promise rejection") &&
-      !e.includes("ERR_FAILED") // R3F WebGL context warnings in headless
+      !e.includes("ERR_FAILED"),
   );
   expect(
     criticalErrors,
-    `Unexpected JS errors on home:\n  ${criticalErrors.join("\n  ")}`
+    `Unexpected JS errors on home:\n  ${criticalErrors.join("\n  ")}`,
   ).toHaveLength(0);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test 2: Chat SSE delivers at least one content chunk
 // ─────────────────────────────────────────────────────────────────────────────
-test("chat SSE delivers at least one chunk (cookie auth)", async ({ page }) => {
+test("chat SSE delivers at least one chunk (Bearer auth)", async ({ page }) => {
   await signInWeb(page);
   await page.waitForURL(isHomePath, { timeout: 5_000 });
 
-  // The web coach app uses cookies — no Authorization header required.
-  // page.evaluate() runs inside the browser context where the session cookie
-  // is already set, so the fetch call carries it automatically.
+  // page.evaluate() runs inside the browser context where the JWT is in
+  // localStorage; the fetch call must include the Authorization header.
   const result = await page.evaluate(async () => {
+    const token = localStorage.getItem("frame:token") ?? "";
     try {
       const res = await fetch("/api/coach/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Accept: "text/event-stream",
+          "Accept": "text/event-stream",
+          "Authorization": `Bearer ${token}`,
         },
-        credentials: "include",
         body: JSON.stringify({ content: "ping" }),
       });
       if (!res.ok) return { ok: false, status: res.status };
@@ -172,7 +189,7 @@ test("chat SSE delivers at least one chunk (cookie auth)", async ({ page }) => {
 
   expect(
     result.ok,
-    `SSE did not deliver a chunk (status=${result.status})`
+    `SSE did not deliver a chunk (status=${result.status})`,
   ).toBe(true);
 });
 
@@ -189,33 +206,27 @@ test("profile page loads without JS errors", async ({ page }) => {
   await signInWeb(page);
   await page.waitForURL(isHomePath, { timeout: 5_000 });
 
-  // Navigate to profile
   await page.goto("/profile");
   await page.waitForTimeout(2_500);
 
-  // Verify profile landmarks
-  // Bottom nav is present (the nav renders on every authenticated page)
   const bottomNav = page.locator("nav").last();
   await expect(bottomNav).toBeVisible({ timeout: 8_000 });
 
-  // The page should not have crashed — some profile content should be visible.
-  // Profile is now a passport: look for its "Passport" header landmark.
   const hasContent =
     (await page.getByText("Passport", { exact: false }).count()) > 0 ||
     (await page.getByText("Sign out", { exact: false }).count()) > 0;
   expect(hasContent, "Profile page rendered no expected content").toBe(true);
 
-  // No critical JS errors
   const criticalErrors = jsErrors.filter(
     (e) =>
       !e.includes("favicon") &&
       !e.includes("ResizeObserver") &&
       !e.includes("Non-Error promise rejection") &&
-      !e.includes("ERR_FAILED")
+      !e.includes("ERR_FAILED"),
   );
   expect(
     criticalErrors,
-    `Unexpected JS errors on profile:\n  ${criticalErrors.join("\n  ")}`
+    `Unexpected JS errors on profile:\n  ${criticalErrors.join("\n  ")}`,
   ).toHaveLength(0);
 });
 
@@ -226,11 +237,7 @@ test("onboarding page loads and POST /api/fighter uses camelCase fields", async 
   page,
 }) => {
   // Sign in as the fresh user (fighter deleted by global-setup each run)
-  await page.goto("/");
-  await setupClerkTestingToken({ page });
-  await clerk.signIn({ page, emailAddress: TEST_FRESH_EMAIL });
-  await page.goto("/");
-  // Fresh user has no fighter — should land on /onboarding
+  await signInAs(page, TEST_FRESH_EMAIL);
   await page.waitForURL(isHomeOrOnboarding, { timeout: 40_000 });
 
   const { pathname } = new URL(page.url());
@@ -238,7 +245,10 @@ test("onboarding page loads and POST /api/fighter uses camelCase fields", async 
   if (pathname !== "/onboarding") {
     // Fighter wasn't cleaned up (previous run left one) — verify shape and pass
     const bodyRaw = await page.evaluate(async () => {
-      const res = await fetch("/api/fighter", { credentials: "include" });
+      const token = localStorage.getItem("frame:token") ?? "";
+      const res = await fetch("/api/fighter", {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
       return res.ok ? res.json() : null;
     });
     if (bodyRaw?.fighter) {
@@ -250,20 +260,18 @@ test("onboarding page loads and POST /api/fighter uses camelCase fields", async 
     return;
   }
 
-  // Verify the onboarding page rendered something meaningful
   await page.waitForTimeout(1_500);
   const hasOnboardingContent =
     (await page.getByText("FRAME").count()) > 0 ||
     (await page.locator("input, select, button").count()) > 0;
   expect(hasOnboardingContent, "Onboarding page rendered no expected content").toBe(true);
 
-  // POST /api/fighter via same-origin fetch (cookie auth — no Bearer needed on web)
-  // The regression we guard against is sending snake_case (e.g. date_of_birth)
-  // which Zod rejects with a 400.
   const result = await page.evaluate(async () => {
+    const token = localStorage.getItem("frame:token") ?? "";
+    const authHeader = { "Authorization": `Bearer ${token}` };
     try {
       // Check if fighter already exists from a partial previous run
-      const check = await fetch("/api/fighter", { credentials: "include" });
+      const check = await fetch("/api/fighter", { headers: authHeader });
       if (check.ok) {
         const { fighter } = await check.json();
         if (fighter !== null) return { already: true, fighter };
@@ -271,8 +279,7 @@ test("onboarding page loads and POST /api/fighter uses camelCase fields", async 
 
       const res = await fetch("/api/fighter", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeader },
         body: JSON.stringify({
           name: "Web Smoke Fighter",
           dateOfBirth: "1990-06-15",
@@ -293,14 +300,13 @@ test("onboarding page loads and POST /api/fighter uses camelCase fields", async 
   });
 
   if ("already" in result && result.already) {
-    // Fighter created in a previous incomplete run — verify shape and pass
     expect(result.fighter).toMatchObject({ id: expect.any(Number), name: expect.any(String) });
     return;
   }
 
   expect(
     result.ok,
-    `POST /api/fighter failed (status=${result.status}) — likely snake_case regression.\n  Body: ${result.body ?? result.err ?? ""}`
+    `POST /api/fighter failed (status=${result.status}) — likely snake_case regression.\n  Body: ${result.body ?? result.err ?? ""}`,
   ).toBe(true);
   expect(result.fighter).toMatchObject({
     id: expect.any(Number),
@@ -311,31 +317,21 @@ test("onboarding page loads and POST /api/fighter uses camelCase fields", async 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test 5: First analysis is free (one-time taster); the second one is FRAME+
 // ─────────────────────────────────────────────────────────────────────────────
-//
-// The FRESH smoke user is pinned to the free plan by global-setup (which also
-// deletes its fighter — cascading away any analyses from earlier runs). The
-// entitlement gate counts existing analyses: 0 → allowed through to normal
-// validation (400 here, since we send no signals — proof the gate passed),
-// ≥1 → 402 { code: "FRAME_PLUS_REQUIRED", feature: "video_analysis" }.
 test("free tier: first POST /api/analysis passes the gate, second is 402", async ({
   page,
 }) => {
-  await page.goto("/");
-  await setupClerkTestingToken({ page });
-  await clerk.signIn({ page, emailAddress: TEST_FRESH_EMAIL });
-  await page.goto("/");
+  await signInAs(page, TEST_FRESH_EMAIL);
   await page.waitForURL(isHomeOrOnboarding, { timeout: 40_000 });
 
   const fighterId = await page.evaluate(async () => {
-    // The route checks fighter BEFORE entitlement — ensure one exists (the
-    // onboarding test usually created it; re-POST is a safe no-op check).
-    const check = await fetch("/api/fighter", { credentials: "include" });
+    const token = localStorage.getItem("frame:token") ?? "";
+    const authHeader = { "Authorization": `Bearer ${token}` };
+    const check = await fetch("/api/fighter", { headers: authHeader });
     let fighter = check.ok ? (await check.json()).fighter : null;
     if (!fighter) {
       const created = await fetch("/api/fighter", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeader },
         body: JSON.stringify({
           name: "Web Smoke Fighter",
           dateOfBirth: "1990-06-15",
@@ -354,49 +350,47 @@ test("free tier: first POST /api/analysis passes the gate, second is 402", async
   const db = new Client({ connectionString: process.env.DATABASE_URL });
   await db.connect();
   try {
-    // Make the run idempotent under Playwright retries: clear any analyses
-    // this fresh fighter accumulated within THIS run.
     await db.query("DELETE FROM video_analyses WHERE fighter_id = $1", [fighterId]);
 
     const postAnalysis = () =>
       page.evaluate(async () => {
+        const token = localStorage.getItem("frame:token") ?? "";
         const res = await fetch("/api/analysis", {
           method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
           body: JSON.stringify({ kind: "sparring" }),
         });
         let body: unknown = null;
         try {
           body = await res.json();
         } catch {
-          /* non-JSON body — assertion below will surface it */
+          /* non-JSON body */
         }
         return { status: res.status, body };
       });
 
-    // 1) Zero analyses on record → the free taster: the entitlement gate must
-    //    let the request through. It then fails ordinary validation (400 — no
-    //    signals in the payload), which is exactly the proof we want: NOT 402.
+    // Zero analyses → free taster passes gate, fails ordinary validation (400).
     const first = await postAnalysis();
     expect(
       first.status,
-      `First free analysis should pass the entitlement gate (expected 400 validation, not 402): ${JSON.stringify(first.body)}`
+      `First free analysis should pass the entitlement gate (expected 400 validation, not 402): ${JSON.stringify(first.body)}`,
     ).toBe(400);
 
-    // 2) Seed one analysis row (a real one would need a full Claude round-trip;
-    //    the gate only counts rows) → the taster is spent.
+    // Seed one row — taster is spent.
     await db.query(
       `INSERT INTO video_analyses
          (fighter_id, kind, nervous_system_load, summary, findings, metrics, keyframes)
        VALUES ($1, 'sparring', 'low', 'smoke seed', '[]', '{}', '[]')`,
-      [fighterId]
+      [fighterId],
     );
 
     const second = await postAnalysis();
     expect(
       second.status,
-      `Expected 402 once the free analysis is used, got ${second.status}: ${JSON.stringify(second.body)}`
+      `Expected 402 once the free analysis is used, got ${second.status}: ${JSON.stringify(second.body)}`,
     ).toBe(402);
     expect(second.body).toMatchObject({
       code: "FRAME_PLUS_REQUIRED",
@@ -410,13 +404,6 @@ test("free tier: first POST /api/analysis passes the gate, second is 402", async
 // ─────────────────────────────────────────────────────────────────────────────
 // Test 6: Analyse never silently hangs — the extraction loop always terminates
 // ─────────────────────────────────────────────────────────────────────────────
-//
-// The regression this guards: the on-device pose extractor used to stall
-// forever at ~1% on mobile (a detached, never-played <video> iOS refuses to
-// decode). It was rewritten to a play-through + requestVideoFrameCallback
-// sampler with a stall watchdog and honest error paths. This test proves the
-// loop ALWAYS reaches a terminal state — a FRAME REPORT or an honest error —
-// within a bounded window, and advances past the ~1% point it used to stall at.
 test("analyse video processing always terminates (never silently hangs)", async ({
   page,
 }) => {
@@ -428,25 +415,16 @@ test("analyse video processing always terminates (never silently hangs)", async 
   await page.goto("/analyse");
   await page.waitForTimeout(1_500);
 
-  // The Analyse page keeps a single hidden <input type=file> mounted at all
-  // times (shared across mobile + desktop layouts). Setting files on it drives
-  // the same code path as the visible "Drop footage" control.
   const fileInput = page.locator('input[type="file"]');
   await expect(fileInput).toHaveCount(1);
   await fileInput.setInputFiles(SAMPLE_VIDEO);
 
-  // The cinematic processing overlay appears — proves the pipeline started.
-  // Its per-phase titles ("Reading footage" / "Tracking movement" / …) render
-  // only inside the overlay, so seeing one confirms we're processing.
   await expect(
     page
       .getByText(/Reading footage|Tracking movement|Detecting patterns|Building the read/)
       .first()
   ).toBeVisible({ timeout: 45_000 });
 
-  // Poll for a terminal state while recording the highest progress % seen.
-  // A hang (the old bug) would leave us stuck below ~1% until the deadline,
-  // failing the `terminal` assertion below.
   const KNOWN_ERROR =
     /Couldn't read this clip|too large to process|couldn't lock onto|movement model|processing stalled|start video playback/i;
   const deadline = Date.now() + 100_000;
@@ -463,17 +441,12 @@ test("analyse video processing always terminates (never silently hangs)", async 
         pct: m ? parseInt(m[1]!, 10) : null,
         hasReport: /FRAME Report/i.test(text),
         knownError:
-          /Couldn't read this clip|too large to process|couldn't lock onto|movement model|processing stalled|start video playback/i.test(
-            text
-          ),
+          /Couldn't read this clip|too large to process|couldn't lock onto|movement model|processing stalled|start video playback/i.test(text),
         lockOnBody: /couldn't lock onto/i.test(text),
       };
     });
     if (state.pct != null && state.pct > maxPct) maxPct = state.pct;
-    if (state.hasReport) {
-      terminal = "report";
-      break;
-    }
+    if (state.hasReport) { terminal = "report"; break; }
     if (state.knownError) {
       terminal = "error";
       errorSeen = true;
@@ -483,30 +456,22 @@ test("analyse video processing always terminates (never silently hangs)", async 
     await page.waitForTimeout(120);
   }
 
-  // (1) The core anti-hang guarantee: a terminal state within the window.
   expect(
     terminal,
-    `Analyse never reached a terminal state within the bounded window (maxPct=${maxPct}) — the extraction loop appears to be hanging.`
+    `Analyse never reached a terminal state within the bounded window (maxPct=${maxPct}) — the extraction loop appears to be hanging.`,
   ).not.toBeNull();
 
-  // (2) If it errored, it must be one of the HONEST, expected messages — not an
-  //     unexpected crash. The stall-watchdog error is itself the anti-hang
-  //     mechanism firing, which is an acceptable terminal state.
   if (terminal === "error") {
     const bodyText = await page.locator("body").innerText();
     expect(
       KNOWN_ERROR.test(bodyText),
-      `Analyse errored with an unexpected (non-honest) message:\n${bodyText.slice(0, 400)}`
+      `Analyse errored with an unexpected message:\n${bodyText.slice(0, 400)}`,
     ).toBe(true);
   }
 
-  // (3) The extraction advanced past the ~1% point the old bug stalled at.
-  //     Reaching a FRAME REPORT, or the honest "couldn't lock onto a body"
-  //     error, both prove frames were actually sampled to completion — even if
-  //     the fast run finished between progress polls and maxPct wasn't caught.
   const provedSampling = terminal === "report" || lockOnBodyError;
   expect(
     maxPct > 1 || provedSampling,
-    `Extraction never advanced past ~1% (maxPct=${maxPct}, terminal=${terminal}, errorSeen=${errorSeen}) — the sampler may be stalling at the start.`
+    `Extraction never advanced past ~1% (maxPct=${maxPct}, terminal=${terminal}, errorSeen=${errorSeen}).`,
   ).toBe(true);
 });

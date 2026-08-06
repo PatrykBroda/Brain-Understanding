@@ -1,4 +1,3 @@
-import { useAuth } from "@clerk/clerk-expo";
 import { Redirect } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -8,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { reportStartup } from "@/lib/crashReporter";
 
@@ -33,13 +33,12 @@ export default function IndexScreen() {
   const { isLoaded, isSignedIn } = useAuth();
   const { fighter, isLoading: fighterLoading, error, refetch } = useFighter();
 
-  // Timing probes: when auth restore finishes and when the first screen is
-  // actually ready — the two phases the earlier probes couldn't see.
-  const clerkReported = useRef(false);
+  // Timing probes for diagnostics.
+  const authReported = useRef(false);
   useEffect(() => {
-    if (isLoaded && !clerkReported.current) {
-      clerkReported.current = true;
-      reportStartup(`clerk-loaded | signedIn=${String(isSignedIn)}`);
+    if (isLoaded && !authReported.current) {
+      authReported.current = true;
+      reportStartup(`auth-loaded | signedIn=${String(isSignedIn)}`);
     }
   }, [isLoaded, isSignedIn]);
 

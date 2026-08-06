@@ -4,14 +4,13 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "dev": "EXPO_PACKAGER_PROXY_URL=https://$REPLIT_EXPO_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_REPL_ID=$REPL_ID EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=$CLERK_PUBLISHABLE_KEY REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN pnpm exec expo start --port $PORT",
-    "build": "EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=$CLERK_PUBLISHABLE_KEY expo export -p web --output-dir dist",
+    "dev": "EXPO_PACKAGER_PROXY_URL=https://$REPLIT_EXPO_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_REPL_ID=$REPL_ID REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN pnpm exec expo start --port $PORT",
+    "build": "EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN expo export -p web --output-dir dist",
     "serve": "node serve-static.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@clerk/clerk-expo": "^2.19.31",
     "@expo-google-fonts/inter": "^0.4.0",
     "@expo-google-fonts/outfit": "^0.4.3",
     "@expo-google-fonts/space-mono": "^0.4.2",

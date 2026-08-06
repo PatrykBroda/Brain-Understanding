@@ -1,4 +1,3 @@
-import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -13,56 +12,36 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/context/AuthContext";
+import { apiPost } from "@/lib/api";
 
 export default function SignUpScreen() {
-  const { signUp, setActive, isLoaded } = useSignUp();
+  const { signIn } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
-  const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSignUp() {
-    if (!isLoaded || loading) return;
+    if (loading) return;
     setLoading(true);
     setError(null);
     try {
-      await signUp.create({ emailAddress: email, password });
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setPending(true);
+      const data = await apiPost<{ token: string; userId: string }>(
+        "/auth/register",
+        { email, password },
+      );
+      signIn(data.token);
+      router.replace("/onboarding");
     } catch (e: unknown) {
       const msg =
-        (e as { errors?: { message?: string }[] })?.errors?.[0]?.message ??
-        (e as Error)?.message ??
-        "Sign-up failed.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleVerify() {
-    if (!isLoaded || loading) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        router.replace("/onboarding");
-      } else {
-        setError("Verification incomplete. Try again.");
-      }
-    } catch (e: unknown) {
-      const msg =
-        (e as { errors?: { message?: string }[] })?.errors?.[0]?.message ??
-        (e as Error)?.message ??
-        "Verification failed.";
-      setError(msg);
+        (e as Error)?.message ?? "Sign-up failed.";
+      setError(msg.includes("409") || msg.includes("already exists")
+        ? "An account with that email already exists."
+        : msg);
     } finally {
       setLoading(false);
     }
@@ -84,72 +63,41 @@ export default function SignUpScreen() {
         <Text style={styles.wordmark}>FRAME</Text>
         <Text style={styles.sub}>CALIBRATION SYSTEM</Text>
 
-        {!pending ? (
-          <View style={styles.form}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#666"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#666"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete="new-password"
-            />
+        <View style={styles.form}>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#666"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password (min 8 characters)"
+            placeholderTextColor="#666"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete="new-password"
+          />
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            <Pressable
-              style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
-              onPress={handleSignUp}
-              disabled={loading || !email || !password}
-            >
-              {loading ? (
-                <ActivityIndicator color="#050505" />
-              ) : (
-                <Text style={styles.btnText}>CREATE ACCOUNT</Text>
-              )}
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.form}>
-            <Text style={styles.verifyLabel}>
-              Check your email for a verification code.
-            </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Verification code"
-              placeholderTextColor="#666"
-              value={code}
-              onChangeText={setCode}
-              keyboardType="number-pad"
-              autoComplete="one-time-code"
-            />
-
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-            <Pressable
-              style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
-              onPress={handleVerify}
-              disabled={loading || !code}
-            >
-              {loading ? (
-                <ActivityIndicator color="#050505" />
-              ) : (
-                <Text style={styles.btnText}>VERIFY</Text>
-              )}
-            </Pressable>
-          </View>
-        )}
+          <Pressable
+            style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
+            onPress={handleSignUp}
+            disabled={loading || !email || !password}
+          >
+            {loading ? (
+              <ActivityIndicator color="#050505" />
+            ) : (
+              <Text style={styles.btnText}>CREATE ACCOUNT</Text>
+            )}
+          </Pressable>
+        </View>
 
         <Link href="/sign-in" asChild>
           <Pressable style={styles.linkBtn}>
@@ -190,13 +138,6 @@ const styles = StyleSheet.create({
   form: {
     width: "100%",
     gap: 12,
-  },
-  verifyLabel: {
-    fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 8,
   },
   input: {
     backgroundColor: "#0a0a0a",

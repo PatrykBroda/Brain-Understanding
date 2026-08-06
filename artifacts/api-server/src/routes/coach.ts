@@ -29,7 +29,7 @@ import {
 } from "../lib/competitionService";
 import { getUpcomingSessions } from "../lib/trainingSessionService";
 import { computeVocabulary, vocabularyPromptBlock } from "../lib/vocabulary";
-import { getEntitlementForClerkUser } from "../lib/subscriptionService";
+import { getEntitlementForUserId } from "../lib/subscriptionService";
 import { countUserMessagesToday, FREE_DAILY_COACHING_LIMIT } from "../lib/featureGates";
 
 // Build the active-camp coach directive: pressure + phase + honest weight-cut +
@@ -252,7 +252,7 @@ router.post("/coach/chat", async (req, res) => {
 
   // Server-enforced free-tier gate: 20 coaching messages per UTC day.
   // Checked BEFORE the SSE stream starts so the client gets clean JSON.
-  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  const entitlement = await getEntitlementForUserId(req.userId as string);
   if (entitlement.plan === "free") {
     const used = await countUserMessagesToday(fighter.id);
     if (used >= FREE_DAILY_COACHING_LIMIT) {
@@ -299,7 +299,7 @@ router.post("/coach/chat", async (req, res) => {
   if (attachmentIds.length > 0 && userMsg) {
     // Authorize: only attachments belonging to THIS conversation may be linked.
     // The attachment-upload endpoint already verifies the conversation is owned
-    // by req.clerkUserId, so a conversationId match is sufficient tenant scoping here.
+    // by req.userId, so a conversationId match is sufficient tenant scoping here.
     const owned = await db
       .select({ id: attachmentsTable.id })
       .from(attachmentsTable)

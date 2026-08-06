@@ -18,14 +18,14 @@ function appBaseUrl(): string {
 }
 
 async function ensureStripeCustomer(req: Request): Promise<string> {
-  const clerkUserId = req.clerkUserId;
-  if (!clerkUserId) throw new Error("Missing clerkUserId");
-  const user = await getOrCreateUser(clerkUserId);
+  const userId = req.userId;
+  if (!userId) throw new Error("Missing userId");
+  const user = await getOrCreateUser(userId);
   if (user.stripeCustomerId) return user.stripeCustomerId;
 
   const stripe = await getUncachableStripeClient();
   const customer = await stripe.customers.create({
-    metadata: { clerk_user_id: clerkUserId },
+    metadata: { user_id: userId },
   });
 
   // Persist immediately; guard against a concurrent create winning the race.
@@ -34,7 +34,7 @@ async function ensureStripeCustomer(req: Request): Promise<string> {
     .set({ stripeCustomerId: customer.id })
     .where(
       and(
-        eq(usersTable.clerkUserId, clerkUserId),
+        eq(usersTable.id, userId),
         isNull(usersTable.stripeCustomerId),
       ),
     )
@@ -42,7 +42,7 @@ async function ensureStripeCustomer(req: Request): Promise<string> {
 
   if (updated.length > 0) return customer.id;
 
-  const fresh = await getOrCreateUser(clerkUserId);
+  const fresh = await getOrCreateUser(userId);
   if (!fresh.stripeCustomerId) throw new Error("Failed to persist customer id");
   return fresh.stripeCustomerId;
 }
@@ -50,7 +50,7 @@ async function ensureStripeCustomer(req: Request): Promise<string> {
 // GET /billing/status — plan + price info for the signed-in user.
 router.get("/billing/status", async (req: Request, res: Response) => {
   try {
-    const user = await getOrCreateUser(req.clerkUserId as string);
+    const user = await getOrCreateUser(req.userId as string);
     const entitlement = await getEntitlementForUser(user);
     const price = await getFramePlusPrice();
     res.json({
@@ -68,7 +68,7 @@ router.get("/billing/status", async (req: Request, res: Response) => {
 // POST /billing/checkout — start a FRAME+ subscription checkout.
 router.post("/billing/checkout", async (req: Request, res: Response) => {
   try {
-    const user = await getOrCreateUser(req.clerkUserId as string);
+    const user = await getOrCreateUser(req.userId as string);
     const entitlement = await getEntitlementForUser(user);
     if (entitlement.plan === "frame_plus") {
       res.status(409).json({ error: "Already subscribed to FRAME+" });
@@ -94,7 +94,7 @@ router.post("/billing/checkout", async (req: Request, res: Response) => {
       success_url: `${base}/profile?upgrade=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${base}/profile?upgrade=cancelled`,
       subscription_data: {
-        metadata: { clerk_user_id: req.clerkUserId as string },
+        metadata: { user_id: req.userId as string },
       },
     });
 
@@ -120,7 +120,7 @@ router.post("/billing/confirm", async (req: Request, res: Response) => {
       return;
     }
 
-    const user = await getOrCreateUser(req.clerkUserId as string);
+    const user = await getOrCreateUser(req.userId as string);
     const stripe = await getUncachableStripeClient();
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["subscription"],
@@ -153,7 +153,7 @@ router.post("/billing/confirm", async (req: Request, res: Response) => {
       currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       cancelAtPeriodEnd: sub.cancel_at_period_end === true,
     };
-    await updateUserBillingCache(user.clerkUserId, sub.id, entitlement);
+    await updateUserBillingCache(user.id, sub.id, entitlement);
     res.json(entitlement);
   } catch (err) {
     req.log.error({ err }, "billing confirm failed");
@@ -164,7 +164,7 @@ router.post("/billing/confirm", async (req: Request, res: Response) => {
 // POST /billing/portal — Stripe customer portal for managing the subscription.
 router.post("/billing/portal", async (req: Request, res: Response) => {
   try {
-    const user = await getOrCreateUser(req.clerkUserId as string);
+    const user = await getOrCreateUser(req.userId as string);
     if (!user.stripeCustomerId) {
       res.status(400).json({ error: "No billing account yet" });
       return;

@@ -52,7 +52,7 @@ export function decrypt(payload: string): string {
 // ── OAuth `state`: signed identity carrier ──────────────────────────────────
 // The public callback has no session cookie, so identity travels inside an
 // HMAC-signed state (SESSION_SECRET). Format: `<payloadB64url>.<sigB64url>`,
-// payload = { u: clerkUserId, n: nonce, e: expiryMs }. Verify is timing-safe.
+// payload = { u: userId, n: nonce, e: expiryMs }. Verify is timing-safe.
 
 const b64url = (b: Buffer): string =>
   b.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -106,10 +106,10 @@ function sessionSecret(): string {
 
 const STATE_TTL_MS = 10 * 60 * 1000;
 
-export function signState(clerkUserId: string): { state: string; expiresAt: Date } {
+export function signState(userId: string): { state: string; expiresAt: Date } {
   const expiresAt = new Date(Date.now() + STATE_TTL_MS);
   const state = signStateWithSecret(
-    { u: clerkUserId, n: crypto.randomBytes(16).toString("hex"), e: expiresAt.getTime() },
+    { u: userId, n: crypto.randomBytes(16).toString("hex"), e: expiresAt.getTime() },
     sessionSecret(),
   );
   return { state, expiresAt };

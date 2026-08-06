@@ -6,7 +6,7 @@ import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 // public callback never needs a session cookie.
 export const googleOauthStatesTable = pgTable("google_oauth_states", {
   state: text("state").primaryKey(),
-  clerkUserId: text("clerk_user_id").notNull(),
+  userId: text("user_id").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

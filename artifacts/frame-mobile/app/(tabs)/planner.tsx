@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@/context/AuthContext";
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
 import {

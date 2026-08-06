@@ -1,15 +1,8 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
-import { clerkMiddleware } from "@clerk/express";
-import { publishableKeyFromHost } from "@clerk/shared/keys";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import {
-  CLERK_PROXY_PATH,
-  clerkProxyMiddleware,
-  getClerkProxyHost,
-} from "./middlewares/clerkProxyMiddleware";
 import { WebhookHandlers } from "./lib/webhookHandlers";
 
 const app: Express = express();
@@ -34,12 +27,8 @@ app.use(
   }),
 );
 
-// Clerk proxy MUST be mounted before body parsers — it streams raw bytes.
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
-
 // Stripe webhook MUST be registered before express.json() (signature
-// verification needs the raw body) and before clerkMiddleware (Stripe has
-// no Clerk session — auth is the webhook signature itself).
+// verification needs the raw body).
 app.post(
   "/api/stripe/webhook",
   express.raw({ type: "application/json" }),
@@ -63,15 +52,6 @@ app.post(
 app.use(cors({ credentials: true, origin: true }));
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
-
-app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env["CLERK_PUBLISHABLE_KEY"],
-    ),
-  })),
-);
 
 app.use("/api", router);
 

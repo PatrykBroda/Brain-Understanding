@@ -12,7 +12,7 @@ import {
 import { decrypt, encrypt, signState, verifyState } from "./googleCrypto";
 
 // Per-user Google Calendar link + two-way sync. Tokens live encrypted in
-// google_calendar_connections keyed by clerkUserId — never returned to a client.
+// google_calendar_connections keyed by userId — never returned to a client.
 // Identity for the public callback travels in a signed `state` (see googleCrypto).
 
 // Use the OAuth2 client bundled with @googleapis/calendar (via googleapis-common)
@@ -83,11 +83,11 @@ function isInvalidGrant(err: unknown): boolean {
 // ── OAuth handshake ─────────────────────────────────────────────────────────
 
 // Mint + persist a single-use signed state, return the Google consent URL.
-export async function beginLink(clerkUserId: string): Promise<string> {
-  const { state, expiresAt } = signState(clerkUserId);
+export async function beginLink(userId: string): Promise<string> {
+  const { state, expiresAt } = signState(userId);
   // Opportunistic prune of expired nonces so the table stays tiny.
   await db.delete(googleOauthStatesTable).where(lt(googleOauthStatesTable.expiresAt, new Date()));
-  await db.insert(googleOauthStatesTable).values({ state, clerkUserId, expiresAt });
+  await db.insert(googleOauthStatesTable).values({ state, userId, expiresAt });
   return makeClient().generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
@@ -97,7 +97,7 @@ export async function beginLink(clerkUserId: string): Promise<string> {
   });
 }
 
-// Verify signature + single-use nonce; returns the clerkUserId or null.
+// Verify signature + single-use nonce; returns the userId or null.
 export async function consumeState(state: string): Promise<string | null> {
   const payload = verifyState(state);
   if (!payload) return null;
@@ -112,7 +112,7 @@ export async function consumeState(state: string): Promise<string | null> {
 
 // Exchange the auth code, extract the confirming email, persist encrypted tokens.
 // Returns the linked Google email for the callback page.
-export async function completeLink(clerkUserId: string, code: string): Promise<string> {
+export async function completeLink(userId: string, code: string): Promise<string> {
   const client = makeClient();
   const { tokens } = await client.getToken(code);
 
@@ -137,14 +137,14 @@ export async function completeLink(clerkUserId: string, code: string): Promise<s
   // Preserve an existing refresh token if Google omitted one on re-consent, and
   // keep the previously-confirmed email if id_token verification came back empty
   // (re-consent often ships no id_token) so we never blank a good value.
-  const existing = await getConnectionRow(clerkUserId);
+  const existing = await getConnectionRow(userId);
   const finalRefresh = encRefresh ?? existing?.encRefreshToken ?? null;
   const finalEmail = googleEmail || existing?.googleEmail || "";
 
   await db
     .insert(googleCalendarConnectionsTable)
     .values({
-      clerkUserId,
+      userId,
       googleEmail: finalEmail,
       encAccessToken: encAccess,
       encRefreshToken: finalRefresh,
@@ -153,7 +153,7 @@ export async function completeLink(clerkUserId: string, code: string): Promise<s
       calendarId: "primary",
     })
     .onConflictDoUpdate({
-      target: googleCalendarConnectionsTable.clerkUserId,
+      target: googleCalendarConnectionsTable.userId,
       set: {
         googleEmail: finalEmail,
         encAccessToken: encAccess,
@@ -170,12 +170,12 @@ export async function completeLink(clerkUserId: string, code: string): Promise<s
 // ── Connection state ────────────────────────────────────────────────────────
 
 async function getConnectionRow(
-  clerkUserId: string,
+  userId: string,
 ): Promise<GoogleCalendarConnection | null> {
   const [row] = await db
     .select()
     .from(googleCalendarConnectionsTable)
-    .where(eq(googleCalendarConnectionsTable.clerkUserId, clerkUserId))
+    .where(eq(googleCalendarConnectionsTable.userId, userId))
     .limit(1);
   return row ?? null;
 }
@@ -187,8 +187,8 @@ export type GoogleStatus = {
 };
 
 // Client-safe status — NEVER exposes tokens.
-export async function getStatus(clerkUserId: string): Promise<GoogleStatus> {
-  const row = await getConnectionRow(clerkUserId);
+export async function getStatus(userId: string): Promise<GoogleStatus> {
+  const row = await getConnectionRow(userId);
   if (!row) return { connected: false, googleEmail: null, lastSyncedAt: null };
   return {
     connected: true,
@@ -197,8 +197,8 @@ export async function getStatus(clerkUserId: string): Promise<GoogleStatus> {
   };
 }
 
-export async function disconnect(clerkUserId: string): Promise<void> {
-  const row = await getConnectionRow(clerkUserId);
+export async function disconnect(userId: string): Promise<void> {
+  const row = await getConnectionRow(userId);
   // Best-effort revoke at Google so our access is actually withdrawn.
   if (row?.encRefreshToken && isConfigured()) {
     try {
@@ -210,16 +210,16 @@ export async function disconnect(clerkUserId: string): Promise<void> {
   }
   await db
     .delete(googleCalendarConnectionsTable)
-    .where(eq(googleCalendarConnectionsTable.clerkUserId, clerkUserId));
+    .where(eq(googleCalendarConnectionsTable.userId, userId));
 }
 
 // Return an OAuth2 client with a fresh access token, refreshing + persisting as
 // needed. Throws GoogleAuthRevokedError when the grant is gone.
-async function authorizedClient(clerkUserId: string): Promise<{
+async function authorizedClient(userId: string): Promise<{
   client: OAuth2Client;
   calendarId: string;
 }> {
-  const row = await getConnectionRow(clerkUserId);
+  const row = await getConnectionRow(userId);
   if (!row) throw new GoogleAuthRevokedError("no Google connection");
   const client = makeClient();
   const refresh = row.encRefreshToken ? decrypt(row.encRefreshToken) : null;
@@ -245,10 +245,10 @@ async function authorizedClient(clerkUserId: string): Promise<{
           expiryDate: c.expiry_date ? new Date(c.expiry_date) : row.expiryDate,
           updatedAt: new Date(),
         })
-        .where(eq(googleCalendarConnectionsTable.clerkUserId, clerkUserId));
+        .where(eq(googleCalendarConnectionsTable.userId, userId));
     } catch (err) {
       if (isInvalidGrant(err)) {
-        await disconnect(clerkUserId);
+        await disconnect(userId);
         throw new GoogleAuthRevokedError();
       }
       throw err;
@@ -405,12 +405,12 @@ export function sessionToEvent(
 // ── Orchestration (routes call these) ───────────────────────────────────────
 
 export async function importPreview(
-  clerkUserId: string,
+  userId: string,
   timeMin: Date,
   timeMax: Date,
   fallbackTz: string,
 ): Promise<ImportPreviewItem[]> {
-  const { client, calendarId } = await authorizedClient(clerkUserId);
+  const { client, calendarId } = await authorizedClient(userId);
   const cal = calendar({ version: "v3", auth: client });
   const items: calendar_v3.Schema$Event[] = [];
   let pageToken: string | undefined;
@@ -428,7 +428,7 @@ export async function importPreview(
     pageToken = resp.data.nextPageToken ?? undefined;
   } while (pageToken);
 
-  await touchSynced(clerkUserId);
+  await touchSynced(userId);
   return items
     .map((e) => eventToPreview(e, fallbackTz))
     .filter((x): x is ImportPreviewItem => x !== null);
@@ -437,7 +437,7 @@ export async function importPreview(
 // Push manual, not-yet-exported sessions to Google and record their event ids so
 // re-import upserts in place (loop-safe together with the setWhere guard).
 export async function exportManualSessions(
-  clerkUserId: string,
+  userId: string,
   campId: number,
   fighterId: number,
   tz: string,
@@ -455,7 +455,7 @@ export async function exportManualSessions(
     );
   if (rows.length === 0) return 0;
 
-  const { client, calendarId } = await authorizedClient(clerkUserId);
+  const { client, calendarId } = await authorizedClient(userId);
   const cal = calendar({ version: "v3", auth: client });
 
   let exported = 0;
@@ -484,15 +484,15 @@ export async function exportManualSessions(
       exported++;
     }
   }
-  await touchSynced(clerkUserId);
+  await touchSynced(userId);
   return exported;
 }
 
-async function touchSynced(clerkUserId: string): Promise<void> {
+async function touchSynced(userId: string): Promise<void> {
   await db
     .update(googleCalendarConnectionsTable)
     .set({ lastSyncedAt: new Date(), updatedAt: new Date() })
-    .where(eq(googleCalendarConnectionsTable.clerkUserId, clerkUserId));
+    .where(eq(googleCalendarConnectionsTable.userId, userId));
 }
 
 export { SESSION_TYPES };

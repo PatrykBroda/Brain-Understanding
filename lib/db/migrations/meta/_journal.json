@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1785995883385,
+      "tag": "0000_nostalgic_madame_masque",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785995900000,
+      "tag": "0001_clerk_to_jwt_upgrade",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,27 +1,24 @@
-import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
-import * as SecureStore from "expo-secure-store";
 import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold } from "@expo-google-fonts/outfit";
 import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
 import { useFonts } from "expo-font";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FighterProvider } from "@/context/FighterContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { setApiBase, setTokenGetter } from "@/lib/api";
 import { reportStartup } from "@/lib/crashReporter";
 
 SplashScreen.preventAutoHideAsync();
 
 SystemUI.setBackgroundColorAsync("#050505").catch(() => null);
-
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
 
 const domain = process.env.EXPO_PUBLIC_DOMAIN ?? "";
 if (typeof window !== "undefined" && window.location?.origin) {
@@ -31,31 +28,7 @@ if (typeof window !== "undefined" && window.location?.origin) {
 }
 
 // Probe 1: module-level code ran — JS bundle loaded and env vars are visible.
-reportStartup(`module-init | key=${publishableKey ? "set" : "EMPTY"} | domain=${domain || "EMPTY"}`);
-
-const tokenCache = {
-  async getToken(key: string) {
-    try {
-      return await SecureStore.getItemAsync(key);
-    } catch {
-      return null;
-    }
-  },
-  async saveToken(key: string, value: string) {
-    try {
-      await SecureStore.setItemAsync(key, value);
-    } catch {
-      // ignore
-    }
-  },
-  async clearToken(key: string) {
-    try {
-      await SecureStore.deleteItemAsync(key);
-    } catch {
-      // ignore
-    }
-  },
-};
+reportStartup(`module-init | domain=${domain || "EMPTY"}`);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,8 +47,32 @@ function ApiSetup() {
   return null;
 }
 
+/**
+ * Clears the React Query cache whenever the signed-in identity changes —
+ * including sign-out (userId: string → null) and sign-in as a different user.
+ * Without this, a second athlete briefly sees the prior user's cached facts,
+ * plan, competition, Google status, and profile data until refetch completes.
+ *
+ * Must be inside both AuthProvider (for useAuth) and QueryClientProvider (for
+ * useQueryClient).
+ */
+function UserScopedQueryReset() {
+  const { userId } = useAuth();
+  const qc = useQueryClient();
+  const prevRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (prevRef.current !== undefined && prevRef.current !== userId) {
+      // Identity changed — wipe all cached queries so the next user never
+      // sees the prior user's data on first render.
+      qc.clear();
+    }
+    prevRef.current = userId;
+  }, [userId, qc]);
+  return null;
+}
+
 function RootLayoutNav() {
-  // Probe 4: inside Clerk + QueryClient + SafeArea — navigation tree is mounting.
+  // Probe 4: inside AuthProvider + QueryClient + SafeArea — navigation tree is mounting.
   useEffect(() => {
     reportStartup("RootLayoutNav-mounted");
   }, []);
@@ -84,6 +81,7 @@ function RootLayoutNav() {
     <ErrorBoundary context="FighterProvider">
       <FighterProvider>
         <ApiSetup />
+        <UserScopedQueryReset />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#050505" } }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="sign-in" options={{ animation: "fade" }} />
@@ -137,8 +135,8 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary context="root">
-      <ErrorBoundary context="ClerkProvider">
-        <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+      <ErrorBoundary context="AuthProvider">
+        <AuthProvider>
           <ErrorBoundary context="SafeAreaProvider+QueryClient">
             <SafeAreaProvider>
               <QueryClientProvider client={queryClient}>
@@ -152,7 +150,7 @@ export default function RootLayout() {
               </QueryClientProvider>
             </SafeAreaProvider>
           </ErrorBoundary>
-        </ClerkProvider>
+        </AuthProvider>
       </ErrorBoundary>
     </ErrorBoundary>
   );

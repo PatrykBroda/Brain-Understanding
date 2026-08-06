@@ -1,4 +1,3 @@
-import { useAuth } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
@@ -15,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { apiGet } from "@/lib/api";
 import { ProfileEditModal } from "@/components/ProfileEditModal";
@@ -67,7 +67,7 @@ const cd = StyleSheet.create({
 });
 
 export default function ProfileScreen() {
-  const { signOut, isSignedIn } = useAuth();
+  const { signOut, isSignedIn, email } = useAuth();
   const { fighter, isLoading: fighterLoading, refetch } = useFighter();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -105,26 +105,26 @@ export default function ProfileScreen() {
   function handleRefresh() {
     refetch();
     refetchFacts();
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }
 
   async function handleSignOut() {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     await signOut();
     router.replace("/sign-in");
   }
 
   if (isLoading && !fighter) {
     return (
-      <View style={[styles.loadingRoot, { paddingTop: topPad }]}>
-        <ActivityIndicator color="#C9883A" />
+      <View style={[s.root, { paddingTop: topPad }]}>
+        <ActivityIndicator color="#C9883A" style={{ marginTop: 60 }} />
       </View>
     );
   }
 
   return (
     <ScrollView
-      style={[styles.root, { paddingTop: topPad }]}
-      contentContainerStyle={[styles.inner, { paddingBottom: insets.bottom + bottomPad + 100 }]}
+      style={s.root}
+      contentContainerStyle={[s.content, { paddingTop: topPad + 16, paddingBottom: bottomPad + 32 }]}
       refreshControl={
         <RefreshControl
           refreshing={isLoading}
@@ -133,326 +133,182 @@ export default function ProfileScreen() {
         />
       }
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>PROFILE</Text>
-        <View style={styles.headerActions}>
-          {fighter && (
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setEditVisible(true);
-              }}
-              hitSlop={12}
-              style={styles.editBtn}
-            >
-              <Text style={styles.editBtnText}>EDIT</Text>
+      {/* IDENTITY */}
+      {fighter && (
+        <View style={s.section}>
+          <View style={s.identityRow}>
+            <Text style={s.name}>{fighter.name}</Text>
+            <Pressable onPress={() => setEditVisible(true)} hitSlop={12}>
+              <Feather name="edit-2" size={16} color="#666" />
             </Pressable>
-          )}
-          <Pressable onPress={() => router.push("/analyse")} hitSlop={12}>
-            <Feather name="film" size={20} color="#666" />
-          </Pressable>
+          </View>
+          {fighter.primarySport ? (
+            <Text style={s.sport}>
+              {fighter.primarySport.toUpperCase()} · {fighter.level?.toUpperCase()}
+              {fighter.age ? ` · ${fighter.age}` : ""}
+            </Text>
+          ) : null}
+          {fighter.archetype ? (
+            <Text style={s.archetype}>{fighter.archetype.toUpperCase()}</Text>
+          ) : null}
+          {fighter.gym ? <Text style={s.sub}>{fighter.gym}</Text> : null}
         </View>
+      )}
+
+      {/* COMPETITION MODE */}
+      <View style={s.section}>
+        <Text style={s.sectionLabel}>COMPETITION MODE</Text>
+        <Pressable
+          style={({ pressed }) => [s.navBtn, pressed && s.pressed]}
+          onPress={() => router.push("/(tabs)/planner")}
+        >
+          <Feather name="target" size={14} color="#C9883A" style={{ marginRight: 8 }} />
+          <Text style={s.navBtnText}>OPEN CAMP</Text>
+          <Feather name="chevron-right" size={14} color="#444" style={{ marginLeft: "auto" }} />
+        </Pressable>
+      </View>
+
+      {/* ATHLETE MODEL */}
+      {Object.keys(grouped).length > 0 && (
+        <View style={s.section}>
+          <Text style={s.sectionLabel}>ATHLETE MODEL</Text>
+          {CATEGORY_ORDER.filter((cat) => grouped[cat]).map((cat) => (
+            <View key={cat} style={s.catBlock}>
+              <Text style={s.catLabel}>{CATEGORY_LABELS[cat]}</Text>
+              {grouped[cat]!.map((fact) => (
+                <View key={fact.id} style={s.factRow}>
+                  <ConfidenceDots n={fact.confidence} />
+                  <Text style={s.factText}>{fact.content}</Text>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* ACCOUNT */}
+      <View style={s.section}>
+        <Text style={s.sectionLabel}>ACCOUNT</Text>
+        {email ? <Text style={s.emailText}>{email}</Text> : null}
+        <Pressable
+          style={({ pressed }) => [s.signOutBtn, pressed && s.pressed]}
+          onPress={handleSignOut}
+        >
+          <Feather name="log-out" size={14} color="#666" style={{ marginRight: 6 }} />
+          <Text style={s.signOutText}>SIGN OUT</Text>
+        </Pressable>
       </View>
 
       {fighter && (
         <ProfileEditModal
-          fighter={fighter}
           visible={editVisible}
+          fighter={fighter}
           onClose={() => setEditVisible(false)}
         />
       )}
-
-      {/* Fighter info */}
-      {fighter ? (
-        <View style={styles.card}>
-          <Text style={styles.fighterName}>{fighter.name}</Text>
-          <View style={styles.metaRow}>
-            {fighter.primarySport && (
-              <Text style={styles.metaTag}>{fighter.primarySport.toUpperCase()}</Text>
-            )}
-            {fighter.level && (
-              <Text style={styles.metaTag}>{fighter.level.toUpperCase()}</Text>
-            )}
-            {fighter.age != null && (
-              <Text style={styles.metaTag}>{fighter.age} YRS</Text>
-            )}
-          </View>
-          {fighter.gym && <Text style={styles.gym}>{fighter.gym}</Text>}
-
-          {fighter.archetype && (
-            <View style={styles.archetypeRow}>
-              <View style={styles.archetypeDot} />
-              <Text style={styles.archetypeText}>{fighter.archetype.toUpperCase()}</Text>
-            </View>
-          )}
-
-          {fighter.goals && (
-            <View style={styles.infoBlock}>
-              <Text style={styles.infoLabel}>GOALS</Text>
-              <Text style={styles.infoValue}>{fighter.goals}</Text>
-            </View>
-          )}
-
-          {fighter.weaknesses && (
-            <View style={styles.infoBlock}>
-              <Text style={styles.infoLabel}>ACKNOWLEDGED WEAKNESSES</Text>
-              <Text style={styles.infoValue}>{fighter.weaknesses}</Text>
-            </View>
-          )}
-        </View>
-      ) : (
-        <View style={styles.card}>
-          <Text style={styles.emptyText}>No fighter profile yet.</Text>
-        </View>
-      )}
-
-      {/* Competition mode */}
-      <Pressable
-        style={({ pressed }) => [styles.linkRow, pressed && { borderColor: "#C9883A" }]}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.push("/competition");
-        }}
-      >
-        <View style={styles.linkLeft}>
-          <Feather name="target" size={16} color="#C9883A" />
-          <Text style={styles.linkLabel}>COMPETITION MODE</Text>
-        </View>
-        <Feather name="chevron-right" size={16} color="#666" />
-      </Pressable>
-
-      {/* Athlete model */}
-      <Text style={styles.sectionHeader}>ATHLETE MODEL</Text>
-
-      {Object.keys(grouped).length === 0 && (
-        <View style={styles.card}>
-          <Text style={styles.emptyText}>
-            Your model builds through conversation. Start training with FRAME.
-          </Text>
-        </View>
-      )}
-
-      {Object.entries(grouped).map(([cat, items]) => (
-        <View key={cat} style={styles.factGroup}>
-          <Text style={styles.catLabel}>{CATEGORY_LABELS[cat] ?? cat.toUpperCase()}</Text>
-          {items.map((f) => (
-            <View key={f.id} style={styles.factRow}>
-              <Text style={styles.factContent}>{f.content}</Text>
-              <View style={styles.factMeta}>
-                <ConfidenceDots n={f.confidence} />
-              </View>
-            </View>
-          ))}
-        </View>
-      ))}
-
-      {/* Sign out */}
-      <Pressable
-        style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
-        onPress={handleSignOut}
-      >
-        <Text style={styles.signOutText}>SIGN OUT</Text>
-      </Pressable>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  loadingRoot: {
-    flex: 1,
-    backgroundColor: "#050505",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  root: {
-    flex: 1,
-    backgroundColor: "#050505",
-  },
-  inner: {
-    paddingHorizontal: 20,
-  },
-  header: {
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "#050505" },
+  content: { paddingHorizontal: 20 },
+  section: { marginBottom: 32 },
+  identityRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
     marginBottom: 4,
   },
-  headerTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 5,
+  name: {
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: 26,
     color: "#e0e0e0",
+    letterSpacing: 0.5,
   },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  editBtn: {
-    borderWidth: 1,
-    borderColor: "#C9883A",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  editBtnText: {
+  sport: {
     fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
+    fontSize: 10,
     color: "#C9883A",
+    letterSpacing: 3,
+    marginBottom: 2,
   },
-  card: {
-    backgroundColor: "#0a0a0a",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    padding: 20,
-    marginBottom: 16,
-  },
-  fighterName: {
-    fontFamily: "Outfit",
-    fontSize: 22,
-    fontWeight: "600",
-    color: "#e0e0e0",
-    marginBottom: 8,
-  },
-  metaRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 8,
-  },
-  metaTag: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#666",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  gym: {
+  sub: {
     fontFamily: "Outfit",
     fontSize: 13,
-    color: "#444",
-    marginBottom: 8,
+    color: "#666",
   },
-  archetypeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 14,
-    marginTop: 4,
-  },
-  archetypeDot: {
-    width: 6,
-    height: 6,
-    backgroundColor: "#C9883A",
-  },
-  archetypeText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#C9883A",
-  },
-  infoBlock: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#1a1a1a",
-  },
-  infoLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 3,
-    color: "#444",
-    marginBottom: 6,
-  },
-  infoValue: {
-    fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#999",
-    lineHeight: 20,
-  },
-  sectionHeader: {
+  sectionLabel: {
     fontFamily: "SpaceMono",
     fontSize: 9,
-    letterSpacing: 4,
     color: "#444",
-    marginBottom: 12,
-    marginTop: 4,
-  },
-  linkRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#0a0a0a",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    marginBottom: 24,
-  },
-  linkLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  linkLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
     letterSpacing: 3,
-    color: "#e0e0e0",
+    marginBottom: 12,
   },
-  factGroup: {
-    marginBottom: 16,
-  },
+  catBlock: { marginBottom: 16 },
   catLabel: {
     fontFamily: "SpaceMono",
     fontSize: 8,
-    letterSpacing: 3,
-    color: "#C9883A",
-    marginBottom: 8,
+    color: "#555",
+    letterSpacing: 2,
+    marginBottom: 6,
   },
   factRow: {
-    backgroundColor: "#0a0a0a",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    padding: 12,
-    marginBottom: 6,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 12,
+    gap: 8,
+    marginBottom: 6,
   },
-  factContent: {
+  factText: {
+    fontFamily: "Outfit",
+    fontSize: 13,
+    color: "#aaa",
     flex: 1,
-    fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#c0c0c0",
-    lineHeight: 20,
+    lineHeight: 18,
   },
-  factMeta: {
-    paddingTop: 2,
-  },
-  emptyText: {
+  emailText: {
     fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#444",
-    lineHeight: 22,
+    fontSize: 13,
+    color: "#666",
+    marginBottom: 12,
+    textAlign: "center",
   },
   signOutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: "#1a1a1a",
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
   },
+  pressed: { opacity: 0.7 },
   signOutText: {
     fontFamily: "SpaceMono",
     fontSize: 10,
-    letterSpacing: 4,
-    color: "#444",
+    color: "#666",
+    letterSpacing: 3,
+  },
+  archetype: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    color: "#555",
+    letterSpacing: 2,
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  navBtn: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  navBtnText: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    color: "#C9883A",
+    letterSpacing: 3,
   },
 });

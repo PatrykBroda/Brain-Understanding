@@ -14,7 +14,7 @@ import {
   weightCutFor,
 } from "../lib/competitionService";
 import { buildCampReview, type CampReview } from "../lib/analysisService";
-import { getEntitlementForClerkUser } from "../lib/subscriptionService";
+import { getEntitlementForUserId } from "../lib/subscriptionService";
 import {
   ownedCampId,
   listSessions,
@@ -45,7 +45,7 @@ router.get("/competition/active", async (req, res) => {
   // unconditionally would leak scores/finding titles from locked analyses.
   let review: CampReview | null = null;
   if (competition) {
-    const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+    const entitlement = await getEntitlementForUserId(req.userId as string);
     if (entitlement.plan !== "free") {
       // Slim select — never keyframes (huge base64 blobs). fighterId in the
       // WHERE is defense-in-depth on top of the campId scope.

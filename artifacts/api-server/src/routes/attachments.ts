@@ -30,7 +30,7 @@ const SAFE_VIDEO_MIME = new Set([
 
 async function conversationBelongsToUser(
   conversationId: number,
-  clerkUserId: string,
+  userId: string,
 ): Promise<{ id: number } | null> {
   const [row] = await db
     .select({ id: conversationsTable.id })
@@ -45,7 +45,7 @@ async function conversationBelongsToUser(
     .innerJoin(fightersTable, eq(fightersTable.id, conversationsTable.fighterId))
     .where(eq(conversationsTable.id, conversationId))
     .limit(1);
-  if (!owner || owner.userId !== clerkUserId) return null;
+  if (!owner || owner.userId !== userId) return null;
   return { id: row.id };
 }
 
@@ -83,7 +83,7 @@ router.post("/attachments", async (req, res) => {
     res.status(403).json({ error: "no fighter" });
     return;
   }
-  const conv = await conversationBelongsToUser(body.conversationId, req.clerkUserId!);
+  const conv = await conversationBelongsToUser(body.conversationId, req.userId!);
   if (!conv) {
     res.status(404).json({ error: "conversation not found" });
     return;
@@ -151,7 +151,7 @@ router.get("/attachments/:id/file", async (req, res) => {
     .innerJoin(fightersTable, eq(fightersTable.id, conversationsTable.fighterId))
     .where(eq(attachmentsTable.id, id))
     .limit(1);
-  if (!row || row.ownerUserId !== req.clerkUserId) {
+  if (!row || row.ownerUserId !== req.userId) {
     res.status(404).end();
     return;
   }

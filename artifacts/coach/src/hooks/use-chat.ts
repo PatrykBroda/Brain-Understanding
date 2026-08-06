@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, coachChatUrl, type AiProvider, type AttachmentDto, type ServerMessage } from "@/lib/api";
+import { api, authHeaders, coachChatUrl, type AiProvider, type AttachmentDto, type ServerMessage } from "@/lib/api";
 import { useFramePlus } from "@/components/frame-plus-modal";
 
 export type ChatMessage = {
@@ -139,7 +139,7 @@ export function useChat() {
       try {
         const res = await fetch(coachChatUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...authHeaders() },
           body: JSON.stringify({
             content: trimmed,
             attachmentIds: attachments.map((a) => a.id),

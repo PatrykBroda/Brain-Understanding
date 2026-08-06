@@ -35,12 +35,11 @@ function toIsoOrNull(value: string | number | null): string | null {
   return new Date(n * 1000).toISOString();
 }
 
-export async function getOrCreateUser(clerkUserId: string): Promise<User> {
-  await db.insert(usersTable).values({ clerkUserId }).onConflictDoNothing();
+export async function getOrCreateUser(userId: string): Promise<User> {
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.clerkUserId, clerkUserId))
+    .where(eq(usersTable.id, userId))
     .limit(1);
   if (!user) throw new Error("Failed to load user row");
   return user;
@@ -104,7 +103,7 @@ export async function getEntitlementForUser(user: User): Promise<Entitlement> {
   if (!sub) {
     const cached = cachedEntitlementOrFree(user);
     if (cached.plan === "frame_plus") return cached; // sync lag — keep cache
-    await updateUserBillingCache(user.clerkUserId, null, FREE_ENTITLEMENT);
+    await updateUserBillingCache(user.id, null, FREE_ENTITLEMENT);
     return FREE_ENTITLEMENT;
   }
 
@@ -116,15 +115,15 @@ export async function getEntitlementForUser(user: User): Promise<Entitlement> {
     cancelAtPeriodEnd: sub.cancel_at_period_end === true,
   };
 
-  await updateUserBillingCache(user.clerkUserId, sub.id, entitlement);
+  await updateUserBillingCache(user.id, sub.id, entitlement);
   return entitlement;
 }
 
 /** Entitlement for gate checks, straight from the clerk user id. */
-export async function getEntitlementForClerkUser(
-  clerkUserId: string,
+export async function getEntitlementForUserId(
+  userId: string,
 ): Promise<Entitlement> {
-  const user = await getOrCreateUser(clerkUserId);
+  const user = await getOrCreateUser(userId);
   return getEntitlementForUser(user);
 }
 
@@ -145,7 +144,7 @@ function cachedEntitlementOrFree(user: User): Entitlement {
 }
 
 export async function updateUserBillingCache(
-  clerkUserId: string,
+  userId: string,
   subscriptionId: string | null,
   entitlement: Entitlement,
 ): Promise<void> {
@@ -160,7 +159,7 @@ export async function updateUserBillingCache(
           ? new Date(entitlement.currentPeriodEnd)
           : null,
       })
-      .where(eq(usersTable.clerkUserId, clerkUserId));
+      .where(eq(usersTable.id, userId));
   } catch (err) {
     logger.warn({ err }, "failed to update user billing cache");
   }

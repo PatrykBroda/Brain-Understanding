@@ -82,8 +82,6 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "@clerk/react": "^6.7.3",
-    "@clerk/themes": "^2.4.57",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "three": "^0.184.0"

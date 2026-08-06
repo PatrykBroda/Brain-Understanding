@@ -6,7 +6,7 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@/context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
@@ -45,7 +45,7 @@ interface FighterContextValue {
 
 const FighterContext = createContext<FighterContextValue | null>(null);
 
-// Cache is scoped per Clerk user so one athlete can never see another's
+// Cache is scoped per user so one athlete can never see another's
 // profile on a shared device.
 const cacheKeyFor = (userId: string) => `frame:fighter-cache:${userId}`;
 const FETCH_TIMEOUT_MS = 15_000;

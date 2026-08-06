@@ -20,3 +20,4 @@
 - [iOS launch-crash audit](ios-launch-crash-audit.md) — silent crash reporter = native crash before JS; run expo-doctor for duplicate natives; reanimated 4 requires new arch; fix versions, don't delete peer deps.
 - [Adding workspace deps](workspace-dep-add.md) — pnpm add fails for @workspace/* packages; edit consumer package.json ("workspace:*") then pnpm install.
 - [Premium gating — indirect leaks](premium-gating-leaks.md) — a per-record 402 gate isn't enough: strip compare params/history trails/sibling-row fields from responses free tier can still reach.
+- [Clerk removal — custom JWT auth](clerk-removal.md) — Clerk fully replaced with jose+bcryptjs; smoke tests need updating (Task #132); migration wiped all user data.

@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import {

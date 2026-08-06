@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useClerk, useUser } from "@clerk/react";
 import { useLocation } from "wouter";
 import { useFighter } from "@/hooks/use-fighter";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -24,6 +23,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { api, heroFileUrl } from "@/lib/api";
+import { useAuth } from "@/context/auth-context";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -60,8 +60,7 @@ function LineItem({
 export default function ProfilePage() {
   const { data: fighterData } = useFighter();
   const fighter = fighterData?.fighter ?? null;
-  const { signOut, openUserProfile } = useClerk();
-  const { user } = useUser();
+  const { signOut, email } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [, setLocation] = useLocation();
 
@@ -179,14 +178,6 @@ export default function ProfilePage() {
         </div>
         {fighter && !isEditing ? (
           <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => openUserProfile()}
-              className="text-muted-foreground hover:text-primary transition-colors"
-              aria-label="Account settings"
-            >
-              <Settings className="w-4 h-4" strokeWidth={1.5} />
-            </button>
             <button
               type="button"
               onClick={() => setIsEditing(true)}
@@ -422,22 +413,14 @@ export default function ProfilePage() {
 
               {/* ─── ACCOUNT ───────────────────────────────────────── */}
               <div className="space-y-2.5 pt-6 pb-2">
-                {user?.primaryEmailAddress?.emailAddress && (
+                {email && (
                   <div className="font-mono text-[10px] text-muted-foreground/60 tracking-wide text-center">
-                    {user.primaryEmailAddress.emailAddress}
+                    {email}
                   </div>
                 )}
                 <button
                   type="button"
-                  onClick={() => openUserProfile()}
-                  className="w-full flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 hover:text-primary text-foreground/75 transition-colors py-2.5 font-mono text-[10px] uppercase tracking-[0.3em]"
-                >
-                  <Settings className="w-3.5 h-3.5" strokeWidth={1.5} />
-                  Account &amp; security
-                </button>
-                <button
-                  type="button"
-                  onClick={() => signOut({ redirectUrl: basePath || "/" })}
+                  onClick={() => { signOut(); setLocation(`${basePath}/sign-in`); }}
                   className="w-full flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 hover:text-primary text-foreground/75 transition-colors py-2.5 font-mono text-[10px] uppercase tracking-[0.3em]"
                 >
                   <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />

@@ -71,7 +71,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       <footer className="relative z-10 px-6 pb-[max(1.6rem,env(safe-area-inset-bottom))] pt-2">
         <p className="mx-auto max-w-sm text-center font-mono text-[9px] leading-relaxed uppercase tracking-[0.3em] text-foreground/40">
-          Work email not getting the code? Check spam, or continue with a linked account.
+          Sign in with your FRAME email and password.
         </p>
       </footer>
 

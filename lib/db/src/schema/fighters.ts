@@ -8,7 +8,7 @@ export const fightersTable = pgTable("fighters", {
   userId: text("user_id")
     .notNull()
     .unique()
-    .references(() => usersTable.clerkUserId, { onDelete: "cascade" }),
+    .references(() => usersTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   age: integer("age").notNull(),
   // Source of truth for age going forward (ISO "YYYY-MM-DD"); `age` is kept in sync/back-compat.

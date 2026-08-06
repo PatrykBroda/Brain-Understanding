@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, dailyCheckinsTable, insertDailyCheckinSchema } from "@workspace/db";
 import { and, asc, eq, gte } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
-import { getEntitlementForClerkUser } from "../lib/subscriptionService";
+import { getEntitlementForUserId } from "../lib/subscriptionService";
 
 const router: IRouter = Router();
 
@@ -40,7 +40,7 @@ router.get("/checkin/history", async (req, res) => {
     res.json({ checkins: [] });
     return;
   }
-  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  const entitlement = await getEntitlementForUserId(req.userId as string);
   if (entitlement.plan === "free") {
     res.status(402).json({
       error: "The readiness trend is a FRAME+ feature. Today's check-in stays free.",

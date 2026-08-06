@@ -18,7 +18,7 @@ import {
   isoMondayUTC,
 } from "../lib/plannerService";
 import { getOrCreateActiveConversation } from "./conversation";
-import { getEntitlementForClerkUser } from "../lib/subscriptionService";
+import { getEntitlementForUserId } from "../lib/subscriptionService";
 import type { PlanItem } from "@workspace/db";
 import { getUserFighter } from "../middlewares/authMiddleware";
 
@@ -145,7 +145,7 @@ router.get("/planner/current", async (req, res) => {
     }
   }
   const completions = plan ? await listCompletions(plan.id) : [];
-  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  const entitlement = await getEntitlementForUserId(req.userId as string);
   const isFree = entitlement.plan === "free";
   res.json({
     plan: plan && isFree ? previewPlan(plan) : plan,
@@ -161,7 +161,7 @@ router.post("/planner/regenerate", async (req, res) => {
     res.status(400).json({ error: "no fighter" });
     return;
   }
-  const entitlement = await getEntitlementForClerkUser(req.clerkUserId as string);
+  const entitlement = await getEntitlementForUserId(req.userId as string);
   if (entitlement.plan === "free") {
     res.status(402).json({
       error: "Regenerating the weekly mission is a FRAME+ feature.",

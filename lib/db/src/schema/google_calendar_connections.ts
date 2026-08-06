@@ -1,14 +1,14 @@
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 
-// One row per Clerk user who has linked their own Google Calendar. Tokens are
+// One row per user who has linked their own Google Calendar. Tokens are
 // stored ENCRYPTED (AES-256-GCM, keyed by APP_ENCRYPTION_KEY) — never returned to
 // any client. Linking is per-user (not per-device): a user links once and both the
-// web and mobile clients get sync because the tokens live here, keyed by clerkUserId.
+// web and mobile clients get sync because the tokens live here, keyed by userId.
 export const googleCalendarConnectionsTable = pgTable("google_calendar_connections", {
-  clerkUserId: text("clerk_user_id")
+  userId: text("user_id")
     .primaryKey()
-    .references(() => usersTable.clerkUserId, { onDelete: "cascade" }),
+    .references(() => usersTable.id, { onDelete: "cascade" }),
   googleEmail: text("google_email").notNull().default(""),
   // Encrypted OAuth tokens ("<ivB64>:<tagB64>:<cipherB64>"). Access token is
   // refreshed as needed; refresh token is only present after the first offline

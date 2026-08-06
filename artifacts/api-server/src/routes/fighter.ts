@@ -37,7 +37,7 @@ router.post("/fighter", async (req, res) => {
     res.status(400).json({ error: "invalid fighter", details: parsed.error.flatten() });
     return;
   }
-  const userId = req.clerkUserId!;
+  const userId = req.userId!;
   // DOB is the source of truth; age is always derived server-side, never trusted from the client.
   const derivedAge = ageFromDob(parsed.data.dateOfBirth);
   if (derivedAge == null) {
