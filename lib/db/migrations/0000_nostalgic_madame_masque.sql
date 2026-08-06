@@ -10,8 +10,8 @@
 -- UPGRADE PATHS
 --
 --   A) Fresh database (no prior schema)
---      The DO block below is a no-op.  CREATE TABLE statements run normally.
---      Run: pnpm --filter @workspace/db run migrate
+--      The DO block below is a no-op.  CREATE TABLE IF NOT EXISTS statements
+--      create the schema.  Run: pnpm --filter @workspace/db run migrate
 --
 --   B) Old Clerk-keyed schema (users table has clerk_user_id PK)
 --      The DO block detects clerk_user_id and drops all application tables
@@ -22,9 +22,10 @@
 --      Run: pnpm --filter @workspace/db run migrate
 --      Then: re-register all users via POST /api/auth/register
 --
---   C) Already on JWT schema (migration previously applied)
---      Drizzle's migration journal prevents re-running this file.
---      No action needed.
+--   C) Already on JWT schema (migration previously applied, or schema was
+--      applied via drizzle-kit push / Replit "copy dev to prod")
+--      IF NOT EXISTS on every statement makes this migration fully idempotent.
+--      No action needed beyond running: pnpm --filter @workspace/db run migrate
 --
 -- MANUAL ALTERNATIVE (operator-gated reset)
 --   scripts/reset-schema.sql contains the same DROP TABLE statements in
@@ -65,7 +66,10 @@ BEGIN
 END $$;
 --> statement-breakpoint
 
-CREATE TABLE "users" (
+-- IF NOT EXISTS on every CREATE TABLE makes this migration safe to run against
+-- a database whose schema was already applied via drizzle-kit push or Replit's
+-- "copy dev to prod" action (no __drizzle_migrations journal yet).
+CREATE TABLE IF NOT EXISTS "users" (
 	"id" text PRIMARY KEY NOT NULL,
 	"email" text NOT NULL,
 	"hashed_password" text NOT NULL,
@@ -79,7 +83,7 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
-CREATE TABLE "fighters" (
+CREATE TABLE IF NOT EXISTS "fighters" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" text NOT NULL,
 	"name" text NOT NULL,
@@ -115,7 +119,7 @@ CREATE TABLE "fighters" (
 	CONSTRAINT "fighters_user_id_unique" UNIQUE("user_id")
 );
 --> statement-breakpoint
-CREATE TABLE "conversations" (
+CREATE TABLE IF NOT EXISTS "conversations" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"fighter_id" integer NOT NULL,
 	"ai_provider" text DEFAULT 'claude' NOT NULL,
@@ -123,7 +127,7 @@ CREATE TABLE "conversations" (
 	"ended_at" timestamp with time zone
 );
 --> statement-breakpoint
-CREATE TABLE "messages" (
+CREATE TABLE IF NOT EXISTS "messages" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"conversation_id" integer NOT NULL,
 	"role" text NOT NULL,
@@ -131,7 +135,7 @@ CREATE TABLE "messages" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "calibrations" (
+CREATE TABLE IF NOT EXISTS "calibrations" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"fighter_id" integer NOT NULL,
 	"prompt_key" text NOT NULL,
@@ -140,7 +144,7 @@ CREATE TABLE "calibrations" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "athlete_signals" (
+CREATE TABLE IF NOT EXISTS "athlete_signals" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"fighter_id" integer NOT NULL,
 	"signal" text NOT NULL,
@@ -148,7 +152,7 @@ CREATE TABLE "athlete_signals" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "athlete_facts" (
+CREATE TABLE IF NOT EXISTS "athlete_facts" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"fighter_id" integer NOT NULL,
 	"category" text NOT NULL,
@@ -167,7 +171,7 @@ CREATE TABLE "athlete_facts" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "attachments" (
+CREATE TABLE IF NOT EXISTS "attachments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"conversation_id" integer NOT NULL,
 	"message_id" integer,
@@ -179,14 +183,14 @@ CREATE TABLE "attachments" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "weekly_plan_item_completions" (
+CREATE TABLE IF NOT EXISTS "weekly_plan_item_completions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"plan_id" integer NOT NULL,
 	"item_key" text NOT NULL,
 	"completed_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "weekly_plans" (
+CREATE TABLE IF NOT EXISTS "weekly_plans" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"fighter_id" integer NOT NULL,
 	"week_start" timestamp with time zone NOT NULL,
@@ -196,7 +200,7 @@ CREATE TABLE "weekly_plans" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "video_analyses" (
+CREATE TABLE IF NOT EXISTS "video_analyses" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"fighter_id" integer NOT NULL,
 	"camp_id" integer,
@@ -226,7 +230,7 @@ CREATE TABLE "video_analyses" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "competitions" (
+CREATE TABLE IF NOT EXISTS "competitions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"fighter_id" integer NOT NULL,
 	"event_name" text NOT NULL,
@@ -246,7 +250,7 @@ CREATE TABLE "competitions" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "training_sessions" (
+CREATE TABLE IF NOT EXISTS "training_sessions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"camp_id" integer NOT NULL,
 	"fighter_id" integer NOT NULL,
@@ -264,7 +268,7 @@ CREATE TABLE "training_sessions" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "google_calendar_connections" (
+CREATE TABLE IF NOT EXISTS "google_calendar_connections" (
 	"user_id" text PRIMARY KEY NOT NULL,
 	"google_email" text DEFAULT '' NOT NULL,
 	"enc_access_token" text,
@@ -277,7 +281,7 @@ CREATE TABLE "google_calendar_connections" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "daily_checkins" (
+CREATE TABLE IF NOT EXISTS "daily_checkins" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"fighter_id" integer NOT NULL,
 	"checkin_date" date NOT NULL,
@@ -290,14 +294,14 @@ CREATE TABLE "daily_checkins" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "google_oauth_states" (
+CREATE TABLE IF NOT EXISTS "google_oauth_states" (
 	"state" text PRIMARY KEY NOT NULL,
 	"user_id" text NOT NULL,
 	"expires_at" timestamp with time zone NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "model_snapshots" (
+CREATE TABLE IF NOT EXISTS "model_snapshots" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"fighter_id" integer NOT NULL,
 	"week_start" date NOT NULL,
@@ -307,26 +311,34 @@ CREATE TABLE "model_snapshots" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "fighters" ADD CONSTRAINT "fighters_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "conversations" ADD CONSTRAINT "conversations_fighter_id_fighters_id_fk" FOREIGN KEY ("fighter_id") REFERENCES "public"."fighters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "messages" ADD CONSTRAINT "messages_conversation_id_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "calibrations" ADD CONSTRAINT "calibrations_fighter_id_fighters_id_fk" FOREIGN KEY ("fighter_id") REFERENCES "public"."fighters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "athlete_signals" ADD CONSTRAINT "athlete_signals_fighter_id_fighters_id_fk" FOREIGN KEY ("fighter_id") REFERENCES "public"."fighters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "athlete_facts" ADD CONSTRAINT "athlete_facts_fighter_id_fighters_id_fk" FOREIGN KEY ("fighter_id") REFERENCES "public"."fighters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "attachments" ADD CONSTRAINT "attachments_conversation_id_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "attachments" ADD CONSTRAINT "attachments_message_id_messages_id_fk" FOREIGN KEY ("message_id") REFERENCES "public"."messages"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "weekly_plan_item_completions" ADD CONSTRAINT "weekly_plan_item_completions_plan_id_weekly_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."weekly_plans"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "weekly_plans" ADD CONSTRAINT "weekly_plans_fighter_id_fighters_id_fk" FOREIGN KEY ("fighter_id") REFERENCES "public"."fighters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "video_analyses" ADD CONSTRAINT "video_analyses_fighter_id_fighters_id_fk" FOREIGN KEY ("fighter_id") REFERENCES "public"."fighters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "video_analyses" ADD CONSTRAINT "video_analyses_camp_id_competitions_id_fk" FOREIGN KEY ("camp_id") REFERENCES "public"."competitions"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "competitions" ADD CONSTRAINT "competitions_fighter_id_fighters_id_fk" FOREIGN KEY ("fighter_id") REFERENCES "public"."fighters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "training_sessions" ADD CONSTRAINT "training_sessions_camp_id_competitions_id_fk" FOREIGN KEY ("camp_id") REFERENCES "public"."competitions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "training_sessions" ADD CONSTRAINT "training_sessions_fighter_id_fighters_id_fk" FOREIGN KEY ("fighter_id") REFERENCES "public"."fighters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "google_calendar_connections" ADD CONSTRAINT "google_calendar_connections_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "daily_checkins" ADD CONSTRAINT "daily_checkins_fighter_id_fighters_id_fk" FOREIGN KEY ("fighter_id") REFERENCES "public"."fighters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "model_snapshots" ADD CONSTRAINT "model_snapshots_fighter_id_fighters_id_fk" FOREIGN KEY ("fighter_id") REFERENCES "public"."fighters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "weekly_plan_completions_plan_item_uq" ON "weekly_plan_item_completions" USING btree ("plan_id","item_key");--> statement-breakpoint
-CREATE UNIQUE INDEX "weekly_plans_fighter_week_uq" ON "weekly_plans" USING btree ("fighter_id","week_start");--> statement-breakpoint
-CREATE UNIQUE INDEX "training_sessions_camp_external_uq" ON "training_sessions" USING btree ("camp_id","external_event_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "daily_checkins_fighter_day_uq" ON "daily_checkins" USING btree ("fighter_id","checkin_date");--> statement-breakpoint
-CREATE UNIQUE INDEX "model_snapshots_fighter_week_unq" ON "model_snapshots" USING btree ("fighter_id","week_start");
+
+-- FK constraints — guarded with IF NOT EXISTS so this runs cleanly whether
+-- the tables were just created above or already existed (push / copy-to-prod).
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fighters_user_id_users_id_fk'             AND table_name = 'fighters')             THEN ALTER TABLE "fighters"                     ADD CONSTRAINT "fighters_user_id_users_id_fk"                     FOREIGN KEY ("user_id")          REFERENCES "public"."users"("id")         ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'conversations_fighter_id_fighters_id_fk'   AND table_name = 'conversations')         THEN ALTER TABLE "conversations"                 ADD CONSTRAINT "conversations_fighter_id_fighters_id_fk"         FOREIGN KEY ("fighter_id")       REFERENCES "public"."fighters"("id")      ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'messages_conversation_id_conversations_id_fk' AND table_name = 'messages')           THEN ALTER TABLE "messages"                     ADD CONSTRAINT "messages_conversation_id_conversations_id_fk"     FOREIGN KEY ("conversation_id")  REFERENCES "public"."conversations"("id") ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'calibrations_fighter_id_fighters_id_fk'    AND table_name = 'calibrations')         THEN ALTER TABLE "calibrations"                 ADD CONSTRAINT "calibrations_fighter_id_fighters_id_fk"          FOREIGN KEY ("fighter_id")       REFERENCES "public"."fighters"("id")      ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'athlete_signals_fighter_id_fighters_id_fk' AND table_name = 'athlete_signals')      THEN ALTER TABLE "athlete_signals"              ADD CONSTRAINT "athlete_signals_fighter_id_fighters_id_fk"       FOREIGN KEY ("fighter_id")       REFERENCES "public"."fighters"("id")      ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'athlete_facts_fighter_id_fighters_id_fk'   AND table_name = 'athlete_facts')        THEN ALTER TABLE "athlete_facts"                ADD CONSTRAINT "athlete_facts_fighter_id_fighters_id_fk"         FOREIGN KEY ("fighter_id")       REFERENCES "public"."fighters"("id")      ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'attachments_conversation_id_conversations_id_fk' AND table_name = 'attachments')   THEN ALTER TABLE "attachments"                  ADD CONSTRAINT "attachments_conversation_id_conversations_id_fk"  FOREIGN KEY ("conversation_id")  REFERENCES "public"."conversations"("id") ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'attachments_message_id_messages_id_fk'     AND table_name = 'attachments')         THEN ALTER TABLE "attachments"                  ADD CONSTRAINT "attachments_message_id_messages_id_fk"           FOREIGN KEY ("message_id")       REFERENCES "public"."messages"("id")      ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'weekly_plan_item_completions_plan_id_weekly_plans_id_fk' AND table_name = 'weekly_plan_item_completions') THEN ALTER TABLE "weekly_plan_item_completions" ADD CONSTRAINT "weekly_plan_item_completions_plan_id_weekly_plans_id_fk" FOREIGN KEY ("plan_id")          REFERENCES "public"."weekly_plans"("id")  ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'weekly_plans_fighter_id_fighters_id_fk'    AND table_name = 'weekly_plans')         THEN ALTER TABLE "weekly_plans"                 ADD CONSTRAINT "weekly_plans_fighter_id_fighters_id_fk"          FOREIGN KEY ("fighter_id")       REFERENCES "public"."fighters"("id")      ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'video_analyses_fighter_id_fighters_id_fk'  AND table_name = 'video_analyses')       THEN ALTER TABLE "video_analyses"               ADD CONSTRAINT "video_analyses_fighter_id_fighters_id_fk"        FOREIGN KEY ("fighter_id")       REFERENCES "public"."fighters"("id")      ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'video_analyses_camp_id_competitions_id_fk' AND table_name = 'video_analyses')       THEN ALTER TABLE "video_analyses"               ADD CONSTRAINT "video_analyses_camp_id_competitions_id_fk"       FOREIGN KEY ("camp_id")          REFERENCES "public"."competitions"("id")  ON DELETE set null ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'competitions_fighter_id_fighters_id_fk'    AND table_name = 'competitions')         THEN ALTER TABLE "competitions"                 ADD CONSTRAINT "competitions_fighter_id_fighters_id_fk"          FOREIGN KEY ("fighter_id")       REFERENCES "public"."fighters"("id")      ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'training_sessions_camp_id_competitions_id_fk' AND table_name = 'training_sessions') THEN ALTER TABLE "training_sessions"            ADD CONSTRAINT "training_sessions_camp_id_competitions_id_fk"    FOREIGN KEY ("camp_id")          REFERENCES "public"."competitions"("id")  ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'training_sessions_fighter_id_fighters_id_fk' AND table_name = 'training_sessions')  THEN ALTER TABLE "training_sessions"            ADD CONSTRAINT "training_sessions_fighter_id_fighters_id_fk"     FOREIGN KEY ("fighter_id")       REFERENCES "public"."fighters"("id")      ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'google_calendar_connections_user_id_users_id_fk' AND table_name = 'google_calendar_connections') THEN ALTER TABLE "google_calendar_connections" ADD CONSTRAINT "google_calendar_connections_user_id_users_id_fk" FOREIGN KEY ("user_id")          REFERENCES "public"."users"("id")         ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'daily_checkins_fighter_id_fighters_id_fk'  AND table_name = 'daily_checkins')       THEN ALTER TABLE "daily_checkins"               ADD CONSTRAINT "daily_checkins_fighter_id_fighters_id_fk"        FOREIGN KEY ("fighter_id")       REFERENCES "public"."fighters"("id")      ON DELETE cascade ON UPDATE no action; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'model_snapshots_fighter_id_fighters_id_fk' AND table_name = 'model_snapshots')      THEN ALTER TABLE "model_snapshots"              ADD CONSTRAINT "model_snapshots_fighter_id_fighters_id_fk"       FOREIGN KEY ("fighter_id")       REFERENCES "public"."fighters"("id")      ON DELETE cascade ON UPDATE no action; END IF;
+END $$;
+--> statement-breakpoint
+
+CREATE UNIQUE INDEX IF NOT EXISTS "weekly_plan_completions_plan_item_uq" ON "weekly_plan_item_completions" USING btree ("plan_id","item_key");
+CREATE UNIQUE INDEX IF NOT EXISTS "weekly_plans_fighter_week_uq"         ON "weekly_plans"                 USING btree ("fighter_id","week_start");
+CREATE UNIQUE INDEX IF NOT EXISTS "training_sessions_camp_external_uq"   ON "training_sessions"            USING btree ("camp_id","external_event_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "daily_checkins_fighter_day_uq"        ON "daily_checkins"               USING btree ("fighter_id","checkin_date");
+CREATE UNIQUE INDEX IF NOT EXISTS "model_snapshots_fighter_week_unq"     ON "model_snapshots"              USING btree ("fighter_id","week_start");
