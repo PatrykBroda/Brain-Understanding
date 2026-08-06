@@ -128,8 +128,29 @@ export default function OnboardingScreen() {
   const [weaknesses, setWeaknesses] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dobError, setDobError] = useState<string | null>(null);
+
+  /** Validate a YYYY-MM-DD string and return a normalised ISO date or null. */
+  function parseDob(raw: string): string | null {
+    const trimmed = raw.trim();
+    // Accept YYYY-MM-DD only.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
+    const d = new Date(trimmed);
+    if (isNaN(d.getTime())) return null;
+    // Sanity: year must be plausible (1900–today).
+    const year = d.getUTCFullYear();
+    if (year < 1900 || year > new Date().getUTCFullYear()) return null;
+    return trimmed;
+  }
 
   function next() {
+    if (step === 1) {
+      if (!parseDob(dob)) {
+        setDobError("Enter your date of birth as YYYY-MM-DD  (e.g. 1990-06-15)");
+        return;
+      }
+      setDobError(null);
+    }
     if (step < TOTAL_STEPS - 1) setStep((s) => s + 1);
   }
 
@@ -141,8 +162,12 @@ export default function OnboardingScreen() {
     setLoading(true);
     setError(null);
     try {
-      const [year, month, day] = dob.split("-");
-      const dobDate = `${year}-${month?.padStart(2, "0")}-${day?.padStart(2, "0")}`;
+      const dobDate = parseDob(dob);
+      if (!dobDate) {
+        setError("Date of birth is missing or invalid. Go back and enter it as YYYY-MM-DD.");
+        setLoading(false);
+        return;
+      }
 
       await apiPost("/fighter", {
         name: name.trim(),
@@ -195,13 +220,16 @@ export default function OnboardingScreen() {
           <Text style={styles.label}>DATE OF BIRTH</Text>
           <Text style={styles.hint}>YYYY-MM-DD</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, dobError ? { borderColor: "#c0392b" } : null]}
             value={dob}
-            onChangeText={setDob}
+            onChangeText={(t) => { setDob(t); setDobError(null); }}
             placeholder="1990-06-15"
             placeholderTextColor="#444"
             keyboardType="numbers-and-punctuation"
+            autoCorrect={false}
+            autoComplete="birthdate-full"
           />
+          {dobError ? <Text style={styles.errorText}>{dobError}</Text> : null}
         </View>
       )}
 
@@ -264,7 +292,8 @@ export default function OnboardingScreen() {
             style={({ pressed }) => [styles.nextBtn, pressed && { opacity: 0.8 }]}
             onPress={next}
             disabled={
-              (step === 0 && !name.trim()) || (step === 1 && !dob.trim())
+              (step === 0 && !name.trim()) ||
+              (step === 1 && !parseDob(dob))
             }
           >
             <Text style={styles.nextText}>NEXT</Text>
