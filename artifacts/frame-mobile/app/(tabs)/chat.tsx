@@ -136,7 +136,9 @@ export default function ChatScreen() {
   const inputRef = useRef<TextInput>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 : 0;
+  // On native the tab bar is absolutely positioned at 50px + safe-area inset,
+  // so the input row needs to clear that full height.
+  const bottomPad = Platform.OS === "web" ? 34 : 50;
 
   useEffect(() => {
     if (!isSignedIn) {
