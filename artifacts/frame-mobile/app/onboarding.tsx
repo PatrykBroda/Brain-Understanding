@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -119,6 +119,7 @@ export default function OnboardingScreen() {
   const qc = useQueryClient();
 
   const [step, setStep] = useState(0);
+  const transitioning = useRef(false);
   const [name, setName] = useState("");
   const [dob, setDob] = useState("");
   const [sport, setSport] = useState("bjj");
@@ -144,6 +145,7 @@ export default function OnboardingScreen() {
   }
 
   function next() {
+    if (transitioning.current) return;
     if (step === 1) {
       if (!parseDob(dob)) {
         setDobError("Enter your date of birth as YYYY-MM-DD  (e.g. 1990-06-15)");
@@ -151,11 +153,20 @@ export default function OnboardingScreen() {
       }
       setDobError(null);
     }
-    if (step < TOTAL_STEPS - 1) setStep((s) => s + 1);
+    if (step < TOTAL_STEPS - 1) {
+      transitioning.current = true;
+      setStep((s) => s + 1);
+      setTimeout(() => { transitioning.current = false; }, 0);
+    }
   }
 
   function back() {
-    if (step > 0) setStep((s) => s - 1);
+    if (transitioning.current) return;
+    if (step > 0) {
+      transitioning.current = true;
+      setStep((s) => s - 1);
+      setTimeout(() => { transitioning.current = false; }, 0);
+    }
   }
 
   async function handleSubmit() {
