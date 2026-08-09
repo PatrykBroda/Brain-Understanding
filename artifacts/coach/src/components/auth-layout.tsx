@@ -58,8 +58,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="font-sans font-extralight text-[14px] tracking-[0.55em] text-foreground/95 leading-none">
             FRAME
           </div>
-          <div className="font-mono text-[9px] tracking-[0.5em] text-foreground/45 mt-1.5 font-light">
-            MMA · CALIBRATION SYSTEM
+          <div className="font-sans text-[10px] tracking-[0.04em] text-foreground/45 mt-1.5 font-light italic">
+            The coach that remembers.
           </div>
         </div>
         <div className="w-5" />

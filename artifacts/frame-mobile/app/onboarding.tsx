@@ -37,7 +37,7 @@ const FREQS = [
   { key: "5+", label: "5+ / week" },
 ];
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 4;
 
 function ProgressBar({ step }: { step: number }) {
   return (
@@ -125,8 +125,6 @@ export default function OnboardingScreen() {
   const [sport, setSport] = useState("bjj");
   const [belt, setBelt] = useState("white");
   const [freq, setFreq] = useState("3-4");
-  const [goals, setGoals] = useState("");
-  const [weaknesses, setWeaknesses] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dobError, setDobError] = useState<string | null>(null);
@@ -187,8 +185,8 @@ export default function OnboardingScreen() {
         primarySport: sport,
         level: belt,
         trainingFrequency: freq,
-        goals: goals.trim() || null,
-        weaknesses: weaknesses.trim() || null,
+        goals: null,
+        weaknesses: null,
         personality: `Training ${freq} per week. Sport: ${sport}. Belt: ${belt}.`,
       });
 
@@ -208,7 +206,7 @@ export default function OnboardingScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.header}>FRAME</Text>
-      <Text style={styles.sub}>LET'S SEE WHAT YOU BECOME UNDER PRESSURE</Text>
+      <Text style={styles.sub}>ATHLETE PROFILE</Text>
 
       <ProgressBar step={step} />
 
@@ -219,7 +217,7 @@ export default function OnboardingScreen() {
             style={styles.input}
             value={name}
             onChangeText={setName}
-            placeholder="What do they call you?"
+            placeholder="Your name"
             placeholderTextColor="#444"
             autoCapitalize="words"
           />
@@ -261,33 +259,9 @@ export default function OnboardingScreen() {
         </View>
       )}
 
-      {step === 4 && (
-        <View style={styles.section}>
-          <Text style={styles.label}>PRIMARY GOALS</Text>
-          <TextInput
-            style={[styles.input, styles.textarea]}
-            value={goals}
-            onChangeText={setGoals}
-            placeholder="What are you here to build?"
-            placeholderTextColor="#444"
-            multiline
-            numberOfLines={3}
-          />
-
-          <Text style={[styles.label, { marginTop: 20 }]}>KNOWN WEAKNESSES</Text>
-          <TextInput
-            style={[styles.input, styles.textarea]}
-            value={weaknesses}
-            onChangeText={setWeaknesses}
-            placeholder="What breaks first when pressure spikes?"
-            placeholderTextColor="#444"
-            multiline
-            numberOfLines={3}
-          />
-
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        </View>
-      )}
+      {step === 3 && error ? (
+        <Text style={[styles.errorText, { marginBottom: 8 }]}>{error}</Text>
+      ) : null}
 
       <View style={styles.nav}>
         {step > 0 ? (
@@ -318,7 +292,7 @@ export default function OnboardingScreen() {
             {loading ? (
               <ActivityIndicator color="#050505" />
             ) : (
-              <Text style={styles.nextText}>READING YOU...</Text>
+              <Text style={styles.nextText}>FINISH</Text>
             )}
           </Pressable>
         )}

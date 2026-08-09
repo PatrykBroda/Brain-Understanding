@@ -53,7 +53,7 @@ export default function SignInScreen() {
     >
       <View style={styles.inner}>
         <Text style={styles.wordmark}>FRAME</Text>
-        <Text style={styles.sub}>CALIBRATION SYSTEM</Text>
+        <Text style={styles.sub}>The coach that remembers.</Text>
 
         <View style={styles.form}>
           <TextInput

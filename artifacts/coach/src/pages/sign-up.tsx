@@ -46,8 +46,8 @@ export default function SignUpPage() {
             <div className="font-mono text-[15px] uppercase tracking-[0.18em] text-foreground/95 font-light">
               Create your FRAME account
             </div>
-            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/55 mt-1.5">
-              Calibration system
+            <div className="font-sans text-[11px] tracking-[0.04em] text-foreground/55 mt-1.5 italic">
+              The coach that remembers.
             </div>
           </div>
 
