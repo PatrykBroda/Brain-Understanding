@@ -83,17 +83,24 @@ function ChipSelector({
 }) {
   return (
     <View style={chip.row}>
-      {options.map((o) => (
-        <Pressable
-          key={o.key}
-          style={[chip.item, value === o.key && chip.selected]}
-          onPress={() => onSelect(o.key)}
-        >
-          <Text style={[chip.text, value === o.key && chip.selectedText]}>
-            {o.label}
-          </Text>
-        </Pressable>
-      ))}
+      {options.map((o) => {
+        const isSelected = value === o.key;
+        return (
+          <Pressable
+            key={o.key}
+            style={({ pressed }) => [
+              chip.item,
+              isSelected && chip.selected,
+              pressed && (isSelected ? chip.selectedPressed : chip.itemPressed),
+            ]}
+            onPress={() => onSelect(o.key)}
+          >
+            <Text style={[chip.text, isSelected && chip.selectedText]}>
+              {o.label}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -115,6 +122,14 @@ const chip = StyleSheet.create({
   selected: {
     borderColor: "#C9883A",
     backgroundColor: "rgba(201,136,58,0.15)",
+  },
+  itemPressed: {
+    borderColor: "rgba(255,255,255,0.35)",
+    backgroundColor: "rgba(255,255,255,0.09)",
+  },
+  selectedPressed: {
+    borderColor: "#E8A050",
+    backgroundColor: "rgba(201,136,58,0.28)",
   },
   text: {
     fontFamily: "Outfit",
