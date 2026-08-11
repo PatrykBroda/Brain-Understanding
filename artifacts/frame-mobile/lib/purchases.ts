@@ -59,7 +59,7 @@ export async function syncPurchasesUser(appUserId: string | null): Promise<void>
 
 /** The purchasable packages from the current RevenueCat offering. */
 export async function getFramePlusPackages(): Promise<PurchasesPackage[]> {
-  if (!isPurchasesSupported()) return [];
+  if (!isPurchasesSupported() || !configured) return [];
   const offerings = await Purchases.getOfferings();
   return offerings.current?.availablePackages ?? [];
 }
@@ -71,12 +71,27 @@ export function hasFramePlus(info: CustomerInfo | null | undefined): boolean {
 export async function purchasePackage(
   pkg: PurchasesPackage,
 ): Promise<CustomerInfo> {
+  if (!configured) {
+    throw new Error(
+      "RevenueCat is not configured. Set EXPO_PUBLIC_REVENUECAT_IOS_KEY and rebuild the app.",
+    );
+  }
   const { customerInfo } = await Purchases.purchasePackage(pkg);
   return customerInfo;
 }
 
 export async function restorePurchases(): Promise<CustomerInfo> {
+  if (!configured) {
+    throw new Error(
+      "RevenueCat is not configured. Set EXPO_PUBLIC_REVENUECAT_IOS_KEY and rebuild the app.",
+    );
+  }
   return Purchases.restorePurchases();
+}
+
+/** Whether the SDK was successfully configured (i.e. key was present at startup). */
+export function isPurchasesConfigured(): boolean {
+  return configured;
 }
 
 export type { CustomerInfo, PurchasesPackage };

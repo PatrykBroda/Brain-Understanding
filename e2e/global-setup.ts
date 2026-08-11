@@ -53,8 +53,7 @@ async function ensureMainFighter(db: Client, userId: string): Promise<void> {
 async function ensureMainFramePlus(db: Client, userId: string): Promise<void> {
   await db.query(
     `UPDATE users
-       SET stripe_customer_id = COALESCE(stripe_customer_id, 'cus_smoke_test_frame_plus'),
-           plan = 'frame_plus',
+       SET plan = 'frame_plus',
            subscription_status = 'active',
            current_period_end = NOW() + INTERVAL '1 year'
      WHERE id = $1`,
@@ -65,8 +64,7 @@ async function ensureMainFramePlus(db: Client, userId: string): Promise<void> {
 async function ensureFreshFreePlan(db: Client, userId: string): Promise<void> {
   await db.query(
     `UPDATE users
-       SET stripe_customer_id = NULL,
-           plan = 'free',
+       SET plan = 'free',
            subscription_status = NULL,
            current_period_end = NULL
      WHERE id = $1`,

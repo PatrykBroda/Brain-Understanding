@@ -19,6 +19,7 @@ import {
   restorePurchases,
   hasFramePlus,
   isPurchasesSupported,
+  isPurchasesConfigured,
   type PurchasesPackage,
 } from "@/lib/purchases";
 import { useSyncBilling } from "@/hooks/useEntitlement";
@@ -126,6 +127,11 @@ export default function PaywallScreen() {
         ) : !isPurchasesSupported() ? (
           <Text style={s.unavailable}>
             Subscriptions are available in the iOS app.
+          </Text>
+        ) : !isPurchasesConfigured() ? (
+          <Text style={s.unavailable}>
+            In-app purchases are not yet configured for this build.{"\n"}
+            Please contact support or try updating the app.
           </Text>
         ) : packages.length === 0 ? (
           <Text style={s.unavailable}>

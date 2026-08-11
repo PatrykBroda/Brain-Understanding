@@ -1160,15 +1160,17 @@ function MissionView() {
     }
   }
 
+  const planItems = plan?.items ?? [];
+
   const sections = SECTION_ORDER.reduce<Record<string, PlanItem[]>>((acc, sec) => {
     if (!plan) return acc;
-    const items = plan.items.filter((i) => i.section === sec);
+    const items = planItems.filter((i) => i.section === sec);
     if (items.length > 0) acc[sec] = items;
     return acc;
   }, {});
 
-  const completedCount = plan?.items.filter((i) => i.completed).length ?? 0;
-  const totalCount = plan?.items.length ?? 0;
+  const completedCount = planItems.filter((i) => i.completed).length;
+  const totalCount = planItems.length;
 
   return (
     <ScrollView
