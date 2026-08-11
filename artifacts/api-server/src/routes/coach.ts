@@ -250,7 +250,7 @@ router.post("/coach/chat", async (req, res) => {
     return;
   }
 
-  // Server-enforced free-tier gate: 20 coaching messages per UTC day.
+  // Server-enforced free-tier gate: 5 coaching messages per UTC day.
   // Checked BEFORE the SSE stream starts so the client gets clean JSON.
   const entitlement = await getEntitlementForUserId(req.userId as string);
   if (entitlement.plan === "free") {

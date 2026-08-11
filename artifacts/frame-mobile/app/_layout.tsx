@@ -11,9 +11,11 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LoginUpsellGate } from "@/components/LoginUpsellGate";
 import { FighterProvider } from "@/context/FighterContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { setApiBase, setTokenGetter } from "@/lib/api";
+import { configurePurchases, syncPurchasesUser } from "@/lib/purchases";
 import { reportStartup } from "@/lib/crashReporter";
 
 SplashScreen.preventAutoHideAsync();
@@ -44,6 +46,20 @@ function ApiSetup() {
   useEffect(() => {
     setTokenGetter(() => getToken());
   }, [getToken]);
+  return null;
+}
+
+/**
+ * Configures the RevenueCat SDK and keeps its app-user identity aligned with
+ * the signed-in user, so Apple IAP purchases attach to the right account and
+ * webhook events map back correctly. Native-only; no-ops on web.
+ */
+function PurchasesSetup() {
+  const { userId } = useAuth();
+  useEffect(() => {
+    configurePurchases(userId);
+    void syncPurchasesUser(userId);
+  }, [userId]);
   return null;
 }
 
@@ -81,13 +97,22 @@ function RootLayoutNav() {
     <ErrorBoundary context="FighterProvider">
       <FighterProvider>
         <ApiSetup />
+        <PurchasesSetup />
         <UserScopedQueryReset />
+        <LoginUpsellGate />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#050505" } }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="sign-in" options={{ animation: "fade" }} />
           <Stack.Screen name="sign-up" options={{ animation: "fade" }} />
           <Stack.Screen name="onboarding" options={{ animation: "slide_from_right" }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="paywall"
+            options={{
+              animation: "slide_from_bottom",
+              presentation: "modal",
+            }}
+          />
           <Stack.Screen
             name="analyse"
             options={{

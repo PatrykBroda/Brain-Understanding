@@ -18,6 +18,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { apiGet } from "@/lib/api";
 import { ProfileEditModal } from "@/components/ProfileEditModal";
+import { useEntitlement, useSyncBilling } from "@/hooks/useEntitlement";
+import { restorePurchases, hasFramePlus } from "@/lib/purchases";
 
 interface Fact {
   id: number;
@@ -72,6 +74,28 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [editVisible, setEditVisible] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+
+  const { data: entitlement } = useEntitlement();
+  const sync = useSyncBilling();
+  const isFramePlus = entitlement?.plan === "frame_plus";
+
+  async function handleRestore() {
+    setRestoring(true);
+    try {
+      const info = await restorePurchases();
+      await sync.mutateAsync();
+      void Haptics.notificationAsync(
+        hasFramePlus(info)
+          ? Haptics.NotificationFeedbackType.Success
+          : Haptics.NotificationFeedbackType.Warning,
+      );
+    } catch {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setRestoring(false);
+    }
+  }
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;
@@ -185,6 +209,36 @@ export default function ProfileScreen() {
           ))}
         </View>
       )}
+
+      {/* MEMBERSHIP */}
+      <View style={s.section}>
+        <Text style={s.sectionLabel}>MEMBERSHIP</Text>
+        {isFramePlus ? (
+          <View style={s.memberRow}>
+            <Feather name="award" size={14} color="#C9883A" style={{ marginRight: 8 }} />
+            <Text style={s.memberText}>FRAME+ ACTIVE</Text>
+          </View>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [s.upgradeBtn, pressed && s.pressed]}
+            onPress={() => router.push("/paywall")}
+          >
+            <Feather name="zap" size={14} color="#050505" style={{ marginRight: 8 }} />
+            <Text style={s.upgradeText}>UPGRADE TO FRAME+</Text>
+          </Pressable>
+        )}
+        <Pressable
+          style={s.restoreLink}
+          onPress={handleRestore}
+          disabled={restoring}
+        >
+          {restoring ? (
+            <ActivityIndicator color="#666" size="small" />
+          ) : (
+            <Text style={s.restoreLinkText}>RESTORE PURCHASES</Text>
+          )}
+        </Pressable>
+      </View>
 
       {/* ACCOUNT */}
       <View style={s.section}>
@@ -309,6 +363,41 @@ const s = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 10,
     color: "#C9883A",
+    letterSpacing: 3,
+  },
+  upgradeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#C9883A",
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+  },
+  upgradeText: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    color: "#050505",
+    letterSpacing: 3,
+  },
+  memberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#C9883A",
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+  },
+  memberText: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    color: "#C9883A",
+    letterSpacing: 3,
+  },
+  restoreLink: { alignItems: "center", paddingVertical: 14 },
+  restoreLinkText: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    color: "#555",
     letterSpacing: 3,
   },
 });
