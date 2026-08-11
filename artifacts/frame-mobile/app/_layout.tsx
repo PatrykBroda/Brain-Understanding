@@ -6,6 +6,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
 import React, { useEffect, useRef } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -87,6 +88,44 @@ function UserScopedQueryReset() {
   return null;
 }
 
+/**
+ * Branded loading surface shown while fonts / the initial JS bundle resolve.
+ * Kept intentionally simple and dependency-free so it can render before the
+ * custom fonts finish loading (letter-spaced system text is an acceptable
+ * pre-load fallback for the wordmark). Same dark base as the native splash and
+ * SystemUI background (#050505), so there is no white flash on either side.
+ */
+function LoadingScreen() {
+  return (
+    <View style={loadingStyles.root}>
+      <Text style={loadingStyles.wordmark}>FRAME</Text>
+      <ActivityIndicator
+        style={loadingStyles.indicator}
+        size="small"
+        color="#C9883A"
+      />
+    </View>
+  );
+}
+
+const loadingStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#050505",
+  },
+  wordmark: {
+    fontFamily: "SpaceMono",
+    fontSize: 18,
+    letterSpacing: 10,
+    color: "#e0e0e0",
+  },
+  indicator: {
+    marginTop: 28,
+  },
+});
+
 function RootLayoutNav() {
   // Probe 4: inside AuthProvider + QueryClient + SafeArea — navigation tree is mounting.
   useEffect(() => {
@@ -148,15 +187,29 @@ export default function RootLayout() {
     reportStartup("RootLayout-mounted");
   }, []);
 
+  // Hide the native splash as soon as our own dark loading screen can paint.
+  // Because that screen shares the splash/system background (#050505), there is
+  // no white flash between the native splash and the branded loading screen.
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => null);
+  }, []);
+
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      // Probe 3: fonts resolved — splash screen about to hide.
+      // Probe 3: fonts resolved — app tree about to mount.
       reportStartup(`fonts-resolved | error=${fontError ? String(fontError) : "none"}`);
-      SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) return null;
+  // While fonts / the initial bundle load, show the branded loading screen
+  // instead of a blank frame.
+  if (!fontsLoaded && !fontError) {
+    return (
+      <ErrorBoundary context="loading">
+        <LoadingScreen />
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <ErrorBoundary context="root">
