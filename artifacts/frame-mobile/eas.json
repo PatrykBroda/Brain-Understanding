@@ -8,7 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "$EXPO_PUBLIC_DOMAIN"
+        "EXPO_PUBLIC_DOMAIN": "$EXPO_PUBLIC_DOMAIN",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "$EXPO_PUBLIC_REVENUECAT_IOS_KEY"
       }
     },
     "preview": {
@@ -17,13 +18,15 @@
         "simulator": true
       },
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "$EXPO_PUBLIC_DOMAIN"
+        "EXPO_PUBLIC_DOMAIN": "$EXPO_PUBLIC_DOMAIN",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "$EXPO_PUBLIC_REVENUECAT_IOS_KEY"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "$EXPO_PUBLIC_DOMAIN"
+        "EXPO_PUBLIC_DOMAIN": "$EXPO_PUBLIC_DOMAIN",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "$EXPO_PUBLIC_REVENUECAT_IOS_KEY"
       }
     }
   },

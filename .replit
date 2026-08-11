@@ -88,3 +88,8 @@ externalPort = 3000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+EXPO_PUBLIC_REVENUECAT_IOS_KEY = "appl_zMjcmylQVVKMHTLLXrCMeLFZMMv"
