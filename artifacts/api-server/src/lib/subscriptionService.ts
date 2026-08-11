@@ -1,4 +1,4 @@
-import { sql, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db, usersTable, type User } from "@workspace/db";
 import { logger } from "./logger";
 
@@ -20,21 +20,6 @@ const FREE_ENTITLEMENT: Entitlement = {
   cancelAtPeriodEnd: false,
 };
 
-interface SubscriptionRow {
-  id: string;
-  status: string | null;
-  cancel_at_period_end: boolean | null;
-  current_period_end: string | number | null;
-  item_period_end: string | number | null;
-}
-
-function toIsoOrNull(value: string | number | null): string | null {
-  if (value === null || value === undefined) return null;
-  const n = typeof value === "string" ? Number(value) : value;
-  if (!Number.isFinite(n) || n <= 0) return null;
-  return new Date(n * 1000).toISOString();
-}
-
 export async function getOrCreateUser(userId: string): Promise<User> {
   const [user] = await db
     .select()
@@ -46,25 +31,18 @@ export async function getOrCreateUser(userId: string): Promise<User> {
 }
 
 /**
- * Single source of truth for entitlement decisions. Queries the synced
- * `stripe` schema (webhooks + backfill keep it current) by the user's
- * Stripe customer id. `active` and `trialing` grant FRAME+; everything
- * else (past_due, canceled, unpaid, …) is free.
+ * Single source of truth for entitlement decisions.
  *
- * Sync-lag guard: right after checkout the webhook may not have landed
- * yet, but /billing/confirm has already written the verified state to
- * the users cache directly from the Stripe API. If the stripe schema has
- * no row but the cache says FRAME+ with a future period end, honor the
- * cache instead of clobbering it.
- *
- * Note: on newer Stripe API versions `current_period_end` lives on the
- * subscription item, so the top-level column can be NULL — fall back to
- * the first item's value.
+ * Payments run through Apple In-App Purchase via RevenueCat. The users row is
+ * the cache and is kept current by two paths: the RevenueCat webhook
+ * (/api/revenuecat/webhook) and the post-purchase reconcile (/billing/sync,
+ * which reads RevenueCat's REST API directly). FRAME+ requires
+ * `plan === frame_plus` AND a `currentPeriodEnd` in the future.
  */
 export async function getEntitlementForUser(user: User): Promise<Entitlement> {
-  // Comp / admin accounts always have full FRAME+ access — no Stripe customer,
-  // no subscription, no payment. This bypasses every paywall gate (all of which
-  // key off `entitlement.plan === "free"`).
+  // Comp / admin accounts always have full FRAME+ access — no purchase, no
+  // expiry. This bypasses every paywall gate (all of which key off
+  // `entitlement.plan === "free"`).
   if (user.isAdmin) {
     return {
       plan: "frame_plus",
@@ -74,60 +52,6 @@ export async function getEntitlementForUser(user: User): Promise<Entitlement> {
     };
   }
 
-  if (!user.stripeCustomerId) return FREE_ENTITLEMENT;
-
-  let rows: SubscriptionRow[];
-  try {
-    const result = await db.execute(sql`
-      SELECT
-        id,
-        status::text AS status,
-        cancel_at_period_end,
-        current_period_end,
-        items->'data'->0->>'current_period_end' AS item_period_end
-      FROM stripe.subscriptions
-      WHERE customer = ${user.stripeCustomerId}
-        AND status::text IN ('active', 'trialing')
-      ORDER BY created DESC NULLS LAST
-      LIMIT 1
-    `);
-    rows = result.rows as unknown as SubscriptionRow[];
-  } catch (err) {
-    // stripe schema may not exist yet (init still running) — fall back to
-    // the cache, else fail closed to free.
-    logger.warn({ err }, "getEntitlementForUser: stripe schema query failed");
-    return cachedEntitlementOrFree(user);
-  }
-
-  const sub = rows[0];
-  if (!sub) {
-    const cached = cachedEntitlementOrFree(user);
-    if (cached.plan === "frame_plus") return cached; // sync lag — keep cache
-    await updateUserBillingCache(user.id, null, FREE_ENTITLEMENT);
-    return FREE_ENTITLEMENT;
-  }
-
-  const entitlement: Entitlement = {
-    plan: "frame_plus",
-    status: sub.status,
-    currentPeriodEnd:
-      toIsoOrNull(sub.current_period_end) ?? toIsoOrNull(sub.item_period_end),
-    cancelAtPeriodEnd: sub.cancel_at_period_end === true,
-  };
-
-  await updateUserBillingCache(user.id, sub.id, entitlement);
-  return entitlement;
-}
-
-/** Entitlement for gate checks, straight from the clerk user id. */
-export async function getEntitlementForUserId(
-  userId: string,
-): Promise<Entitlement> {
-  const user = await getOrCreateUser(userId);
-  return getEntitlementForUser(user);
-}
-
-function cachedEntitlementOrFree(user: User): Entitlement {
   if (
     user.plan === "frame_plus" &&
     user.currentPeriodEnd &&
@@ -140,60 +64,41 @@ function cachedEntitlementOrFree(user: User): Entitlement {
       cancelAtPeriodEnd: false,
     };
   }
+
   return FREE_ENTITLEMENT;
 }
 
-export async function updateUserBillingCache(
+/** Entitlement for gate checks, straight from the user id. */
+export async function getEntitlementForUserId(
   userId: string,
-  subscriptionId: string | null,
-  entitlement: Entitlement,
+): Promise<Entitlement> {
+  const user = await getOrCreateUser(userId);
+  return getEntitlementForUser(user);
+}
+
+/**
+ * Apply a RevenueCat entitlement state to the users cache. `active` with a
+ * future `expiresAt` grants FRAME+; anything else drops the user to free.
+ * Called by the RevenueCat webhook and the /billing/sync reconcile.
+ */
+export async function setEntitlementFromRevenueCat(
+  userId: string,
+  params: { active: boolean; expiresAt: Date | null; status: string | null },
 ): Promise<void> {
+  const grant =
+    params.active &&
+    !!params.expiresAt &&
+    params.expiresAt.getTime() > Date.now();
   try {
     await db
       .update(usersTable)
       .set({
-        stripeSubscriptionId: subscriptionId,
-        subscriptionStatus: entitlement.status,
-        plan: entitlement.plan,
-        currentPeriodEnd: entitlement.currentPeriodEnd
-          ? new Date(entitlement.currentPeriodEnd)
-          : null,
+        plan: grant ? "frame_plus" : "free",
+        subscriptionStatus: params.status,
+        currentPeriodEnd: grant ? params.expiresAt : null,
       })
       .where(eq(usersTable.id, userId));
   } catch (err) {
-    logger.warn({ err }, "failed to update user billing cache");
-  }
-}
-
-/** Look up the FRAME+ recurring price from the synced stripe schema. */
-export async function getFramePlusPrice(): Promise<{
-  priceId: string;
-  unitAmount: number;
-  currency: string;
-} | null> {
-  try {
-    const result = await db.execute(sql`
-      SELECT pr.id, pr.unit_amount, pr.currency::text AS currency
-      FROM stripe.prices pr
-      JOIN stripe.products p ON p.id = pr.product
-      WHERE p.metadata->>'plan_key' = ${FRAME_PLUS_PLAN_KEY}
-        AND pr.active = true
-        AND p.active = true
-        AND pr.recurring IS NOT NULL
-      ORDER BY pr.created DESC NULLS LAST
-      LIMIT 1
-    `);
-    const row = result.rows[0] as
-      | { id: string; unit_amount: string | number | null; currency: string }
-      | undefined;
-    if (!row) return null;
-    return {
-      priceId: row.id,
-      unitAmount: Number(row.unit_amount ?? 0),
-      currency: row.currency,
-    };
-  } catch (err) {
-    logger.warn({ err }, "getFramePlusPrice: stripe schema query failed");
-    return null;
+    logger.warn({ err }, "failed to apply RevenueCat entitlement");
   }
 }

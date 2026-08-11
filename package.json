@@ -21,9 +21,5 @@
     "vitest": "^4.1.9",
     "bcryptjs": "^2.4.3",
     "@types/bcryptjs": "^2.4.6"
-  },
-  "dependencies": {
-    "stripe": "^22.3.0",
-    "stripe-replit-sync": "^1.0.0"
   }
 }

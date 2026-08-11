@@ -76,8 +76,7 @@ function FramePlusModal({
   feature: string;
   onClose: () => void;
 }) {
-  const { priceLabel, startCheckout, checkoutPending, checkoutError, isFramePlus } =
-    useSubscription();
+  const { isFramePlus } = useSubscription();
   const reason = FEATURE_REASON[feature] ?? "";
 
   return (
@@ -139,30 +138,17 @@ function FramePlusModal({
           </div>
         ) : (
           <div className="mt-9">
-            {priceLabel !== "" && (
-              <p className="text-sm font-light tracking-wide text-foreground/70">
-                {priceLabel}
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={startCheckout}
-              disabled={checkoutPending}
-              className="mt-4 w-full bg-primary py-3.5 font-mono text-[11px] uppercase tracking-[0.3em] text-black transition-colors hover:bg-primary/90 disabled:opacity-60"
-            >
-              {checkoutPending ? "Opening checkout" : "Unlock FRAME+"}
-            </button>
-            {checkoutError != null && (
-              <p className="mt-3 text-xs text-destructive">
-                Couldn't start checkout. Try again in a moment.
-              </p>
-            )}
+            <p className="text-sm font-light leading-relaxed tracking-wide text-foreground/70">
+              FRAME+ is unlocked in the FRAME iOS app. Open the app on your
+              iPhone and subscribe — your FRAME+ access then carries across to
+              the web automatically.
+            </p>
             <button
               type="button"
               onClick={onClose}
-              className="mt-3 w-full py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-foreground/80"
+              className="mt-6 w-full py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-foreground/80"
             >
-              Not now
+              Got it
             </button>
           </div>
         )}

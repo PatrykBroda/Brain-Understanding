@@ -15,10 +15,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.frame.mobile"
+      "bundleIdentifier": "app.replit.frame"
     },
     "android": {
-      "package": "com.frame.mobile"
+      "package": "app.replit.frame"
     },
     "web": {
       "favicon": "./assets/images/icon.png"

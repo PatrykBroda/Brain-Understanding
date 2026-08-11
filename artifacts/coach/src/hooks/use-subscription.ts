@@ -1,8 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { billingApi, type BillingStatus } from "@/lib/api";
 
 export const BILLING_STATUS_KEY = ["billing", "status"] as const;
 
+/**
+ * Read-only FRAME+ status for the web dashboard. Subscriptions are sold and
+ * managed exclusively through Apple In-App Purchase in the iOS app, so the web
+ * side only reflects the server-resolved entitlement — it never starts a
+ * checkout or opens a billing portal.
+ */
 export function useSubscription() {
   const qc = useQueryClient();
 
@@ -12,54 +18,10 @@ export function useSubscription() {
     staleTime: 30_000,
   });
 
-  const checkoutMutation = useMutation({
-    mutationFn: () => billingApi.checkout(),
-    onSuccess: ({ url }) => {
-      window.location.href = url;
-    },
-  });
-
-  const portalMutation = useMutation({
-    mutationFn: () => billingApi.portal(),
-    onSuccess: ({ url }) => {
-      window.location.href = url;
-    },
-  });
-
-  const confirmMutation = useMutation({
-    mutationFn: (sessionId: string) => billingApi.confirm(sessionId),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["billing"] });
-    },
-  });
-
   return {
     status: statusQuery.data ?? null,
     isLoading: statusQuery.isLoading,
     isFramePlus: statusQuery.data?.plan === "frame_plus",
-    priceLabel: formatPrice(statusQuery.data?.price ?? null),
-    startCheckout: () => checkoutMutation.mutate(),
-    checkoutPending: checkoutMutation.isPending,
-    checkoutError: checkoutMutation.error,
-    openPortal: () => portalMutation.mutate(),
-    portalPending: portalMutation.isPending,
-    confirm: confirmMutation.mutateAsync,
-    confirmPending: confirmMutation.isPending,
     refetchStatus: () => qc.invalidateQueries({ queryKey: ["billing"] }),
   };
-}
-
-function formatPrice(
-  price: { unitAmount: number; currency: string } | null,
-): string {
-  if (!price) return "";
-  try {
-    const formatted = new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency: price.currency.toUpperCase(),
-    }).format(price.unitAmount / 100);
-    return `${formatted}/month`;
-  } catch {
-    return `${(price.unitAmount / 100).toFixed(2)} ${price.currency.toUpperCase()}/month`;
-  }
 }

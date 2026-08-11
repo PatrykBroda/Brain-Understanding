@@ -2,7 +2,7 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import { db, messagesTable, conversationsTable } from "@workspace/db";
 
 /** Free-tier daily coaching allowance (user messages per UTC day). */
-export const FREE_DAILY_COACHING_LIMIT = 20;
+export const FREE_DAILY_COACHING_LIMIT = 5;
 
 export function utcMidnight(): Date {
   const now = new Date();

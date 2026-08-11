@@ -1120,21 +1120,13 @@ export type Entitlement = {
   cancelAtPeriodEnd: boolean;
 };
 
-export type BillingStatus = Entitlement & {
-  price: { unitAmount: number; currency: string } | null;
-};
+// FRAME+ is sold exclusively through Apple In-App Purchase in the iOS app.
+// The web dashboard is read-only for billing: it reflects the entitlement the
+// server resolves from RevenueCat but cannot start or manage a subscription.
+export type BillingStatus = Entitlement;
 
 export const billingApi = {
   status: () => jsonFetch<BillingStatus>("api/billing/status"),
-  checkout: () =>
-    jsonFetch<{ url: string }>("api/billing/checkout", { method: "POST" }),
-  confirm: (sessionId: string) =>
-    jsonFetch<Entitlement>("api/billing/confirm", {
-      method: "POST",
-      body: JSON.stringify({ sessionId }),
-    }),
-  portal: () =>
-    jsonFetch<{ url: string }>("api/billing/portal", { method: "POST" }),
 };
 
 export const coachChatUrl = `${base}api/coach/chat`;

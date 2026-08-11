@@ -110,7 +110,7 @@ export default function OnboardingPage() {
     // Cancel any previously-queued advance so spam-clicks don't stack increments.
     if (pendingAdvance.current != null) clearTimeout(pendingAdvance.current);
     // Auto-advance after a beat so the selection registers visually.
-    pendingAdvance.current = window.setTimeout(() => {
+    pendingAdvance.current = setTimeout(() => {
       pendingAdvance.current = null;
       setStep((s) => s + 1);
     }, 220);
