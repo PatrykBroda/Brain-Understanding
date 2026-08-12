@@ -58,8 +58,11 @@ export default function SignInScreen() {
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.wordmark}>FRAME</Text>
-        <Text style={styles.sub}>CALIBRATION SYSTEM</Text>
+        <Image
+          source={require("../assets/images/frame-wordmark.png")}
+          style={styles.wordmarkImg}
+          resizeMode="contain"
+        />
 
         <View style={styles.form}>
           <TextInput
@@ -125,19 +128,10 @@ const styles = StyleSheet.create({
     height: 88,
     marginBottom: 20,
   },
-  wordmark: {
-    fontFamily: "SpaceMono",
-    fontSize: 28,
-    letterSpacing: 10,
-    color: "#e0e0e0",
-    marginBottom: 4,
-  },
-  sub: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 4,
-    color: "#444",
-    marginBottom: 64,
+  wordmarkImg: {
+    width: 200,
+    height: 64,
+    marginBottom: 56,
   },
   form: {
     width: "100%",
