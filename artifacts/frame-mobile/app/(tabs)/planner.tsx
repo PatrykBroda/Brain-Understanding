@@ -15,11 +15,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import { toIso } from "@/lib/dateUtils";
 import {
   competitionApi,
   SESSION_TYPES,
+  type CampReview,
   type Competition,
   type PressureTier,
   type SessionType,
@@ -142,6 +144,7 @@ function CampView() {
   const pressure = data?.pressure ?? null;
   const weightCut = data?.weightCut ?? null;
   const sessions = data?.sessions ?? [];
+  const review = data?.review ?? null;
 
   // ---- camp form ----
   const [showCampForm, setShowCampForm] = useState(false);
@@ -468,6 +471,11 @@ function CampView() {
             cancelling={cancelCampMut.isPending}
           />
 
+          {/* Camp review — cross-analysis intelligence over this camp's footage.
+              Server returns review:null for free tier, so null == FRAME+-gated. */}
+          {!showCampForm &&
+            (review ? <CampReviewSection review={review} /> : <CampReviewLocked />)}
+
           {/* Session schedule */}
           <View style={camp.sectionHead}>
             <Text style={camp.sectionTitle}>SESSION SCHEDULE</Text>
@@ -537,6 +545,121 @@ function CampView() {
         </>
       )}
     </ScrollView>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* CAMP REVIEW — cross-analysis intelligence over this camp's footage  */
+/* Ported from the web (coach/src/pages/planner.tsx). Every field is    */
+/* grounded in real records — honest empty states, no fabricated data.  */
+/* ------------------------------------------------------------------ */
+
+function CampReviewSection({ review }: { review: CampReview }) {
+  const { totalAnalyses, countsByKind, biggestImprovement, mostPersistentLeak } = review;
+
+  return (
+    <View style={rev.section}>
+      <View style={rev.head}>
+        <Text style={rev.headLabel}>CAMP REVIEW</Text>
+        <Text style={rev.headCount}>
+          {totalAnalyses === 1 ? "1 ANALYSIS" : `${totalAnalyses} ANALYSES`}
+        </Text>
+      </View>
+
+      {totalAnalyses === 0 ? (
+        <View style={rev.body}>
+          <Text style={rev.emptyText}>
+            No footage analysed in this camp yet. Upload a round on Analyse and this camp starts
+            reading your trend, session over session.
+          </Text>
+        </View>
+      ) : (
+        <>
+          {/* Session mix — a real count per kind */}
+          <View style={rev.mixRow}>
+            {countsByKind.map((c) => (
+              <View key={c.kind} style={rev.mixItem}>
+                <Text style={rev.mixCount}>{c.count}</Text>
+                <Text style={rev.mixLabel}>{c.label.toUpperCase()}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Biggest real improvement — two recorded endpoints + dates */}
+          <View style={rev.block}>
+            <Text style={rev.blockLabel}>BIGGEST IMPROVEMENT</Text>
+            {biggestImprovement ? (
+              <View style={{ marginTop: 8 }}>
+                <View style={rev.impTop}>
+                  <Text style={rev.impName}>{biggestImprovement.label.toUpperCase()}</Text>
+                  <Text style={rev.impDelta}>+{biggestImprovement.delta}</Text>
+                </View>
+                <Text style={rev.impValues}>
+                  {biggestImprovement.from} → {biggestImprovement.to}
+                </Text>
+                <Text style={rev.impDates}>
+                  {fmtDayLabel(biggestImprovement.fromAt)} → {fmtDayLabel(biggestImprovement.toAt)}
+                </Text>
+              </View>
+            ) : (
+              <Text style={rev.blockEmpty}>
+                {totalAnalyses < 2
+                  ? "One session in — log a second analysis and the trend appears here."
+                  : "No attribute rose between your first and latest session this camp. Held or dipped — no gain to claim yet."}
+              </Text>
+            )}
+          </View>
+
+          {/* Most persistent real leak — a real recurrence count */}
+          <View style={[rev.block, rev.blockLast]}>
+            <Text style={rev.blockLabel}>MOST PERSISTENT LEAK</Text>
+            {mostPersistentLeak ? (
+              <View style={{ marginTop: 8 }}>
+                <Text style={rev.leakLabel}>{mostPersistentLeak.label}</Text>
+                <Text style={rev.leakMeta}>
+                  FLAGGED IN {mostPersistentLeak.sessions} OF {mostPersistentLeak.total} SESSIONS
+                </Text>
+              </View>
+            ) : (
+              <Text style={rev.blockEmpty}>
+                {totalAnalyses < 2
+                  ? "A leak has to recur across sessions to count. One session in, nothing to call persistent."
+                  : "No single leak has recurred across your sessions this camp."}
+              </Text>
+            )}
+          </View>
+        </>
+      )}
+    </View>
+  );
+}
+
+// Free tier: the review reads across every analysis in the camp, which is a
+// FRAME+ capability. Honest teaser — no fabricated preview numbers.
+function CampReviewLocked() {
+  return (
+    <Pressable
+      style={rev.section}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        router.push("/paywall");
+      }}
+    >
+      <View style={rev.head}>
+        <Text style={rev.headLabel}>CAMP REVIEW</Text>
+        <View style={rev.lockPill}>
+          <Feather name="lock" size={10} color="#C9883A" />
+          <Text style={rev.lockPillText}>FRAME+</Text>
+        </View>
+      </View>
+      <View style={rev.body}>
+        <Text style={rev.emptyText}>
+          Camp review reads across every analysis in this camp to surface your biggest real gain and
+          the leak that keeps recurring — grounded in your recorded sessions, never invented. Part
+          of FRAME+.
+        </Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -1693,6 +1816,151 @@ const camp = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 2,
     color: "#050505",
+  },
+});
+
+const rev = StyleSheet.create({
+  section: {
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    backgroundColor: "#0a0a0a",
+    marginTop: 16,
+  },
+  head: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1a1a1a",
+  },
+  headLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 4,
+    color: "#b0b0b0",
+  },
+  headCount: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 3,
+    color: "#555",
+  },
+  lockPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderWidth: 1,
+    borderColor: "rgba(201,136,58,0.4)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  lockPillText: {
+    fontFamily: "SpaceMono",
+    fontSize: 8,
+    letterSpacing: 2,
+    color: "#C9883A",
+  },
+  body: {
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+  },
+  emptyText: {
+    fontFamily: "Outfit",
+    fontSize: 13,
+    color: "#777",
+    lineHeight: 20,
+  },
+  mixRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    columnGap: 18,
+    rowGap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1a1a1a",
+  },
+  mixItem: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 6,
+  },
+  mixCount: {
+    fontFamily: "Outfit",
+    fontSize: 16,
+    color: "#e0e0e0",
+  },
+  mixLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 8,
+    letterSpacing: 2,
+    color: "#666",
+  },
+  block: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1a1a1a",
+  },
+  blockLast: {
+    borderBottomWidth: 0,
+  },
+  blockLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 8,
+    letterSpacing: 3,
+    color: "#666",
+  },
+  blockEmpty: {
+    fontFamily: "Outfit",
+    fontSize: 12,
+    color: "#666",
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  impTop: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 10,
+  },
+  impName: {
+    fontFamily: "SpaceMono",
+    fontSize: 11,
+    letterSpacing: 2,
+    color: "#d0d0d0",
+  },
+  impDelta: {
+    fontFamily: "Outfit",
+    fontSize: 14,
+    color: "#4fbf7b",
+  },
+  impValues: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 1,
+    color: "#888",
+    marginTop: 4,
+  },
+  impDates: {
+    fontFamily: "Outfit",
+    fontSize: 11,
+    color: "#555",
+    marginTop: 4,
+  },
+  leakLabel: {
+    fontFamily: "Outfit",
+    fontSize: 14,
+    color: "#d0d0d0",
+    lineHeight: 20,
+  },
+  leakMeta: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 2,
+    color: "#777",
+    marginTop: 6,
   },
 });
 

@@ -1,9 +1,11 @@
 import { useAuth } from "@/context/AuthContext";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -15,15 +17,24 @@ import {
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { apiGet, apiStream } from "@/lib/api";
+import {
+  apiGet,
+  apiStream,
+  attachmentFileUrl,
+  uploadAttachment,
+  type AttachmentDto,
+} from "@/lib/api";
 import { useFighter } from "@/context/FighterContext";
 import { MessageContent } from "@/components/MessageContent";
 import { CompetitionBanner } from "@/components/CompetitionBanner";
+
+const MAX_FILE_BYTES = 12 * 1024 * 1024;
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  attachments?: AttachmentDto[];
 }
 
 let _counter = 0;
@@ -41,6 +52,39 @@ const QUICK_ACTIONS = [
   "Reflect",
 ];
 
+// A single attached image/video. Drafts pass a local `uri` (instant preview,
+// no round-trip); sent/history attachments resolve to the server file by id.
+function AttachmentThumb({
+  att,
+  uri,
+  onRemove,
+}: {
+  att: AttachmentDto;
+  uri?: string;
+  onRemove?: () => void;
+}) {
+  const src = uri ?? attachmentFileUrl(att.id);
+  return (
+    <View style={mb.thumb}>
+      {att.kind === "video" ? (
+        <View style={mb.videoThumb}>
+          <Feather name="video" size={20} color="#888" />
+          <Text style={mb.videoName} numberOfLines={1}>
+            {att.filename}
+          </Text>
+        </View>
+      ) : (
+        <Image source={{ uri: src }} style={mb.thumbImg} resizeMode="cover" />
+      )}
+      {onRemove && (
+        <Pressable style={mb.thumbRemove} onPress={onRemove} hitSlop={6}>
+          <Feather name="x" size={12} color="#e0e0e0" />
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
 function MessageBubble({
   msg,
   onTrain,
@@ -49,12 +93,22 @@ function MessageBubble({
   onTrain: (prompt: string) => void;
 }) {
   const isUser = msg.role === "user";
+  const hasAttachments = (msg.attachments?.length ?? 0) > 0;
   return (
     <View style={[mb.row, isUser ? mb.userRow : mb.assistantRow]}>
       {!isUser && <View style={mb.dot} />}
       <View style={[mb.bubble, isUser ? mb.userBubble : mb.assistantBubble]}>
+        {hasAttachments && (
+          <View style={mb.attachGrid}>
+            {msg.attachments!.map((a) => (
+              <AttachmentThumb key={a.id} att={a} />
+            ))}
+          </View>
+        )}
         {isUser ? (
-          <Text style={[mb.text, mb.userText]}>{msg.content}</Text>
+          msg.content ? (
+            <Text style={[mb.text, mb.userText]}>{msg.content}</Text>
+          ) : null
         ) : (
           <MessageContent content={msg.content} onTrain={onTrain} />
         )}
@@ -105,6 +159,50 @@ const mb = StyleSheet.create({
   },
   userText: { color: "#e0e0e0" },
   assistantText: { color: "#c0c0c0" },
+  attachGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 8,
+  },
+  thumb: {
+    width: 120,
+    height: 120,
+    borderWidth: 1,
+    borderColor: "#2a2a2a",
+    backgroundColor: "#000",
+    overflow: "hidden",
+  },
+  thumbImg: {
+    width: "100%",
+    height: "100%",
+  },
+  videoThumb: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 8,
+  },
+  videoName: {
+    fontFamily: "SpaceMono",
+    fontSize: 8,
+    letterSpacing: 1,
+    color: "#888",
+    textAlign: "center",
+  },
+  thumbRemove: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    backgroundColor: "rgba(5,5,5,0.85)",
+    borderWidth: 1,
+    borderColor: "#2a2a2a",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
 
 function TypingIndicator() {
@@ -120,7 +218,12 @@ function TypingIndicator() {
 
 interface ConversationResponse {
   conversation: { id: number } | null;
-  messages: Array<{ id: number; role: string; content: string }>;
+  messages: Array<{
+    id: number;
+    role: string;
+    content: string;
+    attachments?: AttachmentDto[];
+  }>;
 }
 
 export default function ChatScreen() {
@@ -133,6 +236,10 @@ export default function ChatScreen() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [showTyping, setShowTyping] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [conversationId, setConversationId] = useState<number | null>(null);
+  const [drafts, setDrafts] = useState<{ att: AttachmentDto; uri: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -150,12 +257,14 @@ export default function ChatScreen() {
     apiGet<ConversationResponse>("/conversation/active")
       .then((data) => {
         if (cancelled) return;
+        setConversationId(data.conversation?.id ?? null);
         const loaded: Message[] = data.messages
           .filter((m) => m.role === "user" || m.role === "assistant")
           .map((m) => ({
             id: String(m.id),
             role: m.role as "user" | "assistant",
             content: m.content,
+            attachments: m.attachments ?? [],
           }));
         setMessages(loaded);
       })
@@ -170,15 +279,26 @@ export default function ChatScreen() {
     };
   }, [isSignedIn]);
 
-  async function handleSend(text: string) {
-    if (!text.trim() || isStreaming || !isSignedIn || isLoadingHistory) return;
+  async function handleSend(text: string, attachments: AttachmentDto[] = []) {
+    if (
+      (!text.trim() && attachments.length === 0) ||
+      isStreaming ||
+      !isSignedIn ||
+      isLoadingHistory
+    )
+      return;
 
     const trimmed = text.trim();
     setInput("");
     setIsStreaming(true);
     setShowTyping(true);
 
-    const userMsg: Message = { id: uid(), role: "user", content: trimmed };
+    const userMsg: Message = {
+      id: uid(),
+      role: "user",
+      content: trimmed,
+      attachments,
+    };
     setMessages((prev) => [...prev, userMsg]);
 
     let fullContent = "";
@@ -187,7 +307,7 @@ export default function ChatScreen() {
     try {
       await apiStream(
         "/coach/chat",
-        { content: trimmed },
+        { content: trimmed, attachmentIds: attachments.map((a) => a.id) },
         (chunk) => {
           if (chunk.error) {
             setShowTyping(false);
@@ -242,7 +362,69 @@ export default function ChatScreen() {
     handleSend(prompt);
   }
 
+  async function pickAttachment() {
+    if (!conversationId) {
+      setUploadError("Send a message first to start the conversation.");
+      return;
+    }
+    setUploadError(null);
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      setUploadError("Media permission is needed to attach files.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images", "videos"],
+      quality: 0.7,
+      base64: true,
+    });
+    if (result.canceled || result.assets.length === 0) return;
+    const asset = result.assets[0];
+    if (!asset.base64) {
+      setUploadError("Could not read that file.");
+      return;
+    }
+    if (asset.base64.length * 0.75 > MAX_FILE_BYTES) {
+      setUploadError("File too large (max 12MB).");
+      return;
+    }
+    const kind: "image" | "video" = asset.type === "video" ? "video" : "image";
+    setUploading(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    try {
+      const att = await uploadAttachment({
+        conversationId,
+        kind,
+        mimeType: asset.mimeType ?? (kind === "video" ? "video/mp4" : "image/jpeg"),
+        filename: asset.fileName ?? (kind === "video" ? "clip.mp4" : "image.jpg"),
+        dataBase64: asset.base64,
+      });
+      setDrafts((d) => [...d, { att, uri: asset.uri }]);
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function removeDraft(id: number) {
+    setDrafts((d) => d.filter((x) => x.att.id !== id));
+  }
+
+  function doSend() {
+    if (isStreaming || isLoadingHistory) return;
+    if (!input.trim() && drafts.length === 0) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    handleSend(
+      input,
+      drafts.map((d) => d.att),
+    );
+    setDrafts([]);
+  }
+
   const reversed = [...messages].reverse();
+  const canSend =
+    (input.trim().length > 0 || drafts.length > 0) && !isStreaming && !isLoadingHistory;
 
   return (
     <KeyboardAvoidingView
@@ -305,8 +487,53 @@ export default function ChatScreen() {
         </ScrollView>
       )}
 
+      {/* Draft attachments awaiting send */}
+      {(drafts.length > 0 || uploading || uploadError) && (
+        <View style={styles.draftRow}>
+          {drafts.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.draftStrip}
+            >
+              {drafts.map((d) => (
+                <AttachmentThumb
+                  key={d.att.id}
+                  att={d.att}
+                  uri={d.uri}
+                  onRemove={() => removeDraft(d.att.id)}
+                />
+              ))}
+            </ScrollView>
+          )}
+          {uploading && (
+            <View style={styles.draftStatus}>
+              <ActivityIndicator size="small" color="#C9883A" />
+              <Text style={styles.draftStatusText}>UPLOADING…</Text>
+            </View>
+          )}
+          {uploadError && <Text style={styles.draftError}>{uploadError}</Text>}
+        </View>
+      )}
+
       {/* Input */}
       <View style={[styles.inputRow, { paddingBottom: insets.bottom + bottomPad + 8 }]}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.attachBtn,
+            (!conversationId || uploading || isStreaming) && styles.attachBtnDisabled,
+            pressed && styles.sendBtnPressed,
+          ]}
+          onPress={pickAttachment}
+          disabled={!conversationId || uploading || isStreaming}
+          hitSlop={6}
+        >
+          <Feather
+            name="plus"
+            size={20}
+            color={!conversationId || uploading || isStreaming ? "#333" : "#888"}
+          />
+        </Pressable>
         <TextInput
           ref={inputRef}
           style={styles.input}
@@ -321,19 +548,16 @@ export default function ChatScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.sendBtn,
-            (!input.trim() || isStreaming || isLoadingHistory) && styles.sendBtnDisabled,
-            pressed && input.trim() && !isStreaming && !isLoadingHistory && styles.sendBtnPressed,
+            !canSend && styles.sendBtnDisabled,
+            pressed && canSend && styles.sendBtnPressed,
           ]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            handleSend(input);
-          }}
-          disabled={!input.trim() || isStreaming || isLoadingHistory}
+          onPress={doSend}
+          disabled={!canSend}
         >
           {isStreaming ? (
             <ActivityIndicator size="small" color="#666" />
           ) : (
-            <Feather name="arrow-up" size={18} color={input.trim() ? "#050505" : "#444"} />
+            <Feather name="arrow-up" size={18} color={canSend ? "#050505" : "#444"} />
           )}
         </Pressable>
       </View>
@@ -444,6 +668,45 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 12,
     maxHeight: 120,
+  },
+  attachBtn: {
+    width: 44,
+    height: 44,
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    backgroundColor: "#0a0a0a",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  attachBtnDisabled: {
+    opacity: 0.5,
+  },
+  draftRow: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#1a1a1a",
+  },
+  draftStrip: {
+    gap: 8,
+    paddingBottom: 2,
+  },
+  draftStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  draftStatusText: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 2,
+    color: "#C9883A",
+  },
+  draftError: {
+    fontFamily: "Outfit",
+    fontSize: 12,
+    color: "#d2553f",
   },
   sendBtn: {
     width: 44,

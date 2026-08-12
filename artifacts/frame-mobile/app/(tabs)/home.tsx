@@ -19,7 +19,7 @@ import { Feather } from "@expo/vector-icons";
 
 import { CompetitionBanner } from "@/components/CompetitionBanner";
 import { useAuth } from "@/context/AuthContext";
-import { useFighter, type Fighter } from "@/context/FighterContext";
+import { useFighter } from "@/context/FighterContext";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { useIsFramePlus } from "@/hooks/useEntitlement";
 import {
@@ -29,6 +29,7 @@ import {
   type DailyCheckin,
 } from "@/hooks/useCheckin";
 import { apiGet, heroFileUrl } from "@/lib/api";
+import { primaryFocus, type AthleteFact } from "@/lib/primaryFocus";
 
 // ── Real-composite band read (interpretation, not fabrication) ─────────────
 function bandFor(score: number): string {
@@ -36,46 +37,6 @@ function bandFor(score: number): string {
   if (score >= 65) return "Trainable";
   if (score >= 45) return "Guarded";
   return "Depleted";
-}
-
-// Facts come back from /memory. topic/createdAt are optional on mobile — the
-// server includes them when known; primaryFocus tolerates their absence.
-interface AthleteFact {
-  id: number;
-  category: string;
-  topic?: string | null;
-  content: string;
-  status: string;
-  confidence: number;
-  createdAt?: string;
-}
-
-// The single highest-value insight — recorded weakness first, else the
-// athlete's own onboarding words. Never synthesized. Ported from the web.
-function primaryFocus(
-  fighter: Fighter,
-  facts: AthleteFact[],
-): { label: string; source: string } {
-  const weaknesses = facts
-    .filter((f) => f.category === "weakness")
-    .sort(
-      (a, b) =>
-        b.confidence - a.confidence ||
-        ((a.createdAt ?? "") < (b.createdAt ?? "") ? 1 : -1),
-    );
-  if (weaknesses.length > 0) {
-    const top = weaknesses[0];
-    return {
-      label: top.topic || top.content,
-      source: "highest-confidence recorded weakness",
-    };
-  }
-  const stated = (fighter.weaknesses || "")
-    .split(/[,.;\n]/)
-    .map((s) => s.trim())
-    .filter(Boolean)[0];
-  if (stated) return { label: stated, source: "from your onboarding" };
-  return { label: "Not yet identified", source: "no weakness recorded yet" };
 }
 
 interface AnalysisListItem {

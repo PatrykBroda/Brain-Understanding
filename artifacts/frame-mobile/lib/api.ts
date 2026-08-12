@@ -29,6 +29,47 @@ export function heroFileUrl(cacheKey: string | number): string {
   return `${_base}/fighter/hero/file?v=${encodeURIComponent(String(cacheKey))}`;
 }
 
+// Athlete hero/cover image upload. Mirrors the web client: the server takes a
+// base64 payload (not multipart), so expo-image-picker's base64 output goes
+// straight through. Returns the updated fighter row.
+export async function uploadHero<T>(payload: {
+  mimeType: string;
+  filename: string;
+  dataBase64: string;
+}): Promise<T> {
+  return apiPost<T>("/fighter/hero", payload);
+}
+
+export async function removeHero<T>(): Promise<T> {
+  return apiDelete<T>("/fighter/hero");
+}
+
+// Chat attachment (image/video) sent alongside a coach message. Mirrors the
+// web client: the server takes a base64 payload (not multipart) and returns the
+// stored row. The file is then served by id, cache-friendly, no auth header.
+export type AttachmentDto = {
+  id: number;
+  kind: "image" | "video";
+  mimeType: string;
+  filename: string;
+  sizeBytes: number;
+};
+
+export function attachmentFileUrl(id: number): string {
+  return `${_base}/attachments/${id}/file`;
+}
+
+export async function uploadAttachment(payload: {
+  conversationId: number;
+  kind: "image" | "video";
+  mimeType: string;
+  filename: string;
+  dataBase64: string;
+}): Promise<AttachmentDto> {
+  const res = await apiPost<{ attachment: AttachmentDto }>("/attachments", payload);
+  return res.attachment;
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const headers = await authHeaders();
   const res = await fetch(`${_base}${path}`, { headers });
