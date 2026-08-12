@@ -1,37 +1,34 @@
 import { Redirect } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { reportStartup } from "@/lib/crashReporter";
-
-const SLOW_HINT_MS = 6_000;
+import { BootLoader } from "@/components/BootLoader";
+import { INTRO_SEEN_KEY } from "@/app/splash";
 
 function LoadingScreen({ label }: { label: string }) {
-  // After a few seconds of waiting, tell the athlete what's happening
-  // instead of showing an anonymous spinner.
-  const [slow, setSlow] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setSlow(true), SLOW_HINT_MS);
-    return () => clearTimeout(t);
-  }, []);
-  return (
-    <View style={styles.loading}>
-      <ActivityIndicator color="#C9883A" />
-      {slow ? <Text style={styles.slowHint}>{label}</Text> : null}
-    </View>
-  );
+  return <BootLoader label={label} />;
 }
 
 export default function IndexScreen() {
   const { isLoaded, isSignedIn } = useAuth();
   const { fighter, isLoading: fighterLoading, error, refetch } = useFighter();
+
+  // Whether the first-launch cinematic intro has already played. null until
+  // AsyncStorage resolves; gates the final redirect to /splash vs /home.
+  const [introSeen, setIntroSeen] = useState<boolean | null>(null);
+  useEffect(() => {
+    AsyncStorage.getItem(INTRO_SEEN_KEY)
+      .then((v) => setIntroSeen(v === "1"))
+      .catch(() => setIntroSeen(true));
+  }, []);
 
   // Timing probes for diagnostics.
   const authReported = useRef(false);
@@ -83,6 +80,13 @@ export default function IndexScreen() {
 
   if (!fighter) {
     return <Redirect href="/onboarding" />;
+  }
+
+  if (introSeen === null) {
+    return <LoadingScreen label="LOADING YOUR FRAME" />;
+  }
+  if (!introSeen) {
+    return <Redirect href="/splash" />;
   }
 
   return <Redirect href="/(tabs)/home" />;

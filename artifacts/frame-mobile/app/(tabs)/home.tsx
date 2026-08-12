@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
-import { OrbWebView } from "@/components/OrbWebView";
+import { OrbNative } from "@/components/OrbNative";
 import { CompetitionBanner } from "@/components/CompetitionBanner";
 import { apiGet } from "@/lib/api";
 
@@ -95,7 +95,7 @@ export default function HomeScreen() {
 
       {/* Orb + state */}
       <View style={styles.center}>
-        <OrbWebView state={state} size={200} />
+        <OrbNative state={state} size={200} />
 
         <Text style={styles.stateLabel}>{state.toUpperCase()}</Text>
         <Text style={styles.stateSource}>via {source}</Text>
