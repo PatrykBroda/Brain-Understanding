@@ -33,9 +33,9 @@ function uid() {
 }
 
 const QUICK_ACTIONS = [
-  "Fix my game",
-  "Build a drill",
   "Analyse session",
+  "Build a drill",
+  "Fix my game",
   "Competition prep",
   "Regulate",
   "Reflect",
@@ -312,7 +312,7 @@ export default function ChatScreen() {
           style={styles.input}
           value={input}
           onChangeText={setInput}
-          placeholder="Say something..."
+          placeholder="Enter transmission..."
           placeholderTextColor="#444"
           multiline
           maxLength={2000}
@@ -417,10 +417,11 @@ const styles = StyleSheet.create({
     borderColor: "#C9883A",
   },
   quickText: {
-    fontFamily: "Outfit",
-    fontSize: 13,
+    fontFamily: "SpaceMono",
+    fontSize: 11,
     color: "#666",
-    letterSpacing: 0.3,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
   },
   inputRow: {
     flexDirection: "row",

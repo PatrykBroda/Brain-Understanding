@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import ChatPage from "@/pages/chat";
 import OnboardingPage from "@/pages/onboarding";
 import StatePage from "@/pages/state";
+import OrbPage from "@/pages/orb";
 import DashboardPage from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
 import HistoryPage from "@/pages/history";
@@ -165,6 +166,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/": DEFAULT_TITLE,
   "/home": "Home · FRAME",
   "/state": "State · FRAME",
+  "/orb": "FRAME",
   "/chat": "Chat · FRAME",
   "/analyse": "Analyse · FRAME",
   "/camp": "Camp · FRAME",
@@ -201,6 +203,10 @@ function AppRoutes() {
           <Switch>
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
+            {/* Chrome-less orb surface embedded by the mobile app via WebView.
+                Public (no Authed gate) so the native shell can render the exact
+                same WebGL orb the web hub uses. See frame-mobile OrbWebView. */}
+            <Route path="/orb" component={OrbPage} />
             <Route path="/splash">
               <Authed>
                 <SplashPage />
