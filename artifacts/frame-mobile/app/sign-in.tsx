@@ -2,11 +2,10 @@ import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  ImageBackground,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,8 +14,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { apiPost } from "@/lib/api";
-
-const heroImage = require("../assets/images/login-hero.jpg");
 
 export default function SignInScreen() {
   const { signIn } = useAuth();
@@ -42,299 +39,147 @@ export default function SignInScreen() {
     } catch (e: unknown) {
       const msg =
         (e as Error)?.message ?? "Sign-in failed. Check your credentials.";
-      setError(
-        msg.includes("401") || msg.includes("Incorrect")
-          ? "Incorrect email or password."
-          : msg,
-      );
+      setError(msg.includes("401") || msg.includes("Incorrect")
+        ? "Incorrect email or password."
+        : msg);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <ImageBackground source={heroImage} style={styles.bg} resizeMode="cover">
-      {/* Dark wash */}
-      <View style={styles.wash} />
-      {/* Amber radial hint */}
-      <View style={styles.amberHint} />
+    <KeyboardAvoidingView
+      style={[styles.root, { paddingTop: insets.top + 60 }]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <View style={styles.inner}>
+        <Image
+          source={require("../assets/images/frame-logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Image
+          source={require("../assets/images/frame-wordmark.png")}
+          style={styles.wordmarkImg}
+          resizeMode="contain"
+        />
 
-      <KeyboardAvoidingView
-        style={styles.kav}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <View
-          style={[
-            styles.shell,
-            { paddingTop: insets.top, paddingBottom: insets.bottom },
-          ]}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerCenter}>
-              <Text style={styles.wordmark}>FRAME</Text>
-              <Text style={styles.tagline}>The coach that remembers.</Text>
-            </View>
-          </View>
+        <View style={styles.form}>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#666"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#666"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete="password"
+          />
 
-          {/* Scrollable body */}
-          <ScrollView
-            style={styles.body}
-            contentContainerStyle={styles.bodyContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          <Pressable
+            style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
+            onPress={handleSignIn}
+            disabled={loading || !email || !password}
           >
-            {/* Card */}
-            <View style={styles.card}>
-              <View style={styles.cardTop}>
-                <Text style={styles.cardTitle}>SIGN IN TO FRAME</Text>
-                <Text style={styles.cardSub}>WELCOME BACK</Text>
-              </View>
-
-              <View style={styles.cardBody}>
-                {/* Email field */}
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>EMAIL</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder=""
-                    placeholderTextColor="#555"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    autoComplete="email"
-                    returnKeyType="next"
-                  />
-                </View>
-
-                {/* Password field */}
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>PASSWORD</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder=""
-                    placeholderTextColor="#555"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    autoComplete="current-password"
-                    returnKeyType="go"
-                    onSubmitEditing={handleSignIn}
-                  />
-                </View>
-
-                {error ? (
-                  <Text style={styles.errorText}>{error}</Text>
-                ) : null}
-
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.btn,
-                    pressed && styles.btnPressed,
-                    (loading || !email || !password) && styles.btnDisabled,
-                  ]}
-                  onPress={handleSignIn}
-                  disabled={loading || !email || !password}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#050505" />
-                  ) : (
-                    <Text style={styles.btnText}>SIGN IN</Text>
-                  )}
-                </Pressable>
-              </View>
-
-              {/* Card footer */}
-              <View style={styles.cardFooter}>
-                <Link href="/sign-up" asChild>
-                  <Pressable>
-                    <Text style={styles.cardFooterText}>
-                      No account?{" "}
-                      <Text style={styles.cardFooterLink}>Create one</Text>
-                    </Text>
-                  </Pressable>
-                </Link>
-              </View>
-            </View>
-          </ScrollView>
-
-          {/* Page footer */}
-          <View style={styles.pageFooter}>
-            <Text style={styles.pageFooterText}>
-              SIGN IN WITH YOUR FRAME EMAIL AND PASSWORD.
-            </Text>
-          </View>
+            {loading ? (
+              <ActivityIndicator color="#050505" />
+            ) : (
+              <Text style={styles.btnText}>ENTER</Text>
+            )}
+          </Pressable>
         </View>
-      </KeyboardAvoidingView>
-    </ImageBackground>
+
+        <Link href="/sign-up" asChild>
+          <Pressable style={styles.linkBtn}>
+            <Text style={styles.linkText}>
+              No account —{" "}
+              <Text style={styles.linkHighlight}>create one</Text>
+            </Text>
+          </Pressable>
+        </Link>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: {
+  root: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#050505",
+    paddingHorizontal: 32,
   },
-  wash: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.68)",
-  },
-  amberHint: {
-    ...StyleSheet.absoluteFillObject,
-    // Faint amber glow at top-centre
-    backgroundColor: "transparent",
-    // Not possible to do radial in RN directly; handled by the image + wash combo
-  },
-  kav: {
+  inner: {
     flex: 1,
-  },
-  shell: {
-    flex: 1,
-  },
-  header: {
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-  },
-  headerCenter: {
     alignItems: "center",
   },
-  wordmark: {
-    fontFamily: "SpaceMono",
-    fontSize: 14,
-    letterSpacing: 8,
-    color: "rgba(255,255,255,0.95)",
-    marginBottom: 4,
+  logo: {
+    width: 88,
+    height: 88,
+    marginBottom: 20,
   },
-  tagline: {
-    fontFamily: "Outfit",
-    fontSize: 10,
-    letterSpacing: 0.4,
-    color: "rgba(255,255,255,0.45)",
-    fontStyle: "italic",
+  wordmarkImg: {
+    width: 200,
+    height: 64,
+    marginBottom: 56,
   },
-  body: {
-    flex: 1,
-  },
-  bodyContent: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  card: {
-    backgroundColor: "rgba(15,15,15,0.92)",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    overflow: "hidden",
+  form: {
     width: "100%",
-    maxWidth: 420,
-    alignSelf: "center",
-  },
-  cardTop: {
-    paddingHorizontal: 28,
-    paddingTop: 28,
-    paddingBottom: 20,
-    alignItems: "center",
-  },
-  cardTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 13,
-    letterSpacing: 3,
-    color: "rgba(255,255,255,0.95)",
-    fontWeight: "300",
-    marginBottom: 6,
-  },
-  cardSub: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "rgba(255,255,255,0.55)",
-  },
-  cardBody: {
-    paddingHorizontal: 28,
-    paddingBottom: 24,
-    gap: 16,
-  },
-  field: {
-    gap: 6,
-  },
-  fieldLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "rgba(255,255,255,0.70)",
+    gap: 12,
   },
   input: {
-    backgroundColor: "rgba(24,24,24,0.9)",
+    backgroundColor: "#0a0a0a",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    borderRadius: 6,
+    borderColor: "#1a1a1a",
     color: "#e0e0e0",
     fontFamily: "Outfit",
-    fontSize: 15,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    height: 48,
+    fontSize: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    height: 52,
   },
   errorText: {
     color: "#BF1D1D",
     fontFamily: "Outfit",
-    fontSize: 12,
+    fontSize: 13,
+    textAlign: "center",
   },
   btn: {
     backgroundColor: "#C9883A",
-    borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
-    height: 48,
-    marginTop: 4,
-    shadowColor: "rgba(201,136,58,0.4)",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    elevation: 8,
+    height: 52,
+    marginTop: 8,
   },
   btnPressed: {
     opacity: 0.85,
   },
-  btnDisabled: {
-    opacity: 0.5,
-  },
   btnText: {
     fontFamily: "SpaceMono",
-    fontSize: 11,
+    fontSize: 13,
     letterSpacing: 4,
     color: "#050505",
   },
-  cardFooter: {
-    paddingHorizontal: 28,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
-    alignItems: "center",
+  linkBtn: {
+    marginTop: 32,
+    paddingVertical: 8,
   },
-  cardFooterText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 0.5,
-    color: "rgba(255,255,255,0.55)",
+  linkText: {
+    fontFamily: "Outfit",
+    fontSize: 14,
+    color: "#666",
   },
-  cardFooterLink: {
+  linkHighlight: {
     color: "#C9883A",
-  },
-  pageFooter: {
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  pageFooterText: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 3,
-    color: "rgba(255,255,255,0.40)",
-    textAlign: "center",
   },
 });

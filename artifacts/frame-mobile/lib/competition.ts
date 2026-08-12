@@ -72,11 +72,42 @@ export type TrainingSession = {
   updatedAt: string;
 };
 
+// Cross-analysis intelligence over ONE camp's footage. Every field is grounded
+// in real records (server-computed) — no fabricated aggregate. `null` on the
+// active competition means the review is FRAME+-gated for this user. Ported
+// verbatim from the web (coach/src/lib/api.ts).
+export type CampReviewImprovement = {
+  key: string;
+  label: string;
+  from: number;
+  to: number;
+  delta: number;
+  fromAt: string;
+  toAt: string;
+};
+
+export type CampReviewLeak = {
+  area: string;
+  label: string;
+  sessions: number;
+  total: number;
+};
+
+export type CampReview = {
+  totalAnalyses: number;
+  countsByKind: { kind: string; label: string; count: number }[];
+  biggestImprovement: CampReviewImprovement | null;
+  mostPersistentLeak: CampReviewLeak | null;
+  spanFrom: string | null;
+  spanTo: string | null;
+};
+
 export type ActiveCompetitionResponse = {
   competition: Competition | null;
   pressure: CompetitionPressure | null;
   weightCut: WeightCut | null;
   sessions: TrainingSession[];
+  review: CampReview | null;
 };
 
 export type CompetitionInput = {

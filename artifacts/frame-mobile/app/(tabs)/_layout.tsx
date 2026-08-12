@@ -65,10 +65,24 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="state"
+        options={{
+          title: "STATE",
+          tabBarIcon: ({ color }) => <Feather name="aperture" size={20} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="chat"
         options={{
           title: "CHAT",
           tabBarIcon: ({ color }) => <Feather name="message-circle" size={20} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="analyse"
+        options={{
+          title: "ANALYSE",
+          tabBarIcon: ({ color }) => <Feather name="film" size={20} color={color} />,
         }}
       />
       <Tabs.Screen
