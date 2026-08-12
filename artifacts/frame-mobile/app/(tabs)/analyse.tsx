@@ -1,6 +1,5 @@
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
@@ -317,7 +316,6 @@ function capitalise(s: string): string {
 
 export default function AnalyseScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const qc = useQueryClient();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -765,9 +763,7 @@ export default function AnalyseScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Feather name="chevron-left" size={20} color="#666" />
-        </Pressable>
+        <View style={{ width: 28 }} />
         <Text style={styles.headerTitle}>SESSION DEBRIEF</Text>
         <Pressable onPress={handleEnterHistory} hitSlop={12} accessibilityLabel="View past sessions" accessibilityRole="button">
           <Feather name="clock" size={18} color="#555" />

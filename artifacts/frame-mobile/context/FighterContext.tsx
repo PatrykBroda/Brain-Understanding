@@ -32,6 +32,13 @@ export interface Fighter {
   spiritAnimalTagline: string | null;
   archetype: string | null;
   vocabularyLevel: number | null;
+  // Hero image + its saved framing (server-owned; the Home dashboard renders it).
+  heroImageUrl?: string;
+  heroPosX?: number;
+  heroPosY?: number;
+  heroZoom?: number;
+  weightClass?: string | null;
+  stance?: string | null;
   createdAt: string;
   updatedAt: string;
 }

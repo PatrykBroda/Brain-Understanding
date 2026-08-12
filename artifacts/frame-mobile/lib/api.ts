@@ -23,6 +23,12 @@ async function authHeaders(
   return h;
 }
 
+// Athlete hero image, served by the API and cache-busted with the fighter's
+// updatedAt so a fresh upload shows immediately (mirrors the web dashboard).
+export function heroFileUrl(cacheKey: string | number): string {
+  return `${_base}/fighter/hero/file?v=${encodeURIComponent(String(cacheKey))}`;
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const headers = await authHeaders();
   const res = await fetch(`${_base}${path}`, { headers });

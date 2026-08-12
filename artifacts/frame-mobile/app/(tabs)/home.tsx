@@ -1,116 +1,607 @@
-import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
+  Image,
+  PanResponder,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
-import { OrbWebView } from "@/components/OrbWebView";
-import { CompetitionBanner } from "@/components/CompetitionBanner";
-import { apiGet } from "@/lib/api";
 
-interface Fact {
+import { CompetitionBanner } from "@/components/CompetitionBanner";
+import { useAuth } from "@/context/AuthContext";
+import { useFighter, type Fighter } from "@/context/FighterContext";
+import { useActiveCompetition } from "@/hooks/useCompetition";
+import { useIsFramePlus } from "@/hooks/useEntitlement";
+import {
+  useTodayCheckin,
+  useSaveCheckin,
+  useCheckinHistory,
+  type DailyCheckin,
+} from "@/hooks/useCheckin";
+import { apiGet, heroFileUrl } from "@/lib/api";
+
+// ── Real-composite band read (interpretation, not fabrication) ─────────────
+function bandFor(score: number): string {
+  if (score >= 80) return "Primed";
+  if (score >= 65) return "Trainable";
+  if (score >= 45) return "Guarded";
+  return "Depleted";
+}
+
+// Facts come back from /memory. topic/createdAt are optional on mobile — the
+// server includes them when known; primaryFocus tolerates their absence.
+interface AthleteFact {
   id: number;
   category: string;
+  topic?: string | null;
   content: string;
   status: string;
   confidence: number;
+  createdAt?: string;
 }
 
-type OrbState =
-  | "Dormant"
-  | "Stable"
-  | "Loaded"
-  | "Recovering"
-  | "Tight"
-  | "Volatile"
-  | "Composed"
-  | "Overextended";
+// The single highest-value insight — recorded weakness first, else the
+// athlete's own onboarding words. Never synthesized. Ported from the web.
+function primaryFocus(
+  fighter: Fighter,
+  facts: AthleteFact[],
+): { label: string; source: string } {
+  const weaknesses = facts
+    .filter((f) => f.category === "weakness")
+    .sort(
+      (a, b) =>
+        b.confidence - a.confidence ||
+        ((a.createdAt ?? "") < (b.createdAt ?? "") ? 1 : -1),
+    );
+  if (weaknesses.length > 0) {
+    const top = weaknesses[0];
+    return {
+      label: top.topic || top.content,
+      source: "highest-confidence recorded weakness",
+    };
+  }
+  const stated = (fighter.weaknesses || "")
+    .split(/[,.;\n]/)
+    .map((s) => s.trim())
+    .filter(Boolean)[0];
+  if (stated) return { label: stated, source: "from your onboarding" };
+  return { label: "Not yet identified", source: "no weakness recorded yet" };
+}
 
-function deriveState(facts: Fact[]): { state: OrbState; source: string } {
-  const active = facts.filter((f) => f.status === "active");
-  const content = active.map((f) => f.content.toLowerCase()).join(" ");
+interface AnalysisListItem {
+  id: number;
+  sessionScore: number | null;
+  locked?: boolean;
+}
 
-  if (/volatile|fragmented|breaking|panic|collapse/.test(content))
-    return { state: "Volatile", source: "recent fragmentation pattern" };
-  if (/overextended|overreaching|beyond capacity/.test(content))
-    return { state: "Overextended", source: "load pattern" };
-  if (/tight|tense|clenched|rigid/.test(content))
-    return { state: "Tight", source: "tension marker" };
-  if (/recovering|injury|rest|fatigue|tired/.test(content))
-    return { state: "Recovering", source: "recovery note" };
-  if (/composed|calm|centered|controlled/.test(content))
-    return { state: "Composed", source: "composure pattern" };
-  if (/loaded|high.*volume|intense|heavy/.test(content))
-    return { state: "Loaded", source: "training load" };
-  if (active.length >= 3)
-    return { state: "Stable", source: "active model" };
+const METRIC_LABELS: {
+  key: "sleep" | "energy" | "soreness" | "stress";
+  label: string;
+  hint: string;
+}[] = [
+  { key: "sleep", label: "Sleep", hint: "How rested you woke up" },
+  { key: "energy", label: "Energy", hint: "Fuel in the tank right now" },
+  { key: "soreness", label: "Soreness", hint: "100 = no soreness at all" },
+  { key: "stress", label: "Stress", hint: "100 = completely clear-headed" },
+];
 
-  return { state: "Dormant", source: "no data yet" };
+// ── PanResponder slider (0-100) — mobile has no <Slider> dependency ────────
+function MetricSlider({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const [width, setWidth] = useState(0);
+  const widthRef = useRef(0);
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
+  const setFromX = (x: number) => {
+    const w = widthRef.current;
+    if (w <= 0) return;
+    const pct = Math.max(0, Math.min(1, x / w));
+    onChange(Math.round(pct * 100));
+  };
+
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => setFromX(e.nativeEvent.locationX),
+      onPanResponderMove: (e) => setFromX(e.nativeEvent.locationX),
+    }),
+  ).current;
+
+  return (
+    <View
+      style={sliderStyles.track}
+      onLayout={(e) => {
+        const w = e.nativeEvent.layout.width;
+        widthRef.current = w;
+        setWidth(w);
+      }}
+      {...responder.panHandlers}
+    >
+      <View style={sliderStyles.trackBg} />
+      <View style={[sliderStyles.trackFill, { width: `${value}%` }]} />
+      {width > 0 && (
+        <View
+          style={[
+            sliderStyles.thumb,
+            { left: Math.max(0, Math.min(width - 16, (value / 100) * width - 8)) },
+          ]}
+        />
+      )}
+    </View>
+  );
+}
+
+const sliderStyles = StyleSheet.create({
+  track: {
+    height: 28,
+    justifyContent: "center",
+  },
+  trackBg: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#1e1e1e",
+  },
+  trackFill: {
+    position: "absolute",
+    left: 0,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#C9883A",
+  },
+  thumb: {
+    position: "absolute",
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#C9883A",
+    top: 6,
+  },
+});
+
+function CheckinForm({
+  existing,
+  onDone,
+}: {
+  existing: DailyCheckin | null;
+  onDone: () => void;
+}) {
+  const save = useSaveCheckin();
+  const [values, setValues] = useState({
+    sleep: existing?.sleep ?? 70,
+    energy: existing?.energy ?? 70,
+    soreness: existing?.soreness ?? 70,
+    stress: existing?.stress ?? 70,
+  });
+  const [hr, setHr] = useState(
+    existing?.restingHr != null ? String(existing.restingHr) : "",
+  );
+  const [err, setErr] = useState<string | null>(null);
+
+  const submit = () => {
+    const restingHr = hr.trim() === "" ? null : Number(hr);
+    if (
+      restingHr != null &&
+      (!Number.isInteger(restingHr) || restingHr < 25 || restingHr > 220)
+    ) {
+      setErr("Resting HR must be a whole number between 25 and 220.");
+      return;
+    }
+    setErr(null);
+    save.mutate(
+      { ...values, restingHr },
+      {
+        onSuccess: onDone,
+        onError: (e) =>
+          setErr(e instanceof Error ? e.message : "Couldn't save check-in"),
+      },
+    );
+  };
+
+  return (
+    <View style={styles.formCard}>
+      <Text style={styles.formIntro}>
+        RATE HOW YOU ACTUALLY FEEL. 100 = FULLY RECOVERED.
+      </Text>
+      {METRIC_LABELS.map(({ key, label, hint }) => (
+        <View key={key} style={styles.formRow}>
+          <View style={styles.formRowHead}>
+            <Text style={styles.formLabel}>{label.toUpperCase()}</Text>
+            <Text style={styles.formValue}>{values[key]}</Text>
+          </View>
+          <MetricSlider
+            value={values[key]}
+            onChange={(v) => setValues((prev) => ({ ...prev, [key]: v }))}
+          />
+          <Text style={styles.formHint}>{hint.toUpperCase()}</Text>
+        </View>
+      ))}
+      <View style={styles.formRow}>
+        <Text style={styles.formLabel}>RESTING HR (OPTIONAL, BPM)</Text>
+        <TextInput
+          value={hr}
+          onChangeText={setHr}
+          keyboardType="number-pad"
+          placeholder="—"
+          placeholderTextColor="#333"
+          style={styles.hrInput}
+        />
+      </View>
+      {err && <Text style={styles.formErr}>{err}</Text>}
+      <View style={styles.formActions}>
+        <Pressable
+          onPress={submit}
+          disabled={save.isPending}
+          style={[styles.saveBtn, save.isPending && { opacity: 0.4 }]}
+        >
+          <Text style={styles.saveBtnText}>
+            {save.isPending ? "SAVING" : existing ? "UPDATE" : "LOG CHECK-IN"}
+          </Text>
+        </Pressable>
+        <Pressable onPress={onDone} hitSlop={8}>
+          <Text style={styles.cancelText}>CANCEL</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
+  const points = checkins.map((c) => ({
+    date: c.checkinDate,
+    score: Math.round((c.sleep + c.energy + c.soreness + c.stress) / 4),
+  }));
+
+  if (points.length < 2) {
+    return (
+      <View>
+        <Text style={styles.sectionLabel}>READINESS TREND</Text>
+        <Text style={styles.trendEmpty}>
+          {points.length === 0
+            ? "No check-ins in the last 30 days — log one to start the trend."
+            : "One check-in logged — the trend starts at two."}
+        </Text>
+      </View>
+    );
+  }
+
+  const shortDay = (iso: string) => {
+    const d = new Date(`${iso}T00:00:00Z`);
+    return `${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
+  };
+  const first = points[0];
+  const last = points[points.length - 1];
+  const delta = last.score - first.score;
+
+  return (
+    <View>
+      <View style={styles.trendHead}>
+        <Text style={styles.sectionLabel}>READINESS TREND</Text>
+        <Text style={styles.trendMeta}>
+          {points.length} DAYS · {delta === 0 ? "LEVEL" : delta > 0 ? `+${delta}` : `${delta}`}
+        </Text>
+      </View>
+      <View style={styles.trendBars}>
+        {points.map((p) => (
+          <View
+            key={p.date}
+            style={[
+              styles.trendBar,
+              {
+                height: `${Math.max(6, p.score)}%`,
+                backgroundColor: p.date === last.date ? "#C9883A" : "#3a3a3a",
+              },
+            ]}
+          />
+        ))}
+      </View>
+      <View style={styles.trendAxis}>
+        <Text style={styles.trendAxisLabel}>{shortDay(first.date)}</Text>
+        <Text style={styles.trendAxisLabel}>{shortDay(last.date)}</Text>
+      </View>
+    </View>
+  );
 }
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isSignedIn } = useAuth();
+  const { fighter } = useFighter();
 
-  const { data: rawFacts } = useQuery<Fact[]>({
+  const analysesQuery = useQuery<AnalysisListItem[]>({
+    queryKey: ["analyses"],
+    queryFn: () =>
+      apiGet<{ analyses: AnalysisListItem[] }>("/analysis").then((r) =>
+        Array.isArray(r?.analyses) ? r.analyses : [],
+      ),
+    enabled: !!fighter,
+    staleTime: 60_000,
+  });
+  const latest =
+    analysesQuery.data?.find((a) => !a.locked && a.sessionScore != null) ?? null;
+
+  const checkinQuery = useTodayCheckin();
+  const checkin = checkinQuery.data?.checkin ?? null;
+
+  const isFramePlus = useIsFramePlus();
+  const historyQuery = useCheckinHistory(isFramePlus);
+  const historyCheckins = historyQuery.data?.checkins ?? [];
+
+  const activeComp = useActiveCompetition();
+  const competition = activeComp.data?.competition ?? null;
+  const pressure = activeComp.data?.pressure ?? null;
+
+  const { data: rawFacts } = useQuery<AthleteFact[]>({
     queryKey: ["facts"],
     queryFn: () =>
-      apiGet<{ facts: Fact[]; count: number }>("/memory").then((r) => {
-        const f = r?.facts;
-        return Array.isArray(f) ? f : [];
-      }),
+      apiGet<{ facts: AthleteFact[] }>("/memory").then((r) =>
+        Array.isArray(r?.facts) ? r.facts : [],
+      ),
     enabled: !!isSignedIn,
     staleTime: 60_000,
   });
+  const facts = useMemo(
+    () => (Array.isArray(rawFacts) ? rawFacts : []),
+    [rawFacts],
+  );
+  const focus = fighter ? primaryFocus(fighter, facts) : null;
+  const hasFocus = !!focus && focus.label !== "Not yet identified";
 
-  const facts: Fact[] = Array.isArray(rawFacts) ? rawFacts : [];
+  const [editing, setEditing] = useState(false);
 
-  const { state, source } = useMemo(() => deriveState(facts), [facts]);
+  const checkinScore = checkin
+    ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
+    : null;
+  const sessionScore =
+    latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
+  const readiness = checkinScore ?? sessionScore;
+  const provenance =
+    checkinScore != null
+      ? "TODAY'S CHECK-IN"
+      : sessionScore != null
+        ? "LAST SESSION"
+        : null;
 
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const hasHero = !!fighter && (fighter.heroImageUrl ?? "").trim() !== "";
+  const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
+  const zoom = (fighter?.heroZoom ?? 100) / 100;
+
+  const metaParts = fighter
+    ? [
+        fighter.primarySport
+          ? fighter.primarySport.replace(/_/g, " ").toUpperCase()
+          : null,
+        fighter.weightClass || null,
+        fighter.stance ? fighter.stance.toUpperCase() : null,
+      ].filter((p): p is string => !!p)
+    : [];
+
+  const topPad = Platform.OS === "web" ? 24 : insets.top;
+  const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 0) + 90;
 
   return (
-    <View style={[styles.root, { paddingTop: topPad }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.wordmark}>FRAME</Text>
-        <Pressable
-          onPress={() => router.push("/(tabs)/profile")}
-          style={styles.profileBtn}
-          hitSlop={12}
-        >
-          <Feather name="user" size={20} color="#666" />
-        </Pressable>
+    <ScrollView
+      style={styles.root}
+      contentContainerStyle={{ paddingBottom: bottomPad }}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* ─── Hero ─────────────────────────────────────────────────────── */}
+      <View style={styles.hero}>
+        {heroSrc ? (
+          <Image
+            source={{ uri: heroSrc }}
+            style={[
+              StyleSheet.absoluteFill,
+              { opacity: 0.45, transform: [{ scale: zoom }] },
+            ]}
+            resizeMode="cover"
+          />
+        ) : (
+          <LinearGradient
+            colors={["#171717", "#050505"]}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
+        <LinearGradient
+          colors={[
+            "rgba(0,0,0,0.72)",
+            "rgba(0,0,0,0.42)",
+            "rgba(0,0,0,0.55)",
+            "rgba(0,0,0,0.97)",
+          ]}
+          locations={[0, 0.34, 0.62, 1]}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+
+        {/* Header over hero */}
+        <View style={[styles.heroHeader, { paddingTop: topPad + 8 }]}>
+          <Text style={styles.wordmark}>FRAME</Text>
+          <Pressable
+            onPress={() => router.push("/(tabs)/profile")}
+            style={styles.profileBtn}
+            hitSlop={12}
+            accessibilityLabel="Open profile"
+          >
+            <Feather name="user" size={18} color="#888" />
+          </Pressable>
+        </View>
+
+        {/* Identity overlay */}
+        <View style={styles.heroIdentity}>
+          <Text style={styles.heroKicker}>ATHLETE</Text>
+          <Text style={styles.heroName}>{(fighter?.name ?? "—").toUpperCase()}</Text>
+          {metaParts.length > 0 && (
+            <Text style={styles.heroMeta}>{metaParts.join("   ·   ")}</Text>
+          )}
+        </View>
       </View>
 
       <CompetitionBanner />
 
-      {/* Orb + state */}
-      <View style={styles.center}>
-        <OrbWebView state={state} size={200} />
+      {/* ─── Today's focus ────────────────────────────────────────────── */}
+      {hasFocus && focus && (
+        <View style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionTitle}>TODAY'S FOCUS</Text>
+          </View>
+          <Pressable
+            style={styles.focusRow}
+            onPress={() => router.push("/(tabs)/chat")}
+          >
+            <Text style={styles.focusLabel}>{focus.label}</Text>
+            <Feather name="chevron-right" size={16} color="#555" />
+          </Pressable>
+          <Text style={styles.focusSource}>{focus.source.toUpperCase()}</Text>
+        </View>
+      )}
 
-        <Text style={styles.stateLabel}>{state.toUpperCase()}</Text>
-        <Text style={styles.stateSource}>via {source}</Text>
+      {/* ─── Fight readiness ──────────────────────────────────────────── */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeadRow}>
+          <Text style={styles.sectionTitle}>FIGHT READINESS</Text>
+          {provenance && <Text style={styles.sectionMeta}>{provenance}</Text>}
+        </View>
+
+        <View style={styles.readyGrid}>
+          <View style={styles.readyLeft}>
+            {readiness != null ? (
+              <>
+                <Text style={styles.readyBig}>{readiness}</Text>
+                <Text style={styles.readyBand}>{bandFor(readiness).toUpperCase()}</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.readyBigEmpty}>—</Text>
+                <Text style={styles.readyEmptyNote}>
+                  No real data yet. Log a check-in or analyse a session.
+                </Text>
+              </>
+            )}
+          </View>
+
+          <View style={styles.readyRight}>
+            {METRIC_LABELS.map(({ key, label }) => (
+              <View key={key} style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>{label.toUpperCase()}</Text>
+                <Text style={styles.breakdownValue}>
+                  {checkin ? checkin[key] : "—"}
+                </Text>
+              </View>
+            ))}
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>CARDIO HR</Text>
+              <Text style={styles.breakdownValue}>
+                {checkin?.restingHr != null ? `${checkin.restingHr}` : "—"}
+                {checkin?.restingHr != null && (
+                  <Text style={styles.bpm}> bpm</Text>
+                )}
+              </Text>
+            </View>
+
+            {!editing && (
+              <Pressable
+                onPress={() => setEditing(true)}
+                style={styles.editRow}
+                hitSlop={8}
+              >
+                {checkin ? (
+                  <>
+                    <Feather name="edit-2" size={11} color="#C9883A" />
+                    <Text style={styles.editText}>EDIT TODAY'S CHECK-IN</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.editText}>LOG TODAY'S CHECK-IN</Text>
+                    <Feather name="chevron-right" size={11} color="#C9883A" />
+                  </>
+                )}
+              </Pressable>
+            )}
+          </View>
+        </View>
+
+        {editing && (
+          <CheckinForm existing={checkin} onDone={() => setEditing(false)} />
+        )}
+
+        {/* Readiness trend — FRAME+ */}
+        <View style={styles.trendWrap}>
+          {isFramePlus ? (
+            historyQuery.isLoading ? (
+              <ActivityIndicator size="small" color="#C9883A" />
+            ) : (
+              <ReadinessTrend checkins={historyCheckins} />
+            )
+          ) : (
+            <Pressable
+              onPress={() => router.push("/paywall")}
+              style={styles.lockedRow}
+            >
+              <View style={styles.lockedLeft}>
+                <Feather name="lock" size={13} color="#555" />
+                <Text style={styles.lockedLabel}>READINESS TREND</Text>
+              </View>
+              <Text style={styles.lockedPlus}>FRAME+</Text>
+            </Pressable>
+          )}
+        </View>
       </View>
 
-      {/* Enter CTA */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 90 }]}>
-        <Pressable
-          style={({ pressed }) => [styles.enterBtn, pressed && styles.enterPressed]}
-          onPress={() => router.push("/(tabs)/chat")}
-        >
-          <Text style={styles.enterText}>ENTER</Text>
-        </Pressable>
+      {/* ─── Competition context ──────────────────────────────────────── */}
+      <View style={[styles.section, { paddingBottom: 32 }]}>
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionTitle}>COMPETITION CONTEXT</Text>
+        </View>
+        {competition && pressure ? (
+          <Pressable
+            style={styles.compRow}
+            onPress={() => router.push("/(tabs)/planner")}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.compEvent}>{competition.eventName}</Text>
+              <Text style={styles.compPhase}>{pressure.phase.toUpperCase()}</Text>
+            </View>
+            <View style={styles.compRight}>
+              <Text style={styles.compDays}>{pressure.daysToEvent}</Text>
+              <Text style={styles.compDaysLabel}>DAYS OUT</Text>
+            </View>
+          </Pressable>
+        ) : (
+          <View style={styles.compEmpty}>
+            <Text style={styles.compEmptyText}>NO ACTIVE CAMP.</Text>
+            <Pressable
+              style={styles.compEmptyCta}
+              onPress={() => router.push("/(tabs)/planner")}
+              hitSlop={8}
+            >
+              <Text style={styles.compEmptyCtaText}>SET A CAMP</Text>
+              <Feather name="chevron-right" size={11} color="#C9883A" />
+            </Pressable>
+          </View>
+        )}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -119,58 +610,409 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#050505",
   },
-  header: {
+  // Hero
+  hero: {
+    height: 380,
+    overflow: "hidden",
+    justifyContent: "flex-end",
+  },
+  heroHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 12,
   },
   wordmark: {
     fontFamily: "SpaceMono",
-    fontSize: 16,
+    fontSize: 15,
     letterSpacing: 8,
     color: "#e0e0e0",
   },
   profileBtn: {
-    padding: 4,
-  },
-  center: {
-    flex: 1,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     alignItems: "center",
     justifyContent: "center",
-    gap: 16,
   },
-  stateLabel: {
+  heroIdentity: {
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+  },
+  heroKicker: {
     fontFamily: "SpaceMono",
-    fontSize: 13,
+    fontSize: 9,
+    letterSpacing: 6,
+    color: "#888",
+    marginBottom: 8,
+  },
+  heroName: {
+    fontFamily: "Outfit",
+    fontSize: 44,
+    letterSpacing: 4,
+    color: "#f2f2f2",
+  },
+  heroMeta: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 3,
+    color: "#999",
+    marginTop: 10,
+  },
+  // Sections
+  section: {
+    paddingHorizontal: 24,
+    paddingTop: 28,
+  },
+  sectionHead: {
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.07)",
+    paddingBottom: 8,
+  },
+  sectionHeadRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.07)",
+    paddingBottom: 8,
+  },
+  sectionTitle: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 6,
+    color: "#777",
+  },
+  sectionMeta: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 3,
+    color: "#555",
+  },
+  sectionLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 4,
+    color: "#777",
+  },
+  // Focus
+  focusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 16,
+    gap: 12,
+  },
+  focusLabel: {
+    flex: 1,
+    fontFamily: "Outfit",
+    fontSize: 18,
+    color: "#f0f0f0",
+    lineHeight: 24,
+  },
+  focusSource: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 3,
+    color: "#555",
+    marginTop: 8,
+  },
+  // Readiness
+  readyGrid: {
+    flexDirection: "row",
+    gap: 28,
+    paddingTop: 20,
+  },
+  readyLeft: {
+    minWidth: 120,
+  },
+  readyBig: {
+    fontFamily: "Outfit",
+    fontSize: 84,
+    lineHeight: 84,
+    color: "#f2f2f2",
+  },
+  readyBand: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
     letterSpacing: 6,
     color: "#C9883A",
+    marginTop: 10,
   },
-  stateSource: {
+  readyBigEmpty: {
     fontFamily: "Outfit",
-    fontSize: 12,
+    fontSize: 84,
+    lineHeight: 84,
+    color: "#2a2a2a",
+  },
+  readyEmptyNote: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 2,
+    color: "#666",
+    marginTop: 10,
+    maxWidth: 170,
+    lineHeight: 15,
+  },
+  readyRight: {
+    flex: 1,
+    paddingTop: 4,
+  },
+  breakdownRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  breakdownLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 3,
+    color: "#777",
+  },
+  breakdownValue: {
+    fontFamily: "Outfit",
+    fontSize: 15,
+    color: "#d8d8d8",
+  },
+  bpm: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    color: "#666",
+  },
+  editRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 12,
+  },
+  editText: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 3,
+    color: "#C9883A",
+  },
+  // Check-in form
+  formCard: {
+    marginTop: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.07)",
+    backgroundColor: "rgba(255,255,255,0.015)",
+    padding: 18,
+    gap: 16,
+  },
+  formIntro: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 2,
+    color: "#777",
+    lineHeight: 15,
+  },
+  formRow: {
+    gap: 6,
+  },
+  formRowHead: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+  },
+  formLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 3,
+    color: "#aaa",
+  },
+  formValue: {
+    fontFamily: "Outfit",
+    fontSize: 15,
+    color: "#C9883A",
+  },
+  formHint: {
+    fontFamily: "SpaceMono",
+    fontSize: 8,
+    letterSpacing: 2,
     color: "#444",
+  },
+  hrInput: {
+    width: 96,
+    backgroundColor: "#121212",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: "#e0e0e0",
+    fontFamily: "Outfit",
+    fontSize: 14,
+    marginTop: 4,
+  },
+  formErr: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    color: "#d2553f",
+  },
+  formActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 18,
+    paddingTop: 4,
+  },
+  saveBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(201,136,58,0.4)",
+  },
+  saveBtnText: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 3,
+    color: "#C9883A",
+  },
+  cancelText: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 3,
+    color: "#666",
+  },
+  // Trend
+  trendWrap: {
+    marginTop: 28,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.05)",
+    paddingTop: 20,
+  },
+  trendHead: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+  },
+  trendMeta: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 2,
+    color: "#555",
+  },
+  trendEmpty: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 2,
+    color: "#555",
+    marginTop: 8,
+    lineHeight: 15,
+  },
+  trendBars: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 3,
+    height: 56,
+    marginTop: 16,
+  },
+  trendBar: {
+    flex: 1,
+    borderTopLeftRadius: 1,
+    borderTopRightRadius: 1,
+  },
+  trendAxis: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  trendAxisLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 8,
+    letterSpacing: 2,
+    color: "#444",
+  },
+  lockedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+  },
+  lockedLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  lockedLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 3,
+    color: "#777",
+  },
+  lockedPlus: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 2,
+    color: "#C9883A",
+  },
+  // Competition
+  compRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingTop: 20,
+    gap: 16,
+  },
+  compEvent: {
+    fontFamily: "Outfit",
+    fontSize: 17,
+    color: "#f0f0f0",
     letterSpacing: 0.5,
   },
-  footer: {
-    alignItems: "center",
-    paddingBottom: 32,
-  },
-  enterBtn: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#e0e0e0",
-    paddingHorizontal: 48,
-    paddingVertical: 14,
-  },
-  enterPressed: {
-    borderColor: "#C9883A",
-  },
-  enterText: {
+  compPhase: {
     fontFamily: "SpaceMono",
-    fontSize: 13,
-    letterSpacing: 6,
-    color: "#e0e0e0",
+    fontSize: 9,
+    letterSpacing: 3,
+    color: "#666",
+    marginTop: 6,
+  },
+  compRight: {
+    alignItems: "flex-end",
+  },
+  compDays: {
+    fontFamily: "Outfit",
+    fontSize: 34,
+    lineHeight: 34,
+    color: "#C9883A",
+  },
+  compDaysLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 8,
+    letterSpacing: 3,
+    color: "#666",
+    marginTop: 4,
+  },
+  compEmpty: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    paddingTop: 20,
+  },
+  compEmptyText: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 2,
+    color: "#555",
+  },
+  compEmptyCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  compEmptyCtaText: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 3,
+    color: "#C9883A",
   },
 });
