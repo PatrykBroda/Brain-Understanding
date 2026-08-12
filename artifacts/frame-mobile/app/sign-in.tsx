@@ -2,6 +2,7 @@ import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -52,6 +53,11 @@ export default function SignInScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.inner}>
+        <Image
+          source={require("../assets/images/frame-logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.wordmark}>FRAME</Text>
         <Text style={styles.sub}>CALIBRATION SYSTEM</Text>
 
@@ -113,6 +119,11 @@ const styles = StyleSheet.create({
   inner: {
     flex: 1,
     alignItems: "center",
+  },
+  logo: {
+    width: 88,
+    height: 88,
+    marginBottom: 20,
   },
   wordmark: {
     fontFamily: "SpaceMono",
