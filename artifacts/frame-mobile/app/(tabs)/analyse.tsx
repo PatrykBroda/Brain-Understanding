@@ -334,8 +334,6 @@ export default function AnalyseScreen() {
   const [load, setLoad] = useState<NervousSystemLoad>("moderate");
   const [scores, setScores] = useState(initialScores);
   const [focusPrompt, setFocusPrompt] = useState("");
-  const [subject, setSubject] = useState<"self" | "opponent">("self");
-  const [opponentName, setOpponentName] = useState("");
   const [sourceMode, setSourceMode] = useState<"upload" | "link">("upload");
   const [linkUrl, setLinkUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -349,6 +347,7 @@ export default function AnalyseScreen() {
   const [pastSessions, setPastSessions] = useState<AnalysisSummary[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [recentSessions, setRecentSessions] = useState<AnalysisSummary[]>([]);
 
   const reportOpacity = useRef(new Animated.Value(1)).current;
   const historyOpacity = useRef(new Animated.Value(0)).current;
@@ -392,6 +391,20 @@ export default function AnalyseScreen() {
       });
     return () => { cancelled = true; };
   }, [historyMode]);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet<{ analyses: AnalysisSummary[] }>("/analysis")
+      .then((res) => {
+        if (!cancelled) setRecentSessions(res.analyses.slice(0, 4));
+      })
+      .catch(() => {
+        /* swallow — empty feed on failure */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (openId == null) return;
@@ -572,9 +585,6 @@ export default function AnalyseScreen() {
         sessionScore,
         focus: focusPrompt.trim() || undefined,
         durationSec,
-        subject: subject === "opponent" ? "opponent" : undefined,
-        opponentName:
-          subject === "opponent" ? opponentName.trim() || undefined : undefined,
       });
       setResult(res.analysis);
       qc.invalidateQueries({ queryKey: ["memory"] });
@@ -593,8 +603,6 @@ export default function AnalyseScreen() {
     setLoad("moderate");
     setScores(initialScores);
     setFocusPrompt("");
-    setSubject("self");
-    setOpponentName("");
     setSourceMode("upload");
     setLinkUrl("");
     setOpenId(null);
@@ -777,16 +785,15 @@ export default function AnalyseScreen() {
     );
   }
 
-  const accent = subject === "opponent" ? "#31B1ED" : "#C52626";
-  const accentText = subject === "opponent" ? "#7CCBEB" : "#D77575";
-  const accentBg =
-    subject === "opponent" ? "rgba(49,177,237,0.08)" : "rgba(197,38,38,0.08)";
+  const accent = "#C52626";
+  const accentText = "#D77575";
+  const accentBg = "rgba(197,38,38,0.08)";
 
-  const submitDisabled =
-    submitting ||
-    (sourceMode === "upload" && !video) ||
-    (sourceMode === "link" && !linkUrl.trim()) ||
-    (subject === "opponent" && !opponentName.trim());
+  const hasClip =
+    (sourceMode === "upload" && !!video) ||
+    (sourceMode === "link" && !!linkUrl.trim());
+
+  const submitDisabled = submitting || !hasClip;
 
   return (
     <ScrollView
@@ -802,135 +809,9 @@ export default function AnalyseScreen() {
         </Pressable>
       </View>
 
-      {/* Mode toggle */}
-      <View style={[styles.section, styles.modeRow]}>
-        <Pressable
-          style={[
-            styles.modeBtn,
-            subject === "self" && {
-              borderColor: "#C52626",
-              backgroundColor: "rgba(197,38,38,0.08)",
-            },
-          ]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setSubject("self");
-          }}
-        >
-          <Text
-            style={[
-              styles.modeBtnText,
-              subject === "self" && { color: "#D77575" },
-            ]}
-          >
-            YOUR READ
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[
-            styles.modeBtn,
-            subject === "opponent" && {
-              borderColor: "#31B1ED",
-              backgroundColor: "rgba(49,177,237,0.08)",
-            },
-          ]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setSubject("opponent");
-          }}
-        >
-          <Text
-            style={[
-              styles.modeBtnText,
-              subject === "opponent" && { color: "#7CCBEB" },
-            ]}
-          >
-            OPPONENT SCOUT
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* Movement-read intro block */}
-      <View style={[styles.introBlock, { borderLeftColor: accent }]}>
-        <Text style={[styles.introLabel, { color: accent }]}>
-          {subject === "opponent" ? "OPPONENT SCOUT" : "MOVEMENT READ"}
-        </Text>
-        <Text style={styles.introBody}>
-          {subject === "opponent"
-            ? "Upload footage of your opponent. The system builds a categorical scouting model and contrasts it against your own recorded model for the matchup."
-            : "Upload a clip. The system reads your movement directly — guard, base, shoulders, output rhythm — scores it against itself, and tells you what your nervous system is doing under load."}
-        </Text>
-        <Text style={styles.introCaption}>
-          PROCESSED ON DEVICE · ONLY THE READ IS KEPT
-        </Text>
-      </View>
-
-      {/* Opponent name */}
-      {subject === "opponent" ? (
-        <View style={styles.section}>
-          <View style={styles.labelRow}>
-            <Text style={[styles.sectionLabel, { color: accent, marginBottom: 0 }]}>
-              OPPONENT NAME
-            </Text>
-            <Text style={styles.optionalLabel}>optional</Text>
-          </View>
-          <TextInput
-            style={styles.textInput}
-            value={opponentName}
-            onChangeText={setOpponentName}
-            placeholder="who are you scouting?"
-            placeholderTextColor="#333"
-            maxLength={80}
-          />
-        </View>
-      ) : null}
-
-      {/* Clip type */}
+      {/* FOCUS chips */}
       <View style={styles.section}>
-        <Text style={[styles.sectionLabel, { color: accent }]}>CLIP TYPE</Text>
-        <View style={styles.gridRow}>
-          {KINDS.map((k) => {
-            const active = kind === k.value;
-            return (
-              <Pressable
-                key={k.value}
-                style={[
-                  styles.gridBtn,
-                  active && { borderColor: accent, backgroundColor: accentBg },
-                ]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setKind(k.value);
-                }}
-              >
-                <Text
-                  style={[styles.gridBtnText, active && { color: accentText }]}
-                >
-                  {k.label.toUpperCase()}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* Focus area */}
-      <View style={styles.section}>
-        <View style={styles.labelRow}>
-          <Text style={[styles.sectionLabel, { color: accent, marginBottom: 0 }]}>
-            FOCUS AREA
-          </Text>
-          <Text style={styles.optionalLabel}>optional</Text>
-        </View>
-        <TextInput
-          style={[styles.textInput, { marginTop: 10 }]}
-          value={focusPrompt}
-          onChangeText={setFocusPrompt}
-          placeholder="guard under fatigue, left shoulder, pressure after a miss…"
-          placeholderTextColor="#333"
-          maxLength={200}
-        />
-        <View style={styles.chipWrap}>
+        <View style={styles.chipWrapTop}>
           {FOCUS_PRESETS.map((preset) => {
             const active =
               preset.value === ""
@@ -971,6 +852,7 @@ export default function AnalyseScreen() {
               sourceMode === "upload" && {
                 borderColor: accent,
                 backgroundColor: accentBg,
+                borderLeftWidth: 3,
               },
             ]}
             onPress={() => {
@@ -993,6 +875,7 @@ export default function AnalyseScreen() {
               sourceMode === "link" && {
                 borderColor: accent,
                 backgroundColor: accentBg,
+                borderLeftWidth: 3,
               },
             ]}
             onPress={() => {
@@ -1033,12 +916,18 @@ export default function AnalyseScreen() {
             </View>
           ) : (
             <Pressable
-              style={({ pressed }) => [styles.dropZone, pressed && { opacity: 0.8 }]}
+              style={({ pressed }) => [styles.dropZoneWrap, pressed && { opacity: 0.8 }]}
               onPress={pickVideo}
             >
-              <Feather name="upload" size={22} color="#555" />
-              <Text style={styles.dropZoneText}>DROP FOOTAGE</Text>
-              <Text style={styles.dropZoneHint}>MP4 · MOV · FIRST 75S PROCESSED</Text>
+              <View style={styles.dropZone}>
+                <Feather name="upload" size={22} color={accent} />
+                <Text style={styles.dropZoneText}>DROP FOOTAGE</Text>
+                <Text style={styles.dropZoneHint}>MP4 · MOV · FIRST 75S PROCESSED</Text>
+              </View>
+              <View style={[styles.corner, styles.cornerTL]} />
+              <View style={[styles.corner, styles.cornerTR]} />
+              <View style={[styles.corner, styles.cornerBL]} />
+              <View style={[styles.corner, styles.cornerBR]} />
             </Pressable>
           )
         ) : (
@@ -1065,22 +954,170 @@ export default function AnalyseScreen() {
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <Pressable
-        style={({ pressed }) => [
-          styles.submitBtn,
-          { backgroundColor: accent },
-          submitDisabled && styles.submitBtnDisabled,
-          pressed && !submitDisabled && { opacity: 0.85 },
-        ]}
-        onPress={handleSubmit}
-        disabled={submitDisabled}
-      >
-        {submitting ? (
-          <ActivityIndicator color="#f5f5f5" />
-        ) : (
-          <Text style={[styles.submitBtnText, { color: "#f5f5f5" }]}>ANALYSE</Text>
-        )}
-      </Pressable>
+      {!hasClip ? (
+        <>
+          {/* SESSION LOG feed */}
+          {recentSessions.length > 0 ? (
+            <View style={styles.section}>
+              <View style={styles.logHeader}>
+                <View style={styles.logDot} />
+                <Text style={styles.logLabel}>SESSION LOG</Text>
+              </View>
+              <View style={styles.logRule} />
+              {recentSessions.map((item) => (
+                <Pressable
+                  key={item.id}
+                  style={({ pressed }) => [styles.logCard, pressed && { opacity: 0.65 }]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    handleOpenFromHistory(item.id);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open session from ${formatDate(item.createdAt)}`}
+                >
+                  <View style={styles.logCardTop}>
+                    <View style={styles.logCardTitleRow}>
+                      <Feather name="film" size={13} color="#555" />
+                      <Text style={styles.logCardTitle} numberOfLines={2}>
+                        {`${capitalise(item.kind)}${
+                          item.styleProfile ? " · " + item.styleProfile : ""
+                        }`.toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={styles.logCardScore}>
+                      {item.sessionScore != null ? (
+                        <Text style={styles.logScoreNum}>{item.sessionScore}</Text>
+                      ) : null}
+                      {item.nervousSystemLoad ? (
+                        <Text style={styles.logScoreLoad}>
+                          {capitalise(item.nervousSystemLoad).toUpperCase()}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                  {item.summary ? (
+                    <Text style={styles.logCardBody} numberOfLines={2}>
+                      {item.summary}
+                    </Text>
+                  ) : null}
+                  <Text style={styles.logCardDate}>
+                    {formatDate(item.createdAt).toUpperCase()}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
+          {/* WEEKLY INTELLIGENCE REPORT — TODO: a dedicated weekly-report route
+              may be needed; for now this opens PAST SESSIONS (closest existing). */}
+          <Pressable
+            style={({ pressed }) => [styles.weeklyBtn, pressed && { opacity: 0.7 }]}
+            onPress={handleEnterHistory}
+            accessibilityRole="button"
+            accessibilityLabel="Weekly intelligence report"
+          >
+            <Feather name="file-text" size={15} color="#888" />
+            <Text style={styles.weeklyBtnText}>WEEKLY INTELLIGENCE REPORT</Text>
+          </Pressable>
+        </>
+      ) : (
+        <>
+          {/* Clip type */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: accent }]}>CLIP TYPE</Text>
+            <View style={styles.gridRow}>
+              {KINDS.map((k) => {
+                const active = kind === k.value;
+                return (
+                  <Pressable
+                    key={k.value}
+                    style={[
+                      styles.gridBtn,
+                      active && { borderColor: accent, backgroundColor: accentBg },
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setKind(k.value);
+                    }}
+                  >
+                    <Text
+                      style={[styles.gridBtnText, active && { color: accentText }]}
+                    >
+                      {k.label.toUpperCase()}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Intensity */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: accent }]}>INTENSITY</Text>
+            <View style={styles.loadRow}>
+              {LOADS.map((l) => {
+                const active = load === l.value;
+                return (
+                  <Pressable
+                    key={l.value}
+                    style={[
+                      styles.loadBtn,
+                      active && { borderColor: accent, backgroundColor: accentBg },
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setLoad(l.value);
+                    }}
+                  >
+                    <Text
+                      style={[styles.loadBtnLabel, active && { color: accentText }]}
+                    >
+                      {l.label.toUpperCase()}
+                    </Text>
+                    <Text style={styles.loadBtnDesc}>{l.desc}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Self-assessment */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: accent }]}>
+              SELF-ASSESSMENT
+            </Text>
+            {DIMENSIONS.map((d) => (
+              <View key={d.key} style={styles.dimBlock}>
+                <Text style={styles.dimLabel}>{d.label}</Text>
+                <Text style={styles.dimQuestion}>{d.question}</Text>
+                <ScoreSelector
+                  value={scores[d.key]}
+                  onChange={(v) =>
+                    setScores((prev) => ({ ...prev, [d.key]: v }))
+                  }
+                />
+              </View>
+            ))}
+          </View>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.submitBtn,
+              { backgroundColor: accent },
+              submitDisabled && styles.submitBtnDisabled,
+              pressed && !submitDisabled && { opacity: 0.85 },
+            ]}
+            onPress={handleSubmit}
+            disabled={submitDisabled}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#f5f5f5" />
+            ) : (
+              <Text style={[styles.submitBtnText, { color: "#f5f5f5" }]}>ANALYSE</Text>
+            )}
+          </Pressable>
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -1296,6 +1333,11 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 12,
   },
+  chipWrapTop: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
   presetChip: {
     borderWidth: 1,
     borderColor: "#1a1a1a",
@@ -1329,6 +1371,115 @@ const styles = StyleSheet.create({
     fontSize: 8,
     letterSpacing: 1,
     color: "#444",
+  },
+  dropZoneWrap: {
+    position: "relative",
+    marginTop: 12,
+  },
+  corner: {
+    position: "absolute",
+    width: 16,
+    height: 16,
+    borderColor: "#C52626",
+  },
+  cornerTL: { top: 0, left: 0, borderTopWidth: 2, borderLeftWidth: 2 },
+  cornerTR: { top: 0, right: 0, borderTopWidth: 2, borderRightWidth: 2 },
+  cornerBL: { bottom: 0, left: 0, borderBottomWidth: 2, borderLeftWidth: 2 },
+  cornerBR: { bottom: 0, right: 0, borderBottomWidth: 2, borderRightWidth: 2 },
+  logHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  logDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#C52626",
+  },
+  logLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 3,
+    color: "#888",
+  },
+  logRule: {
+    height: 1,
+    backgroundColor: "#1a1a1a",
+    marginBottom: 4,
+  },
+  logCard: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#111",
+  },
+  logCardTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  logCardTitleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    flex: 1,
+  },
+  logCardTitle: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 1,
+    color: "#c0c0c0",
+    lineHeight: 14,
+    flex: 1,
+  },
+  logCardScore: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 6,
+    flexShrink: 0,
+  },
+  logScoreNum: {
+    fontFamily: "SpaceMono",
+    fontSize: 18,
+    color: "#e0e0e0",
+  },
+  logScoreLoad: {
+    fontFamily: "SpaceMono",
+    fontSize: 8,
+    letterSpacing: 1,
+    color: "#C9883A",
+  },
+  logCardBody: {
+    fontFamily: "Outfit",
+    fontSize: 12,
+    color: "#666",
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  logCardDate: {
+    fontFamily: "SpaceMono",
+    fontSize: 8,
+    letterSpacing: 1,
+    color: "#444",
+    marginTop: 8,
+  },
+  weeklyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    paddingVertical: 16,
+    marginBottom: 8,
+  },
+  weeklyBtnText: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 3,
+    color: "#888",
   },
   linkBox: {
     flexDirection: "row",
