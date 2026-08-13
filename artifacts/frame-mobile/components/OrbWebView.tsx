@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 /**
@@ -44,6 +44,34 @@ function toWebState(state: OrbState): string {
  */
 export function OrbWebView({ state = "Dormant", size = 180 }: Props) {
   const uri = `${ORB_ORIGIN}/orb?state=${toWebState(state)}`;
+
+  // On web (react-native-web export / the /mobile preview), react-native-webview
+  // renders nothing — so the orb would be blank. Use a real DOM iframe there so
+  // the exact same /orb scene shows in the browser preview too. Native keeps the
+  // WebView below.
+  if (Platform.OS === "web") {
+    return (
+      <View
+        style={[styles.container, { width: size, height: size }]}
+        pointerEvents="none"
+      >
+        {React.createElement("iframe", {
+          src: uri,
+          width: size,
+          height: size,
+          frameBorder: "0",
+          scrolling: "no",
+          allowTransparency: true,
+          style: {
+            border: "none",
+            background: "transparent",
+            width: size,
+            height: size,
+          },
+        })}
+      </View>
+    );
+  }
 
   return (
     <View

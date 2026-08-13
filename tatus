@@ -1,0 +1,658 @@
+[1mdiff --git a/artifacts/frame-mobile/app/(tabs)/_layout.tsx b/artifacts/frame-mobile/app/(tabs)/_layout.tsx[m
+[1mindex b662fda..30d7080 100644[m
+[1m--- a/artifacts/frame-mobile/app/(tabs)/_layout.tsx[m
+[1m+++ b/artifacts/frame-mobile/app/(tabs)/_layout.tsx[m
+[36m@@ -64,13 +64,6 @@[m [mexport default function TabLayout() {[m
+           tabBarIcon: ({ color }) => <Feather name="home" size={20} color={color} />,[m
+         }}[m
+       />[m
+[31m-      <Tabs.Screen[m
+[31m-        name="state"[m
+[31m-        options={{[m
+[31m-          title: "STATE",[m
+[31m-          tabBarIcon: ({ color }) => <Feather name="aperture" size={20} color={color} />,[m
+[31m-        }}[m
+[31m-      />[m
+       <Tabs.Screen[m
+         name="chat"[m
+         options={{[m
+[36m@@ -78,13 +71,6 @@[m [mexport default function TabLayout() {[m
+           tabBarIcon: ({ color }) => <Feather name="message-circle" size={20} color={color} />,[m
+         }}[m
+       />[m
+[31m-      <Tabs.Screen[m
+[31m-        name="analyse"[m
+[31m-        options={{[m
+[31m-          title: "ANALYSE",[m
+[31m-          tabBarIcon: ({ color }) => <Feather name="film" size={20} color={color} />,[m
+[31m-        }}[m
+[31m-      />[m
+       <Tabs.Screen[m
+         name="profile"[m
+         options={{[m
+[1mdiff --git a/artifacts/frame-mobile/app/(tabs)/chat.tsx b/artifacts/frame-mobile/app/(tabs)/chat.tsx[m
+[1mindex c359453..a9cb849 100644[m
+[1m--- a/artifacts/frame-mobile/app/(tabs)/chat.tsx[m
+[1m+++ b/artifacts/frame-mobile/app/(tabs)/chat.tsx[m
+[36m@@ -1,11 +1,9 @@[m
+ import { useAuth } from "@/context/AuthContext";[m
+ import * as Haptics from "expo-haptics";[m
+[31m-import * as ImagePicker from "expo-image-picker";[m
+ import React, { useEffect, useRef, useState } from "react";[m
+ import {[m
+   ActivityIndicator,[m
+   FlatList,[m
+[31m-  Image,[m
+   Platform,[m
+   Pressable,[m
+   ScrollView,[m
+[36m@@ -17,24 +15,15 @@[m [mimport {[m
+ import { KeyboardAvoidingView } from "react-native-keyboard-controller";[m
+ import { useSafeAreaInsets } from "react-native-safe-area-context";[m
+ import { Feather } from "@expo/vector-icons";[m
+[31m-import {[m
+[31m-  apiGet,[m
+[31m-  apiStream,[m
+[31m-  attachmentFileUrl,[m
+[31m-  uploadAttachment,[m
+[31m-  type AttachmentDto,[m
+[31m-} from "@/lib/api";[m
+[32m+[m[32mimport { apiGet, apiStream } from "@/lib/api";[m
+ import { useFighter } from "@/context/FighterContext";[m
+ import { MessageContent } from "@/components/MessageContent";[m
+ import { CompetitionBanner } from "@/components/CompetitionBanner";[m
+ [m
+[31m-const MAX_FILE_BYTES = 12 * 1024 * 1024;[m
+[31m-[m
+ interface Message {[m
+   id: string;[m
+   role: "user" | "assistant";[m
+   content: string;[m
+[31m-  attachments?: AttachmentDto[];[m
+ }[m
+ [m
+ let _counter = 0;[m
+[36m@@ -52,39 +41,6 @@[m [mconst QUICK_ACTIONS = [[m
+   "Reflect",[m
+ ];[m
+ [m
+[31m-// A single attached image/video. Drafts pass a local `uri` (instant preview,[m
+[31m-// no round-trip); sent/history attachments resolve to the server file by id.[m
+[31m-function AttachmentThumb({[m
+[31m-  att,[m
+[31m-  uri,[m
+[31m-  onRemove,[m
+[31m-}: {[m
+[31m-  att: AttachmentDto;[m
+[31m-  uri?: string;[m
+[31m-  onRemove?: () => void;[m
+[31m-}) {[m
+[31m-  const src = uri ?? attachmentFileUrl(att.id);[m
+[31m-  return ([m
+[31m-    <View style={mb.thumb}>[m
+[31m-      {att.kind === "video" ? ([m
+[31m-        <View style={mb.videoThumb}>[m
+[31m-          <Feather name="video" size={20} color="#888" />[m
+[31m-          <Text style={mb.videoName} numberOfLines={1}>[m
+[31m-            {att.filename}[m
+[31m-          </Text>[m
+[31m-        </View>[m
+[31m-      ) : ([m
+[31m-        <Image source={{ uri: src }} style={mb.thumbImg} resizeMode="cover" />[m
+[31m-      )}[m
+[31m-      {onRemove && ([m
+[31m-        <Pressable style={mb.thumbRemove} onPress={onRemove} hitSlop={6}>[m
+[31m-          <Feather name="x" size={12} color="#e0e0e0" />[m
+[31m-        </Pressable>[m
+[31m-      )}[m
+[31m-    </View>[m
+[31m-  );[m
+[31m-}[m
+[31m-[m
+ function MessageBubble({[m
+   msg,[m
+   onTrain,[m
+[36m@@ -93,22 +49,12 @@[m [mfunction MessageBubble({[m
+   onTrain: (prompt: string) => void;[m
+ }) {[m
+   const isUser = msg.role === "user";[m
+[31m-  const hasAttachments = (msg.attachments?.length ?? 0) > 0;[m
+   return ([m
+     <View style={[mb.row, isUser ? mb.userRow : mb.assistantRow]}>[m
+       {!isUser && <View style={mb.dot} />}[m
+       <View style={[mb.bubble, isUser ? mb.userBubble : mb.assistantBubble]}>[m
+[31m-        {hasAttachments && ([m
+[31m-          <View style={mb.attachGrid}>[m
+[31m-            {msg.attachments!.map((a) => ([m
+[31m-              <AttachmentThumb key={a.id} att={a} />[m
+[31m-            ))}[m
+[31m-          </View>[m
+[31m-        )}[m
+         {isUser ? ([m
+[31m-          msg.content ? ([m
+[31m-            <Text style={[mb.text, mb.userText]}>{msg.content}</Text>[m
+[31m-          ) : null[m
+[32m+[m[32m          <Text style={[mb.text, mb.userText]}>{msg.content}</Text>[m
+         ) : ([m
+           <MessageContent content={msg.content} onTrain={onTrain} />[m
+         )}[m
+[36m@@ -159,50 +105,6 @@[m [mconst mb = StyleSheet.create({[m
+   },[m
+   userText: { color: "#e0e0e0" },[m
+   assistantText: { color: "#c0c0c0" },[m
+[31m-  attachGrid: {[m
+[31m-    flexDirection: "row",[m
+[31m-    flexWrap: "wrap",[m
+[31m-    gap: 6,[m
+[31m-    marginBottom: 8,[m
+[31m-  },[m
+[31m-  thumb: {[m
+[31m-    width: 120,[m
+[31m-    height: 120,[m
+[31m-    borderWidth: 1,[m
+[31m-    borderColor: "#2a2a2a",[m
+[31m-    backgroundColor: "#000",[m
+[31m-    overflow: "hidden",[m
+[31m-  },[m
+[31m-  thumbImg: {[m
+[31m-    width: "100%",[m
+[31m-    height: "100%",[m
+[31m-  },[m
+[31m-  videoThumb: {[m
+[31m-    flex: 1,[m
+[31m-    alignItems: "center",[m
+[31m-    justifyContent: "center",[m
+[31m-    gap: 6,[m
+[31m-    paddingHorizontal: 8,[m
+[31m-  },[m
+[31m-  videoName: {[m
+[31m-    fontFamily: "SpaceMono",[m
+[31m-    fontSize: 8,[m
+[31m-    letterSpacing: 1,[m
+[31m-    color: "#888",[m
+[31m-    textAlign: "center",[m
+[31m-  },[m
+[31m-  thumbRemove: {[m
+[31m-    position: "absolute",[m
+[31m-    top: 4,[m
+[31m-    right: 4,[m
+[31m-    width: 22,[m
+[31m-    height: 22,[m
+[31m-    backgroundColor: "rgba(5,5,5,0.85)",[m
+[31m-    borderWidth: 1,[m
+[31m-    borderColor: "#2a2a2a",[m
+[31m-    alignItems: "center",[m
+[31m-    justifyContent: "center",[m
+[31m-  },[m
+ });[m
+ [m
+ function TypingIndicator() {[m
+[36m@@ -218,12 +120,7 @@[m [mfunction TypingIndicator() {[m
+ [m
+ interface ConversationResponse {[m
+   conversation: { id: number } | null;[m
+[31m-  messages: Array<{[m
+[31m-    id: number;[m
+[31m-    role: string;[m
+[31m-    content: string;[m
+[31m-    attachments?: AttachmentDto[];[m
+[31m-  }>;[m
+[32m+[m[32m  messages: Array<{ id: number; role: string; content: string }>;[m
+ }[m
+ [m
+ export default function ChatScreen() {[m
+[36m@@ -236,10 +133,6 @@[m [mexport default function ChatScreen() {[m
+   const [isStreaming, setIsStreaming] = useState(false);[m
+   const [showTyping, setShowTyping] = useState(false);[m
+   const [isLoadingHistory, setIsLoadingHistory] = useState(true);[m
+[31m-  const [conversationId, setConversationId] = useState<number | null>(null);[m
+[31m-  const [drafts, setDrafts] = useState<{ att: AttachmentDto; uri: string }[]>([]);[m
+[31m-  const [uploading, setUploading] = useState(false);[m
+[31m-  const [uploadError, setUploadError] = useState<string | null>(null);[m
+   const inputRef = useRef<TextInput>(null);[m
+ [m
+   const topPad = Platform.OS === "web" ? 67 : insets.top;[m
+[36m@@ -257,14 +150,12 @@[m [mexport default function ChatScreen() {[m
+     apiGet<ConversationResponse>("/conversation/active")[m
+       .then((data) => {[m
+         if (cancelled) return;[m
+[31m-        setConversationId(data.conversation?.id ?? null);[m
+         const loaded: Message[] = data.messages[m
+           .filter((m) => m.role === "user" || m.role === "assistant")[m
+           .map((m) => ({[m
+             id: String(m.id),[m
+             role: m.role as "user" | "assistant",[m
+             content: m.content,[m
+[31m-            attachments: m.attachments ?? [],[m
+           }));[m
+         setMessages(loaded);[m
+       })[m
+[36m@@ -279,26 +170,15 @@[m [mexport default function ChatScreen() {[m
+     };[m
+   }, [isSignedIn]);[m
+ [m
+[31m-  async function handleSend(text: string, attachments: AttachmentDto[] = []) {[m
+[31m-    if ([m
+[31m-      (!text.trim() && attachments.length === 0) ||[m
+[31m-      isStreaming ||[m
+[31m-      !isSignedIn ||[m
+[31m-      isLoadingHistory[m
+[31m-    )[m
+[31m-      return;[m
+[32m+[m[32m  async function handleSend(text: string) {[m
+[32m+[m[32m    if (!text.trim() || isStreaming || !isSignedIn || isLoadingHistory) return;[m
+ [m
+     const trimmed = text.trim();[m
+     setInput("");[m
+     setIsStreaming(true);[m
+     setShowTyping(true);[m
+ [m
+[31m-    const userMsg: Message = {[m
+[31m-      id: uid(),[m
+[31m-      role: "user",[m
+[31m-      content: trimmed,[m
+[31m-      attachments,[m
+[31m-    };[m
+[32m+[m[32m    const userMsg: Message = { id: uid(), role: "user", content: trimmed };[m
+     setMessages((prev) => [...prev, userMsg]);[m
+ [m
+     let fullContent = "";[m
+[36m@@ -307,7 +187,7 @@[m [mexport default function ChatScreen() {[m
+     try {[m
+       await apiStream([m
+         "/coach/chat",[m
+[31m-        { content: trimmed, attachmentIds: attachments.map((a) => a.id) },[m
+[32m+[m[32m        { content: trimmed },[m
+         (chunk) => {[m
+           if (chunk.error) {[m
+             setShowTyping(false);[m
+[36m@@ -362,69 +242,7 @@[m [mexport default function ChatScreen() {[m
+     handleSend(prompt);[m
+   }[m
+ [m
+[31m-  async function pickAttachment() {[m
+[31m-    if (!conversationId) {[m
+[31m-      setUploadError("Send a message first to start the conversation.");[m
+[31m-      return;[m
+[31m-    }[m
+[31m-    setUploadError(null);[m
+[31m-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();[m
+[31m-    if (status !== "granted") {[m
+[31m-      setUploadError("Media permission is needed to attach files.");[m
+[31m-      return;[m
+[31m-    }[m
+[31m-    const result = await ImagePicker.launchImageLibraryAsync({[m
+[31m-      mediaTypes: ["images", "videos"],[m
+[31m-      quality: 0.7,[m
+[31m-      base64: true,[m
+[31m-    });[m
+[31m-    if (result.canceled || result.assets.length === 0) return;[m
+[31m-    const asset = result.assets[0];[m
+[31m-    if (!asset.base64) {[m
+[31m-      setUploadError("Could not read that file.");[m
+[31m-      return;[m
+[31m-    }[m
+[31m-    if (asset.base64.length * 0.75 > MAX_FILE_BYTES) {[m
+[31m-      setUploadError("File too large (max 12MB).");[m
+[31m-      return;[m
+[31m-    }[m
+[31m-    const kind: "image" | "video" = asset.type === "video" ? "video" : "image";[m
+[31m-    setUploading(true);[m
+[31m-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});[m
+[31m-    try {[m
+[31m-      const att = await uploadAttachment({[m
+[31m-        conversationId,[m
+[31m-        kind,[m
+[31m-        mimeType: asset.mimeType ?? (kind === "video" ? "video/mp4" : "image/jpeg"),[m
+[31m-        filename: asset.fileName ?? (kind === "video" ? "clip.mp4" : "image.jpg"),[m
+[31m-        dataBase64: asset.base64,[m
+[31m-      });[m
+[31m-      setDrafts((d) => [...d, { att, uri: asset.uri }]);[m
+[31m-    } catch (e) {[m
+[31m-      setUploadError(e instanceof Error ? e.message : "Upload failed.");[m
+[31m-    } finally {[m
+[31m-      setUploading(false);[m
+[31m-    }[m
+[31m-  }[m
+[31m-[m
+[31m-  function removeDraft(id: number) {[m
+[31m-    setDrafts((d) => d.filter((x) => x.att.id !== id));[m
+[31m-  }[m
+[31m-[m
+[31m-  function doSend() {[m
+[31m-    if (isStreaming || isLoadingHistory) return;[m
+[31m-    if (!input.trim() && drafts.length === 0) return;[m
+[31m-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);[m
+[31m-    handleSend([m
+[31m-      input,[m
+[31m-      drafts.map((d) => d.att),[m
+[31m-    );[m
+[31m-    setDrafts([]);[m
+[31m-  }[m
+[31m-[m
+   const reversed = [...messages].reverse();[m
+[31m-  const canSend =[m
+[31m-    (input.trim().length > 0 || drafts.length > 0) && !isStreaming && !isLoadingHistory;[m
+ [m
+   return ([m
+     <KeyboardAvoidingView[m
+[36m@@ -487,53 +305,8 @@[m [mexport default function ChatScreen() {[m
+         </ScrollView>[m
+       )}[m
+ [m
+[31m-      {/* Draft attachments awaiting send */}[m
+[31m-      {(drafts.length > 0 || uploading || uploadError) && ([m
+[31m-        <View style={styles.draftRow}>[m
+[31m-          {drafts.length > 0 && ([m
+[31m-            <ScrollView[m
+[31m-              horizontal[m
+[31m-              showsHorizontalScrollIndicator={false}[m
+[31m-              contentContainerStyle={styles.draftStrip}[m
+[31m-            >[m
+[31m-              {drafts.map((d) => ([m
+[31m-                <AttachmentThumb[m
+[31m-                  key={d.att.id}[m
+[31m-                  att={d.att}[m
+[31m-                  uri={d.uri}[m
+[31m-                  onRemove={() => removeDraft(d.att.id)}[m
+[31m-                />[m
+[31m-              ))}[m
+[31m-            </ScrollView>[m
+[31m-          )}[m
+[31m-          {uploading && ([m
+[31m-            <View style={styles.draftStatus}>[m
+[31m-              <ActivityIndicator size="small" color="#C9883A" />[m
+[31m-              <Text style={styles.draftStatusText}>UPLOADING…</Text>[m
+[31m-            </View>[m
+[31m-          )}[m
+[31m-          {uploadError && <Text style={styles.draftError}>{uploadError}</Text>}[m
+[31m-        </View>[m
+[31m-      )}[m
+[31m-[m
+       {/* Input */}[m
+       <View style={[styles.inputRow, { paddingBottom: insets.bottom + bottomPad + 8 }]}>[m
+[31m-        <Pressable[m
+[31m-          style={({ pressed }) => [[m
+[31m-            styles.attachBtn,[m
+[31m-            (!conversationId || uploading || isStreaming) && styles.attachBtnDisabled,[m
+[31m-            pressed && styles.sendBtnPressed,[m
+[31m-          ]}[m
+[31m-          onPress={pickAttachment}[m
+[31m-          disabled={!conversationId || uploading || isStreaming}[m
+[31m-          hitSlop={6}[m
+[31m-        >[m
+[31m-          <Feather[m
+[31m-            name="plus"[m
+[31m-            size={20}[m
+[31m-            color={!conversationId || uploading || isStreaming ? "#333" : "#888"}[m
+[31m-          />[m
+[31m-        </Pressable>[m
+         <TextInput[m
+           ref={inputRef}[m
+           style={styles.input}[m
+[36m@@ -548,16 +321,19 @@[m [mexport default function ChatScreen() {[m
+         <Pressable[m
+           style={({ pressed }) => [[m
+             styles.sendBtn,[m
+[31m-            !canSend && styles.sendBtnDisabled,[m
+[31m-            pressed && canSend && styles.sendBtnPressed,[m
+[32m+[m[32m            (!input.trim() || isStreaming || isLoadingHistory) && styles.sendBtnDisabled,[m
+[32m+[m[32m            pressed && input.trim() && !isStreaming && !isLoadingHistory && styles.sendBtnPressed,[m
+           ]}[m
+[31m-          onPress={doSend}[m
+[31m-          disabled={!canSend}[m
+[32m+[m[32m          onPress={() => {[m
+[32m+[m[32m            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);[m
+[32m+[m[32m            handleSend(input);[m
+[32m+[m[32m          }}[m
+[32m+[m[32m          disabled={!input.trim() || isStreaming || isLoadingHistory}[m
+         >[m
+           {isStreaming ? ([m
+             <ActivityIndicator size="small" color="#666" />[m
+           ) : ([m
+[31m-            <Feather name="arrow-up" size={18} color={canSend ? "#050505" : "#444"} />[m
+[32m+[m[32m            <Feather name="arrow-up" size={18} color={input.trim() ? "#050505" : "#444"} />[m
+           )}[m
+         </Pressable>[m
+       </View>[m
+[36m@@ -669,45 +445,6 @@[m [mconst styles = StyleSheet.create({[m
+     paddingBottom: 12,[m
+     maxHeight: 120,[m
+   },[m
+[31m-  attachBtn: {[m
+[31m-    width: 44,[m
+[31m-    height: 44,[m
+[31m-    borderWidth: 1,[m
+[31m-    borderColor: "#1a1a1a",[m
+[31m-    backgroundColor: "#0a0a0a",[m
+[31m-    alignItems: "center",[m
+[31m-    justifyContent: "center",[m
+[31m-  },[m
+[31m-  attachBtnDisabled: {[m
+[31m-    opacity: 0.5,[m
+[31m-  },[m
+[31m-  draftRow: {[m
+[31m-    paddingHorizontal: 16,[m
+[31m-    paddingTop: 10,[m
+[31m-    gap: 8,[m
+[31m-    borderTopWidth: 1,[m
+[31m-    borderTopColor: "#1a1a1a",[m
+[31m-  },[m
+[31m-  draftStrip: {[m
+[31m-    gap: 8,[m
+[31m-    paddingBottom: 2,[m
+[31m-  },[m
+[31m-  draftStatus: {[m
+[31m-    flexDirection: "row",[m
+[31m-    alignItems: "center",[m
+[31m-    gap: 8,[m
+[31m-  },[m
+[31m-  draftStatusText: {[m
+[31m-    fontFamily: "SpaceMono",[m
+[31m-    fontSize: 9,[m
+[31m-    letterSpacing: 2,[m
+[31m-    color: "#C9883A",[m
+[31m-  },[m
+[31m-  draftError: {[m
+[31m-    fontFamily: "Outfit",[m
+[31m-    fontSize: 12,[m
+[31m-    color: "#d2553f",[m
+[31m-  },[m
+   sendBtn: {[m
+     width: 44,[m
+     height: 44,[m
+[1mdiff --git a/artifacts/frame-mobile/app/(tabs)/home.tsx b/artifacts/frame-mobile/app/(tabs)/home.tsx[m
+[1mindex df84ba9..b474271 100644[m
+[1m--- a/artifacts/frame-mobile/app/(tabs)/home.tsx[m
+[1m+++ b/artifacts/frame-mobile/app/(tabs)/home.tsx[m
+[36m@@ -1,568 +1,116 @@[m
+[32m+[m[32mimport { useAuth } from "@/context/AuthContext";[m
+ import { useRouter } from "expo-router";[m
+[31m-import React, { useMemo, useRef, useState } from "react";[m
+[32m+[m[32mimport React, { useMemo } from "react";[m
+ import {[m
+[31m-  ActivityIndicator,[m
+[31m-  Image,[m
+[31m-  PanResponder,[m
+   Platform,[m
+   Pressable,[m
+[31m-  ScrollView,[m
+   StyleSheet,[m
+   Text,[m
+[31m-  TextInput,[m
+   View,[m
+ } from "react-native";[m
+ import { useSafeAreaInsets } from "react-native-safe-area-context";[m
+[31m-import { LinearGradient } from "expo-linear-gradient";[m
+ import { useQuery } from "@tanstack/react-query";[m
+ import { Feather } from "@expo/vector-icons";[m
+[31m-[m
+[32m+[m[32mimport { OrbNative } from "@/components/OrbNative";[m
+ import { CompetitionBanner } from "@/components/CompetitionBanner";[m
+[31m-import { useAuth } from "@/context/AuthContext";[m
+[31m-import { useFighter } from "@/context/FighterContext";[m
+[31m-import { useActiveCompetition } from "@/hooks/useCompetition";[m
+[31m-import { useIsFramePlus } from "@/hooks/useEntitlement";[m
+[31m-import {[m
+[31m-  useTodayCheckin,[m
+[31m-  useSaveCheckin,[m
+[31m-  useCheckinHistory,[m
+[31m-  type DailyCheckin,[m
+[31m-} from "@/hooks/useCheckin";[m
+[31m-import { apiGet, heroFileUrl } from "@/lib/api";[m
+[31m-import { primaryFocus, type AthleteFact } from "@/lib/primaryFocus";[m
+[32m+[m[32mimport { apiGet } from "@/lib/api";[m
+ [m
+[31m-// ── Real-composite band read (interpretation, not fabrication) ─────────────[m
+[31m-function bandFor(score: number): string {[m
+[31m-  if (score >= 80) return "Primed";[m
+[31m-  if (score >= 65) return "Trainable";[m
+[31m-  if (score >= 45) return "Guarded";[m
+[31m-  return "Depleted";[m
+[31m-}[m
+[31m-[m
+[31m-interface AnalysisListItem {[m
+[32m+[m[32minterface Fact {[m
+   id: number;[m
+[31m-  sessionScore: number | null;[m
+[31m-  locked?: boolean;[m
+[31m-}[m
+[31m-[m
+[31m-const METRIC_LABELS: {[m
+[31m-  key: "sleep" | "energy" | "soreness" | "stress";[m
+[31m-  label: string;[m
+[31m-  hint: string;[m
+[31m-}[] = [[m
+[31m-  { key: "sleep", label: "Sleep", hint: "How rested you woke up" },[m
+[31m-  { key: "energy", label: "Energy", hint: "Fuel in the tank right now" },[m
+[31m-  { key: "soreness", label: "Soreness", hint: "100 = no soreness at all" },[m
+[31m-  { key: "stress", label: "Stress", hint: "100 = completely clear-headed" },[m
+[31m-];[m
+[31m-[m
+[31m-// ── PanResponder slider (0-100) — mobile has no <Slider> dependency ────────[m
+[31m-function MetricSlider({[m
+[31m-  value,[m
+[31m-  onChange,[m
+[31m-}: {[m
+[31m-  value: number;[m
+[31m-  onChange: (v: number) => void;[m
+[31m-}) {[m
+[31m-  const [width, setWidth] = useState(0);[m
+[31m-  const widthRef = useRef(0);[m
+[31m-  const valueRef = useRef(value);[m
+[31m-  valueRef.current = value;[m
+[31m-[m
+[31m-  const setFromX = (x: number) => {[m
+[31m-    const w = widthRef.current;[m
+[31m-    if (w <= 0) return;[m
+[31m-    const pct = Math.max(0, Math.min(1, x / w));[m
+[31m-    onChange(Math.round(pct * 100));[m
+[31m-  };[m
+[31m-[m
+[31m-  const responder = useRef([m
+[31m-    PanResponder.create({[m
+[31m-      onStartShouldSetPanResponder: () => true,[m
+[31m-      onMoveShouldSetPanResponder: () => true,[m
+[31m-      onPanResponderGrant: (e) => setFromX(e.nativeEvent.locationX),[m
+[31m-      onPanResponderMove: (e) => setFromX(e.nativeEvent.locationX),[m
+[31m-    }),[m
+[31m-  ).current;[m
+[31m-[m
+[31m-  return ([m
+[31m-    <View[m
+[31m-      style={sliderStyles.track}[m
+[31m-      onLayout={(e) => {[m
+[31m-        const w = e.nativeEvent.layout.width;[m
+[31m-        widthRef.current = w;[m
+[31m-        setWidth(w);[m
+[31m-      }}[m
+[31m-      {...responder.panHandlers}[m
+[31m-    >[m
+[31m-      <View style={sliderStyles.trackBg} />[m
+[31m-      <View style={[sliderStyles.trackFill, { width: `${value}%` }]} />[m
+[31m-      {width > 0 && ([m
+[31m-        <View[m
+[31m-          style={[[m
+[31m-            sliderStyles.thumb,[m
+[31m-            { left: Math.max(0, Math.min(width - 16, (value / 100) * width - 8)) },[m
+[31m-          ]}[m
+[31m-        />[m
+[31m-      )}[m
+[31m-    </View>[m
+[31m-  );[m
+[31m-}[m
+[31m-[m
+[31m-const sliderStyles = StyleSheet.create({[m
+[31m-  track: {[m
+[31m-    height: 28,[m
+[31m-    justifyContent: "center",[m
+[31m-  },[m
+[31m-  trackBg: {[m
+[31m-    position: "absolute",[m
+[31m-    left: 0,[m
+[31m-    right: 0,[m
+[31m-    height: 3,[m
+[31m-    borderRadius: 2,[m
+[31m-    backgroundColor: "#1e1e1e",[m
+[31m-  },[m
+[31m-  trackFill: {[m
+[31m-    position: "absolute",[m
+[31m-    left: 0,[m
+[31m-    height: 3,[m
+[31m-    borderRadius: 2,[m
+[31m-    backgroundColor: "#C9883A",[m
+[31m-  },[m
+[31m-  thumb: {[m
+[31m-    position: "absolute",[m
+[31m-    width: 16,[m
+[31m-    height: 16,[m
+[31m-    borderRadius: 8,[m
+[31m-    backgroundColor: "#C9883A",[m
+[31m-    top: 6,[m
+[31m-  },[m
+[31m-});[m
+[31m-[m
+[31m-function CheckinForm({[m
+[31m-  existing,[m
+[31m-  onDone,[m
+[31m-}: {[m
+[31m-  existing: DailyCheckin | null;[m
+[31m-  onDone: () => void;[m
+[31m-}) {[m
+[31m-  const save = useSaveCheckin();[m
+[31m-  const [values, setValues] = useState({[m
+[31m-    sleep: existing?.sleep ?? 70,[m
+[31m-    energy: existing?.energy ?? 70,[m
+[31m-    soreness: existing?.soreness ?? 70,[m
+[31m-    stress: existing?.stress ?? 70,[m
+[31m-  });[m
+[31m-  const [hr, setHr] = useState([m
+[31m-    existing?.restingHr != null ? String(existing.restingHr) : "",[m
+[31m-  );[m
+[31m-  const [err, setErr] = useState<string | null>(null);[m
+[31m-[m
+[31m-  const submit = () => {[m
+[31m-    const restingHr = hr.trim() === "" ? null : Number(hr);[m
+[31m-    if ([m
+[31m-      restingHr != null &&[m
+[31m-      (!Number.isInteger(restingHr) || restingHr < 25 || restingHr > 220)[m
+[31m-    ) {[m
+[31m-      setErr("Resting HR must be a whole number between 25 and 220.");[m
+[31m-      return;[m
+[31m-    }[m
+[31m-    setErr(null);[m
+[31m-    save.mutate([m
+[31m-      { ...values, restingHr },[m
+[31m-      {[m
+[31m-        onSuccess: onDone,[m
+[31m-        onError: (e) =>[m
+[31m-          setErr(e instanceof Error ? e.message : "Couldn't save check-in"),[m
+[31m-      },[m
+[31m-    );[m
+[31m-  };[m
+[31m-[m
+[31m-  return ([m
+[31m-    <View style={styles.formCard}>[m
+[31m-      <Text style={styles.formIntro}>[m
+[31m-        RATE HOW YOU ACTUALLY FEEL. 100 = FULLY RECOVERED.[m
+[31m-      </Text>[

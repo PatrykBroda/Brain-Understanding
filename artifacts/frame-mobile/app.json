@@ -33,6 +33,13 @@
         {
           "photosPermission": "Allow FRAME to access your camera roll to select session footage."
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow FRAME to use the microphone for voice input in chat.",
+          "speechRecognitionPermission": "Allow FRAME to transcribe your speech into chat messages."
+        }
       ]
     ],
     "experiments": {
