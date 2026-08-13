@@ -68,11 +68,21 @@ interface AnalysisResult {
 
 const KINDS: { value: AnalysisKind; label: string }[] = [
   { value: "sparring", label: "Sparring" },
-  { value: "padwork", label: "Pad work" },
+  { value: "padwork", label: "Padwork" },
   { value: "shadowboxing", label: "Shadow" },
   { value: "drilling", label: "Drilling" },
   { value: "movement", label: "Movement" },
   { value: "lifting", label: "Lifting" },
+];
+
+const FOCUS_PRESETS: { label: string; value: string }[] = [
+  { label: "Overall", value: "" },
+  { label: "Striking", value: "my striking — output, distance, shot selection" },
+  { label: "Grappling", value: "my grappling — control, transitions, scrambles" },
+  { label: "Footwork", value: "my footwork and positioning" },
+  { label: "Defence", value: "my defence under pressure" },
+  { label: "Fight IQ", value: "my decision-making and fight IQ" },
+  { label: "Pace", value: "my pace and output under fatigue" },
 ];
 
 const LOADS: { value: NervousSystemLoad; label: string; desc: string }[] = [
@@ -324,6 +334,10 @@ export default function AnalyseScreen() {
   const [load, setLoad] = useState<NervousSystemLoad>("moderate");
   const [scores, setScores] = useState(initialScores);
   const [focusPrompt, setFocusPrompt] = useState("");
+  const [subject, setSubject] = useState<"self" | "opponent">("self");
+  const [opponentName, setOpponentName] = useState("");
+  const [sourceMode, setSourceMode] = useState<"upload" | "link">("upload");
+  const [linkUrl, setLinkUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -558,6 +572,9 @@ export default function AnalyseScreen() {
         sessionScore,
         focus: focusPrompt.trim() || undefined,
         durationSec,
+        subject: subject === "opponent" ? "opponent" : undefined,
+        opponentName:
+          subject === "opponent" ? opponentName.trim() || undefined : undefined,
       });
       setResult(res.analysis);
       qc.invalidateQueries({ queryKey: ["memory"] });
@@ -576,6 +593,10 @@ export default function AnalyseScreen() {
     setLoad("moderate");
     setScores(initialScores);
     setFocusPrompt("");
+    setSubject("self");
+    setOpponentName("");
+    setSourceMode("upload");
+    setLinkUrl("");
     setOpenId(null);
     setResultSource("form");
     setHistoryMode(false);
@@ -756,6 +777,17 @@ export default function AnalyseScreen() {
     );
   }
 
+  const accent = subject === "opponent" ? "#31B1ED" : "#C52626";
+  const accentText = subject === "opponent" ? "#7CCBEB" : "#D77575";
+  const accentBg =
+    subject === "opponent" ? "rgba(49,177,237,0.08)" : "rgba(197,38,38,0.08)";
+
+  const submitDisabled =
+    submitting ||
+    (sourceMode === "upload" && !video) ||
+    (sourceMode === "link" && !linkUrl.trim()) ||
+    (subject === "opponent" && !opponentName.trim());
+
   return (
     <ScrollView
       style={[styles.root, { paddingTop: topPad }]}
@@ -764,117 +796,271 @@ export default function AnalyseScreen() {
     >
       <View style={styles.header}>
         <View style={{ width: 28 }} />
-        <Text style={styles.headerTitle}>SESSION DEBRIEF</Text>
+        <Text style={styles.headerTitle}>ANALYSE</Text>
         <Pressable onPress={handleEnterHistory} hitSlop={12} accessibilityLabel="View past sessions" accessibilityRole="button">
           <Feather name="clock" size={18} color="#555" />
         </Pressable>
       </View>
 
-      {/* Footage picker */}
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>FOOTAGE</Text>
-        {video ? (
-          <View style={styles.videoSelected}>
-            <Feather name="video" size={16} color="#C9883A" />
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={styles.videoName} numberOfLines={1}>
-                {video.fileName ?? "Selected clip"}
-              </Text>
-              {video.duration != null && video.duration > 0 ? (
-                <Text style={styles.videoDuration}>{formatDuration(video.duration)}</Text>
-              ) : null}
-            </View>
-            <Pressable
-              onPress={() => setVideo(null)}
-              hitSlop={10}
-              style={styles.removeVideoBtn}
-            >
-              <Feather name="x" size={14} color="#444" />
-            </Pressable>
-          </View>
-        ) : (
-          <Pressable
-            style={({ pressed }) => [styles.pickVideoBtn, pressed && { opacity: 0.8 }]}
-            onPress={pickVideo}
+      {/* Mode toggle */}
+      <View style={[styles.section, styles.modeRow]}>
+        <Pressable
+          style={[
+            styles.modeBtn,
+            subject === "self" && {
+              borderColor: "#C52626",
+              backgroundColor: "rgba(197,38,38,0.08)",
+            },
+          ]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setSubject("self");
+          }}
+        >
+          <Text
+            style={[
+              styles.modeBtnText,
+              subject === "self" && { color: "#D77575" },
+            ]}
           >
-            <Feather name="video" size={14} color="#666" />
-            <Text style={styles.pickVideoBtnText}>SELECT FROM CAMERA ROLL</Text>
-          </Pressable>
-        )}
-        <Text style={styles.sectionHint}>Optional. Helps FRAME read your session in context.</Text>
+            YOUR READ
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[
+            styles.modeBtn,
+            subject === "opponent" && {
+              borderColor: "#31B1ED",
+              backgroundColor: "rgba(49,177,237,0.08)",
+            },
+          ]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setSubject("opponent");
+          }}
+        >
+          <Text
+            style={[
+              styles.modeBtnText,
+              subject === "opponent" && { color: "#7CCBEB" },
+            ]}
+          >
+            OPPONENT SCOUT
+          </Text>
+        </Pressable>
       </View>
 
-      {/* Session type */}
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>SESSION TYPE</Text>
-        <View style={styles.chipGrid}>
-          {KINDS.map((k) => (
-            <Pressable
-              key={k.value}
-              style={[styles.chip, kind === k.value && styles.chipActive]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setKind(k.value);
-              }}
-            >
-              <Text style={[styles.chipText, kind === k.value && styles.chipTextActive]}>
-                {k.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+      {/* Movement-read intro block */}
+      <View style={[styles.introBlock, { borderLeftColor: accent }]}>
+        <Text style={[styles.introLabel, { color: accent }]}>
+          {subject === "opponent" ? "OPPONENT SCOUT" : "MOVEMENT READ"}
+        </Text>
+        <Text style={styles.introBody}>
+          {subject === "opponent"
+            ? "Upload footage of your opponent. The system builds a categorical scouting model and contrasts it against your own recorded model for the matchup."
+            : "Upload a clip. The system reads your movement directly — guard, base, shoulders, output rhythm — scores it against itself, and tells you what your nervous system is doing under load."}
+        </Text>
+        <Text style={styles.introCaption}>
+          PROCESSED ON DEVICE · ONLY THE READ IS KEPT
+        </Text>
       </View>
 
-      {/* Intensity */}
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>INTENSITY</Text>
-        <View style={styles.loadRow}>
-          {LOADS.map((l) => (
-            <Pressable
-              key={l.value}
-              style={[styles.loadBtn, load === l.value && styles.loadBtnActive]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setLoad(l.value);
-              }}
-            >
-              <Text style={[styles.loadBtnLabel, load === l.value && styles.loadBtnLabelActive]}>
-                {l.label}
-              </Text>
-              <Text style={styles.loadBtnDesc}>{l.desc}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      {/* Assessment */}
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>SELF-ASSESSMENT</Text>
-        {DIMENSIONS.map((d) => (
-          <View key={d.key} style={styles.dimBlock}>
-            <Text style={styles.dimLabel}>{d.label}</Text>
-            <Text style={styles.dimQuestion}>{d.question}</Text>
-            <ScoreSelector
-              value={scores[d.key]}
-              onChange={(v) => setScores((prev) => ({ ...prev, [d.key]: v }))}
-            />
+      {/* Opponent name */}
+      {subject === "opponent" ? (
+        <View style={styles.section}>
+          <View style={styles.labelRow}>
+            <Text style={[styles.sectionLabel, { color: accent, marginBottom: 0 }]}>
+              OPPONENT NAME
+            </Text>
+            <Text style={styles.optionalLabel}>optional</Text>
           </View>
-        ))}
+          <TextInput
+            style={styles.textInput}
+            value={opponentName}
+            onChangeText={setOpponentName}
+            placeholder="who are you scouting?"
+            placeholderTextColor="#333"
+            maxLength={80}
+          />
+        </View>
+      ) : null}
+
+      {/* Clip type */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: accent }]}>CLIP TYPE</Text>
+        <View style={styles.gridRow}>
+          {KINDS.map((k) => {
+            const active = kind === k.value;
+            return (
+              <Pressable
+                key={k.value}
+                style={[
+                  styles.gridBtn,
+                  active && { borderColor: accent, backgroundColor: accentBg },
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setKind(k.value);
+                }}
+              >
+                <Text
+                  style={[styles.gridBtnText, active && { color: accentText }]}
+                >
+                  {k.label.toUpperCase()}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
-      {/* Focus prompt */}
+      {/* Focus area */}
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>FOCUS PROMPT</Text>
-        <Text style={styles.sectionHint}>Anything specific FRAME should read? (optional)</Text>
+        <View style={styles.labelRow}>
+          <Text style={[styles.sectionLabel, { color: accent, marginBottom: 0 }]}>
+            FOCUS AREA
+          </Text>
+          <Text style={styles.optionalLabel}>optional</Text>
+        </View>
         <TextInput
-          style={styles.focusInput}
+          style={[styles.textInput, { marginTop: 10 }]}
           value={focusPrompt}
           onChangeText={setFocusPrompt}
-          placeholder="e.g. my guard retention under pressure"
+          placeholder="guard under fatigue, left shoulder, pressure after a miss…"
           placeholderTextColor="#333"
-          multiline
           maxLength={200}
         />
+        <View style={styles.chipWrap}>
+          {FOCUS_PRESETS.map((preset) => {
+            const active =
+              preset.value === ""
+                ? focusPrompt === ""
+                : focusPrompt === preset.value;
+            return (
+              <Pressable
+                key={preset.label}
+                style={[
+                  styles.presetChip,
+                  active && { borderColor: accent, backgroundColor: accentBg },
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setFocusPrompt(preset.value);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.presetChipText,
+                    active && { color: accentText },
+                  ]}
+                >
+                  {preset.label.toUpperCase()}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Source toggle + upload */}
+      <View style={styles.section}>
+        <View style={styles.modeRow}>
+          <Pressable
+            style={[
+              styles.modeBtn,
+              sourceMode === "upload" && {
+                borderColor: accent,
+                backgroundColor: accentBg,
+              },
+            ]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setSourceMode("upload");
+            }}
+          >
+            <Text
+              style={[
+                styles.modeBtnText,
+                sourceMode === "upload" && { color: accentText },
+              ]}
+            >
+              UPLOAD FILE
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.modeBtn,
+              sourceMode === "link" && {
+                borderColor: accent,
+                backgroundColor: accentBg,
+              },
+            ]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setSourceMode("link");
+            }}
+          >
+            <Text
+              style={[
+                styles.modeBtnText,
+                sourceMode === "link" && { color: accentText },
+              ]}
+            >
+              PASTE LINK
+            </Text>
+          </Pressable>
+        </View>
+
+        {sourceMode === "upload" ? (
+          video ? (
+            <View style={[styles.videoSelected, { marginTop: 12, borderColor: accent }]}>
+              <Feather name="video" size={16} color={accent} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.videoName} numberOfLines={1}>
+                  {video.fileName ?? "Selected clip"}
+                </Text>
+                {video.duration != null && video.duration > 0 ? (
+                  <Text style={styles.videoDuration}>{formatDuration(video.duration)}</Text>
+                ) : null}
+              </View>
+              <Pressable
+                onPress={() => setVideo(null)}
+                hitSlop={10}
+                style={styles.removeVideoBtn}
+              >
+                <Feather name="x" size={14} color="#444" />
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              style={({ pressed }) => [styles.dropZone, pressed && { opacity: 0.8 }]}
+              onPress={pickVideo}
+            >
+              <Feather name="upload" size={22} color="#555" />
+              <Text style={styles.dropZoneText}>DROP FOOTAGE</Text>
+              <Text style={styles.dropZoneHint}>MP4 · MOV · FIRST 75S PROCESSED</Text>
+            </Pressable>
+          )
+        ) : (
+          <>
+            <View style={styles.linkBox}>
+              <Feather name="link" size={16} color="#555" />
+              <TextInput
+                style={styles.linkInput}
+                value={linkUrl}
+                onChangeText={setLinkUrl}
+                placeholder="https://…"
+                placeholderTextColor="#333"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+            </View>
+            <Text style={styles.sectionHint}>
+              Direct video links (.mp4 / .mov), Google Drive and Dropbox links work best. The clip is read on this device, nothing else is stored.
+            </Text>
+          </>
+        )}
       </View>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -882,16 +1068,17 @@ export default function AnalyseScreen() {
       <Pressable
         style={({ pressed }) => [
           styles.submitBtn,
-          submitting && styles.submitBtnDisabled,
-          pressed && !submitting && { opacity: 0.85 },
+          { backgroundColor: accent },
+          submitDisabled && styles.submitBtnDisabled,
+          pressed && !submitDisabled && { opacity: 0.85 },
         ]}
         onPress={handleSubmit}
-        disabled={submitting}
+        disabled={submitDisabled}
       >
         {submitting ? (
-          <ActivityIndicator color="#050505" />
+          <ActivityIndicator color="#f5f5f5" />
         ) : (
-          <Text style={styles.submitBtnText}>BUILD FRAME REPORT</Text>
+          <Text style={[styles.submitBtnText, { color: "#f5f5f5" }]}>ANALYSE</Text>
         )}
       </Pressable>
     </ScrollView>
@@ -1026,6 +1213,139 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     minHeight: 60,
     marginTop: 8,
+  },
+  modeRow: { flexDirection: "row", gap: 8 },
+  modeBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modeBtnText: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 2,
+    color: "#555",
+  },
+  introBlock: {
+    borderLeftWidth: 2,
+    paddingLeft: 14,
+    paddingVertical: 4,
+    marginBottom: 28,
+  },
+  introLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 3,
+    marginBottom: 8,
+  },
+  introBody: {
+    fontFamily: "Outfit",
+    fontSize: 13,
+    color: "#888",
+    lineHeight: 20,
+  },
+  introCaption: {
+    fontFamily: "SpaceMono",
+    fontSize: 8,
+    letterSpacing: 1,
+    color: "#444",
+    marginTop: 10,
+  },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  optionalLabel: {
+    fontFamily: "Outfit",
+    fontSize: 11,
+    color: "#444",
+  },
+  textInput: {
+    backgroundColor: "#0a0a0a",
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    color: "#e0e0e0",
+    fontFamily: "Outfit",
+    fontSize: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 10,
+  },
+  gridRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  gridBtn: {
+    width: "31.5%",
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gridBtnText: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 1,
+    color: "#555",
+  },
+  chipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 12,
+  },
+  presetChip: {
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
+  presetChipText: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 1,
+    color: "#555",
+  },
+  dropZone: {
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    borderStyle: "dashed",
+    paddingVertical: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 12,
+  },
+  dropZoneText: {
+    fontFamily: "SpaceMono",
+    fontSize: 11,
+    letterSpacing: 3,
+    color: "#888",
+  },
+  dropZoneHint: {
+    fontFamily: "SpaceMono",
+    fontSize: 8,
+    letterSpacing: 1,
+    color: "#444",
+  },
+  linkBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    backgroundColor: "#0a0a0a",
+    paddingHorizontal: 14,
+    marginTop: 12,
+  },
+  linkInput: {
+    flex: 1,
+    color: "#e0e0e0",
+    fontFamily: "Outfit",
+    fontSize: 14,
+    paddingVertical: 12,
   },
   errorText: {
     fontFamily: "Outfit",
