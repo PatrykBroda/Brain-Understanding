@@ -1,6 +1,7 @@
 import { useAuth } from "@/context/AuthContext";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -19,14 +20,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import {
   apiGet,
+  apiPost,
   apiStream,
   attachmentFileUrl,
   uploadAttachment,
   type AttachmentDto,
 } from "@/lib/api";
 import { useFighter } from "@/context/FighterContext";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { MessageContent } from "@/components/MessageContent";
 import { CompetitionBanner } from "@/components/CompetitionBanner";
+
+const FRAME_WORDMARK = require("@/assets/images/frame-wordmark.png");
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 
@@ -43,13 +48,40 @@ function uid() {
   return `m-${Date.now()}-${_counter}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-const QUICK_ACTIONS = [
-  "Analyse session",
-  "Build a drill",
-  "Fix my game",
-  "Competition prep",
-  "Regulate",
-  "Reflect",
+const QUICK_ACTIONS: { label: string; prompt: string }[] = [
+  {
+    label: "Analyse session",
+    prompt:
+      "Debrief my last training session — what fragmented, what held, what's the next rep.",
+  },
+  {
+    label: "Build drill",
+    prompt:
+      "Prescribe me a drill for my biggest current weakness. Use the drill block.",
+  },
+  {
+    label: "Fix my game",
+    prompt:
+      "Diagnose the recurring leak in my game right now and tell me the protocol to close it.",
+  },
+  {
+    label: "Competition prep",
+    prompt:
+      "Walk me through how to prepare my nervous system and tactics for an upcoming competition.",
+  },
+  { label: "Regulate", prompt: "I need to regulate right now. Produce a regulate block." },
+  {
+    label: "Reflect",
+    prompt:
+      "Ask me one sharp question to surface what I'm not seeing about my training this week.",
+  },
+];
+
+const SUGGESTED_PROMPTS = [
+  "Debrief tonight's roll",
+  "I fragmented under pressure today",
+  "Walk me through a containment cycle",
+  "What's my next rep on the half-guard pass?",
 ];
 
 // A single attached image/video. Drafts pass a local `uri` (instant preview,
@@ -88,36 +120,66 @@ function AttachmentThumb({
 function MessageBubble({
   msg,
   onTrain,
+  userLabel,
 }: {
   msg: Message;
   onTrain: (prompt: string) => void;
+  userLabel: string;
 }) {
   const isUser = msg.role === "user";
   const hasAttachments = (msg.attachments?.length ?? 0) > 0;
   return (
-    <View style={[mb.row, isUser ? mb.userRow : mb.assistantRow]}>
-      {!isUser && <View style={mb.dot} />}
-      <View style={[mb.bubble, isUser ? mb.userBubble : mb.assistantBubble]}>
-        {hasAttachments && (
-          <View style={mb.attachGrid}>
-            {msg.attachments!.map((a) => (
-              <AttachmentThumb key={a.id} att={a} />
-            ))}
-          </View>
-        )}
-        {isUser ? (
-          msg.content ? (
-            <Text style={[mb.text, mb.userText]}>{msg.content}</Text>
-          ) : null
-        ) : (
-          <MessageContent content={msg.content} onTrain={onTrain} />
-        )}
+    <View style={[mb.wrap, isUser ? mb.wrapUser : mb.wrapAssistant]}>
+      <Text style={[mb.senderLabel, isUser ? mb.senderLabelUser : mb.senderLabelFrame]}>
+        {isUser ? userLabel : "FRAME"}
+      </Text>
+      <View style={[mb.row, isUser ? mb.userRow : mb.assistantRow]}>
+        {!isUser && <View style={mb.dot} />}
+        <View style={[mb.bubble, isUser ? mb.userBubble : mb.assistantBubble]}>
+          {hasAttachments && (
+            <View style={mb.attachGrid}>
+              {msg.attachments!.map((a) => (
+                <AttachmentThumb key={a.id} att={a} />
+              ))}
+            </View>
+          )}
+          {isUser ? (
+            msg.content ? (
+              <Text style={[mb.text, mb.userText]}>{msg.content}</Text>
+            ) : null
+          ) : (
+            <MessageContent content={msg.content} onTrain={onTrain} />
+          )}
+        </View>
       </View>
     </View>
   );
 }
 
 const mb = StyleSheet.create({
+  wrap: {
+    marginVertical: 10,
+  },
+  wrapUser: {
+    alignItems: "flex-end",
+  },
+  wrapAssistant: {
+    alignItems: "flex-start",
+  },
+  senderLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 4,
+    textTransform: "uppercase",
+    marginBottom: 6,
+    paddingHorizontal: 20,
+  },
+  senderLabelUser: {
+    color: "rgba(224,224,224,0.4)",
+  },
+  senderLabelFrame: {
+    color: "rgba(201,136,58,0.7)",
+  },
   row: {
     flexDirection: "row",
     marginVertical: 4,
@@ -228,8 +290,11 @@ interface ConversationResponse {
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { fighter } = useFighter();
   const { isSignedIn } = useAuth();
+
+  const userLabel = (fighter?.name ?? "Operator").toUpperCase();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -240,7 +305,20 @@ export default function ChatScreen() {
   const [drafts, setDrafts] = useState<{ att: AttachmentDto; uri: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
   const inputRef = useRef<TextInput>(null);
+
+  const {
+    supported: voiceSupported,
+    listening,
+    toggle: toggleVoice,
+    stop: stopVoice,
+  } = useSpeechRecognition({ onTranscript: setInput });
+
+  // Stop listening the moment a response starts streaming.
+  useEffect(() => {
+    if (isStreaming && listening) stopVoice();
+  }, [isStreaming, listening, stopVoice]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   // On native the tab bar is absolutely positioned at 50px + safe-area inset,
@@ -362,6 +440,24 @@ export default function ChatScreen() {
     handleSend(prompt);
   }
 
+  async function resetConversation() {
+    if (isStreaming || resetting) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    setResetting(true);
+    try {
+      const data = await apiPost<ConversationResponse>("/conversation/reset");
+      setConversationId(data.conversation?.id ?? null);
+      setMessages([]);
+      setInput("");
+      setDrafts([]);
+      setUploadError(null);
+    } catch {
+      // reset failed — leave the current thread intact
+    } finally {
+      setResetting(false);
+    }
+  }
+
   async function pickAttachment() {
     if (!conversationId) {
       setUploadError("Send a message first to start the conversation.");
@@ -434,10 +530,30 @@ export default function ChatScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.orbDot} />
-          <Text style={styles.fighterName}>{fighter?.name ?? "FRAME"}</Text>
-        </View>
+        <Pressable
+          style={styles.headerBack}
+          onPress={() => router.push("/(tabs)/home")}
+          hitSlop={8}
+        >
+          <Feather name="chevron-left" size={20} color="#888" />
+          <Text style={styles.headerBackText}>FRAME</Text>
+        </Pressable>
+        <Image source={FRAME_WORDMARK} style={styles.headerWordmark} resizeMode="contain" />
+        <Pressable
+          style={styles.headerReset}
+          onPress={resetConversation}
+          disabled={isStreaming || resetting}
+          hitSlop={8}
+        >
+          {resetting ? (
+            <ActivityIndicator size="small" color="#888" />
+          ) : (
+            <>
+              <Feather name="refresh-ccw" size={12} color="#888" />
+              <Text style={styles.headerResetText}>RESET</Text>
+            </>
+          )}
+        </Pressable>
       </View>
 
       <CompetitionBanner />
@@ -451,7 +567,9 @@ export default function ChatScreen() {
         <FlatList
           data={reversed}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <MessageBubble msg={item} onTrain={handleSend} />}
+          renderItem={({ item }) => (
+            <MessageBubble msg={item} onTrain={handleSend} userLabel={userLabel} />
+          )}
           inverted={messages.length > 0}
           ListHeaderComponent={showTyping ? <TypingIndicator /> : null}
           keyboardDismissMode="interactive"
@@ -459,8 +577,26 @@ export default function ChatScreen() {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>FRAME</Text>
-              <Text style={styles.emptyText}>Your performance intelligence system is ready.</Text>
+              <Text style={styles.emptyOpen}>FRAME OPEN</Text>
+              <Text style={styles.emptyText}>
+                Say what happened. Debrief a session, request a drill, regulate, or reflect.
+              </Text>
+              <View style={styles.suggestGrid}>
+                {SUGGESTED_PROMPTS.map((prompt) => (
+                  <Pressable
+                    key={prompt}
+                    style={({ pressed }) => [
+                      styles.suggestBtn,
+                      pressed && styles.suggestBtnPressed,
+                    ]}
+                    onPress={() => sendQuick(prompt)}
+                    disabled={isStreaming || isLoadingHistory}
+                  >
+                    <Text style={styles.suggestDash}>—</Text>
+                    <Text style={styles.suggestText}>{prompt}</Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
           }
         />
@@ -476,12 +612,12 @@ export default function ChatScreen() {
         >
           {QUICK_ACTIONS.map((a) => (
             <Pressable
-              key={a}
+              key={a.label}
               style={({ pressed }) => [styles.quickChip, pressed && styles.quickChipPressed]}
-              onPress={() => sendQuick(a)}
+              onPress={() => sendQuick(a.prompt)}
               disabled={isStreaming}
             >
-              <Text style={styles.quickText}>{a}</Text>
+              <Text style={styles.quickText}>{a.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -539,12 +675,25 @@ export default function ChatScreen() {
           style={styles.input}
           value={input}
           onChangeText={setInput}
-          placeholder="Enter transmission..."
+          placeholder={listening ? "Listening..." : "Enter transmission..."}
           placeholderTextColor="#444"
           multiline
           maxLength={2000}
           blurOnSubmit={false}
         />
+        {voiceSupported && !isStreaming && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.micBtn,
+              listening && styles.micBtnLive,
+              pressed && styles.sendBtnPressed,
+            ]}
+            onPress={toggleVoice}
+            hitSlop={6}
+          >
+            <Feather name="mic" size={18} color={listening ? "#d2553f" : "#888"} />
+          </Pressable>
+        )}
         <Pressable
           style={({ pressed }) => [
             styles.sendBtn,
@@ -574,27 +723,39 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#1a1a1a",
   },
-  headerLeft: {
+  headerBack: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 4,
+    minWidth: 76,
   },
-  orbDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#C9883A",
-  },
-  fighterName: {
+  headerBackText: {
     fontFamily: "SpaceMono",
-    fontSize: 12,
+    fontSize: 10,
     letterSpacing: 3,
-    color: "#e0e0e0",
+    color: "#888",
+  },
+  headerWordmark: {
+    width: 96,
+    height: 22,
+  },
+  headerReset: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 6,
+    minWidth: 76,
+  },
+  headerResetText: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 3,
+    color: "#888",
   },
   listContent: {
     paddingVertical: 12,
@@ -604,22 +765,53 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 80,
-    paddingHorizontal: 32,
+    paddingVertical: 60,
+    paddingHorizontal: 28,
   },
-  emptyTitle: {
+  emptyOpen: {
     fontFamily: "SpaceMono",
-    fontSize: 24,
-    letterSpacing: 10,
-    color: "#1a1a1a",
-    marginBottom: 12,
+    fontSize: 11,
+    letterSpacing: 8,
+    color: "rgba(224,224,224,0.45)",
+    marginBottom: 16,
   },
   emptyText: {
     fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#444",
+    fontSize: 16,
+    color: "rgba(224,224,224,0.7)",
     textAlign: "center",
-    lineHeight: 22,
+    lineHeight: 24,
+    maxWidth: 320,
+    marginBottom: 28,
+  },
+  suggestGrid: {
+    width: "100%",
+    maxWidth: 420,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+  },
+  suggestBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.06)",
+  },
+  suggestBtnPressed: {
+    backgroundColor: "rgba(255,255,255,0.02)",
+  },
+  suggestDash: {
+    fontFamily: "SpaceMono",
+    fontSize: 12,
+    color: "rgba(201,136,58,0.5)",
+  },
+  suggestText: {
+    fontFamily: "SpaceMono",
+    fontSize: 12,
+    letterSpacing: 0.5,
+    color: "rgba(224,224,224,0.55)",
+    flexShrink: 1,
   },
   quickRow: {
     borderTopWidth: 1,
@@ -680,6 +872,19 @@ const styles = StyleSheet.create({
   },
   attachBtnDisabled: {
     opacity: 0.5,
+  },
+  micBtn: {
+    width: 44,
+    height: 44,
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    backgroundColor: "#0a0a0a",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  micBtnLive: {
+    borderColor: "#d2553f",
+    backgroundColor: "rgba(210,85,63,0.12)",
   },
   draftRow: {
     paddingHorizontal: 16,
