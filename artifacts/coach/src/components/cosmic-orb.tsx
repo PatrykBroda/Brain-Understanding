@@ -310,81 +310,74 @@ function Wireframe({ live }: { live: MutableRefObject<Cfg> }) {
   );
 }
 
+// Each orbiting line: radius, tube thickness, initial tilt, and per-axis spin
+// multipliers (all scaled by the live ringSpeed). Adding a line = adding a row.
+interface RingDef {
+  r: number;
+  tube: number;
+  tilt: [number, number, number];
+  spin: { x?: number; y?: number; z?: number };
+}
+const RING_DEFS: RingDef[] = [
+  // Closest ring — near equatorial, thickest
+  { r: 1.42, tube: 0.006, tilt: [Math.PI / 2.1, 0, 0], spin: { z: 1.0 } },
+  // Tight inner counter-orbit
+  { r: 1.50, tube: 0.0055, tilt: [Math.PI / 2.6, Math.PI / 4.5, 0.2], spin: { x: 0.6, y: -0.3 } },
+  // Tilted, slightly wider
+  { r: 1.60, tube: 0.005, tilt: [Math.PI / 3.4, Math.PI / 5.5, 0], spin: { x: 0.68, y: 0.35 } },
+  // Steep polar-ish crosser
+  { r: 1.70, tube: 0.0045, tilt: [Math.PI / 2.3, Math.PI / 2.8, 0.5], spin: { y: -0.4, z: 0.22 } },
+  // Opposite tilt
+  { r: 1.78, tube: 0.004, tilt: [Math.PI / 2.7, Math.PI / 3.2, 0], spin: { y: -0.52, z: 0.28 } },
+  // Mid outer band, canted
+  { r: 1.88, tube: 0.0035, tilt: [Math.PI / 4.5, Math.PI / 3.6, -0.4], spin: { x: 0.5, z: -0.3 } },
+  // Outer halo band
+  { r: 1.96, tube: 0.003, tilt: [Math.PI / 4, Math.PI / 6, 0.4], spin: { x: -0.44, z: -0.18 } },
+  // Widest, ghostly outer sentinel
+  { r: 2.16, tube: 0.002, tilt: [Math.PI / 5.5, Math.PI / 4, 0.8], spin: { y: 0.32, x: 0.22 } },
+];
+// Fade weights per ring — inner rings brighter, outer rings more ghostly
+const RING_FADE = RING_DEFS.map((_, i) => Math.max(0.28, 1 - i * 0.095));
+
 function Rings({ live }: { live: MutableRefObject<Cfg> }) {
-  const refs = [
-    useRef<THREE.Mesh>(null),
-    useRef<THREE.Mesh>(null),
-    useRef<THREE.Mesh>(null),
-    useRef<THREE.Mesh>(null),
-    useRef<THREE.Mesh>(null),
-  ] as const;
-  const mats = [
-    useRef<THREE.MeshBasicMaterial>(null),
-    useRef<THREE.MeshBasicMaterial>(null),
-    useRef<THREE.MeshBasicMaterial>(null),
-    useRef<THREE.MeshBasicMaterial>(null),
-    useRef<THREE.MeshBasicMaterial>(null),
-  ] as const;
+  const refs = useMemo(
+    () => RING_DEFS.map(() => ({ current: null as THREE.Mesh | null })),
+    [],
+  );
+  const mats = useMemo(
+    () => RING_DEFS.map(() => ({ current: null as THREE.MeshBasicMaterial | null })),
+    [],
+  );
   const scratch = useMemo(() => new THREE.Color(), []);
-  // Fade weights per ring — inner rings brighter, outer rings more ghostly
-  const FADE = [1.0, 0.82, 0.64, 0.48, 0.34] as const;
 
   useFrame((_, dt) => {
     const cfg = live.current;
-    if (refs[0].current) refs[0].current.rotation.z += cfg.ringSpeed * dt;
-    if (refs[1].current) {
-      refs[1].current.rotation.x += cfg.ringSpeed * 0.68 * dt;
-      refs[1].current.rotation.y += cfg.ringSpeed * 0.35 * dt;
-    }
-    if (refs[2].current) {
-      refs[2].current.rotation.y -= cfg.ringSpeed * 0.52 * dt;
-      refs[2].current.rotation.z += cfg.ringSpeed * 0.28 * dt;
-    }
-    if (refs[3].current) {
-      refs[3].current.rotation.x -= cfg.ringSpeed * 0.44 * dt;
-      refs[3].current.rotation.z -= cfg.ringSpeed * 0.18 * dt;
-    }
-    if (refs[4].current) {
-      refs[4].current.rotation.y += cfg.ringSpeed * 0.32 * dt;
-      refs[4].current.rotation.x += cfg.ringSpeed * 0.22 * dt;
+    for (let i = 0; i < RING_DEFS.length; i++) {
+      const mesh = refs[i].current;
+      if (!mesh) continue;
+      const s = RING_DEFS[i].spin;
+      if (s.x) mesh.rotation.x += cfg.ringSpeed * s.x * dt;
+      if (s.y) mesh.rotation.y += cfg.ringSpeed * s.y * dt;
+      if (s.z) mesh.rotation.z += cfg.ringSpeed * s.z * dt;
     }
     // Ring colour matches orb state — lighter band so they read against the dark sphere
     scratch.setHSL(cfg.hue / 360, cfg.sat * 0.7, Math.min(0.92, cfg.light + 0.18));
-    // Base opacity significantly higher than before so rings feel physical
+    // Base opacity high so rings feel physical
     const baseOp = 0.42 + cfg.emissive * 1.1;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < RING_DEFS.length; i++) {
       const m = mats[i].current;
-      if (m) { m.color.copy(scratch); m.opacity = Math.min(0.88, baseOp * FADE[i]); }
+      if (m) { m.color.copy(scratch); m.opacity = Math.min(0.88, baseOp * RING_FADE[i]); }
     }
   });
 
   return (
     <group>
-      {/* Closest ring — near equatorial, thickest */}
-      <mesh ref={refs[0]} rotation={[Math.PI / 2.1, 0, 0]}>
-        <torusGeometry args={[1.42, 0.006, 8, 256]} />
-        <meshBasicMaterial ref={mats[0]} transparent blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-      {/* Second ring — tilted, slightly wider */}
-      <mesh ref={refs[1]} rotation={[Math.PI / 3.4, Math.PI / 5.5, 0]}>
-        <torusGeometry args={[1.60, 0.005, 8, 256]} />
-        <meshBasicMaterial ref={mats[1]} transparent blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-      {/* Third ring — opposite tilt */}
-      <mesh ref={refs[2]} rotation={[Math.PI / 2.7, Math.PI / 3.2, 0]}>
-        <torusGeometry args={[1.78, 0.004, 8, 256]} />
-        <meshBasicMaterial ref={mats[2]} transparent blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-      {/* Fourth ring — outer halo band */}
-      <mesh ref={refs[3]} rotation={[Math.PI / 4, Math.PI / 6, 0.4]}>
-        <torusGeometry args={[1.96, 0.003, 8, 256]} />
-        <meshBasicMaterial ref={mats[3]} transparent blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-      {/* Fifth ring — widest, ghostly outer sentinel */}
-      <mesh ref={refs[4]} rotation={[Math.PI / 5.5, Math.PI / 4, 0.8]}>
-        <torusGeometry args={[2.16, 0.002, 8, 256]} />
-        <meshBasicMaterial ref={mats[4]} transparent blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
+      {RING_DEFS.map((d, i) => (
+        <mesh key={i} ref={refs[i]} rotation={d.tilt}>
+          <torusGeometry args={[d.r, d.tube, 8, 256]} />
+          <meshBasicMaterial ref={mats[i]} transparent blending={THREE.AdditiveBlending} depthWrite={false} />
+        </mesh>
+      ))}
     </group>
   );
 }
