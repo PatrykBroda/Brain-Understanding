@@ -318,26 +318,29 @@ interface RingDef {
   tilt: [number, number, number];
   spin: { x?: number; y?: number; z?: number };
 }
+// The sphere spins +y (and slightly +x), so the rings are deliberately given
+// dominant -y / -x / opposite-z spins — they orbit AGAINST the sphere so the
+// lines read as independent orbits crossing it, not paint stuck to its surface.
 const RING_DEFS: RingDef[] = [
   // Closest ring — near equatorial, thickest
-  { r: 1.42, tube: 0.006, tilt: [Math.PI / 2.1, 0, 0], spin: { z: 1.0 } },
+  { r: 1.42, tube: 0.011, tilt: [Math.PI / 2.1, 0, 0], spin: { z: 1.15 } },
   // Tight inner counter-orbit
-  { r: 1.50, tube: 0.0055, tilt: [Math.PI / 2.6, Math.PI / 4.5, 0.2], spin: { x: 0.6, y: -0.3 } },
-  // Tilted, slightly wider
-  { r: 1.60, tube: 0.005, tilt: [Math.PI / 3.4, Math.PI / 5.5, 0], spin: { x: 0.68, y: 0.35 } },
-  // Steep polar-ish crosser
-  { r: 1.70, tube: 0.0045, tilt: [Math.PI / 2.3, Math.PI / 2.8, 0.5], spin: { y: -0.4, z: 0.22 } },
-  // Opposite tilt
-  { r: 1.78, tube: 0.004, tilt: [Math.PI / 2.7, Math.PI / 3.2, 0], spin: { y: -0.52, z: 0.28 } },
-  // Mid outer band, canted
-  { r: 1.88, tube: 0.0035, tilt: [Math.PI / 4.5, Math.PI / 3.6, -0.4], spin: { x: 0.5, z: -0.3 } },
+  { r: 1.50, tube: 0.010, tilt: [Math.PI / 2.6, Math.PI / 4.5, 0.2], spin: { x: -0.7, y: -0.45 } },
+  // Strong counter-spin against the sphere's +y
+  { r: 1.60, tube: 0.009, tilt: [Math.PI / 3.4, Math.PI / 5.5, 0], spin: { y: -0.85, z: 0.3 } },
+  // Steep polar-ish crosser, reversed
+  { r: 1.70, tube: 0.008, tilt: [Math.PI / 2.3, Math.PI / 2.8, 0.5], spin: { x: 0.6, z: -0.55 } },
+  // Opposite tilt, counter-y
+  { r: 1.78, tube: 0.008, tilt: [Math.PI / 2.7, Math.PI / 3.2, 0], spin: { y: -0.65, z: 0.4 } },
+  // Mid outer band, canted the other way
+  { r: 1.88, tube: 0.007, tilt: [Math.PI / 4.5, Math.PI / 3.6, -0.4], spin: { x: -0.6, z: 0.5 } },
   // Outer halo band
-  { r: 1.96, tube: 0.003, tilt: [Math.PI / 4, Math.PI / 6, 0.4], spin: { x: -0.44, z: -0.18 } },
-  // Widest, ghostly outer sentinel
-  { r: 2.16, tube: 0.002, tilt: [Math.PI / 5.5, Math.PI / 4, 0.8], spin: { y: 0.32, x: 0.22 } },
+  { r: 1.96, tube: 0.006, tilt: [Math.PI / 4, Math.PI / 6, 0.4], spin: { y: -0.55, x: 0.42 } },
+  // Widest outer sentinel
+  { r: 2.16, tube: 0.005, tilt: [Math.PI / 5.5, Math.PI / 4, 0.8], spin: { z: -0.75, y: 0.35 } },
 ];
-// Fade weights per ring — inner rings brighter, outer rings more ghostly
-const RING_FADE = RING_DEFS.map((_, i) => Math.max(0.28, 1 - i * 0.095));
+// Fade weights per ring — inner rings brightest, outer rings still clearly visible
+const RING_FADE = RING_DEFS.map((_, i) => Math.max(0.5, 1 - i * 0.07));
 
 function Rings({ live }: { live: MutableRefObject<Cfg> }) {
   const refs = useMemo(
@@ -361,12 +364,12 @@ function Rings({ live }: { live: MutableRefObject<Cfg> }) {
       if (s.z) mesh.rotation.z += cfg.ringSpeed * s.z * dt;
     }
     // Ring colour matches orb state — lighter band so they read against the dark sphere
-    scratch.setHSL(cfg.hue / 360, cfg.sat * 0.7, Math.min(0.92, cfg.light + 0.18));
+    scratch.setHSL(cfg.hue / 360, cfg.sat * 0.7, Math.min(0.95, cfg.light + 0.26));
     // Base opacity high so rings feel physical
-    const baseOp = 0.42 + cfg.emissive * 1.1;
+    const baseOp = 0.6 + cfg.emissive * 0.9;
     for (let i = 0; i < RING_DEFS.length; i++) {
       const m = mats[i].current;
-      if (m) { m.color.copy(scratch); m.opacity = Math.min(0.88, baseOp * RING_FADE[i]); }
+      if (m) { m.color.copy(scratch); m.opacity = Math.min(0.95, baseOp * RING_FADE[i]); }
     }
   });
 
