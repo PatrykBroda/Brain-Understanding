@@ -320,6 +320,15 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+// Session-log stamp — matches the site: "13 AUG AT 18:13".
+function formatLogStamp(iso: string): string {
+  const d = new Date(iso);
+  const mon = d.toLocaleDateString(undefined, { month: "short" }).toUpperCase();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${d.getDate()} ${mon} AT ${hh}:${mm}`;
+}
+
 function capitalise(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -1140,7 +1149,7 @@ export default function AnalyseScreen() {
                     </Text>
                   ) : null}
                   <Text style={styles.logCardDate}>
-                    {formatDate(item.createdAt).toUpperCase()}
+                    {formatLogStamp(item.createdAt)}
                   </Text>
                 </Pressable>
               ))}
