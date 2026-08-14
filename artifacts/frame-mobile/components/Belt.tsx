@@ -47,9 +47,6 @@ const BELT_PSYCHOLOGY = [
 // ever "held"; the intermediate rungs render as dormant aspiration.
 const LADDER: { key: string; label: string; cloth: string }[] = [
   { key: "white", label: "White", cloth: "#ece7d8" },
-  { key: "yellow", label: "Yellow", cloth: "#e3c044" },
-  { key: "orange", label: "Orange", cloth: "#d97326" },
-  { key: "green", label: "Green", cloth: "#2f8f4e" },
   { key: "blue", label: "Blue", cloth: "#1f5fc4" },
   { key: "purple", label: "Purple", cloth: "#6b32c9" },
   { key: "brown", label: "Brown", cloth: "#5a3a22" },
