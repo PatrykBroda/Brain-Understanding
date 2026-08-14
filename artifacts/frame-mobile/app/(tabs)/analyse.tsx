@@ -96,32 +96,11 @@ const DIMENSIONS: {
   key: keyof typeof initialScores;
   apiKey: string;
   label: string;
-  question: string;
 }[] = [
-  {
-    key: "aggression",
-    apiKey: "aggression",
-    label: "AGGRESSION",
-    question: "How much forward pressure did you generate?",
-  },
-  {
-    key: "composure",
-    apiKey: "composure",
-    label: "COMPOSURE",
-    question: "How calm were you under pressure?",
-  },
-  {
-    key: "reactionSpeed",
-    apiKey: "reaction_speed",
-    label: "REACTION SPEED",
-    question: "How quickly did you read and respond to threats?",
-  },
-  {
-    key: "defensiveRecovery",
-    apiKey: "defensive_recovery",
-    label: "DEFENSIVE RECOVERY",
-    question: "How well did you recover from bad positions?",
-  },
+  { key: "aggression", apiKey: "aggression", label: "AGGRESSION" },
+  { key: "composure", apiKey: "composure", label: "COMPOSURE" },
+  { key: "reactionSpeed", apiKey: "reaction_speed", label: "REACTION SPEED" },
+  { key: "defensiveRecovery", apiKey: "defensive_recovery", label: "DEFENSIVE RECOVERY" },
 ];
 
 const initialScores = {
@@ -130,46 +109,6 @@ const initialScores = {
   reactionSpeed: 60,
   defensiveRecovery: 60,
 };
-
-const LEVELS = [20, 40, 60, 80, 100] as const;
-
-function ScoreSelector({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <View style={ss.row}>
-      {LEVELS.map((lvl) => (
-        <Pressable
-          key={lvl}
-          style={[ss.seg, value >= lvl && ss.segActive]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onChange(lvl);
-          }}
-          hitSlop={8}
-        />
-      ))}
-      <Text style={ss.val}>{value}</Text>
-    </View>
-  );
-}
-
-const ss = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 6 },
-  seg: { flex: 1, height: 6, backgroundColor: "#1a1a1a", borderRadius: 2 },
-  segActive: { backgroundColor: "#C9883A" },
-  val: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    color: "#666",
-    width: 28,
-    textAlign: "right",
-  },
-});
 
 type TrailStep = { value: string; id: number | null };
 
@@ -1200,25 +1139,6 @@ export default function AnalyseScreen() {
             </View>
           </View>
 
-          {/* Self-assessment */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: accent }]}>
-              SELF-ASSESSMENT
-            </Text>
-            {DIMENSIONS.map((d) => (
-              <View key={d.key} style={styles.dimBlock}>
-                <Text style={styles.dimLabel}>{d.label}</Text>
-                <Text style={styles.dimQuestion}>{d.question}</Text>
-                <ScoreSelector
-                  value={scores[d.key]}
-                  onChange={(v) =>
-                    setScores((prev) => ({ ...prev, [d.key]: v }))
-                  }
-                />
-              </View>
-            ))}
-          </View>
-
           <Pressable
             style={({ pressed }) => [
               styles.submitBtn,
@@ -1343,21 +1263,6 @@ const styles = StyleSheet.create({
   },
   loadBtnLabelActive: { color: "#C9883A" },
   loadBtnDesc: { fontFamily: "Outfit", fontSize: 10, color: "#333" },
-  dimBlock: { marginBottom: 22 },
-  dimLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "#C9883A",
-    marginBottom: 4,
-  },
-  dimQuestion: {
-    fontFamily: "Outfit",
-    fontSize: 13,
-    color: "#999",
-    marginBottom: 12,
-    lineHeight: 18,
-  },
   focusInput: {
     backgroundColor: "#0a0a0a",
     borderWidth: 1,
