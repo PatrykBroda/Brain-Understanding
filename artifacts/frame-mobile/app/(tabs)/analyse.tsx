@@ -334,6 +334,8 @@ export default function AnalyseScreen() {
   const [load, setLoad] = useState<NervousSystemLoad>("moderate");
   const [scores, setScores] = useState(initialScores);
   const [focusPrompt, setFocusPrompt] = useState("");
+  const [subject, setSubject] = useState<"self" | "opponent">("self");
+  const [opponentName, setOpponentName] = useState("");
   const [sourceMode, setSourceMode] = useState<"upload" | "link">("upload");
   const [linkUrl, setLinkUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -584,6 +586,9 @@ export default function AnalyseScreen() {
         scores: scorePayload,
         sessionScore,
         focus: focusPrompt.trim() || undefined,
+        subject: subject === "opponent" ? "opponent" : undefined,
+        opponentName:
+          subject === "opponent" ? opponentName.trim() || undefined : undefined,
         durationSec,
       });
       setResult(res.analysis);
@@ -603,6 +608,8 @@ export default function AnalyseScreen() {
     setLoad("moderate");
     setScores(initialScores);
     setFocusPrompt("");
+    setSubject("self");
+    setOpponentName("");
     setSourceMode("upload");
     setLinkUrl("");
     setOpenId(null);
@@ -785,15 +792,19 @@ export default function AnalyseScreen() {
     );
   }
 
-  const accent = "#C52626";
-  const accentText = "#D77575";
-  const accentBg = "rgba(197,38,38,0.08)";
+  const accent = subject === "opponent" ? "#31B1ED" : "#C52626";
+  const accentText = subject === "opponent" ? "#7CCBEB" : "#D77575";
+  const accentBg =
+    subject === "opponent" ? "rgba(49,177,237,0.08)" : "rgba(197,38,38,0.08)";
 
   const hasClip =
     (sourceMode === "upload" && !!video) ||
     (sourceMode === "link" && !!linkUrl.trim());
 
-  const submitDisabled = submitting || !hasClip;
+  const submitDisabled =
+    submitting ||
+    !hasClip ||
+    (subject === "opponent" && !opponentName.trim());
 
   return (
     <ScrollView
@@ -809,9 +820,137 @@ export default function AnalyseScreen() {
         </Pressable>
       </View>
 
-      {/* FOCUS chips */}
+      {/* Mode toggle */}
+      <View style={[styles.section, styles.modeRow]}>
+        <Pressable
+          style={[
+            styles.modeBtn,
+            subject === "self" && {
+              borderColor: "#C52626",
+              backgroundColor: "rgba(197,38,38,0.08)",
+              borderLeftWidth: 3,
+            },
+          ]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setSubject("self");
+          }}
+        >
+          <Text
+            style={[
+              styles.modeBtnText,
+              subject === "self" && { color: "#D77575" },
+            ]}
+          >
+            YOUR READ
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[
+            styles.modeBtn,
+            subject === "opponent" && {
+              borderColor: "#31B1ED",
+              backgroundColor: "rgba(49,177,237,0.08)",
+              borderLeftWidth: 3,
+            },
+          ]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setSubject("opponent");
+          }}
+        >
+          <Text
+            style={[
+              styles.modeBtnText,
+              subject === "opponent" && { color: "#7CCBEB" },
+            ]}
+          >
+            OPPONENT SCOUT
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* Movement-read intro block */}
+      <View style={[styles.introBlock, { borderLeftColor: accent }]}>
+        <Text style={[styles.introLabel, { color: accent }]}>
+          {subject === "opponent" ? "OPPONENT SCOUT" : "MOVEMENT READ"}
+        </Text>
+        <Text style={styles.introBody}>
+          {subject === "opponent"
+            ? "Upload footage of your opponent. The system builds a categorical scouting model and contrasts it against your own recorded model for the matchup."
+            : "Upload a clip. The system reads your movement directly — guard, base, shoulders, output rhythm — scores it against itself, and tells you what your nervous system is doing under load."}
+        </Text>
+        <Text style={styles.introCaption}>
+          PROCESSED ON DEVICE · ONLY THE READ IS KEPT
+        </Text>
+      </View>
+
+      {/* Opponent name */}
+      {subject === "opponent" ? (
+        <View style={styles.section}>
+          <View style={styles.labelRow}>
+            <Text style={[styles.sectionLabel, { color: accent, marginBottom: 0 }]}>
+              OPPONENT NAME
+            </Text>
+            <Text style={styles.optionalLabel}>optional</Text>
+          </View>
+          <TextInput
+            style={styles.textInput}
+            value={opponentName}
+            onChangeText={setOpponentName}
+            placeholder="who are you scouting?"
+            placeholderTextColor="#333"
+            maxLength={80}
+          />
+        </View>
+      ) : null}
+
+      {/* Clip type */}
       <View style={styles.section}>
-        <View style={styles.chipWrapTop}>
+        <Text style={[styles.sectionLabel, { color: accent }]}>CLIP TYPE</Text>
+        <View style={styles.gridRow}>
+          {KINDS.map((k) => {
+            const active = kind === k.value;
+            return (
+              <Pressable
+                key={k.value}
+                style={[
+                  styles.gridBtn,
+                  active && { borderColor: accent, backgroundColor: accentBg },
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setKind(k.value);
+                }}
+              >
+                <Text
+                  style={[styles.gridBtnText, active && { color: accentText }]}
+                >
+                  {k.label.toUpperCase()}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Focus area */}
+      <View style={styles.section}>
+        <View style={styles.labelRow}>
+          <Text style={[styles.sectionLabel, { color: accent, marginBottom: 0 }]}>
+            FOCUS AREA
+          </Text>
+          <Text style={styles.optionalLabel}>optional</Text>
+        </View>
+        <TextInput
+          style={[styles.textInput, { marginTop: 10 }]}
+          value={focusPrompt}
+          onChangeText={setFocusPrompt}
+          placeholder="guard under fatigue, left shoulder, pressure after a miss…"
+          placeholderTextColor="#333"
+          maxLength={200}
+        />
+        <View style={styles.chipWrap}>
           {FOCUS_PRESETS.map((preset) => {
             const active =
               preset.value === ""
@@ -1022,35 +1161,6 @@ export default function AnalyseScreen() {
         </>
       ) : (
         <>
-          {/* Clip type */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: accent }]}>CLIP TYPE</Text>
-            <View style={styles.gridRow}>
-              {KINDS.map((k) => {
-                const active = kind === k.value;
-                return (
-                  <Pressable
-                    key={k.value}
-                    style={[
-                      styles.gridBtn,
-                      active && { borderColor: accent, backgroundColor: accentBg },
-                    ]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setKind(k.value);
-                    }}
-                  >
-                    <Text
-                      style={[styles.gridBtnText, active && { color: accentText }]}
-                    >
-                      {k.label.toUpperCase()}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
           {/* Intensity */}
           <View style={styles.section}>
             <Text style={[styles.sectionLabel, { color: accent }]}>INTENSITY</Text>
