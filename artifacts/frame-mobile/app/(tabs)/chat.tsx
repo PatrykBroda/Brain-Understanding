@@ -602,8 +602,10 @@ export default function ChatScreen() {
         />
       )}
 
-      {/* Quick actions */}
-      {!isLoadingHistory && messages.length === 0 && (
+      {/* Quick actions — persist above the input in both the empty state and an
+          active conversation (matches the website's suggested-question chips,
+          which stay available while chatting instead of disappearing). */}
+      {!isLoadingHistory && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
