@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, { Circle, Defs, Line, RadialGradient, Stop } from "react-native-svg";
 import Animated, {
@@ -311,50 +311,22 @@ function Sparkle({
 }
 
 /**
- * Triangulated icosphere wireframe. Two counter-rotating layers. Yaw is driven
- * by a throttled rAF loop that recomputes projected edges — a real 3D turn,
- * which is what sells "energy sphere" over a flat globe grid. Edges are depth
- * sorted into front/back so the shell reads volumetric.
+ * Triangulated icosphere wireframe drawn ONCE. The turn is a UI-thread rotate
+ * transform on the wrapping Animated.View, so it stays smooth regardless of how
+ * many edges the shell has. Edges are depth sorted into front/back so the shell
+ * still reads volumetric.
  */
-// A single shared yaw drives every mesh pass, so the under-core and over-core
-// hemispheres always stay locked to the same rotation.
-function useYaw(rotSpeed: number) {
-  const [yaw, setYaw] = useState(0);
-  const raf = useRef<number | null>(null);
-  const last = useRef<number>(0);
-  useEffect(() => {
-    let mounted = true;
-    const tick = (now: number) => {
-      if (!mounted) return;
-      if (!last.current) last.current = now;
-      const dt = Math.min(0.05, (now - last.current) / 1000);
-      last.current = now;
-      setYaw((y) => y + (rotSpeed + 0.08) * dt);
-      raf.current = requestAnimationFrame(tick);
-    };
-    raf.current = requestAnimationFrame(tick);
-    return () => {
-      mounted = false;
-      if (raf.current != null) cancelAnimationFrame(raf.current);
-      last.current = 0;
-    };
-  }, [rotSpeed]);
-  return yaw;
-}
-
 function Mesh({
   size,
   rCore,
   color,
   glow,
-  yaw,
   half = "all",
 }: {
   size: number;
   rCore: number;
   color: string;
   glow: number;
-  yaw: number;
   half?: "all" | "front";
 }) {
   const c = size / 2;
@@ -364,14 +336,18 @@ function Mesh({
   // circle at rCore — the mesh then sits INSIDE the sphere like the site,
   // instead of ballooning past the rim into top/bottom "caps".
   const mScale = rCore / 1.16;
+  // Projected ONCE at a fixed yaw. The visible spin is a UI-thread rotate
+  // transform on the wrapping Animated.View (see OrbNative) — NOT a per-frame
+  // re-projection. This is the performance fix: we never reconcile thousands of
+  // SVG <Line> nodes on the JS thread each frame, so the rotation stays smooth.
+  const YAW0 = 0.6;
   const fine = useMemo(
-    () => projectEdges(FINE_GEO, yaw, tilt, c, mScale),
-    [yaw, c, mScale],
+    () => projectEdges(FINE_GEO, YAW0, tilt, c, mScale),
+    [c, mScale],
   );
-  // bold shell counter-rotates (negative yaw, slight offset)
   const bold = useMemo(
-    () => projectEdges(BOLD_GEO, -yaw * 0.72 + 0.6, tilt - 0.12, c, mScale),
-    [yaw, c, mScale],
+    () => projectEdges(BOLD_GEO, -YAW0 * 0.72 + 0.6, tilt - 0.12, c, mScale),
+    [c, mScale],
   );
 
   // depth range for normalising z -> brightness (radius-relative)
@@ -425,7 +401,24 @@ export function OrbNative({ state = "Dormant", size = 200 }: Props) {
   const cfg = VISUALS[state] ?? VISUALS.Dormant;
   const c = size / 2;
   const rCore = 0.34 * size; // core sphere radius; rings extend to ~0.73*size
-  const yaw = useYaw(cfg.rotSpeed);
+
+  // Mesh spin is a single UI-thread rotate transform (reanimated) on the two
+  // mesh layers — NOT a per-frame JS re-projection. This is what keeps the
+  // rotation buttery: the thousands of SVG <Line> nodes are laid out once and
+  // just rotated by the compositor. Duration derives from the state's rotSpeed.
+  const meshSpin = useSharedValue(0);
+  const spinDurationMs = 60000 / (2 + cfg.rotSpeed * 22);
+  useEffect(() => {
+    meshSpin.value = 0;
+    meshSpin.value = withRepeat(
+      withTiming(360, { duration: spinDurationMs, easing: Easing.linear }),
+      -1,
+      false,
+    );
+  }, [spinDurationMs]);
+  const meshSpinStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${meshSpin.value}deg` }],
+  }));
 
   const glowColor = hsl(cfg.hue, cfg.sat, cfg.light + 0.2);
   // Rings on the site are near-white cream arcs — low saturation, high light —
@@ -485,7 +478,9 @@ export function OrbNative({ state = "Dormant", size = 200 }: Props) {
 
       {/* FULL triangulated icosphere (front + back) drawn UNDER the translucent
           core, so the far-side mesh reads through the glowing energy field. */}
-      <Mesh size={size} rCore={rCore} color={meshColor} glow={cfg.glow} yaw={yaw} half="all" />
+      <Animated.View style={[StyleSheet.absoluteFill, meshSpinStyle]} pointerEvents="none">
+        <Mesh size={size} rCore={rCore} color={meshColor} glow={cfg.glow} half="all" />
+      </Animated.View>
 
       {/* Warm translucent glowing core + Fresnel rim (no specular highlight). */}
       <Animated.View style={[StyleSheet.absoluteFill, coreStyle]} pointerEvents="none">
@@ -517,8 +512,11 @@ export function OrbNative({ state = "Dormant", size = 200 }: Props) {
         </Svg>
       </Animated.View>
 
-      {/* Crisp near-hemisphere mesh re-drawn on top of the core for depth. */}
-      <Mesh size={size} rCore={rCore} color={meshColor} glow={cfg.glow} yaw={yaw} half="front" />
+      {/* Crisp near-hemisphere mesh re-drawn on top of the core for depth.
+          Same spin transform so front + back layers stay locked together. */}
+      <Animated.View style={[StyleSheet.absoluteFill, meshSpinStyle]} pointerEvents="none">
+        <Mesh size={size} rCore={rCore} color={meshColor} glow={cfg.glow} half="front" />
+      </Animated.View>
 
       {/* Crisp additive amber rim on top of the mesh */}
       <Svg width={size} height={size} style={[StyleSheet.absoluteFill, styles.overflow]} pointerEvents="none">
