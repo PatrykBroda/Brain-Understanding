@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Platform,
   Pressable,
   RefreshControl,
@@ -35,6 +36,7 @@ import {
   useUpdateSession,
 } from "@/hooks/useCompetition";
 import { GoogleCalendarSync } from "@/components/GoogleCalendarSync";
+import { useIsFramePlus } from "@/hooks/useEntitlement";
 
 const TIER_ACCENT: Record<PressureTier, string> = {
   base: "#C9883A",
@@ -66,6 +68,21 @@ function fmtDayLabel(ymd: string): string {
   });
 }
 
+// ISO timestamp -> "Fri, Sep 11, 2026" (read in UTC to avoid tz drift), so the
+// dashboard detail rows match the web CampDashboard's formatDay.
+function formatDay(value: string | null | undefined): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 // ISO timestamp -> YYYY-MM-DD for prefilling the date TextInputs on edit.
 function isoToInput(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -84,31 +101,70 @@ function toYmd(input: string): string | null {
 
 export default function CampScreen() {
   const insets = useSafeAreaInsets();
-  const [mode, setMode] = useState<"camp" | "mission">("camp");
-
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   return (
     <View style={[shell.root, { paddingTop: topPad }]}>
       <View style={shell.header}>
-        <Text style={shell.title}>CAMP</Text>
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+            router.push("/(tabs)/home");
+          }}
+          hitSlop={12}
+          accessibilityLabel="Back to home"
+        >
+          <Feather name="chevron-left" size={22} color="#777" />
+        </Pressable>
+
+        <View style={shell.brand}>
+          <Image
+            source={require("../../assets/images/frame-logo.png")}
+            style={shell.logo}
+            resizeMode="contain"
+          />
+          <View>
+            <Text style={shell.title}>CAMP</Text>
+            <Text style={shell.subtitle}>FIGHT CAMP</Text>
+          </View>
+        </View>
+
+        <View style={shell.headerRight}>
+          <FramePlusPill />
+        </View>
       </View>
 
-      <View style={shell.toggle}>
-        <ToggleBtn label="SCHEDULE" active={mode === "camp"} onPress={() => setMode("camp")} />
-        <ToggleBtn
-          label="MISSION"
-          active={mode === "mission"}
-          onPress={() => setMode("mission")}
-        />
-      </View>
-
-      {mode === "camp" ? <CampView /> : <MissionView />}
+      <CampView />
     </View>
   );
 }
 
-function ToggleBtn({
+// Top-right entitlement pill, mirroring the web header's FramePlusPill.
+function FramePlusPill() {
+  const isPlus = useIsFramePlus();
+  if (isPlus) {
+    return (
+      <View style={shell.plusPill}>
+        <Text style={shell.plusPillText}>FRAME+</Text>
+      </View>
+    );
+  }
+  return (
+    <Pressable
+      style={shell.plusPill}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        router.push("/paywall");
+      }}
+    >
+      <Text style={shell.plusPillText}>FRAME+</Text>
+    </Pressable>
+  );
+}
+
+// Schedule / Weekly-mission switch, positioned below the dashboard + review to
+// match the web ViewTab (grid-cols-2, accent border when active).
+function ViewTab({
   label,
   active,
   onPress,
@@ -119,13 +175,13 @@ function ToggleBtn({
 }) {
   return (
     <Pressable
-      style={[shell.toggleBtn, active && shell.toggleBtnActive]}
+      style={[camp.viewTab, active && camp.viewTabActive]}
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         onPress();
       }}
     >
-      <Text style={[shell.toggleText, active && shell.toggleTextActive]}>{label}</Text>
+      <Text style={[camp.viewTabText, active && camp.viewTabTextActive]}>{label}</Text>
     </Pressable>
   );
 }
@@ -138,6 +194,7 @@ function CampView() {
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const bottomPad = Platform.OS === "web" ? 34 : 0;
+  const [view, setView] = useState<"schedule" | "mission">("schedule");
 
   const { data, isLoading, refetch, isRefetching } = useActiveCompetition();
   const competition = data?.competition ?? null;
@@ -476,68 +533,93 @@ function CampView() {
           {!showCampForm &&
             (review ? <CampReviewSection review={review} /> : <CampReviewLocked />)}
 
-          {/* Session schedule */}
-          <View style={camp.sectionHead}>
-            <Text style={camp.sectionTitle}>SESSION SCHEDULE</Text>
-            {!showSessionForm && (
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                  setShowSessionForm(true);
-                }}
-                hitSlop={8}
-                style={camp.addBtn}
-              >
-                <Feather name="plus" size={14} color="#C9883A" />
-                <Text style={camp.addBtnText}>ADD</Text>
-              </Pressable>
-            )}
-          </View>
-
-          <GoogleCalendarSync campId={competition.id} />
-
-          {showSessionForm && (
-            <SessionForm
-              editing={editingSessionId != null}
-              sType={sType}
-              setSType={setSType}
-              sDate={sDate}
-              setSDate={setSDate}
-              sTime={sTime}
-              setSTime={setSTime}
-              sDuration={sDuration}
-              setSDuration={setSDuration}
-              sCoach={sCoach}
-              setSCoach={setSCoach}
-              sObjective={sObjective}
-              setSObjective={setSObjective}
-              error={sessionError}
-              saving={sessionSaving}
-              onCancel={resetSessionForm}
-              onSubmit={submitSession}
-            />
-          )}
-
-          {sessions.length === 0 && !showSessionForm ? (
-            <Text style={camp.noSessions}>
-              No sessions yet. Add the sessions that make up this camp.
-            </Text>
-          ) : (
-            groups.map((g) => (
-              <View key={g.date} style={camp.dayGroup}>
-                <Text style={camp.dayLabel}>{fmtDayLabel(g.date)}</Text>
-                {g.items.map((s) => (
-                  <SessionRow
-                    key={s.id}
-                    session={s}
-                    onToggle={() => toggleSession(s)}
-                    onEdit={() => beginEditSession(s)}
-                    onDelete={() => removeSession(s)}
-                    disabled={updateSessionMut.isPending || deleteSessionMut.isPending}
-                  />
-                ))}
+          {/* Schedule / Weekly-mission switch sits below the dashboard + review,
+              matching the web layout. Hidden while the camp edit form is open. */}
+          {!showCampForm && (
+            <>
+              <View style={camp.viewTabRow}>
+                <ViewTab
+                  label="SCHEDULE"
+                  active={view === "schedule"}
+                  onPress={() => setView("schedule")}
+                />
+                <ViewTab
+                  label="WEEKLY MISSION"
+                  active={view === "mission"}
+                  onPress={() => setView("mission")}
+                />
               </View>
-            ))
+
+              {view === "schedule" ? (
+                <>
+                  {/* Session schedule */}
+                  <View style={camp.sectionHead}>
+                    <Text style={camp.sectionTitle}>SESSION SCHEDULE</Text>
+                    {!showSessionForm && (
+                      <Pressable
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                          setShowSessionForm(true);
+                        }}
+                        hitSlop={8}
+                        style={camp.addBtn}
+                      >
+                        <Feather name="plus" size={14} color="#C9883A" />
+                        <Text style={camp.addBtnText}>ADD</Text>
+                      </Pressable>
+                    )}
+                  </View>
+
+                  <GoogleCalendarSync campId={competition.id} />
+
+                  {showSessionForm && (
+                    <SessionForm
+                      editing={editingSessionId != null}
+                      sType={sType}
+                      setSType={setSType}
+                      sDate={sDate}
+                      setSDate={setSDate}
+                      sTime={sTime}
+                      setSTime={setSTime}
+                      sDuration={sDuration}
+                      setSDuration={setSDuration}
+                      sCoach={sCoach}
+                      setSCoach={setSCoach}
+                      sObjective={sObjective}
+                      setSObjective={setSObjective}
+                      error={sessionError}
+                      saving={sessionSaving}
+                      onCancel={resetSessionForm}
+                      onSubmit={submitSession}
+                    />
+                  )}
+
+                  {sessions.length === 0 && !showSessionForm ? (
+                    <Text style={camp.noSessions}>
+                      No sessions yet. Add the sessions that make up this camp.
+                    </Text>
+                  ) : (
+                    groups.map((g) => (
+                      <View key={g.date} style={camp.dayGroup}>
+                        <Text style={camp.dayLabel}>{fmtDayLabel(g.date)}</Text>
+                        {g.items.map((s) => (
+                          <SessionRow
+                            key={s.id}
+                            session={s}
+                            onToggle={() => toggleSession(s)}
+                            onEdit={() => beginEditSession(s)}
+                            onDelete={() => removeSession(s)}
+                            disabled={updateSessionMut.isPending || deleteSessionMut.isPending}
+                          />
+                        ))}
+                      </View>
+                    ))
+                  )}
+                </>
+              ) : (
+                <MissionContent />
+              )}
+            </>
           )}
 
           {/* Camp edit form (opened via dashboard edit) */}
@@ -698,86 +780,92 @@ function Dashboard({
   cancelling: boolean;
 }) {
   const accent = TIER_ACCENT[tier] ?? "#C9883A";
+
+  const fightLine = [
+    competition.opponent,
+    competition.promotion,
+    competition.weightClass,
+    competition.rounds != null ? `${competition.rounds} rounds` : "",
+    competition.location,
+  ]
+    .filter((v) => v != null && String(v).trim() !== "")
+    .join(" · ");
+
+  const cur = (weightCut?.current ?? "").trim();
+  const tgt = (weightCut?.target ?? "").trim();
+  const weightCutValue = weightCut
+    ? cur || tgt
+      ? `${cur || "?"} → ${tgt || "?"} · ${weightCut.status}`
+      : weightCut.status
+    : null;
+
   return (
-    <View style={[camp.dash, { borderColor: accent }]}>
-      <View style={camp.dashTop}>
-        <Text style={[camp.tierLabel, { color: accent }]}>
-          {tierLabel ? tierLabel.toUpperCase() : "CAMP"}
-        </Text>
-        {days != null && (
+    <View>
+      {/* Centered countdown card, mirroring the web CampDashboard */}
+      <View style={[camp.dashCard, { borderColor: `${accent}55` }]}>
+        <View style={camp.dashCardTop}>
+          <Text style={[camp.phaseLabel, { color: accent }]}>
+            {phase ? phase.toUpperCase() : "CAMP"}
+          </Text>
+          <Pressable style={camp.editInline} onPress={onEdit} hitSlop={6}>
+            <Feather name="edit-2" size={11} color="#888" />
+            <Text style={camp.editInlineText}>EDIT</Text>
+          </Pressable>
+        </View>
+
+        {days != null ? (
           <>
-            <Text style={[camp.daysBig, { color: accent }]}>
-              {days <= 0 ? "TODAY" : `${days}`}
+            <Text style={[camp.countdown, { color: accent }]}>{days <= 0 ? 0 : days}</Text>
+            <Text style={camp.countdownUnit}>
+              {days === 1 ? "DAY UNTIL" : "DAYS UNTIL"} {competition.eventName.toUpperCase()}
             </Text>
-            {days > 0 && (
-              <Text style={camp.daysUnit}>{days === 1 ? "DAY OUT" : "DAYS OUT"}</Text>
-            )}
+            {tierLabel ? (
+              <Text style={camp.countdownTier}>{tierLabel.toUpperCase()}</Text>
+            ) : null}
+            {daysToWeighIn != null ? (
+              <Text style={camp.weighInLine}>
+                WEIGH-IN:{" "}
+                {daysToWeighIn <= 0
+                  ? "NOW"
+                  : `${daysToWeighIn} ${daysToWeighIn === 1 ? "DAY" : "DAYS"}`}
+              </Text>
+            ) : null}
           </>
+        ) : (
+          <Text style={camp.dashEventFallback}>{competition.eventName}</Text>
         )}
       </View>
 
-      <Text style={camp.eventName}>{competition.eventName}</Text>
-      {competition.discipline ? (
-        <Text style={camp.eventDiscipline}>{competition.discipline}</Text>
-      ) : null}
-
-      <View style={camp.metaGrid}>
-        {phase ? <Meta label="PHASE" value={phase} /> : null}
-        {competition.opponent ? <Meta label="OPPONENT" value={competition.opponent} /> : null}
-        {competition.promotion ? <Meta label="PROMOTION" value={competition.promotion} /> : null}
-        {competition.weightClass ? (
-          <Meta label="WEIGHT CLASS" value={competition.weightClass} />
-        ) : null}
-        {competition.rounds != null ? (
-          <Meta label="ROUNDS" value={String(competition.rounds)} />
-        ) : null}
-        {competition.location ? <Meta label="LOCATION" value={competition.location} /> : null}
+      {/* Detail rows */}
+      <View style={camp.rowList}>
+        <Row label="EVENT DATE" value={formatDay(competition.eventDate)} />
         {competition.weighInDate ? (
-          <Meta label="WEIGH-IN" value={fmtDayLabel(isoToInput(competition.weighInDate))} />
+          <Row label="WEIGH-IN DATE" value={formatDay(competition.weighInDate)} />
         ) : null}
-        {daysToWeighIn != null ? (
-          <Meta
-            label="TO WEIGH-IN"
-            value={daysToWeighIn <= 0 ? "now" : `${daysToWeighIn} days`}
-          />
+        {competition.discipline?.trim() ? (
+          <Row label="DISCIPLINE" value={competition.discipline} />
         ) : null}
+        {fightLine ? <Row label="FIGHT" value={fightLine} /> : null}
+        {weightCutValue ? <Row label="WEIGHT CUT" value={weightCutValue} /> : null}
+        {competition.notes?.trim() ? <Row label="NOTES" value={competition.notes} /> : null}
       </View>
 
-      {weightCut ? (
-        <View style={camp.weightCut}>
-          <Text style={camp.weightCutLabel}>WEIGHT CUT</Text>
-          <Text style={camp.weightCutStatus}>{weightCut.status}</Text>
-          {weightCut.current || weightCut.target ? (
-            <Text style={camp.weightCutValue}>
-              {(weightCut.current || "—") + "  →  " + (weightCut.target || "—")}
-              {weightCut.difference != null && weightCut.unit
-                ? `   (${weightCut.difference}${weightCut.unit})`
-                : ""}
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
-
-      {competition.notes ? <Text style={camp.notes}>{competition.notes}</Text> : null}
-
-      <View style={camp.dashActions}>
-        <Pressable style={camp.editBtn} onPress={onEdit} hitSlop={6}>
-          <Feather name="edit-2" size={11} color="#C9883A" />
-          <Text style={camp.editBtnText}>EDIT CAMP</Text>
-        </Pressable>
-        <Pressable onPress={onCancel} disabled={cancelling} hitSlop={6}>
-          <Text style={camp.cancelCamp}>{cancelling ? "CANCELLING…" : "CANCEL CAMP"}</Text>
-        </Pressable>
-      </View>
+      <Pressable
+        style={({ pressed }) => [camp.endCampBtn, pressed && camp.endCampBtnPressed]}
+        onPress={onCancel}
+        disabled={cancelling}
+      >
+        <Text style={camp.endCampText}>{cancelling ? "ENDING…" : "END CAMP"}</Text>
+      </Pressable>
     </View>
   );
 }
 
-function Meta({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: string }) {
   return (
-    <View style={camp.metaItem}>
-      <Text style={camp.metaLabel}>{label}</Text>
-      <Text style={camp.metaValue}>{value}</Text>
+    <View style={camp.row}>
+      <Text style={camp.rowLabel}>{label}</Text>
+      <Text style={camp.rowValue}>{value}</Text>
     </View>
   );
 }
@@ -1228,12 +1316,12 @@ function PlanItemRow({
   );
 }
 
-function MissionView() {
-  const insets = useSafeAreaInsets();
+// Inlined inside CampView's ScrollView (not its own scroll) so the toggle can
+// live below the dashboard, matching the web's single-scroll layout.
+function MissionContent() {
   const { isSignedIn } = useAuth();
   const qc = useQueryClient();
   const [generating, setGenerating] = useState(false);
-  const bottomPad = Platform.OS === "web" ? 34 : 0;
 
   const {
     data: plan,
@@ -1294,13 +1382,7 @@ function MissionView() {
   const totalCount = plan?.items.length ?? 0;
 
   return (
-    <ScrollView
-      style={mission.scroll}
-      contentContainerStyle={[mission.inner, { paddingBottom: insets.bottom + bottomPad + 120 }]}
-      refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor="#C9883A" />
-      }
-    >
+    <View style={mission.wrap}>
       <View style={mission.header}>
         <Text style={mission.headerTitle}>WEEKLY MISSION</Text>
         <Pressable
@@ -1382,7 +1464,7 @@ function MissionView() {
           ))}
         </>
       )}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -1396,37 +1478,52 @@ const shell = StyleSheet.create({
     backgroundColor: "#050505",
   },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 4,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.06)",
+  },
+  brand: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  logo: {
+    width: 22,
+    height: 22,
+    opacity: 0.8,
   },
   title: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
+    fontFamily: "Outfit",
+    fontWeight: "200",
+    fontSize: 13,
     letterSpacing: 5,
-    color: "#e0e0e0",
+    color: "rgba(224,224,224,0.95)",
   },
-  toggle: {
-    flexDirection: "row",
-    marginHorizontal: 20,
+  subtitle: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 4,
+    color: "rgba(224,224,224,0.5)",
+    marginTop: 5,
+  },
+  headerRight: {
+    marginLeft: "auto",
+  },
+  plusPill: {
     borderWidth: 1,
-    borderColor: "#1a1a1a",
-    marginBottom: 4,
+    borderColor: "rgba(201,136,58,0.4)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
-  toggleBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  toggleBtnActive: {
-    backgroundColor: "rgba(201,136,58,0.10)",
-  },
-  toggleText: {
+  plusPillText: {
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 2,
-    color: "#555",
-  },
-  toggleTextActive: {
     color: "#C9883A",
   },
 });
@@ -1478,126 +1575,141 @@ const camp = StyleSheet.create({
     letterSpacing: 2,
     color: "#C9883A",
   },
-  dash: {
+  dashCard: {
     borderWidth: 1,
     backgroundColor: "#0a0a0a",
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    alignItems: "center",
   },
-  dashTop: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 10,
-  },
-  tierLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    flex: 1,
-  },
-  daysBig: {
-    fontFamily: "SpaceMono",
-    fontSize: 34,
-  },
-  daysUnit: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1.5,
-    color: "#666",
-  },
-  eventName: {
-    fontFamily: "Outfit",
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#e8e8e8",
-    marginTop: 12,
-  },
-  eventDiscipline: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#666",
-    marginTop: 4,
-  },
-  metaGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-    marginTop: 18,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#1a1a1a",
-  },
-  metaItem: {
-    minWidth: "40%",
-    gap: 4,
-  },
-  metaLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#555",
-  },
-  metaValue: {
-    fontFamily: "Outfit",
-    fontSize: 13,
-    color: "#c0c0c0",
-  },
-  weightCut: {
-    marginTop: 16,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: "#1a1a1a",
-    gap: 4,
-  },
-  weightCutLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#555",
-  },
-  weightCutStatus: {
-    fontFamily: "Outfit",
-    fontSize: 15,
-    color: "#e0e0e0",
-  },
-  weightCutValue: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 1,
-    color: "#888",
-  },
-  notes: {
-    fontFamily: "Outfit",
-    fontSize: 13,
-    color: "#888",
-    lineHeight: 20,
-    marginTop: 16,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: "#1a1a1a",
-  },
-  dashActions: {
+  dashCardTop: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 20,
-    marginTop: 18,
+    justifyContent: "space-between",
+    width: "100%",
   },
-  editBtn: {
+  phaseLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 3.5,
+  },
+  editInline: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
-  editBtnText: {
+  editInlineText: {
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#888",
   },
-  cancelCamp: {
+  countdown: {
+    fontFamily: "Outfit",
+    fontWeight: "200",
+    fontSize: 72,
+    lineHeight: 78,
+    marginTop: 14,
+  },
+  countdownUnit: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 3,
+    color: "rgba(224,224,224,0.55)",
+    textAlign: "center",
+    marginTop: 8,
+  },
+  countdownTier: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 3,
+    color: "rgba(224,224,224,0.4)",
+    textAlign: "center",
+    marginTop: 8,
+  },
+  weighInLine: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 2.5,
+    color: "rgba(224,224,224,0.45)",
+    textAlign: "center",
+    marginTop: 12,
+  },
+  dashEventFallback: {
+    fontFamily: "Outfit",
+    fontSize: 15,
+    letterSpacing: 1,
+    color: "rgba(224,224,224,0.8)",
+    marginTop: 14,
+  },
+  rowList: {
+    marginTop: 20,
+    gap: 10,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.05)",
+    paddingBottom: 10,
+  },
+  rowLabel: {
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 2,
-    color: "#6a3a35",
+    color: "rgba(224,224,224,0.45)",
+  },
+  rowValue: {
+    fontFamily: "Outfit",
+    fontSize: 13,
+    color: "rgba(224,224,224,0.85)",
+    textAlign: "right",
+    flexShrink: 1,
+    maxWidth: "62%",
+  },
+  endCampBtn: {
+    marginTop: 24,
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  endCampBtnPressed: {
+    borderColor: "rgba(210,85,63,0.5)",
+  },
+  endCampText: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 3.5,
+    color: "rgba(224,224,224,0.6)",
+  },
+  viewTabRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 24,
+  },
+  viewTab: {
+    flex: 1,
+    paddingVertical: 11,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+  },
+  viewTabActive: {
+    borderColor: "rgba(201,136,58,0.5)",
+    backgroundColor: "rgba(201,136,58,0.06)",
+  },
+  viewTabText: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 2.5,
+    color: "rgba(255,255,255,0.5)",
+  },
+  viewTabTextActive: {
+    color: "#C9883A",
   },
   sectionHead: {
     flexDirection: "row",
@@ -2007,12 +2119,8 @@ const pi = StyleSheet.create({
 });
 
 const mission = StyleSheet.create({
-  scroll: {
-    flex: 1,
-  },
-  inner: {
-    paddingHorizontal: 20,
-    paddingTop: 4,
+  wrap: {
+    marginTop: 8,
   },
   header: {
     flexDirection: "row",
