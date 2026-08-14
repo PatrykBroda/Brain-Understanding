@@ -12,9 +12,6 @@ type LadderRung = { key: string; label: string; cloth: string; ink: string };
 
 const LADDER: LadderRung[] = [
   { key: "white", label: "White", cloth: "#ece7d8", ink: "#15130d" },
-  { key: "yellow", label: "Yellow", cloth: "#e3c044", ink: "#1a1505" },
-  { key: "orange", label: "Orange", cloth: "#d97326", ink: "#1a0d03" },
-  { key: "green", label: "Green", cloth: "#2f8f4e", ink: "#06150b" },
   { key: "blue", label: "Blue", cloth: "#1f5fc4", ink: "#04101f" },
   { key: "purple", label: "Purple", cloth: "#6b32c9", ink: "#0c0418" },
   { key: "brown", label: "Brown", cloth: "#5a3a22", ink: "#160d06" },
