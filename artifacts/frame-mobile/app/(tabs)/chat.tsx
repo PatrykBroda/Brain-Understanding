@@ -4,7 +4,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   Platform,
@@ -30,6 +29,7 @@ import { useFighter } from "@/context/FighterContext";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { MessageContent } from "@/components/MessageContent";
 import { CompetitionBanner } from "@/components/CompetitionBanner";
+import { OctagonSpinner } from "@/components/OctagonSpinner";
 
 const FRAME_WORDMARK = require("@/assets/images/frame-wordmark.png");
 
@@ -272,7 +272,7 @@ function TypingIndicator() {
     <View style={[mb.row, mb.assistantRow]}>
       <View style={mb.dot} />
       <View style={[mb.bubble, mb.assistantBubble]}>
-        <ActivityIndicator size="small" color="#C9883A" />
+        <OctagonSpinner size={22} color="#C9883A" />
       </View>
     </View>
   );
@@ -546,7 +546,7 @@ export default function ChatScreen() {
           hitSlop={8}
         >
           {resetting ? (
-            <ActivityIndicator size="small" color="#888" />
+            <OctagonSpinner size={14} color="#888" />
           ) : (
             <>
               <Feather name="refresh-ccw" size={12} color="#888" />
@@ -561,7 +561,7 @@ export default function ChatScreen() {
       {/* Messages */}
       {isLoadingHistory ? (
         <View style={styles.loadingState}>
-          <ActivityIndicator size="small" color="#C9883A" />
+          <OctagonSpinner size={28} color="#C9883A" />
         </View>
       ) : (
         <FlatList
@@ -644,7 +644,7 @@ export default function ChatScreen() {
           )}
           {uploading && (
             <View style={styles.draftStatus}>
-              <ActivityIndicator size="small" color="#C9883A" />
+              <OctagonSpinner size={16} color="#C9883A" />
               <Text style={styles.draftStatusText}>UPLOADING…</Text>
             </View>
           )}
@@ -704,7 +704,7 @@ export default function ChatScreen() {
           disabled={!canSend}
         >
           {isStreaming ? (
-            <ActivityIndicator size="small" color="#666" />
+            <OctagonSpinner size={20} color="#666" />
           ) : (
             <Feather name="arrow-up" size={18} color={canSend ? "#050505" : "#444"} />
           )}
