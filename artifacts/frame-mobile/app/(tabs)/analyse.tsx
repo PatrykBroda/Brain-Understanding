@@ -283,7 +283,6 @@ export default function AnalyseScreen() {
   const [scores, setScores] = useState(initialScores);
   const [focusPrompt, setFocusPrompt] = useState("");
   const [subject, setSubject] = useState<"self" | "opponent">("self");
-  const [opponentName, setOpponentName] = useState("");
   const [sourceMode, setSourceMode] = useState<"upload" | "link">("upload");
   const [linkUrl, setLinkUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -535,8 +534,6 @@ export default function AnalyseScreen() {
         sessionScore,
         focus: focusPrompt.trim() || undefined,
         subject: subject === "opponent" ? "opponent" : undefined,
-        opponentName:
-          subject === "opponent" ? opponentName.trim() || undefined : undefined,
         durationSec,
       });
       setResult(res.analysis);
@@ -557,7 +554,6 @@ export default function AnalyseScreen() {
     setScores(initialScores);
     setFocusPrompt("");
     setSubject("self");
-    setOpponentName("");
     setSourceMode("upload");
     setLinkUrl("");
     setOpenId(null);
@@ -749,10 +745,7 @@ export default function AnalyseScreen() {
     (sourceMode === "upload" && !!video) ||
     (sourceMode === "link" && !!linkUrl.trim());
 
-  const submitDisabled =
-    submitting ||
-    !hasClip ||
-    (subject === "opponent" && !opponentName.trim());
+  const submitDisabled = submitting || !hasClip;
 
   return (
     <ScrollView
@@ -833,26 +826,6 @@ export default function AnalyseScreen() {
         </Text>
       </View>
 
-      {/* Opponent name */}
-      {subject === "opponent" ? (
-        <View style={styles.section}>
-          <View style={styles.labelRow}>
-            <Text style={[styles.sectionLabel, { color: accent, marginBottom: 0 }]}>
-              OPPONENT NAME
-            </Text>
-            <Text style={styles.optionalLabel}>optional</Text>
-          </View>
-          <TextInput
-            style={styles.textInput}
-            value={opponentName}
-            onChangeText={setOpponentName}
-            placeholder="who are you scouting?"
-            placeholderTextColor="#333"
-            maxLength={80}
-          />
-        </View>
-      ) : null}
-
       {/* Clip type */}
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: accent }]}>CLIP TYPE</Text>
@@ -882,22 +855,11 @@ export default function AnalyseScreen() {
         </View>
       </View>
 
-      {/* Focus area */}
+      {/* Analysis category */}
       <View style={styles.section}>
-        <View style={styles.labelRow}>
-          <Text style={[styles.sectionLabel, { color: accent, marginBottom: 0 }]}>
-            FOCUS AREA
-          </Text>
-          <Text style={styles.optionalLabel}>optional</Text>
-        </View>
-        <TextInput
-          style={[styles.textInput, { marginTop: 10 }]}
-          value={focusPrompt}
-          onChangeText={setFocusPrompt}
-          placeholder="guard under fatigue, left shoulder, pressure after a miss…"
-          placeholderTextColor="#333"
-          maxLength={200}
-        />
+        <Text style={[styles.sectionLabel, { color: accent }]}>
+          ANALYSIS CATEGORY
+        </Text>
         <View style={styles.chipWrap}>
           {FOCUS_PRESETS.map((preset) => {
             const active =
