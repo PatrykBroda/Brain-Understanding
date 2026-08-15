@@ -826,7 +826,7 @@ export default function AnalyseScreen() {
         <Text style={styles.introBody}>
           {subject === "opponent"
             ? "Upload footage of your opponent. The system builds a categorical scouting model and contrasts it against your own recorded model for the matchup."
-            : "Upload a clip. The system reads your movement directly — guard, base, shoulders, output rhythm — scores it against itself, and tells you what your nervous system is doing under load."}
+            : "Upload a clip. FRAME analyses your movement, positioning, timing, balance and reactions to identify patterns in how you perform under pressure."}
         </Text>
         <Text style={styles.introCaption}>
           PROCESSED ON DEVICE · ONLY THE READ IS KEPT
