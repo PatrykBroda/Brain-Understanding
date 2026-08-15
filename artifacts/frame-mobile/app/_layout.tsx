@@ -160,6 +160,7 @@ function RootLayoutNav() {
               presentation: "modal",
             }}
           />
+          <Stack.Screen name="history" options={{ animation: "slide_from_right" }} />
         </Stack>
       </FighterProvider>
     </ErrorBoundary>

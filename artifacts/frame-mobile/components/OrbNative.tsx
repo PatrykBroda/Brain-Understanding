@@ -186,11 +186,16 @@ function projectEdges(geo: Geo, yaw: number, tilt: number, c: number, scale: num
 // rather than a tangled loop. Slow durations => calm drift, not a scribble.
 // Large, flat (low-ecc) ellipses read as long calm arcs sweeping edge-to-edge
 // past the frame — the site's restrained look — rather than tight loops.
+// Each ring gets its own direction (alternating CW/CCW so neighbours scissor
+// against each other) and its own DISTINCT base period — deliberately
+// non-monotonic (6.5 / 10.5 / 8.2 / 13s) so the four don't drift in lockstep
+// or read as one coordinated cascade. Periods are short enough that the orbit
+// is plainly visible, not a 30-second creep that looks frozen.
 const RINGS = [
-  { rr: 1.55, ecc: 0.08, tilt: 8,   durBase: 24000, dir: 1,  op: 1.0,  w: 1.0 },
-  { rr: 1.9,  ecc: 0.13, tilt: -26, durBase: 30000, dir: -1, op: 0.66, w: 0.85 },
-  { rr: 2.15, ecc: 0.07, tilt: 54,  durBase: 36000, dir: 1,  op: 0.36, w: 0.72 },
-  { rr: 2.5,  ecc: 0.18, tilt: -66, durBase: 44000, dir: -1, op: 0.16, w: 0.58 },
+  { rr: 1.55, ecc: 0.08, tilt: 8,   durBase: 6500,  dir: 1,  op: 1.0,  w: 1.0 },
+  { rr: 1.9,  ecc: 0.13, tilt: -26, durBase: 10500, dir: -1, op: 0.66, w: 0.85 },
+  { rr: 2.15, ecc: 0.07, tilt: 54,  durBase: 8200,  dir: 1,  op: 0.36, w: 0.72 },
+  { rr: 2.5,  ecc: 0.18, tilt: -66, durBase: 13000, dir: -1, op: 0.16, w: 0.58 },
 ];
 
 // Deterministic sparkle layout (stable across renders). Golden-angle spiral so
@@ -227,7 +232,7 @@ function Ring({
 }) {
   const rot = useSharedValue(0);
   const c = size / 2;
-  const duration = ring.durBase / (0.4 + speed * 1.6);
+  const duration = ring.durBase / (0.6 + speed * 2.2);
   const rx = ring.rr * rCore;
   const ry = rx * ring.ecc;
 

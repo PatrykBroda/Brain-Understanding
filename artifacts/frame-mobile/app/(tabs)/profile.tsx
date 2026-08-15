@@ -627,7 +627,7 @@ export default function ProfileScreen() {
                 {activeFacts.length} OBSERVATION{activeFacts.length === 1 ? "" : "S"}
               </Text>
             </View>
-            <Pressable onPress={() => router.push("/(tabs)/analyse")} hitSlop={8}>
+            <Pressable onPress={() => router.push("/history")} hitSlop={8}>
               <Text style={s.viewHistory}>VIEW HISTORY →</Text>
             </Pressable>
           </View>
