@@ -332,7 +332,14 @@ export default function ChatScreen() {
     }
     let cancelled = false;
     setIsLoadingHistory(true);
-    apiGet<ConversationResponse>("/conversation/active")
+    // FRAME's one proactive message: fire the idempotent welcome before loading
+    // history so a freshly onboarded athlete opens chat to FRAME's opening line
+    // instead of an empty thread. The server no-ops for anyone who already has a
+    // message, so this is safe on every mount; a swallowed error (e.g. no
+    // fighter yet) just falls through to loading whatever history exists.
+    apiPost("/coach/welcome")
+      .catch(() => {})
+      .then(() => apiGet<ConversationResponse>("/conversation/active"))
       .then((data) => {
         if (cancelled) return;
         setConversationId(data.conversation?.id ?? null);

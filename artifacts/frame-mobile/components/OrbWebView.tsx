@@ -119,34 +119,6 @@ function NativeOrb({ state, size }: { state: string; size: number }) {
   // Set the initial state before the bundle's script runs.
   const beforeLoad = `window.__ORB_STATE__ = ${JSON.stringify(state)}; true;`;
 
-  // On web (react-native-web export / the /mobile preview), react-native-webview
-  // renders nothing — so the orb would be blank. Use a real DOM iframe there so
-  // the exact same /orb scene shows in the browser preview too. Native keeps the
-  // WebView below.
-  if (Platform.OS === "web") {
-    return (
-      <View
-        style={[styles.container, { width: size, height: size }]}
-        pointerEvents="none"
-      >
-        {React.createElement("iframe", {
-          src: uri,
-          width: size,
-          height: size,
-          frameBorder: "0",
-          scrolling: "no",
-          allowTransparency: true,
-          style: {
-            border: "none",
-            background: "transparent",
-            width: size,
-            height: size,
-          },
-        })}
-      </View>
-    );
-  }
-
   return (
     <View
       style={[styles.container, { width: size, height: size }]}
