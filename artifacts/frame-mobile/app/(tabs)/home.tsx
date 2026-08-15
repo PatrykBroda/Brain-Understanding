@@ -397,7 +397,11 @@ export default function HomeScreen() {
 
         {/* Header over hero */}
         <View style={[styles.heroHeader, { paddingTop: topPad + 8 }]}>
-          <Text style={styles.wordmark}>FRAME</Text>
+          <Image
+            source={require("@/assets/images/frame-wordmark.png")}
+            style={styles.wordmark}
+            resizeMode="contain"
+          />
           <Pressable
             onPress={() => router.push("/(tabs)/profile")}
             style={styles.profileBtn}
@@ -588,10 +592,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   wordmark: {
-    fontFamily: "SpaceMono",
-    fontSize: 15,
-    letterSpacing: 8,
-    color: "#e0e0e0",
+    width: 104,
+    height: 33,
+    tintColor: "#e0e0e0",
   },
   profileBtn: {
     width: 34,
