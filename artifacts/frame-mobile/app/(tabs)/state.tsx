@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
-import { OrbNative } from "@/components/OrbNative";
+import { OrbGL } from "@/components/OrbGL";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { useTodayCheckin } from "@/hooks/useCheckin";
@@ -150,7 +150,7 @@ export default function StateScreen() {
 
       {/* Orb */}
       <View style={styles.center}>
-        <OrbNative state={state} size={280} />
+        <OrbGL state={state} size={280} />
 
         <Text style={styles.stateCaption}>STATE</Text>
         <Text style={styles.stateLabel}>{state.toUpperCase()}</Text>
