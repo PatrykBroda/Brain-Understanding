@@ -368,8 +368,8 @@ function Mesh({
       if (half === "front") {
         if (d < 0.44) return null;
       } else if (d < 0.05) return null;
-      const op = baseOp * (0.32 + d * 0.68);
-      const w = baseW * (0.6 + d * 0.55);
+      const op = baseOp * (0.45 + d * 0.75);
+      const w = baseW * (0.7 + d * 0.6);
       return (
         <Line
           key={i}
@@ -391,13 +391,13 @@ function Mesh({
   // Lean on the FINE triangulation for the delicate energy texture. The BOLD
   // shell is kept very faint (it otherwise draws big crossing chords that read
   // as a scribble) — just enough to hint structure, like the site.
-  const fineBase = (half === "front" ? 0.15 : 0.055) + glow * 0.28;
-  const boldBase = (half === "front" ? 0.045 : 0.02) + glow * 0.08;
+  const fineBase = (half === "front" ? 0.30 : 0.13) + glow * 0.40;
+  const boldBase = (half === "front" ? 0.11 : 0.05) + glow * 0.16;
 
   return (
     <Svg width={size} height={size} style={[StyleSheet.absoluteFill, styles.overflow]} pointerEvents="none">
-      {renderEdges(bold, boldBase, 0.7)}
-      {renderEdges(fine, fineBase, 0.4)}
+      {renderEdges(bold, boldBase, 1.0)}
+      {renderEdges(fine, fineBase, 0.6)}
     </Svg>
   );
 }

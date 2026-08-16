@@ -834,7 +834,7 @@ const styles = StyleSheet.create({
   },
   quickChip: {
     borderWidth: 1,
-    borderColor: "#1a1a1a",
+    borderColor: "#333",
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
   quickText: {
     fontFamily: "SpaceMono",
     fontSize: 11,
-    color: "#666",
+    color: "#b0b0b0",
     letterSpacing: 1.5,
     textTransform: "uppercase",
   },
