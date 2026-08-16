@@ -56,7 +56,7 @@ const pb = StyleSheet.create({
   },
   fill: {
     height: 2,
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
   },
 });
 
@@ -99,8 +99,8 @@ const chip = StyleSheet.create({
     paddingVertical: 10,
   },
   selected: {
-    borderColor: "#C9883A",
-    backgroundColor: "rgba(201,136,58,0.1)",
+    borderColor: "#8A6A2F",
+    backgroundColor: "rgba(138,106,47,0.1)",
   },
   text: {
     fontFamily: "Outfit",
@@ -109,7 +109,7 @@ const chip = StyleSheet.create({
     letterSpacing: 0.5,
   },
   selectedText: {
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
 });
 
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
     marginBottom: 12,
   },
   hint: {
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     color: "#444",
   },
   nextBtn: {
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
     paddingHorizontal: 28,
     paddingVertical: 14,
     minWidth: 140,

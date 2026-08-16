@@ -145,14 +145,14 @@ const sliderStyles = StyleSheet.create({
     left: 0,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
   },
   thumb: {
     position: "absolute",
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
     top: 6,
   },
 });
@@ -296,7 +296,7 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
               styles.trendBar,
               {
                 height: `${Math.max(6, p.score)}%`,
-                backgroundColor: p.date === last.date ? "#C9883A" : "#3a3a3a",
+                backgroundColor: p.date === last.date ? "#8A6A2F" : "#3a3a3a",
               },
             ]}
           />
@@ -542,13 +542,13 @@ export default function HomeScreen() {
               >
                 {checkin ? (
                   <>
-                    <Feather name="edit-2" size={11} color="#C9883A" />
+                    <Feather name="edit-2" size={11} color="#8A6A2F" />
                     <Text style={styles.editText}>EDIT TODAY'S CHECK-IN</Text>
                   </>
                 ) : (
                   <>
                     <Text style={styles.editText}>LOG TODAY'S CHECK-IN</Text>
-                    <Feather name="chevron-right" size={11} color="#C9883A" />
+                    <Feather name="chevron-right" size={11} color="#8A6A2F" />
                   </>
                 )}
               </Pressable>
@@ -564,7 +564,7 @@ export default function HomeScreen() {
         <View style={styles.trendWrap}>
           {isFramePlus ? (
             historyQuery.isLoading ? (
-              <ActivityIndicator size="small" color="#C9883A" />
+              <ActivityIndicator size="small" color="#8A6A2F" />
             ) : (
               <ReadinessTrend checkins={historyCheckins} />
             )
@@ -611,7 +611,7 @@ export default function HomeScreen() {
               hitSlop={8}
             >
               <Text style={styles.compEmptyCtaText}>SET A CAMP</Text>
-              <Feather name="chevron-right" size={11} color="#C9883A" />
+              <Feather name="chevron-right" size={11} color="#8A6A2F" />
             </Pressable>
           </View>
         )}
@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 6,
-    color: "#C9883A",
+    color: "#8A6A2F",
     marginTop: 10,
   },
   readyBigEmpty: {
@@ -811,7 +811,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   // Check-in form
   formCard: {
@@ -847,7 +847,7 @@ const styles = StyleSheet.create({
   formValue: {
     fontFamily: "Outfit",
     fontSize: 15,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   formHint: {
     fontFamily: "SpaceMono",
@@ -884,13 +884,13 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(201,136,58,0.4)",
+    borderColor: "rgba(138,106,47,0.4)",
   },
   saveBtnText: {
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   cancelText: {
     fontFamily: "SpaceMono",
@@ -968,7 +968,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   // Competition
   compRow: {
@@ -997,7 +997,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit",
     fontSize: 34,
     lineHeight: 34,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   compDaysLabel: {
     fontFamily: "SpaceMono",
@@ -1027,6 +1027,6 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
 });

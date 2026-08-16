@@ -192,7 +192,7 @@ const trailSs = StyleSheet.create({
   val: { fontFamily: "SpaceMono", fontSize: 8, color: "#3a3a3a", textTransform: "uppercase", letterSpacing: 1, lineHeight: 12 },
   valCurrent: { color: "#888" },
   valTappable: { color: "#555", textDecorationLine: "underline" },
-  valPressed: { color: "#C9883A" },
+  valPressed: { color: "#8A6A2F" },
 });
 
 function formatDuration(ms: number): string {
@@ -566,7 +566,7 @@ export default function AnalyseScreen() {
   if (loadingSession) {
     return (
       <View style={[styles.root, styles.centered, { paddingTop: topPad }]}>
-        <ActivityIndicator color="#C9883A" />
+        <ActivityIndicator color="#8A6A2F" />
         <Text style={styles.loadingText}>LOADING SESSION</Text>
       </View>
     );
@@ -584,7 +584,7 @@ export default function AnalyseScreen() {
         </View>
         {loadingHistory ? (
           <View style={[styles.centered, { flex: 1 }]}>
-            <ActivityIndicator color="#C9883A" />
+            <ActivityIndicator color="#8A6A2F" />
             <Text style={styles.loadingText}>LOADING</Text>
           </View>
         ) : historyError ? (
@@ -1152,7 +1152,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
     marginBottom: 10,
   },
   sectionHint: {
@@ -1181,7 +1181,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#C9883A",
+    borderColor: "#8A6A2F",
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
@@ -1204,9 +1204,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#1a1a1a",
   },
-  chipActive: { borderColor: "#C9883A", backgroundColor: "#0d0a07" },
+  chipActive: { borderColor: "#8A6A2F", backgroundColor: "#0d0a07" },
   chipText: { fontFamily: "Outfit", fontSize: 13, color: "#555" },
-  chipTextActive: { color: "#C9883A" },
+  chipTextActive: { color: "#8A6A2F" },
   loadRow: { flexDirection: "row", gap: 8 },
   loadBtn: {
     flex: 1,
@@ -1215,7 +1215,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: "center",
   },
-  loadBtnActive: { borderColor: "#C9883A", backgroundColor: "#0d0a07" },
+  loadBtnActive: { borderColor: "#8A6A2F", backgroundColor: "#0d0a07" },
   loadBtnLabel: {
     fontFamily: "SpaceMono",
     fontSize: 9,
@@ -1223,7 +1223,7 @@ const styles = StyleSheet.create({
     color: "#555",
     marginBottom: 2,
   },
-  loadBtnLabelActive: { color: "#C9883A" },
+  loadBtnLabelActive: { color: "#8A6A2F" },
   loadBtnDesc: { fontFamily: "Outfit", fontSize: 10, color: "#333" },
   focusInput: {
     backgroundColor: "#0a0a0a",
@@ -1435,7 +1435,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 8,
     letterSpacing: 1,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   logCardBody: {
     fontFamily: "Outfit",
@@ -1491,7 +1491,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   submitBtn: {
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
@@ -1535,12 +1535,12 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
     marginBottom: 4,
   },
   scoreValue: { fontFamily: "SpaceMono", fontSize: 24, color: "#e0e0e0", marginBottom: 8 },
   scoreBar: { height: 2, backgroundColor: "#1a1a1a", marginBottom: 8 },
-  scoreBarFill: { height: 2, backgroundColor: "#C9883A" },
+  scoreBarFill: { height: 2, backgroundColor: "#8A6A2F" },
   scoreBasis: { fontFamily: "Outfit", fontSize: 11, color: "#444" },
   rawSignalsSection: {
     marginBottom: 20,
@@ -1594,7 +1594,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#0a0a0a",
     borderWidth: 1,
     borderColor: "#1a1a1a",
-    borderLeftColor: "#C9883A",
+    borderLeftColor: "#8A6A2F",
     borderLeftWidth: 2,
     padding: 16,
     marginBottom: 12,

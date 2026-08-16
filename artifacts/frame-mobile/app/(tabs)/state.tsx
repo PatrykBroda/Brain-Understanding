@@ -215,7 +215,7 @@ export default function StateScreen() {
           ) : (
             <View style={styles.readinessCta}>
               <Text style={styles.readinessCtaText}>Analyse a session</Text>
-              <Feather name="chevron-right" size={12} color="#C9883A" />
+              <Feather name="chevron-right" size={12} color="#8A6A2F" />
             </View>
           )}
         </Pressable>
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 22,
     letterSpacing: 8,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   stateCue: {
     fontFamily: "SpaceMono",
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   readinessValue: {
     fontFamily: "SpaceMono",
     fontSize: 16,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   readinessUnit: {
     fontFamily: "SpaceMono",
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   footer: {
     alignItems: "center",
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   enterPressed: {
-    borderColor: "#C9883A",
+    borderColor: "#8A6A2F",
   },
   enterText: {
     fontFamily: "SpaceMono",

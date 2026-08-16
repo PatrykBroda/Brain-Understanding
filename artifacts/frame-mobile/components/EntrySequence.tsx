@@ -225,7 +225,7 @@ const s = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 3.2,
-    color: "rgba(201,136,58,0.85)",
+    color: "rgba(138,106,47,0.85)",
   },
   hero: {
     flex: 1,

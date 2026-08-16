@@ -79,11 +79,11 @@ const chip = StyleSheet.create({
     paddingVertical: 9,
   },
   selected: {
-    borderColor: "#C9883A",
-    backgroundColor: "rgba(201,136,58,0.1)",
+    borderColor: "#8A6A2F",
+    backgroundColor: "rgba(138,106,47,0.1)",
   },
   text: { fontFamily: "Outfit", fontSize: 13, color: "#666" },
-  selectedText: { color: "#C9883A" },
+  selectedText: { color: "#8A6A2F" },
 });
 
 interface FormState {
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     color: "#c0392b",
   },
   saveBtn: {
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
     paddingVertical: 16,
     alignItems: "center",
     marginTop: 8,

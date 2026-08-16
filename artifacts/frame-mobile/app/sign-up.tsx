@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   btn: {
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
     alignItems: "center",
     justifyContent: "center",
     height: 52,
@@ -187,6 +187,6 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   linkHighlight: {
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
 });

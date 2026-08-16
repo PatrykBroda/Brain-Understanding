@@ -170,8 +170,8 @@ const s = StyleSheet.create({
   card: {
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: "rgba(201,136,58,0.30)",
-    backgroundColor: "rgba(201,136,58,0.05)",
+    borderColor: "rgba(138,106,47,0.30)",
+    backgroundColor: "rgba(138,106,47,0.05)",
   },
   head: {
     flexDirection: "row",
@@ -180,20 +180,20 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(201,136,58,0.20)",
-    backgroundColor: "rgba(201,136,58,0.10)",
+    borderBottomColor: "rgba(138,106,47,0.20)",
+    backgroundColor: "rgba(138,106,47,0.10)",
   },
   headLabel: {
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 2,
-    color: "rgba(201,136,58,0.85)",
+    color: "rgba(138,106,47,0.85)",
   },
   headKind: {
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 1.5,
-    color: "rgba(201,136,58,0.6)",
+    color: "rgba(138,106,47,0.6)",
     textTransform: "uppercase",
   },
   stepPad: {
@@ -209,7 +209,7 @@ const s = StyleSheet.create({
   },
   focusBar: {
     borderLeftWidth: 2,
-    borderLeftColor: "rgba(201,136,58,0.55)",
+    borderLeftColor: "rgba(138,106,47,0.55)",
     paddingLeft: 14,
     paddingVertical: 2,
   },
@@ -218,13 +218,13 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: "rgba(201,136,58,0.5)",
+    borderColor: "rgba(138,106,47,0.5)",
   },
   continueText: {
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
     textTransform: "uppercase",
   },
   groundWrap: {
@@ -248,7 +248,7 @@ const s = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 28,
     letterSpacing: 6,
-    color: "rgba(201,136,58,0.70)",
+    color: "rgba(138,106,47,0.70)",
   },
   groundActive: {
     alignItems: "center",
@@ -259,7 +259,7 @@ const s = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 88,
     lineHeight: 96,
-    color: "rgba(201,136,58,0.22)",
+    color: "rgba(138,106,47,0.22)",
   },
   groundPrompt: {
     fontFamily: "Outfit",
@@ -278,8 +278,8 @@ const s = StyleSheet.create({
   dot: {
     borderRadius: 4,
   },
-  dotActive: { width: 16, height: 6, backgroundColor: "#C9883A" },
-  dotPast: { width: 6, height: 6, backgroundColor: "rgba(201,136,58,0.4)" },
+  dotActive: { width: 16, height: 6, backgroundColor: "#8A6A2F" },
+  dotPast: { width: 6, height: 6, backgroundColor: "rgba(138,106,47,0.4)" },
   dotFuture: { width: 6, height: 6, backgroundColor: "rgba(120,120,120,0.4)" },
   finishedPad: {
     paddingHorizontal: 16,
@@ -290,7 +290,7 @@ const s = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 2,
-    color: "rgba(201,136,58,0.5)",
+    color: "rgba(138,106,47,0.5)",
     textTransform: "uppercase",
   },
   seqDots: {
@@ -303,7 +303,7 @@ const s = StyleSheet.create({
   seqDot: {
     borderRadius: 2,
   },
-  seqDotActive: { width: 20, height: 4, backgroundColor: "rgba(201,136,58,0.7)" },
-  seqDotPast: { width: 8, height: 4, backgroundColor: "rgba(201,136,58,0.35)" },
+  seqDotActive: { width: 20, height: 4, backgroundColor: "rgba(138,106,47,0.7)" },
+  seqDotPast: { width: 8, height: 4, backgroundColor: "rgba(138,106,47,0.35)" },
   seqDotFuture: { width: 8, height: 4, backgroundColor: "rgba(120,120,120,0.4)" },
 });

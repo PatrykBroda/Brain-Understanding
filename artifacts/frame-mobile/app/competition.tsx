@@ -19,8 +19,8 @@ import { competitionApi, type Competition, type PressureTier } from "@/lib/compe
 import { useActiveCompetition, useCompetitionList } from "@/hooks/useCompetition";
 
 const TIER_ACCENT: Record<PressureTier, string> = {
-  base: "#C9883A",
-  build: "#C9883A",
+  base: "#8A6A2F",
+  build: "#8A6A2F",
   sharpen: "#d2553f",
   peak: "#e0604a",
   fight_week: "#ff6a4d",
@@ -188,7 +188,7 @@ export default function CompetitionScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {activeLoading ? (
-          <ActivityIndicator color="#C9883A" style={{ marginTop: 40 }} />
+          <ActivityIndicator color="#8A6A2F" style={{ marginTop: 40 }} />
         ) : pressure ? (
           <ActiveCard
             pressure={pressure}
@@ -214,7 +214,7 @@ export default function CompetitionScreen() {
               setShowForm(true);
             }}
           >
-            <Feather name="plus" size={16} color="#C9883A" />
+            <Feather name="plus" size={16} color="#8A6A2F" />
             <Text style={styles.scheduleText}>SCHEDULE COMPETITION</Text>
           </Pressable>
         )}
@@ -377,7 +377,7 @@ function ActiveCard({
   cancelling: boolean;
 }) {
   if (!pressure) return null;
-  const accent = TIER_ACCENT[pressure.tier] ?? "#C9883A";
+  const accent = TIER_ACCENT[pressure.tier] ?? "#8A6A2F";
   const c = pressure.competition;
   const days = pressure.daysToEvent;
 
@@ -417,7 +417,7 @@ function ActiveCard({
 
       <View style={styles.activeActions}>
         <Pressable style={styles.editComp} onPress={onEdit} hitSlop={6}>
-          <Feather name="edit-2" size={11} color="#C9883A" />
+          <Feather name="edit-2" size={11} color="#8A6A2F" />
           <Text style={styles.editCompText}>EDIT</Text>
         </Pressable>
         <Pressable style={styles.cancelComp} onPress={onCancel} disabled={cancelling}>
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   cancelComp: {
     alignSelf: "flex-start",
@@ -638,19 +638,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: "rgba(201,136,58,0.4)",
+    borderColor: "rgba(138,106,47,0.4)",
     paddingVertical: 14,
     marginTop: 16,
   },
   scheduleBtnPressed: {
-    borderColor: "#C9883A",
-    backgroundColor: "rgba(201,136,58,0.06)",
+    borderColor: "#8A6A2F",
+    backgroundColor: "rgba(138,106,47,0.06)",
   },
   scheduleText: {
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   form: {
     marginTop: 16,
@@ -663,7 +663,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
     marginBottom: 16,
   },
   field: {
@@ -723,7 +723,7 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     flex: 1,
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
     paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",

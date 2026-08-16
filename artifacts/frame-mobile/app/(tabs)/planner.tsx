@@ -39,8 +39,8 @@ import { GoogleCalendarSync } from "@/components/GoogleCalendarSync";
 import { useIsFramePlus } from "@/hooks/useEntitlement";
 
 const TIER_ACCENT: Record<PressureTier, string> = {
-  base: "#C9883A",
-  build: "#C9883A",
+  base: "#8A6A2F",
+  build: "#8A6A2F",
   sharpen: "#d2553f",
   peak: "#e0604a",
   fight_week: "#ff6a4d",
@@ -484,11 +484,11 @@ function CampView() {
       contentContainerStyle={[camp.inner, { paddingBottom: insets.bottom + bottomPad + 120 }]}
       keyboardShouldPersistTaps="handled"
       refreshControl={
-        <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#C9883A" />
+        <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#8A6A2F" />
       }
     >
       {isLoading ? (
-        <ActivityIndicator color="#C9883A" style={{ marginTop: 40 }} />
+        <ActivityIndicator color="#8A6A2F" style={{ marginTop: 40 }} />
       ) : !competition ? (
         <>
           <View style={camp.emptyCard}>
@@ -505,7 +505,7 @@ function CampView() {
                   setShowCampForm(true);
                 }}
               >
-                <Feather name="plus" size={16} color="#C9883A" />
+                <Feather name="plus" size={16} color="#8A6A2F" />
                 <Text style={camp.ctaText}>CREATE YOUR CAMP</Text>
               </Pressable>
             )}
@@ -564,7 +564,7 @@ function CampView() {
                         hitSlop={8}
                         style={camp.addBtn}
                       >
-                        <Feather name="plus" size={14} color="#C9883A" />
+                        <Feather name="plus" size={14} color="#8A6A2F" />
                         <Text style={camp.addBtnText}>ADD</Text>
                       </Pressable>
                     )}
@@ -730,7 +730,7 @@ function CampReviewLocked() {
       <View style={rev.head}>
         <Text style={rev.headLabel}>CAMP REVIEW</Text>
         <View style={rev.lockPill}>
-          <Feather name="lock" size={10} color="#C9883A" />
+          <Feather name="lock" size={10} color="#8A6A2F" />
           <Text style={rev.lockPillText}>FRAME+</Text>
         </View>
       </View>
@@ -779,7 +779,7 @@ function Dashboard({
   onCancel: () => void;
   cancelling: boolean;
 }) {
-  const accent = TIER_ACCENT[tier] ?? "#C9883A";
+  const accent = TIER_ACCENT[tier] ?? "#8A6A2F";
 
   const fightLine = [
     competition.opponent,
@@ -1391,16 +1391,16 @@ function MissionContent() {
           disabled={generating || isLoading}
         >
           {generating ? (
-            <ActivityIndicator size="small" color="#C9883A" />
+            <ActivityIndicator size="small" color="#8A6A2F" />
           ) : (
-            <Feather name="refresh-cw" size={16} color="#C9883A" />
+            <Feather name="refresh-cw" size={16} color="#8A6A2F" />
           )}
         </Pressable>
       </View>
 
       {isLoading && !plan && (
         <View style={mission.loadingBlock}>
-          <ActivityIndicator color="#C9883A" />
+          <ActivityIndicator color="#8A6A2F" />
         </View>
       )}
 
@@ -1516,7 +1516,7 @@ const shell = StyleSheet.create({
   },
   plusPill: {
     borderWidth: 1,
-    borderColor: "rgba(201,136,58,0.4)",
+    borderColor: "rgba(138,106,47,0.4)",
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
@@ -1524,7 +1524,7 @@ const shell = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
 });
 
@@ -1562,18 +1562,18 @@ const camp = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: "rgba(201,136,58,0.4)",
+    borderColor: "rgba(138,106,47,0.4)",
     paddingVertical: 14,
   },
   ctaPressed: {
-    borderColor: "#C9883A",
-    backgroundColor: "rgba(201,136,58,0.06)",
+    borderColor: "#8A6A2F",
+    backgroundColor: "rgba(138,106,47,0.06)",
   },
   ctaText: {
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   dashCard: {
     borderWidth: 1,
@@ -1699,8 +1699,8 @@ const camp = StyleSheet.create({
     alignItems: "center",
   },
   viewTabActive: {
-    borderColor: "rgba(201,136,58,0.5)",
-    backgroundColor: "rgba(201,136,58,0.06)",
+    borderColor: "rgba(138,106,47,0.5)",
+    backgroundColor: "rgba(138,106,47,0.06)",
   },
   viewTabText: {
     fontFamily: "SpaceMono",
@@ -1709,7 +1709,7 @@ const camp = StyleSheet.create({
     color: "rgba(255,255,255,0.5)",
   },
   viewTabTextActive: {
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   sectionHead: {
     flexDirection: "row",
@@ -1722,7 +1722,7 @@ const camp = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   addBtn: {
     flexDirection: "row",
@@ -1733,7 +1733,7 @@ const camp = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   noSessions: {
     fontFamily: "Outfit",
@@ -1774,8 +1774,8 @@ const camp = StyleSheet.create({
     marginTop: 1,
   },
   sCheckDone: {
-    backgroundColor: "#C9883A",
-    borderColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
+    borderColor: "#8A6A2F",
   },
   sCheckLocked: {
     borderColor: "#222",
@@ -1834,7 +1834,7 @@ const camp = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
     marginBottom: 16,
   },
   field: {
@@ -1873,8 +1873,8 @@ const camp = StyleSheet.create({
     paddingVertical: 7,
   },
   chipActive: {
-    borderColor: "#C9883A",
-    backgroundColor: "rgba(201,136,58,0.10)",
+    borderColor: "#8A6A2F",
+    backgroundColor: "rgba(138,106,47,0.10)",
   },
   chipText: {
     fontFamily: "SpaceMono",
@@ -1883,7 +1883,7 @@ const camp = StyleSheet.create({
     color: "#666",
   },
   chipTextActive: {
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   row2: {
     flexDirection: "row",
@@ -1918,7 +1918,7 @@ const camp = StyleSheet.create({
   },
   submitBtn: {
     flex: 1,
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
     paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -1964,7 +1964,7 @@ const rev = StyleSheet.create({
     alignItems: "center",
     gap: 5,
     borderWidth: 1,
-    borderColor: "rgba(201,136,58,0.4)",
+    borderColor: "rgba(138,106,47,0.4)",
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
@@ -1972,7 +1972,7 @@ const rev = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 8,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   body: {
     paddingHorizontal: 16,
@@ -2102,8 +2102,8 @@ const pi = StyleSheet.create({
     marginTop: 2,
   },
   checkDone: {
-    backgroundColor: "#C9883A",
-    borderColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
+    borderColor: "#8A6A2F",
   },
   text: {
     flex: 1,
@@ -2161,7 +2161,7 @@ const mission = StyleSheet.create({
     lineHeight: 22,
   },
   generateBtn: {
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
     paddingHorizontal: 24,
     paddingVertical: 14,
     marginTop: 8,
@@ -2176,7 +2176,7 @@ const mission = StyleSheet.create({
     backgroundColor: "#0a0a0a",
     borderWidth: 1,
     borderColor: "#1a1a1a",
-    borderLeftColor: "#C9883A",
+    borderLeftColor: "#8A6A2F",
     borderLeftWidth: 2,
     padding: 16,
     marginBottom: 16,
@@ -2185,7 +2185,7 @@ const mission = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 8,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
     marginBottom: 6,
   },
   focusText: {
@@ -2207,7 +2207,7 @@ const mission = StyleSheet.create({
   },
   progressFill: {
     height: 2,
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
   },
   progressLabel: {
     fontFamily: "SpaceMono",
@@ -2221,7 +2221,7 @@ const mission = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 8,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
     marginBottom: 8,
   },
   sectionItems: {

@@ -46,8 +46,8 @@ const s = StyleSheet.create({
   card: {
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: "rgba(201,136,58,0.30)",
-    backgroundColor: "rgba(201,136,58,0.05)",
+    borderColor: "rgba(138,106,47,0.30)",
+    backgroundColor: "rgba(138,106,47,0.05)",
   },
   head: {
     flexDirection: "row",
@@ -56,20 +56,20 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(201,136,58,0.20)",
-    backgroundColor: "rgba(201,136,58,0.10)",
+    borderBottomColor: "rgba(138,106,47,0.20)",
+    backgroundColor: "rgba(138,106,47,0.10)",
   },
   headLabel: {
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 2,
-    color: "rgba(201,136,58,0.85)",
+    color: "rgba(138,106,47,0.85)",
   },
   headKind: {
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 1,
-    color: "rgba(201,136,58,0.6)",
+    color: "rgba(138,106,47,0.6)",
   },
   title: {
     paddingHorizontal: 14,
