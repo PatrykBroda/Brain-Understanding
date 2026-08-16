@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { ChevronRight, Pencil, Move, Lock } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
@@ -13,7 +14,8 @@ import { useActiveCompetition } from "@/hooks/use-competition";
 import { useTodayCheckin, useSaveCheckin, useCheckinHistory } from "@/hooks/use-checkin";
 import { useMemory } from "@/hooks/use-memory";
 import { primaryFocus } from "@/lib/primary-focus";
-import { heroFileUrl, type DailyCheckin } from "@/lib/api";
+import { heroFileUrl, api, type DailyCheckin } from "@/lib/api";
+import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
@@ -250,7 +252,17 @@ export default function DashboardPage() {
     ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
     : null;
   const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
-  const readiness = checkinScore ?? sessionScore;
+
+  // Same lightweight ±10 chat modifier the STATE tab applies, so the Fight
+  // Readiness number stays consistent across screens. Reuses the shared
+  // ["conversation"] cache — no new data flow.
+  const conversationQuery = useQuery({
+    queryKey: ["conversation"],
+    queryFn: () => api.getActiveConversation(),
+    enabled: !!fighter,
+  });
+  const chatModifier = readinessModifier(conversationQuery.data?.messages ?? []);
+  const readiness = applyReadinessModifier(checkinScore ?? sessionScore, chatModifier);
   const provenance =
     checkinScore != null
       ? "Today's check-in"

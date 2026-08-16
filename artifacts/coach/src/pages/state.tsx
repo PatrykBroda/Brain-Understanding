@@ -10,6 +10,7 @@ import { useFrameState, type FrameStateLabel } from "@/hooks/use-frame-state";
 import { useAnalyses } from "@/hooks/use-analysis";
 import { useTodayCheckin } from "@/hooks/use-checkin";
 import { api } from "@/lib/api";
+import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -45,7 +46,7 @@ export default function StatePage() {
     ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
     : null;
   const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
-  const readiness = checkinScore ?? sessionScore;
+  const baseReadiness = checkinScore ?? sessionScore;
   const readinessSource = checkinScore != null ? "today" : "last session";
 
   // Warms the shared ["conversation"] cache Chat reuses; lets the doorway read
@@ -56,6 +57,12 @@ export default function StatePage() {
     enabled: !!fighter,
   });
   const hasSession = (conversationQuery.data?.messages?.length ?? 0) > 0;
+
+  // Recent chat drives a small ±10 modifier on top of the base readiness,
+  // reusing the conversation already fetched above — no new data flow. Mirrors
+  // the native app so the Fight Readiness number matches across surfaces.
+  const chatModifier = readinessModifier(conversationQuery.data?.messages ?? []);
+  const readiness = applyReadinessModifier(baseReadiness, chatModifier);
 
   const { hue, sat, light } = ORB_PALETTE[frameState.orb];
   const labelColor = `hsl(${hue}, ${Math.round(sat * 35)}%, 91%)`;
