@@ -57,9 +57,22 @@ const METRIC_LABELS: {
 }[] = [
   { key: "sleep", label: "Sleep", hint: "How rested you woke up" },
   { key: "energy", label: "Energy", hint: "Fuel in the tank right now" },
-  { key: "soreness", label: "Soreness", hint: "100 = no soreness at all" },
-  { key: "stress", label: "Stress", hint: "100 = completely clear-headed" },
+  { key: "soreness", label: "Soreness", hint: "100 = most sore" },
+  { key: "stress", label: "Stress", hint: "100 = most stressed" },
 ];
+
+// Soreness and stress are persisted as recovery quality (100 = fully recovered:
+// no soreness / clear-headed) so the readiness composite can sum all four
+// metrics as "higher is better". The athlete, though, reads them the natural
+// way — 100 = most sore / most stressed — so we invert just these two at the
+// display and input boundary (v = 100 - v). Storage, the composite, and every
+// historical check-in are untouched.
+const INVERTED_METRICS: Partial<
+  Record<(typeof METRIC_LABELS)[number]["key"], true>
+> = {
+  soreness: true,
+  stress: true,
+};
 
 // ── PanResponder slider (0-100) — mobile has no <Slider> dependency ────────
 function MetricSlider({
@@ -152,11 +165,13 @@ function CheckinForm({
   onDone: () => void;
 }) {
   const save = useSaveCheckin();
+  // Sliders hold display units: soreness/stress are shown as amount (100 = most
+  // sore / most stressed), the inverse of how they're stored.
   const [values, setValues] = useState({
     sleep: existing?.sleep ?? 70,
     energy: existing?.energy ?? 70,
-    soreness: existing?.soreness ?? 70,
-    stress: existing?.stress ?? 70,
+    soreness: existing != null ? 100 - existing.soreness : 30,
+    stress: existing != null ? 100 - existing.stress : 30,
   });
   const [hr, setHr] = useState(
     existing?.restingHr != null ? String(existing.restingHr) : "",
@@ -173,8 +188,15 @@ function CheckinForm({
       return;
     }
     setErr(null);
+    // Convert the two display-inverted metrics back to stored recovery quality.
     save.mutate(
-      { ...values, restingHr },
+      {
+        sleep: values.sleep,
+        energy: values.energy,
+        soreness: 100 - values.soreness,
+        stress: 100 - values.stress,
+        restingHr,
+      },
       {
         onSuccess: onDone,
         onError: (e) =>
@@ -494,7 +516,11 @@ export default function HomeScreen() {
               <View key={key} style={styles.breakdownRow}>
                 <Text style={styles.breakdownLabel}>{label.toUpperCase()}</Text>
                 <Text style={styles.breakdownValue}>
-                  {checkin ? checkin[key] : "—"}
+                  {checkin
+                    ? INVERTED_METRICS[key]
+                      ? 100 - checkin[key]
+                      : checkin[key]
+                    : "—"}
                 </Text>
               </View>
             ))}
