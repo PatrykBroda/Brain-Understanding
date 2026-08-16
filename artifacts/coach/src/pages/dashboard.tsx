@@ -36,9 +36,20 @@ function MetaDivider() {
 const METRIC_LABELS: { key: "sleep" | "energy" | "soreness" | "stress"; label: string; hint: string }[] = [
   { key: "sleep", label: "Sleep", hint: "How rested you woke up" },
   { key: "energy", label: "Energy", hint: "Fuel in the tank right now" },
-  { key: "soreness", label: "Soreness", hint: "100 = no soreness at all" },
-  { key: "stress", label: "Stress", hint: "100 = completely clear-headed" },
+  { key: "soreness", label: "Soreness", hint: "100 = most sore" },
+  { key: "stress", label: "Stress", hint: "100 = most stressed" },
 ];
+
+// Soreness and stress are persisted as recovery quality (100 = fully recovered:
+// no soreness / clear-headed) so the readiness composite can sum all four
+// metrics as "higher is better". The athlete, though, reads them the natural
+// way — 100 = most sore / most stressed — so we invert just these two at the
+// display and input boundary (v = 100 - v). Storage, the composite, and every
+// historical check-in are untouched. Mirrors frame-mobile's CheckinForm.
+const INVERTED_METRICS: Partial<Record<(typeof METRIC_LABELS)[number]["key"], true>> = {
+  soreness: true,
+  stress: true,
+};
 
 function CheckinForm({
   existing,
@@ -48,11 +59,13 @@ function CheckinForm({
   onDone: () => void;
 }) {
   const save = useSaveCheckin();
+  // Sliders hold display units: soreness/stress are shown as amount (100 = most
+  // sore / most stressed), the inverse of how they're stored.
   const [values, setValues] = useState({
     sleep: existing?.sleep ?? 70,
     energy: existing?.energy ?? 70,
-    soreness: existing?.soreness ?? 70,
-    stress: existing?.stress ?? 70,
+    soreness: existing != null ? 100 - existing.soreness : 30,
+    stress: existing != null ? 100 - existing.stress : 30,
   });
   const [hr, setHr] = useState(existing?.restingHr != null ? String(existing.restingHr) : "");
   const [err, setErr] = useState<string | null>(null);
@@ -64,8 +77,15 @@ function CheckinForm({
       return;
     }
     setErr(null);
+    // Convert the two display-inverted metrics back to stored recovery quality.
     save.mutate(
-      { ...values, restingHr },
+      {
+        sleep: values.sleep,
+        energy: values.energy,
+        soreness: 100 - values.soreness,
+        stress: 100 - values.stress,
+        restingHr,
+      },
       {
         onSuccess: onDone,
         onError: (e) => setErr(e instanceof Error ? e.message : "Couldn't save check-in"),
@@ -555,7 +575,11 @@ export default function DashboardPage() {
                       {label}
                     </span>
                     <span className="font-sans font-light text-[15px] tabular-nums text-foreground/90">
-                      {checkin ? checkin[key] : <span className="text-foreground/25">—</span>}
+                      {checkin ? (
+                        INVERTED_METRICS[key] ? 100 - checkin[key] : checkin[key]
+                      ) : (
+                        <span className="text-foreground/25">—</span>
+                      )}
                     </span>
                   </div>
                 ))}
