@@ -30,6 +30,11 @@ import {
 } from "@/hooks/useCheckin";
 import { apiGet, heroFileUrl } from "@/lib/api";
 import { primaryFocus, type AthleteFact } from "@/lib/primaryFocus";
+import {
+  readinessModifier,
+  applyReadinessModifier,
+  type ChatMessageLike,
+} from "@/lib/readinessModifier";
 
 // ── Real-composite band read (interpretation, not fabrication) ─────────────
 function bandFor(score: number): string {
@@ -335,7 +340,26 @@ export default function HomeScreen() {
     : null;
   const sessionScore =
     latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
-  const readiness = checkinScore ?? sessionScore;
+
+  // Same lightweight ±10 chat modifier the STATE tab applies, so the Fight
+  // Readiness number stays consistent across screens. Reuses the active
+  // conversation query — no new data flow.
+  const conversationQuery = useQuery<ChatMessageLike[]>({
+    queryKey: ["conversation-active"],
+    queryFn: () =>
+      apiGet<{ messages: ChatMessageLike[] }>("/conversation/active").then((r) =>
+        Array.isArray(r?.messages) ? r.messages : [],
+      ),
+    enabled: !!isSignedIn,
+    staleTime: 60_000,
+  });
+  const chatModifier = useMemo(
+    () => readinessModifier(conversationQuery.data ?? []),
+    [conversationQuery.data],
+  );
+
+  const baseReadiness = checkinScore ?? sessionScore;
+  const readiness = applyReadinessModifier(baseReadiness, chatModifier);
   const provenance =
     checkinScore != null
       ? "TODAY'S CHECK-IN"

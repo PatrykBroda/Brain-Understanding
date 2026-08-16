@@ -16,6 +16,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { useTodayCheckin } from "@/hooks/useCheckin";
 import { apiGet } from "@/lib/api";
+import {
+  readinessModifier,
+  applyReadinessModifier,
+  type ChatMessageLike,
+} from "@/lib/readinessModifier";
 
 interface Fact {
   id: number;
@@ -116,7 +121,24 @@ export default function StateScreen() {
     analysesQuery.data?.find((a) => !a.locked && a.sessionScore != null) ?? null;
   const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
 
-  const readiness = checkinScore ?? sessionScore;
+  // Recent chat drives a small ±10 modifier on top of the base readiness. It
+  // reuses the same conversation the chat tab reads, so no new data flow.
+  const conversationQuery = useQuery<ChatMessageLike[]>({
+    queryKey: ["conversation-active"],
+    queryFn: () =>
+      apiGet<{ messages: ChatMessageLike[] }>("/conversation/active").then((r) =>
+        Array.isArray(r?.messages) ? r.messages : [],
+      ),
+    enabled: !!isSignedIn,
+    staleTime: 60_000,
+  });
+  const chatModifier = useMemo(
+    () => readinessModifier(conversationQuery.data ?? []),
+    [conversationQuery.data],
+  );
+
+  const baseReadiness = checkinScore ?? sessionScore;
+  const readiness = applyReadinessModifier(baseReadiness, chatModifier);
   const readinessSource = checkinScore != null ? "today" : "last session";
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
