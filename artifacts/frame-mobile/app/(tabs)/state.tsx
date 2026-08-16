@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -141,6 +142,15 @@ export default function StateScreen() {
   const readiness = applyReadinessModifier(baseReadiness, chatModifier);
   const readinessSource = checkinScore != null ? "today" : "last session";
 
+  // Doorway label mirrors the prototype: "Continue" only when a real prior
+  // session exists, else "Enter". Reuses the conversation query already fetched
+  // for the readiness modifier.
+  const hasSession = (conversationQuery.data?.length ?? 0) > 0;
+
+  // Orb fills the screen horizontally (capped so it stays sane on web/tablet).
+  const { width } = useWindowDimensions();
+  const orbSize = Math.round(Math.min(width, 440));
+
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   return (
@@ -154,10 +164,12 @@ export default function StateScreen() {
             resizeMode="contain"
           />
           <View>
-            <Text style={styles.wordmark}>FRAME</Text>
-            <Text style={styles.subline}>
-              {(fighter?.primarySport ?? "COMBAT").toUpperCase()} · CALIBRATION SYSTEM
-            </Text>
+            <Image
+              source={require("../../assets/images/frame-wordmark.png")}
+              style={styles.wordmarkImg}
+              resizeMode="contain"
+            />
+            <Text style={styles.subline}>STATE · CALIBRATION SYSTEM</Text>
           </View>
         </View>
         <Pressable
@@ -172,7 +184,7 @@ export default function StateScreen() {
 
       {/* Orb */}
       <View style={styles.center}>
-        <OrbGL state={state} size={280} />
+        <OrbGL state={state} size={orbSize} />
 
         <Text style={styles.stateCaption}>STATE</Text>
         <Text style={styles.stateLabel}>{state.toUpperCase()}</Text>
@@ -215,7 +227,7 @@ export default function StateScreen() {
           style={({ pressed }) => [styles.enterBtn, pressed && styles.enterPressed]}
           onPress={() => router.push("/(tabs)/chat")}
         >
-          <Text style={styles.enterText}>ENTER</Text>
+          <Text style={styles.enterText}>{hasSession ? "CONTINUE" : "ENTER"}</Text>
         </Pressable>
       </View>
     </View>
@@ -244,11 +256,10 @@ const styles = StyleSheet.create({
     height: 34,
     opacity: 0.9,
   },
-  wordmark: {
-    fontFamily: "SpaceMono",
-    fontSize: 15,
-    letterSpacing: 8,
-    color: "#e0e0e0",
+  wordmarkImg: {
+    width: 92,
+    height: 26,
+    tintColor: "#e0e0e0",
   },
   subline: {
     fontFamily: "SpaceMono",
