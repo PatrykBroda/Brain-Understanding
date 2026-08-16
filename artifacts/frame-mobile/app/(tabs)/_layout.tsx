@@ -2,7 +2,7 @@ import { BlurView } from "expo-blur";
 import { Redirect, Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet } from "react-native";
+import { Image, Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useFighter } from "@/context/FighterContext";
@@ -68,7 +68,13 @@ export default function TabLayout() {
         name="state"
         options={{
           title: "STATE",
-          tabBarIcon: ({ color }) => <Feather name="aperture" size={20} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={require("@/assets/images/frame-logo.png")}
+              style={{ width: 20, height: 20, tintColor: color }}
+              resizeMode="contain"
+            />
+          ),
         }}
       />
       <Tabs.Screen
