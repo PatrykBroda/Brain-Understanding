@@ -84,8 +84,8 @@
   --popover-foreground: 180 10% 10%;
   --popover-border: 180 5% 90%;
 
-  --primary: 35 60% 45%;
-  --primary-h: 35;
+  --primary: 39 49% 36%;
+  --primary-h: 39;
   --primary-foreground: 0 0% 100%;
   
   --secondary: 180 10% 94%;
@@ -94,7 +94,7 @@
   --muted: 180 5% 96%;
   --muted-foreground: 180 5% 40%;
   
-  --accent: 35 60% 45%;
+  --accent: 39 49% 36%;
   --accent-foreground: 0 0% 100%;
   
   --destructive: 0 84% 60%;
@@ -104,7 +104,7 @@
   --red-accent-foreground: 0 0% 100%;
 
   --input: 180 5% 85%;
-  --ring: 35 60% 45%;
+  --ring: 39 49% 36%;
 
   --app-font-sans: 'Outfit', sans-serif;
   --app-font-mono: 'Space Mono', monospace;
@@ -127,8 +127,8 @@
   --popover-foreground: 0 0% 88%;
   --popover-border: 0 0% 10%;
 
-  --primary: 32 54% 46%;     /* champions gold — restrained, earned */
-  --primary-h: 32;
+  --primary: 39 49% 36%;     /* champions gold — restrained, earned */
+  --primary-h: 39;
   --primary-foreground: 0 0% 2%;
 
   --secondary: 0 0% 9%;      /* #171717 */
@@ -137,7 +137,7 @@
   --muted: 0 0% 7%;          /* #121212 */
   --muted-foreground: 0 0% 40%; /* neutral mid-grey */
 
-  --accent: 35 65% 55%;
+  --accent: 39 49% 36%;
   --accent-foreground: 0 0% 2%;
 
   --destructive: 0 74% 43%;  /* crimson — #BF1D1D — pressure / warnings */
@@ -147,7 +147,7 @@
   --red-accent-foreground: 0 0% 100%;
 
   --input: 0 0% 11%;
-  --ring: 35 65% 55%;
+  --ring: 39 49% 36%;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.7);
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.7), 0 1px 2px -1px rgb(0 0 0 / 0.7);

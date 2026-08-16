@@ -24,7 +24,7 @@ import type {
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const TIER_FG: Record<PressureTier, string> = {
-  base: "hsl(35 60% 60%)",
+  base: "hsl(39 49% 36%)",
   build: "hsl(28 70% 58%)",
   sharpen: "hsl(14 78% 56%)",
   peak: "hsl(2 80% 58%)",
@@ -180,9 +180,9 @@ function ViewTab({
       aria-pressed={active}
       className="py-2.5 font-mono text-[10px] uppercase tracking-[0.3em] border transition-colors"
       style={{
-        borderColor: active ? "hsla(35,65%,55%,0.5)" : "hsla(0,0%,100%,0.08)",
+        borderColor: active ? "hsla(39,49%,36%,0.5)" : "hsla(0,0%,100%,0.08)",
         color: active ? "hsl(var(--primary))" : "hsla(0,0%,100%,0.5)",
-        background: active ? "hsla(35,65%,55%,0.06)" : "transparent",
+        background: active ? "hsla(39,49%,36%,0.06)" : "transparent",
       }}
     >
       {label}

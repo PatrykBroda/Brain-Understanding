@@ -182,9 +182,9 @@ export default function StatePage() {
         </Link>
 
         <div className="w-full max-w-[10rem] flex items-center gap-3 px-1" aria-hidden>
-          <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, hsla(35,55%,55%,0.18))" }} />
-          <div className="w-1 h-1 rounded-full" style={{ background: "hsla(35,55%,55%,0.22)" }} />
-          <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, hsla(35,55%,55%,0.18))" }} />
+          <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, hsla(39,49%,36%,0.18))" }} />
+          <div className="w-1 h-1 rounded-full" style={{ background: "hsla(39,49%,36%,0.22)" }} />
+          <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, hsla(39,49%,36%,0.18))" }} />
         </div>
 
         <div className="w-full max-w-sm">
@@ -197,10 +197,10 @@ export default function StatePage() {
               className="relative w-full h-[58px] rounded-2xl flex items-center justify-center transition-all duration-500"
               style={{
                 background:
-                  "linear-gradient(180deg, hsla(35, 60%, 55%, 0.05) 0%, hsla(35, 60%, 55%, 0.015) 100%)",
-                border: "1px solid hsla(35, 65%, 58%, 0.38)",
+                  "linear-gradient(180deg, hsla(39,49%,36%, 0.05) 0%, hsla(39,49%,36%, 0.015) 100%)",
+                border: "1px solid hsla(39,49%,36%, 0.38)",
                 boxShadow:
-                  "0 10px 50px -12px hsla(35, 65%, 55%, 0.32), inset 0 1px 0 hsla(35, 70%, 60%, 0.14)",
+                  "0 10px 50px -12px hsla(39,49%,36%, 0.32), inset 0 1px 0 hsla(39,49%,36%, 0.14)",
               }}
             >
               <span className="font-sans text-[13px] uppercase tracking-[0.5em] font-light text-primary group-hover:tracking-[0.55em] transition-all duration-500">
@@ -210,7 +210,7 @@ export default function StatePage() {
                 className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                 style={{
                   boxShadow:
-                    "0 0 0 1px hsla(35, 65%, 60%, 0.55), 0 14px 60px -8px hsla(35, 65%, 55%, 0.5)",
+                    "0 0 0 1px hsla(39,49%,36%, 0.55), 0 14px 60px -8px hsla(39,49%,36%, 0.5)",
                 }}
               />
             </div>

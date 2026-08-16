@@ -89,7 +89,7 @@ export default function SignInPage() {
             <button
               type="submit"
               disabled={loading || !email || !password}
-              className="bg-primary text-black font-mono uppercase tracking-[0.25em] text-[11px] py-3 rounded-md hover:bg-primary/90 transition-colors shadow-[0_8px_30px_-10px_hsla(35,65%,55%,0.4)] disabled:opacity-50"
+              className="bg-primary text-black font-mono uppercase tracking-[0.25em] text-[11px] py-3 rounded-md hover:bg-primary/90 transition-colors shadow-[0_8px_30px_-10px_hsla(39,49%,36%,0.4)] disabled:opacity-50"
             >
               {loading ? "Signing in…" : "Sign in"}
             </button>

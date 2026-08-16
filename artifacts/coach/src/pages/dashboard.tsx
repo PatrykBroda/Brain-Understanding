@@ -119,7 +119,7 @@ function CheckinForm({
             step={1}
             value={values[key]}
             onChange={(e) => setValues((v) => ({ ...v, [key]: Number(e.target.value) }))}
-            className="w-full accent-[hsl(35,65%,55%)]"
+            className="w-full accent-[hsl(39,49%,36%)]"
             aria-describedby={`checkin-${key}-hint`}
           />
           <div
@@ -443,7 +443,7 @@ export default function DashboardPage() {
                     onChange={(e) => setDraft((d) => ({ ...d, zoom: Number(e.target.value) }))}
                     onPointerDown={(e) => e.stopPropagation()}
                     onPointerMove={(e) => e.stopPropagation()}
-                    className="flex-1 accent-[hsl(35,65%,55%)]"
+                    className="flex-1 accent-[hsl(39,49%,36%)]"
                     aria-label="Hero image zoom"
                   />
                   <span className="font-sans font-light text-[13px] tabular-nums text-foreground/80 w-12 text-right">

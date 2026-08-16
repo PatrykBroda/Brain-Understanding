@@ -32,7 +32,7 @@ export function ModelUpdateCard({ update }: { update: AnalysisModelUpdate }) {
       className="rounded-xl border border-primary/25 overflow-hidden"
       style={{
         background:
-          "linear-gradient(160deg, hsla(35,55%,55%,0.07), hsla(0,0%,100%,0.015) 55%)",
+          "linear-gradient(160deg, hsla(39,49%,36%,0.07), hsla(0,0%,100%,0.015) 55%)",
       }}
       aria-label="Athlete model updated"
     >
@@ -62,7 +62,7 @@ export function ModelUpdateCard({ update }: { update: AnalysisModelUpdate }) {
               <div
                 key={c.id}
                 className="pl-3 py-1 flex items-baseline justify-between gap-3"
-                style={{ borderLeft: "1px solid hsla(35,55%,55%,0.35)" }}
+                style={{ borderLeft: "1px solid hsla(39,49%,36%,0.35)" }}
               >
                 <div className="min-w-0">
                   <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/80 truncate">
