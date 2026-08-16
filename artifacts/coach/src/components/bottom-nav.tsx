@@ -1,9 +1,10 @@
 import { Link, useLocation } from "wouter";
-import { Home, MessageSquare, User, Calendar, Film, Orbit } from "lucide-react";
+import { Home, MessageSquare, User, Calendar, Film } from "lucide-react";
+import { FrameOctagon } from "@/components/frame-octagon";
 
 const TABS = [
   { path: "/home", label: "Home", Icon: Home },
-  { path: "/state", label: "State", Icon: Orbit },
+  { path: "/state", label: "State", Icon: null },
   { path: "/chat", label: "Chat", Icon: MessageSquare },
   { path: "/analyse", label: "Analyse", Icon: Film },
   { path: "/profile", label: "Profile", Icon: User },
@@ -36,7 +37,11 @@ export function BottomNav() {
                 active ? "text-primary" : "text-foreground/45 hover:text-foreground/85"
               }`}
             >
-              <Icon className="w-5 h-5" strokeWidth={1.5} />
+              {Icon ? (
+                <Icon className="w-5 h-5" strokeWidth={1.5} />
+              ) : (
+                <FrameOctagon size={20} glow={false} color="currentColor" />
+              )}
               <span className="font-mono text-[9px] uppercase tracking-widest">{label}</span>
             </Link>
           );
