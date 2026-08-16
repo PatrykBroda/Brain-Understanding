@@ -3,6 +3,7 @@ import { Shield, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { CosmicOrb, ORB_PALETTE } from "@/components/cosmic-orb";
 import { FramePlusPill } from "@/components/frame-plus-modal";
+import { FrameWordmark } from "@/components/frame-wordmark";
 import { BottomNav } from "@/components/bottom-nav";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
@@ -11,8 +12,6 @@ import { useAnalyses } from "@/hooks/use-analysis";
 import { useTodayCheckin } from "@/hooks/use-checkin";
 import { api } from "@/lib/api";
 import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
-
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 // One coaching cue per interpretive state. Deterministic — keyed to the same
 // honestly-derived state as the orb label, never generated, never a metric.
@@ -103,23 +102,10 @@ export default function StatePage() {
       </svg>
 
       <header className="relative z-10 flex items-center justify-between px-6 pt-[max(1.1rem,env(safe-area-inset-top))] pb-3">
-        <div className="flex items-center gap-3">
-          <img
-            src={`${basePath}/frame-logo.png`}
-            alt=""
-            aria-hidden
-            width={36}
-            height={36}
-            className="object-contain opacity-90"
-            style={{ filter: "brightness(1.05)" }}
-          />
-          <div>
-            <div className="font-sans font-extralight text-[15px] tracking-[0.55em] text-foreground/95 leading-none">
-              FRAME
-            </div>
-            <div className="font-mono text-[10px] tracking-[0.5em] text-foreground/55 mt-1.5 font-light">
-              {(fighter?.primarySport ?? "COMBAT").toUpperCase()} · CALIBRATION SYSTEM
-            </div>
+        <div>
+          <FrameWordmark size={30} />
+          <div className="font-mono text-[10px] tracking-[0.5em] text-foreground/55 mt-2 font-light">
+            STATE CALIBRATION SYSTEM
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -134,11 +120,11 @@ export default function StatePage() {
         </div>
       </header>
 
-      <main className="relative z-10 min-h-0 grid place-items-center overflow-hidden px-6">
+      <main className="relative z-10 min-h-0 grid place-items-center overflow-hidden px-2">
         <div className="frame-fade-in h-full w-full grid place-items-center">
           <CosmicOrb
             state={frameState.orb}
-            className="h-full max-h-[400px] max-w-full w-auto"
+            className="w-full max-w-[560px] max-h-full h-auto"
           />
         </div>
       </main>
@@ -218,7 +204,7 @@ export default function StatePage() {
               }}
             >
               <span className="font-sans text-[13px] uppercase tracking-[0.5em] font-light text-primary group-hover:tracking-[0.55em] transition-all duration-500">
-                {hasSession ? "Continue" : "Enter"}
+                Continue
               </span>
               <div
                 className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"

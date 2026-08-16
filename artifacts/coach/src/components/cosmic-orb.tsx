@@ -288,9 +288,10 @@ function Wireframe({ live }: { live: MutableRefObject<Cfg> }) {
     scratch.setHSL(cfg.hue / 360, cfg.sat, Math.min(0.85, cfg.light + 0.12));
     fineMat.color.copy(scratch);
     // Keep the geodesic structure legible even at rest, brightening with load.
-    fineMat.opacity = 0.05 + cfg.emissive * 0.35;
+    // Toned down so the white lattice reads as texture, not glare.
+    fineMat.opacity = 0.03 + cfg.emissive * 0.22;
     boldMat.color.copy(scratch);
-    boldMat.opacity = 0.08 + cfg.emissive * 0.45;
+    boldMat.opacity = 0.05 + cfg.emissive * 0.28;
 
     if (fine.current) {
       fine.current.rotation.y -= (cfg.rotSpeed * 0.5 + 0.018) * dt;
@@ -363,13 +364,13 @@ function Rings({ live }: { live: MutableRefObject<Cfg> }) {
       if (s.y) mesh.rotation.y += cfg.ringSpeed * s.y * dt;
       if (s.z) mesh.rotation.z += cfg.ringSpeed * s.z * dt;
     }
-    // Ring colour matches orb state — lighter band so they read against the dark sphere
-    scratch.setHSL(cfg.hue / 360, cfg.sat * 0.7, Math.min(0.95, cfg.light + 0.26));
-    // Base opacity high so rings feel physical
-    const baseOp = 0.6 + cfg.emissive * 0.9;
+    // Ring colour matches orb state — softened band so they read against the dark sphere
+    scratch.setHSL(cfg.hue / 360, cfg.sat * 0.7, Math.min(0.8, cfg.light + 0.16));
+    // Toned down — orbits sit behind the sphere as quiet structure, not bright glare
+    const baseOp = 0.32 + cfg.emissive * 0.5;
     for (let i = 0; i < RING_DEFS.length; i++) {
       const m = mats[i].current;
-      if (m) { m.color.copy(scratch); m.opacity = Math.min(0.95, baseOp * RING_FADE[i]); }
+      if (m) { m.color.copy(scratch); m.opacity = Math.min(0.62, baseOp * RING_FADE[i]); }
     }
   });
 
