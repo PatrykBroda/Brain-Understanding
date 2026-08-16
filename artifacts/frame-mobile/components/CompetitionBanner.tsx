@@ -10,8 +10,8 @@ import type { PressureTier } from "@/lib/competition";
 // fight week. Ported to match the web banner (coach/competition-banner.tsx):
 // top/bottom rules, uppercase event name, and a weigh-in + days-out readout.
 const TIER_STYLE: Record<PressureTier, { border: string; accent: string; pulse: boolean }> = {
-  base: { border: "rgba(201,136,58,0.30)", accent: "#C9883A", pulse: false },
-  build: { border: "rgba(201,136,58,0.40)", accent: "#C9883A", pulse: false },
+  base: { border: "rgba(138,106,47,0.30)", accent: "#8A6A2F", pulse: false },
+  build: { border: "rgba(138,106,47,0.40)", accent: "#8A6A2F", pulse: false },
   sharpen: { border: "rgba(210,85,63,0.50)", accent: "#d2553f", pulse: false },
   peak: { border: "rgba(224,96,74,0.65)", accent: "#e0604a", pulse: true },
   fight_week: { border: "rgba(255,106,77,0.85)", accent: "#ff6a4d", pulse: true },

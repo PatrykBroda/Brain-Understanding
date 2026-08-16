@@ -9,8 +9,8 @@ const TIER_STYLE: Record<
   { fg: string; border: string; glow: string; pulse: boolean }
 > = {
   base: {
-    fg: "hsl(35 60% 60%)",
-    border: "hsla(35,60%,55%,0.30)",
+    fg: "hsl(39 49% 36%)",
+    border: "hsla(39,49%,36%,0.30)",
     glow: "none",
     pulse: false,
   },

@@ -185,7 +185,7 @@ export default function ProfilePage() {
                       className="w-full h-full"
                       style={{
                         background:
-                          "radial-gradient(120% 90% at 80% 0%, hsla(32,54%,40%,0.16), transparent 60%), hsla(0,0%,0%,0.4)",
+                          "radial-gradient(120% 90% at 80% 0%, hsla(39,49%,36%,0.16), transparent 60%), hsla(0,0%,0%,0.4)",
                       }}
                     />
                   )}
@@ -243,7 +243,7 @@ export default function ProfilePage() {
                   {(arch || fighter.spiritAnimal) && (
                     <div
                       className="font-mono text-[10px] uppercase tracking-[0.4em] mt-2"
-                      style={{ color: "hsl(32,54%,52%)" }}
+                      style={{ color: "hsl(39,49%,36%)" }}
                     >
                       {arch ? arch.name : fighter.spiritAnimal}
                       {mode ? ` · ${mode.label}` : ""}

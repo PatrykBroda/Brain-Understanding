@@ -187,18 +187,18 @@ export default function HistoryPage() {
                 className="flex-1 h-px"
                 style={{
                   background:
-                    "linear-gradient(to right, transparent, hsla(35,55%,55%,0.18))",
+                    "linear-gradient(to right, transparent, hsla(39,49%,36%,0.18))",
                 }}
               />
               <div
                 className="w-1 h-1 rounded-full"
-                style={{ background: "hsla(35,55%,55%,0.22)" }}
+                style={{ background: "hsla(39,49%,36%,0.22)" }}
               />
               <div
                 className="flex-1 h-px"
                 style={{
                   background:
-                    "linear-gradient(to left, transparent, hsla(35,55%,55%,0.18))",
+                    "linear-gradient(to left, transparent, hsla(39,49%,36%,0.18))",
                 }}
               />
             </div>
@@ -225,7 +225,7 @@ export default function HistoryPage() {
                 className="absolute top-1 bottom-1 left-[7px] w-px"
                 style={{
                   background:
-                    "linear-gradient(to bottom, transparent, hsla(35,55%,55%,0.20) 10%, hsla(35,55%,55%,0.20) 90%, transparent)",
+                    "linear-gradient(to bottom, transparent, hsla(39,49%,36%,0.20) 10%, hsla(39,49%,36%,0.20) 90%, transparent)",
                 }}
               />
 
@@ -246,8 +246,8 @@ export default function HistoryPage() {
                         <span
                           className="w-1 h-1 rounded-full"
                           style={{
-                            background: "hsla(35,60%,56%,0.9)",
-                            boxShadow: "0 0 8px hsla(35,65%,55%,0.55)",
+                            background: "hsla(39,49%,36%,0.9)",
+                            boxShadow: "0 0 8px hsla(39,49%,36%,0.55)",
                           }}
                         />
                       </span>
@@ -274,8 +274,8 @@ export default function HistoryPage() {
                             aria-hidden
                             className="absolute left-[3px] top-[6px] w-[9px] h-[9px] rounded-full"
                             style={{
-                              background: "hsla(35,60%,56%,0.85)",
-                              boxShadow: "0 0 8px hsla(35,65%,55%,0.4)",
+                              background: "hsla(39,49%,36%,0.85)",
+                              boxShadow: "0 0 8px hsla(39,49%,36%,0.4)",
                             }}
                           />
                           <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45">
@@ -308,8 +308,8 @@ export default function HistoryPage() {
                             aria-hidden
                             className="absolute left-[3px] top-[6px] w-[9px] h-[9px] rounded-full"
                             style={{
-                              background: "hsla(35,60%,56%,0.85)",
-                              boxShadow: "0 0 8px hsla(35,65%,55%,0.4)",
+                              background: "hsla(39,49%,36%,0.85)",
+                              boxShadow: "0 0 8px hsla(39,49%,36%,0.4)",
                             }}
                           />
                           <div className="flex items-baseline justify-between gap-3">

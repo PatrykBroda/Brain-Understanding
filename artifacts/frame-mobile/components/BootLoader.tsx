@@ -78,6 +78,6 @@ const s = StyleSheet.create({
   bar: {
     width: BAR_WIDTH,
     height: 2,
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
   },
 });

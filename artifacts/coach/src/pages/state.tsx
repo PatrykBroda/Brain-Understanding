@@ -3,6 +3,7 @@ import { Shield, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { CosmicOrb, ORB_PALETTE } from "@/components/cosmic-orb";
 import { FramePlusPill } from "@/components/frame-plus-modal";
+import { FrameWordmark } from "@/components/frame-wordmark";
 import { BottomNav } from "@/components/bottom-nav";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
@@ -10,8 +11,7 @@ import { useFrameState, type FrameStateLabel } from "@/hooks/use-frame-state";
 import { useAnalyses } from "@/hooks/use-analysis";
 import { useTodayCheckin } from "@/hooks/use-checkin";
 import { api } from "@/lib/api";
-
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
 
 // One coaching cue per interpretive state. Deterministic — keyed to the same
 // honestly-derived state as the orb label, never generated, never a metric.
@@ -45,7 +45,7 @@ export default function StatePage() {
     ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
     : null;
   const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
-  const readiness = checkinScore ?? sessionScore;
+  const baseReadiness = checkinScore ?? sessionScore;
   const readinessSource = checkinScore != null ? "today" : "last session";
 
   // Warms the shared ["conversation"] cache Chat reuses; lets the doorway read
@@ -56,6 +56,12 @@ export default function StatePage() {
     enabled: !!fighter,
   });
   const hasSession = (conversationQuery.data?.messages?.length ?? 0) > 0;
+
+  // Recent chat drives a small ±10 modifier on top of the base readiness,
+  // reusing the conversation already fetched above — no new data flow. Mirrors
+  // the native app so the Fight Readiness number matches across surfaces.
+  const chatModifier = readinessModifier(conversationQuery.data?.messages ?? []);
+  const readiness = applyReadinessModifier(baseReadiness, chatModifier);
 
   const { hue, sat, light } = ORB_PALETTE[frameState.orb];
   const labelColor = `hsl(${hue}, ${Math.round(sat * 35)}%, 91%)`;
@@ -96,23 +102,10 @@ export default function StatePage() {
       </svg>
 
       <header className="relative z-10 flex items-center justify-between px-6 pt-[max(1.1rem,env(safe-area-inset-top))] pb-3">
-        <div className="flex items-center gap-3">
-          <img
-            src={`${basePath}/frame-logo.png`}
-            alt=""
-            aria-hidden
-            width={36}
-            height={36}
-            className="object-contain opacity-90"
-            style={{ filter: "brightness(1.05)" }}
-          />
-          <div>
-            <div className="font-sans font-extralight text-[15px] tracking-[0.55em] text-foreground/95 leading-none">
-              FRAME
-            </div>
-            <div className="font-mono text-[10px] tracking-[0.5em] text-foreground/55 mt-1.5 font-light">
-              {(fighter?.primarySport ?? "COMBAT").toUpperCase()} · CALIBRATION SYSTEM
-            </div>
+        <div>
+          <FrameWordmark size={30} />
+          <div className="font-mono text-[10px] tracking-[0.5em] text-foreground/55 mt-2 font-light">
+            STATE CALIBRATION SYSTEM
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -127,11 +120,11 @@ export default function StatePage() {
         </div>
       </header>
 
-      <main className="relative z-10 min-h-0 grid place-items-center overflow-hidden px-6">
+      <main className="relative z-10 min-h-0 grid place-items-center overflow-hidden px-2">
         <div className="frame-fade-in h-full w-full grid place-items-center">
           <CosmicOrb
             state={frameState.orb}
-            className="h-full max-h-[400px] max-w-full w-auto"
+            className="w-full max-w-[560px] max-h-full h-auto"
           />
         </div>
       </main>
@@ -189,9 +182,9 @@ export default function StatePage() {
         </Link>
 
         <div className="w-full max-w-[10rem] flex items-center gap-3 px-1" aria-hidden>
-          <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, hsla(35,55%,55%,0.18))" }} />
-          <div className="w-1 h-1 rounded-full" style={{ background: "hsla(35,55%,55%,0.22)" }} />
-          <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, hsla(35,55%,55%,0.18))" }} />
+          <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, hsla(39,49%,36%,0.18))" }} />
+          <div className="w-1 h-1 rounded-full" style={{ background: "hsla(39,49%,36%,0.22)" }} />
+          <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, hsla(39,49%,36%,0.18))" }} />
         </div>
 
         <div className="w-full max-w-sm">
@@ -204,20 +197,20 @@ export default function StatePage() {
               className="relative w-full h-[58px] rounded-2xl flex items-center justify-center transition-all duration-500"
               style={{
                 background:
-                  "linear-gradient(180deg, hsla(35, 60%, 55%, 0.05) 0%, hsla(35, 60%, 55%, 0.015) 100%)",
-                border: "1px solid hsla(35, 65%, 58%, 0.38)",
+                  "linear-gradient(180deg, hsla(39,49%,36%, 0.05) 0%, hsla(39,49%,36%, 0.015) 100%)",
+                border: "1px solid hsla(39,49%,36%, 0.38)",
                 boxShadow:
-                  "0 10px 50px -12px hsla(35, 65%, 55%, 0.32), inset 0 1px 0 hsla(35, 70%, 60%, 0.14)",
+                  "0 10px 50px -12px hsla(39,49%,36%, 0.32), inset 0 1px 0 hsla(39,49%,36%, 0.14)",
               }}
             >
               <span className="font-sans text-[13px] uppercase tracking-[0.5em] font-light text-primary group-hover:tracking-[0.55em] transition-all duration-500">
-                {hasSession ? "Continue" : "Enter"}
+                Continue
               </span>
               <div
                 className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                 style={{
                   boxShadow:
-                    "0 0 0 1px hsla(35, 65%, 60%, 0.55), 0 14px 60px -8px hsla(35, 65%, 55%, 0.5)",
+                    "0 0 0 1px hsla(39,49%,36%, 0.55), 0 14px 60px -8px hsla(39,49%,36%, 0.5)",
                 }}
               />
             </div>

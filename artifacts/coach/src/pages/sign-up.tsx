@@ -46,8 +46,8 @@ export default function SignUpPage() {
             <div className="font-mono text-[15px] uppercase tracking-[0.18em] text-foreground/95 font-light">
               Create your FRAME account
             </div>
-            <div className="font-sans text-[11px] tracking-[0.04em] text-foreground/55 mt-1.5 italic">
-              The coach that remembers.
+            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/55 mt-1.5">
+              Calibration system
             </div>
           </div>
 
@@ -93,7 +93,7 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={loading || !email || !password}
-              className="bg-primary text-black font-mono uppercase tracking-[0.25em] text-[11px] py-3 rounded-md hover:bg-primary/90 transition-colors shadow-[0_8px_30px_-10px_hsla(35,65%,55%,0.4)] disabled:opacity-50"
+              className="bg-primary text-black font-mono uppercase tracking-[0.25em] text-[11px] py-3 rounded-md hover:bg-primary/90 transition-colors shadow-[0_8px_30px_-10px_hsla(39,49%,36%,0.4)] disabled:opacity-50"
             >
               {loading ? "Creating account…" : "Create account"}
             </button>

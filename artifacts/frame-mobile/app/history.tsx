@@ -17,7 +17,7 @@ import { apiGet } from "@/lib/api";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { CATEGORY_LABELS, type ModelFact } from "@/lib/athleteModel";
 
-const ACCENT = "#C9883A";
+const ACCENT = "#8A6A2F";
 
 // ─── Confidence pips (fact 1–5) — mirrors profile.tsx FactConfidence ──────────
 function FactConfidence({ value }: { value: number }) {
@@ -244,8 +244,8 @@ const s = StyleSheet.create({
   loadingWrap: { paddingVertical: 48, alignItems: "center" },
 
   dayHeadRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
-  dayHeadLabel: { fontFamily: "Outfit", fontSize: 13, letterSpacing: 3, color: "rgba(201,136,58,0.9)" },
-  dayHeadLine: { flex: 1, height: 1, backgroundColor: "rgba(201,136,58,0.22)" },
+  dayHeadLabel: { fontFamily: "Outfit", fontSize: 13, letterSpacing: 3, color: "rgba(138,106,47,0.9)" },
+  dayHeadLine: { flex: 1, height: 1, backgroundColor: "rgba(138,106,47,0.22)" },
   dayHeadCount: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(255,255,255,0.4)" },
 
   factItem: {
@@ -256,13 +256,13 @@ const s = StyleSheet.create({
     paddingLeft: 14,
     paddingVertical: 6,
     borderLeftWidth: 1,
-    borderLeftColor: "rgba(201,136,58,0.25)",
+    borderLeftColor: "rgba(138,106,47,0.25)",
   },
   factCat: {
     fontFamily: "SpaceMono",
     fontSize: 8,
     letterSpacing: 2,
-    color: "rgba(201,136,58,0.7)",
+    color: "rgba(138,106,47,0.7)",
     marginBottom: 3,
   },
   factText: {
@@ -273,7 +273,7 @@ const s = StyleSheet.create({
     color: "rgba(255,255,255,0.75)",
   },
   factMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
-  factEvidence: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(201,136,58,0.7)" },
+  factEvidence: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(138,106,47,0.7)" },
 });
 
 const cd = StyleSheet.create({

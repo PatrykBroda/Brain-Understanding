@@ -30,7 +30,7 @@ const CATEGORY_HINT: Record<PlanCategory, string> = {
 
 const CATEGORY_COLOR: Record<PlanCategory, { bar: string; glow: string; label: string }> = {
   fix:       { bar: "hsla(0,68%,46%,0.95)",    glow: "hsla(0,68%,46%,0.07)",   label: "hsl(0,55%,62%)" },
-  goal_step: { bar: "hsla(32,54%,48%,0.9)",    glow: "hsla(32,54%,48%,0.07)",  label: "hsl(32,52%,58%)" },
+  goal_step: { bar: "hsla(39,49%,36%,0.9)",    glow: "hsla(39,49%,36%,0.07)",  label: "hsl(39,49%,36%)" },
   train:     { bar: "hsla(0,0%,55%,0.7)",      glow: "hsla(0,0%,55%,0.04)",    label: "hsl(0,0%,70%)" },
   technique: { bar: "hsla(210,38%,52%,0.8)",   glow: "hsla(210,38%,52%,0.06)", label: "hsl(210,35%,68%)" },
   regulate:  { bar: "hsla(160,28%,38%,0.8)",   glow: "hsla(160,28%,38%,0.06)", label: "hsl(160,28%,56%)" },
@@ -257,7 +257,7 @@ export function CampMission() {
                   style={{
                     width: `${Math.round((completions.size / plan.items.length) * 100)}%`,
                     background: completions.size === plan.items.length
-                      ? "hsl(32,54%,46%)"
+                      ? "hsl(39,49%,36%)"
                       : "hsl(0,68%,46%)",
                   }}
                 />
@@ -266,7 +266,7 @@ export function CampMission() {
                 className="flex-none font-mono text-[9px] uppercase tracking-widest"
                 style={{
                   color: completions.size === plan.items.length
-                    ? "hsl(32,52%,58%)"
+                    ? "hsl(39,49%,36%)"
                     : "hsla(0,0%,100%,0.45)",
                 }}
               >
@@ -378,7 +378,7 @@ function PlanItemCard({
   onLockedTap: () => void;
 }) {
   const col = CATEGORY_COLOR[cat];
-  const doneBar = "hsla(32,54%,46%,0.85)";
+  const doneBar = "hsla(39,49%,36%,0.85)";
 
   if (item.locked) {
     // Free-tier preview stub: title + category only, tap opens the upgrade modal.
@@ -419,7 +419,7 @@ function PlanItemCard({
         borderRight: "1px solid hsla(0,0%,100%,0.04)",
         borderBottom: "1px solid hsla(0,0%,100%,0.04)",
         background: done
-          ? "linear-gradient(95deg, hsla(32,54%,46%,0.06), transparent 70%)"
+          ? "linear-gradient(95deg, hsla(39,49%,36%,0.06), transparent 70%)"
           : `linear-gradient(95deg, ${col.glow}, transparent 70%)`,
         animationDelay: `${index * 0.07}s`,
       }}
@@ -427,7 +427,7 @@ function PlanItemCard({
       {/* Background index watermark */}
       <div
         className="absolute right-4 top-1/2 -translate-y-1/2 font-mono font-bold select-none pointer-events-none"
-        style={{ fontSize: "2.8rem", opacity: 0.04, color: done ? "hsl(32,54%,46%)" : col.label }}
+        style={{ fontSize: "2.8rem", opacity: 0.04, color: done ? "hsl(39,49%,36%)" : col.label }}
         aria-hidden
       >
         {String(index + 1).padStart(2, "0")}
@@ -443,9 +443,9 @@ function PlanItemCard({
           aria-label={done ? "Mark not done" : "Mark done"}
           className="flex-none mt-0.5 w-[18px] h-[18px] border flex items-center justify-center transition-all duration-300"
           style={{
-            borderColor: done ? "hsl(32,54%,46%)" : col.bar,
-            background: done ? "hsla(32,54%,46%,0.15)" : "transparent",
-            color: done ? "hsl(32,54%,50%)" : "transparent",
+            borderColor: done ? "hsl(39,49%,36%)" : col.bar,
+            background: done ? "hsla(39,49%,36%,0.15)" : "transparent",
+            color: done ? "hsl(39,49%,36%)" : "transparent",
           }}
         >
           <svg viewBox="0 0 20 20" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.8">
@@ -482,7 +482,7 @@ function PlanItemCard({
             ].filter(Boolean).join(" · ")}
           >
             <div className="flex items-center gap-2">
-              <span className="flex-none" style={{ display: "inline-block", width: 14, height: 1, background: done ? "hsla(32,54%,46%,0.5)" : col.bar, opacity: 0.7 }} />
+              <span className="flex-none" style={{ display: "inline-block", width: 14, height: 1, background: done ? "hsla(39,49%,36%,0.5)" : col.bar, opacity: 0.7 }} />
               <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/55">
                 {item.sourceLabel}
               </span>

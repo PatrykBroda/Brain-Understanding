@@ -99,8 +99,8 @@ export function BreathCard({
             <Svg width="100%" height="100%" viewBox="0 0 100 100">
               <Polygon
                 points={OCTAGON}
-                fill="rgba(201,136,58,0.10)"
-                stroke="rgba(201,136,58,0.70)"
+                fill="rgba(138,106,47,0.10)"
+                stroke="rgba(138,106,47,0.70)"
                 strokeWidth={2}
               />
             </Svg>
@@ -175,8 +175,8 @@ const s = StyleSheet.create({
   card: {
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: "rgba(201,136,58,0.30)",
-    backgroundColor: "rgba(201,136,58,0.05)",
+    borderColor: "rgba(138,106,47,0.30)",
+    backgroundColor: "rgba(138,106,47,0.05)",
   },
   head: {
     flexDirection: "row",
@@ -185,20 +185,20 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(201,136,58,0.20)",
-    backgroundColor: "rgba(201,136,58,0.10)",
+    borderBottomColor: "rgba(138,106,47,0.20)",
+    backgroundColor: "rgba(138,106,47,0.10)",
   },
   headLabel: {
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 2,
-    color: "rgba(201,136,58,0.85)",
+    color: "rgba(138,106,47,0.85)",
   },
   headKind: {
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 1,
-    color: "rgba(201,136,58,0.6)",
+    color: "rgba(138,106,47,0.6)",
   },
   title: {
     paddingHorizontal: 14,
@@ -240,7 +240,7 @@ const s = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 3,
-    color: "rgba(201,136,58,0.85)",
+    color: "rgba(138,106,47,0.85)",
     textTransform: "uppercase",
   },
   count: {
@@ -265,13 +265,13 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 9,
     borderWidth: 1,
-    borderColor: "rgba(201,136,58,0.5)",
+    borderColor: "rgba(138,106,47,0.5)",
   },
   btnPrimaryText: {
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
     textTransform: "uppercase",
   },
   btnGhost: {
@@ -302,14 +302,14 @@ const s = StyleSheet.create({
     textTransform: "uppercase",
   },
   phaseChipActive: {
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   note: {
     paddingHorizontal: 14,
     paddingBottom: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(201,136,58,0.15)",
+    borderTopColor: "rgba(138,106,47,0.15)",
     fontFamily: "Outfit",
     fontSize: 13,
     color: "#888",

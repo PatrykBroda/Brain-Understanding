@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { ChevronRight, Pencil, Move, Lock } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
@@ -13,7 +14,8 @@ import { useActiveCompetition } from "@/hooks/use-competition";
 import { useTodayCheckin, useSaveCheckin, useCheckinHistory } from "@/hooks/use-checkin";
 import { useMemory } from "@/hooks/use-memory";
 import { primaryFocus } from "@/lib/primary-focus";
-import { heroFileUrl, type DailyCheckin } from "@/lib/api";
+import { heroFileUrl, api, type DailyCheckin } from "@/lib/api";
+import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
@@ -34,9 +36,20 @@ function MetaDivider() {
 const METRIC_LABELS: { key: "sleep" | "energy" | "soreness" | "stress"; label: string; hint: string }[] = [
   { key: "sleep", label: "Sleep", hint: "How rested you woke up" },
   { key: "energy", label: "Energy", hint: "Fuel in the tank right now" },
-  { key: "soreness", label: "Soreness", hint: "100 = no soreness at all" },
-  { key: "stress", label: "Stress", hint: "100 = completely clear-headed" },
+  { key: "soreness", label: "Soreness", hint: "100 = most sore" },
+  { key: "stress", label: "Stress", hint: "100 = most stressed" },
 ];
+
+// Soreness and stress are persisted as recovery quality (100 = fully recovered:
+// no soreness / clear-headed) so the readiness composite can sum all four
+// metrics as "higher is better". The athlete, though, reads them the natural
+// way — 100 = most sore / most stressed — so we invert just these two at the
+// display and input boundary (v = 100 - v). Storage, the composite, and every
+// historical check-in are untouched. Mirrors frame-mobile's CheckinForm.
+const INVERTED_METRICS: Partial<Record<(typeof METRIC_LABELS)[number]["key"], true>> = {
+  soreness: true,
+  stress: true,
+};
 
 function CheckinForm({
   existing,
@@ -46,11 +59,13 @@ function CheckinForm({
   onDone: () => void;
 }) {
   const save = useSaveCheckin();
+  // Sliders hold display units: soreness/stress are shown as amount (100 = most
+  // sore / most stressed), the inverse of how they're stored.
   const [values, setValues] = useState({
     sleep: existing?.sleep ?? 70,
     energy: existing?.energy ?? 70,
-    soreness: existing?.soreness ?? 70,
-    stress: existing?.stress ?? 70,
+    soreness: existing != null ? 100 - existing.soreness : 30,
+    stress: existing != null ? 100 - existing.stress : 30,
   });
   const [hr, setHr] = useState(existing?.restingHr != null ? String(existing.restingHr) : "");
   const [err, setErr] = useState<string | null>(null);
@@ -62,8 +77,15 @@ function CheckinForm({
       return;
     }
     setErr(null);
+    // Convert the two display-inverted metrics back to stored recovery quality.
     save.mutate(
-      { ...values, restingHr },
+      {
+        sleep: values.sleep,
+        energy: values.energy,
+        soreness: 100 - values.soreness,
+        stress: 100 - values.stress,
+        restingHr,
+      },
       {
         onSuccess: onDone,
         onError: (e) => setErr(e instanceof Error ? e.message : "Couldn't save check-in"),
@@ -97,7 +119,7 @@ function CheckinForm({
             step={1}
             value={values[key]}
             onChange={(e) => setValues((v) => ({ ...v, [key]: Number(e.target.value) }))}
-            className="w-full accent-[hsl(35,65%,55%)]"
+            className="w-full accent-[hsl(39,49%,36%)]"
             aria-describedby={`checkin-${key}-hint`}
           />
           <div
@@ -250,7 +272,17 @@ export default function DashboardPage() {
     ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
     : null;
   const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
-  const readiness = checkinScore ?? sessionScore;
+
+  // Same lightweight ±10 chat modifier the STATE tab applies, so the Fight
+  // Readiness number stays consistent across screens. Reuses the shared
+  // ["conversation"] cache — no new data flow.
+  const conversationQuery = useQuery({
+    queryKey: ["conversation"],
+    queryFn: () => api.getActiveConversation(),
+    enabled: !!fighter,
+  });
+  const chatModifier = readinessModifier(conversationQuery.data?.messages ?? []);
+  const readiness = applyReadinessModifier(checkinScore ?? sessionScore, chatModifier);
   const provenance =
     checkinScore != null
       ? "Today's check-in"
@@ -411,7 +443,7 @@ export default function DashboardPage() {
                     onChange={(e) => setDraft((d) => ({ ...d, zoom: Number(e.target.value) }))}
                     onPointerDown={(e) => e.stopPropagation()}
                     onPointerMove={(e) => e.stopPropagation()}
-                    className="flex-1 accent-[hsl(35,65%,55%)]"
+                    className="flex-1 accent-[hsl(39,49%,36%)]"
                     aria-label="Hero image zoom"
                   />
                   <span className="font-sans font-light text-[13px] tabular-nums text-foreground/80 w-12 text-right">
@@ -543,7 +575,11 @@ export default function DashboardPage() {
                       {label}
                     </span>
                     <span className="font-sans font-light text-[15px] tabular-nums text-foreground/90">
-                      {checkin ? checkin[key] : <span className="text-foreground/25">—</span>}
+                      {checkin ? (
+                        INVERTED_METRICS[key] ? 100 - checkin[key] : checkin[key]
+                      ) : (
+                        <span className="text-foreground/25">—</span>
+                      )}
                     </span>
                   </div>
                 ))}

@@ -39,7 +39,7 @@ import {
   type ModelFact,
 } from "@/lib/athleteModel";
 
-const ACCENT = "#C9883A";
+const ACCENT = "#8A6A2F";
 
 // 12MB ceiling mirrors the web upload guard; base64 is ~4/3 the byte size.
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
@@ -171,7 +171,7 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
           />
         );
       })}
-      <Path d={filledPath} fill="rgba(201,136,58,0.12)" stroke="rgba(201,136,58,0.55)" strokeWidth={1.5} strokeLinejoin="round" />
+      <Path d={filledPath} fill="rgba(138,106,47,0.12)" stroke="rgba(138,106,47,0.55)" strokeWidth={1.5} strokeLinejoin="round" />
       {filledPoints.map((p, i) => (
         <Circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={2.5} fill={ACCENT} />
       ))}
@@ -264,7 +264,7 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
           />
         ) : (
           <LinearGradient
-            colors={["rgba(201,136,58,0.14)", "rgba(0,0,0,0.4)"]}
+            colors={["rgba(138,106,47,0.14)", "rgba(0,0,0,0.4)"]}
             style={StyleSheet.absoluteFill}
           />
         )}
@@ -842,17 +842,17 @@ const s = StyleSheet.create({
   headOverline: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 4, color: "rgba(255,255,255,0.45)", marginBottom: 8 },
   headTitle: { fontFamily: "Outfit", fontSize: 15, letterSpacing: 3, color: "rgba(255,255,255,0.9)" },
   headRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
-  syncing: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "rgba(201,136,58,0.6)" },
+  syncing: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "rgba(138,106,47,0.6)" },
 
   // Model confidence
   confRow: { flexDirection: "row", alignItems: "baseline", gap: 14, marginTop: 24, marginBottom: 8 },
   confBig: { fontFamily: "Outfit", fontSize: 52, color: "rgba(255,255,255,0.95)", lineHeight: 52 },
-  confPct: { fontSize: 24, color: "rgba(201,136,58,0.7)" },
+  confPct: { fontSize: 24, color: "rgba(138,106,47,0.7)" },
   confCaption: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 4, color: "rgba(255,255,255,0.5)", lineHeight: 14 },
   updated: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 1.5, color: "rgba(255,255,255,0.4)", marginBottom: 16 },
   stageRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14 },
   stageLabel: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 4, color: "rgba(255,255,255,0.5)" },
-  stageValue: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 3, color: "rgba(201,136,58,0.85)" },
+  stageValue: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 3, color: "rgba(138,106,47,0.85)" },
   barRow: { flexDirection: "row", gap: 2 },
   barSeg: { height: 3, flex: 1 },
   bodyCopy: { fontFamily: "Outfit", fontSize: 13, lineHeight: 20, color: "rgba(255,255,255,0.5)", marginTop: 16 },
@@ -860,7 +860,7 @@ const s = StyleSheet.create({
   // Lowest confidence bullets
   subOverline: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 5, color: "rgba(255,255,255,0.4)", marginBottom: 12 },
   bulletRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
-  bulletDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(201,136,58,0.4)" },
+  bulletDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(138,106,47,0.4)" },
   bulletText: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 2, color: "rgba(255,255,255,0.65)" },
 
   // CTA row
@@ -873,7 +873,7 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.06)",
   },
-  ctaText: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: "rgba(201,136,58,0.75)" },
+  ctaText: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: "rgba(138,106,47,0.75)" },
 
   // Athlete state top
   stateTop: {
@@ -884,7 +884,7 @@ const s = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 4,
   },
-  stateTopLabel: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: "rgba(201,136,58,0.85)" },
+  stateTopLabel: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: "rgba(138,106,47,0.85)" },
   stateTopAside: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 3, color: "rgba(255,255,255,0.5)" },
 
   // Data rows
@@ -915,7 +915,7 @@ const s = StyleSheet.create({
     borderTopColor: "rgba(255,255,255,0.05)",
   },
   lockNote: { flex: 1, fontFamily: "Outfit", fontSize: 13, lineHeight: 19, color: "rgba(255,255,255,0.55)" },
-  lockBadge: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "rgba(201,136,58,0.8)" },
+  lockBadge: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "rgba(138,106,47,0.8)" },
 
   // Radar
   radarWrap: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20 },
@@ -945,8 +945,8 @@ const s = StyleSheet.create({
 
   // Full model fact list
   catHeadRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
-  catHeadLabel: { fontFamily: "Outfit", fontSize: 13, letterSpacing: 3, color: "rgba(201,136,58,0.9)" },
-  catHeadLine: { flex: 1, height: 1, backgroundColor: "rgba(201,136,58,0.22)" },
+  catHeadLabel: { fontFamily: "Outfit", fontSize: 13, letterSpacing: 3, color: "rgba(138,106,47,0.9)" },
+  catHeadLine: { flex: 1, height: 1, backgroundColor: "rgba(138,106,47,0.22)" },
   catHeadCount: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(255,255,255,0.4)" },
   factItem: {
     flexDirection: "row",
@@ -956,11 +956,11 @@ const s = StyleSheet.create({
     paddingLeft: 14,
     paddingVertical: 4,
     borderLeftWidth: 1,
-    borderLeftColor: "rgba(201,136,58,0.25)",
+    borderLeftColor: "rgba(138,106,47,0.25)",
   },
   factText: { flex: 1, fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 2, color: "rgba(255,255,255,0.75)" },
   factMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
-  factEvidence: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(201,136,58,0.7)" },
+  factEvidence: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(138,106,47,0.7)" },
 
   // Membership
   memberRow: {

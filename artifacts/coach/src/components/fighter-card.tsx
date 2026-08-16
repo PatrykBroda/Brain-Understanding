@@ -49,7 +49,7 @@ function AttrBar({ label, value }: { label: string; value: number }) {
       <div className="h-[3px] bg-white/[0.07]">
         <div
           className="h-full transition-[width] duration-700"
-          style={{ width: `${pct}%`, background: "hsl(32,54%,50%)" }}
+          style={{ width: `${pct}%`, background: "hsl(39,49%,36%)" }}
         />
       </div>
     </div>
@@ -137,7 +137,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
               className="w-full h-full"
               style={{
                 background:
-                  "radial-gradient(120% 90% at 80% 0%, hsla(32,54%,40%,0.16), transparent 60%), hsla(0,0%,0%,0.4)",
+                  "radial-gradient(120% 90% at 80% 0%, hsla(39,49%,36%,0.16), transparent 60%), hsla(0,0%,0%,0.4)",
               }}
             />
           )}
@@ -196,7 +196,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
           {fighter.spiritAnimal && (
             <div
               className="font-mono text-[10px] uppercase tracking-[0.4em] mt-2"
-              style={{ color: "hsl(32,54%,52%)" }}
+              style={{ color: "hsl(39,49%,36%)" }}
             >
               {fighter.spiritAnimal}
             </div>

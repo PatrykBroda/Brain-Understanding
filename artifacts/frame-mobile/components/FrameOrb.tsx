@@ -31,7 +31,7 @@ const STATE_COLORS: Record<OrbState, { core: string; glow: string; speed: number
   Recovering:   { core: "#2a1f10", glow: "#5a3a10", speed: 3200 },
   Tight:        { core: "#1a1020", glow: "#3a1555", speed: 2000 },
   Volatile:     { core: "#2a1010", glow: "#7a1515", speed: 1200 },
-  Composed:     { core: "#102020", glow: "#C9883A", speed: 3000 },
+  Composed:     { core: "#102020", glow: "#8A6A2F", speed: 3000 },
   Overextended: { core: "#2a1505", glow: "#8a3a05", speed: 1800 },
 };
 
@@ -171,7 +171,7 @@ export function FrameOrb({ state = "Dormant", size = 180 }: Props) {
             width: size * 0.08,
             height: size * 0.08,
             borderRadius: (size * 0.08) / 2,
-            backgroundColor: "#C9883A",
+            backgroundColor: "#8A6A2F",
             top: r - size * 0.04,
             left: r - size * 0.04,
           },

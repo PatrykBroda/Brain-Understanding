@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,6 +17,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { useTodayCheckin } from "@/hooks/useCheckin";
 import { apiGet } from "@/lib/api";
+import {
+  readinessModifier,
+  applyReadinessModifier,
+  type ChatMessageLike,
+} from "@/lib/readinessModifier";
 
 interface Fact {
   id: number;
@@ -116,8 +122,34 @@ export default function StateScreen() {
     analysesQuery.data?.find((a) => !a.locked && a.sessionScore != null) ?? null;
   const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
 
-  const readiness = checkinScore ?? sessionScore;
+  // Recent chat drives a small ±10 modifier on top of the base readiness. It
+  // reuses the same conversation the chat tab reads, so no new data flow.
+  const conversationQuery = useQuery<ChatMessageLike[]>({
+    queryKey: ["conversation-active"],
+    queryFn: () =>
+      apiGet<{ messages: ChatMessageLike[] }>("/conversation/active").then((r) =>
+        Array.isArray(r?.messages) ? r.messages : [],
+      ),
+    enabled: !!isSignedIn,
+    staleTime: 60_000,
+  });
+  const chatModifier = useMemo(
+    () => readinessModifier(conversationQuery.data ?? []),
+    [conversationQuery.data],
+  );
+
+  const baseReadiness = checkinScore ?? sessionScore;
+  const readiness = applyReadinessModifier(baseReadiness, chatModifier);
   const readinessSource = checkinScore != null ? "today" : "last session";
+
+  // Doorway label mirrors the prototype: "Continue" only when a real prior
+  // session exists, else "Enter". Reuses the conversation query already fetched
+  // for the readiness modifier.
+  const hasSession = (conversationQuery.data?.length ?? 0) > 0;
+
+  // Orb fills the screen horizontally (capped so it stays sane on web/tablet).
+  const { width } = useWindowDimensions();
+  const orbSize = Math.round(Math.min(width, 440));
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -132,10 +164,12 @@ export default function StateScreen() {
             resizeMode="contain"
           />
           <View>
-            <Text style={styles.wordmark}>FRAME</Text>
-            <Text style={styles.subline}>
-              {(fighter?.primarySport ?? "COMBAT").toUpperCase()} · CALIBRATION SYSTEM
-            </Text>
+            <Image
+              source={require("../../assets/images/frame-wordmark.png")}
+              style={styles.wordmarkImg}
+              resizeMode="contain"
+            />
+            <Text style={styles.subline}>STATE · CALIBRATION SYSTEM</Text>
           </View>
         </View>
         <Pressable
@@ -150,7 +184,7 @@ export default function StateScreen() {
 
       {/* Orb */}
       <View style={styles.center}>
-        <OrbGL state={state} size={280} />
+        <OrbGL state={state} size={orbSize} />
 
         <Text style={styles.stateCaption}>STATE</Text>
         <Text style={styles.stateLabel}>{state.toUpperCase()}</Text>
@@ -181,7 +215,7 @@ export default function StateScreen() {
           ) : (
             <View style={styles.readinessCta}>
               <Text style={styles.readinessCtaText}>Analyse a session</Text>
-              <Feather name="chevron-right" size={12} color="#C9883A" />
+              <Feather name="chevron-right" size={12} color="#8A6A2F" />
             </View>
           )}
         </Pressable>
@@ -193,7 +227,7 @@ export default function StateScreen() {
           style={({ pressed }) => [styles.enterBtn, pressed && styles.enterPressed]}
           onPress={() => router.push("/(tabs)/chat")}
         >
-          <Text style={styles.enterText}>ENTER</Text>
+          <Text style={styles.enterText}>{hasSession ? "CONTINUE" : "ENTER"}</Text>
         </Pressable>
       </View>
     </View>
@@ -222,11 +256,10 @@ const styles = StyleSheet.create({
     height: 34,
     opacity: 0.9,
   },
-  wordmark: {
-    fontFamily: "SpaceMono",
-    fontSize: 15,
-    letterSpacing: 8,
-    color: "#e0e0e0",
+  wordmarkImg: {
+    width: 92,
+    height: 26,
+    tintColor: "#e0e0e0",
   },
   subline: {
     fontFamily: "SpaceMono",
@@ -261,7 +294,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 22,
     letterSpacing: 8,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   stateCue: {
     fontFamily: "SpaceMono",
@@ -293,7 +326,7 @@ const styles = StyleSheet.create({
   readinessValue: {
     fontFamily: "SpaceMono",
     fontSize: 16,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   readinessUnit: {
     fontFamily: "SpaceMono",
@@ -310,7 +343,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   footer: {
     alignItems: "center",
@@ -324,7 +357,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   enterPressed: {
-    borderColor: "#C9883A",
+    borderColor: "#8A6A2F",
   },
   enterText: {
     fontFamily: "SpaceMono",

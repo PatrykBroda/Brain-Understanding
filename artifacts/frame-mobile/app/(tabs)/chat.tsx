@@ -14,7 +14,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import {
@@ -178,7 +178,7 @@ const mb = StyleSheet.create({
     color: "rgba(224,224,224,0.4)",
   },
   senderLabelFrame: {
-    color: "rgba(201,136,58,0.7)",
+    color: "rgba(138,106,47,0.7)",
   },
   row: {
     flexDirection: "row",
@@ -193,7 +193,7 @@ const mb = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
     marginBottom: 6,
   },
   bubble: {
@@ -208,11 +208,9 @@ const mb = StyleSheet.create({
   },
   assistantBubble: {
     maxWidth: "94%",
-    backgroundColor: "#0a0a0a",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    borderLeftColor: "#C9883A",
-    borderLeftWidth: 2,
+    backgroundColor: "transparent",
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   text: {
     fontFamily: "Outfit",
@@ -272,7 +270,7 @@ function TypingIndicator() {
     <View style={[mb.row, mb.assistantRow]}>
       <View style={mb.dot} />
       <View style={[mb.bubble, mb.assistantBubble]}>
-        <OctagonSpinner size={22} color="#C9883A" />
+        <OctagonSpinner size={30} color="#EDEDED" />
       </View>
     </View>
   );
@@ -322,8 +320,13 @@ export default function ChatScreen() {
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   // On native the tab bar is absolutely positioned at 50px + safe-area inset,
-  // so the input row needs to clear that full height.
-  const bottomPad = Platform.OS === "web" ? 34 : 50;
+  // so the input row needs to clear that full height — but only while the
+  // keyboard is down. Once the keyboard is up it covers the tab bar, so that
+  // clearance would just open a dead gap above the keyboard. Collapse it then.
+  const keyboardVisible = useKeyboardState((s) => s.isVisible);
+  const bottomPad =
+    Platform.OS === "web" ? 34 : keyboardVisible ? 0 : 50;
+  const inputBottomInset = keyboardVisible ? 8 : insets.bottom + bottomPad + 8;
 
   useEffect(() => {
     if (!isSignedIn) {
@@ -543,7 +546,7 @@ export default function ChatScreen() {
           hitSlop={8}
         >
           <Feather name="chevron-left" size={20} color="#888" />
-          <Text style={styles.headerBackText}>FRAME</Text>
+          <Text style={styles.headerBackText}>HOME</Text>
         </Pressable>
         <Image source={FRAME_WORDMARK} style={styles.headerWordmark} resizeMode="contain" />
         <Pressable
@@ -568,7 +571,7 @@ export default function ChatScreen() {
       {/* Messages */}
       {isLoadingHistory ? (
         <View style={styles.loadingState}>
-          <OctagonSpinner size={28} color="#C9883A" />
+          <OctagonSpinner size={30} color="#EDEDED" />
         </View>
       ) : (
         <FlatList
@@ -653,7 +656,7 @@ export default function ChatScreen() {
           )}
           {uploading && (
             <View style={styles.draftStatus}>
-              <OctagonSpinner size={16} color="#C9883A" />
+              <OctagonSpinner size={16} color="#8A6A2F" />
               <Text style={styles.draftStatusText}>UPLOADING…</Text>
             </View>
           )}
@@ -662,7 +665,7 @@ export default function ChatScreen() {
       )}
 
       {/* Input */}
-      <View style={[styles.inputRow, { paddingBottom: insets.bottom + bottomPad + 8 }]}>
+      <View style={[styles.inputRow, { paddingBottom: inputBottomInset }]}>
         <Pressable
           style={({ pressed }) => [
             styles.attachBtn,
@@ -813,7 +816,7 @@ const styles = StyleSheet.create({
   suggestDash: {
     fontFamily: "SpaceMono",
     fontSize: 12,
-    color: "rgba(201,136,58,0.5)",
+    color: "rgba(138,106,47,0.5)",
   },
   suggestText: {
     fontFamily: "SpaceMono",
@@ -839,7 +842,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   quickChipPressed: {
-    borderColor: "#C9883A",
+    borderColor: "#8A6A2F",
   },
   quickText: {
     fontFamily: "SpaceMono",
@@ -915,7 +918,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   draftError: {
     fontFamily: "Outfit",
@@ -925,7 +928,7 @@ const styles = StyleSheet.create({
   sendBtn: {
     width: 44,
     height: 44,
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
     alignItems: "center",
     justifyContent: "center",
   },

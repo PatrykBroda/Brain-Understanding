@@ -209,9 +209,9 @@ function SessionRow({
     <div
       className="flex items-start gap-3 border px-4 py-3 transition-colors"
       style={{
-        borderColor: s.completed ? "hsla(32,54%,46%,0.35)" : "hsla(0,0%,100%,0.08)",
+        borderColor: s.completed ? "hsla(39,49%,36%,0.35)" : "hsla(0,0%,100%,0.08)",
         background: s.completed
-          ? "linear-gradient(95deg, hsla(32,54%,46%,0.05), transparent 70%)"
+          ? "linear-gradient(95deg, hsla(39,49%,36%,0.05), transparent 70%)"
           : "transparent",
       }}
     >
@@ -223,9 +223,9 @@ function SessionRow({
         aria-label={s.completed ? "Mark not done" : "Mark done"}
         className="flex-none mt-0.5 w-[18px] h-[18px] border flex items-center justify-center transition-all duration-300 disabled:opacity-40"
         style={{
-          borderColor: s.completed ? "hsl(32,54%,46%)" : "hsla(0,0%,100%,0.25)",
-          background: s.completed ? "hsla(32,54%,46%,0.15)" : "transparent",
-          color: s.completed ? "hsl(32,54%,50%)" : "transparent",
+          borderColor: s.completed ? "hsl(39,49%,36%)" : "hsla(0,0%,100%,0.25)",
+          background: s.completed ? "hsla(39,49%,36%,0.15)" : "transparent",
+          color: s.completed ? "hsl(39,49%,36%)" : "transparent",
         }}
       >
         <Check className="w-3 h-3" strokeWidth={2.8} />
@@ -319,7 +319,7 @@ function SessionForm({
                 style={{
                   borderColor: active ? "hsl(var(--primary))" : "hsla(0,0%,100%,0.1)",
                   color: active ? "hsl(var(--primary))" : "hsla(0,0%,100%,0.55)",
-                  background: active ? "hsla(35,65%,55%,0.06)" : "transparent",
+                  background: active ? "hsla(39,49%,36%,0.06)" : "transparent",
                 }}
               >
                 {SESSION_TYPE_LABEL[t]}

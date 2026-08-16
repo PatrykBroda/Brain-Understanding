@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useSaveFighter } from "@/hooks/use-fighter";
 import { Button } from "@/components/ui/button";
 import type { FighterInput } from "@/lib/api";
@@ -68,7 +68,6 @@ export default function OnboardingPage() {
   const save = useSaveFighter();
   const [step, setStep] = useState(0); // 0..N-1 = questions, N = details
   const [answers, setAnswers] = useState<Record<string, number>>({});
-  const pendingAdvance = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Optional multi-select "Training background" — other arts they've trained.
   const [background, setBackground] = useState<string[]>([]);
   const [form, setForm] = useState<FighterInput>({
@@ -107,13 +106,8 @@ export default function OnboardingPage() {
 
   const answerQuestion = (q: Question, idx: number) => {
     setAnswers((a) => ({ ...a, [q.id]: idx }));
-    // Cancel any previously-queued advance so spam-clicks don't stack increments.
-    if (pendingAdvance.current != null) clearTimeout(pendingAdvance.current);
     // Auto-advance after a beat so the selection registers visually.
-    pendingAdvance.current = setTimeout(() => {
-      pendingAdvance.current = null;
-      setStep((s) => s + 1);
-    }, 220);
+    window.setTimeout(() => setStep((s) => s + 1), 220);
   };
 
   const submit = (e: React.FormEvent) => {
@@ -176,8 +170,7 @@ export default function OnboardingPage() {
                       key={idx}
                       type="button"
                       onClick={() => answerQuestion(q, idx)}
-                      disabled={selected != null}
-                      className={`w-full text-left px-4 py-3.5 border text-sm transition-colors disabled:cursor-default ${
+                      className={`w-full text-left px-4 py-3.5 border text-sm transition-colors ${
                         isSel
                           ? "border-primary text-foreground"
                           : "border-border/70 text-foreground/85 hover:border-primary/50"

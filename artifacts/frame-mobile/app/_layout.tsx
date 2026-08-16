@@ -102,7 +102,7 @@ function LoadingScreen() {
       <ActivityIndicator
         style={loadingStyles.indicator}
         size="small"
-        color="#C9883A"
+        color="#8A6A2F"
       />
     </View>
   );

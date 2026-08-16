@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono_400Regular",
   },
   errorTitle: {
-    color: "#C9883A",
+    color: "#8A6A2F",
     fontSize: 14,
     letterSpacing: 3,
     fontFamily: "SpaceMono_400Regular",
@@ -121,14 +121,14 @@ const styles = StyleSheet.create({
   },
   retryBtn: {
     marginTop: 20,
-    borderColor: "#C9883A",
+    borderColor: "#8A6A2F",
     borderTopWidth: 1,
     borderBottomWidth: 1,
     paddingVertical: 8,
     paddingHorizontal: 28,
   },
   retryText: {
-    color: "#C9883A",
+    color: "#8A6A2F",
     fontSize: 12,
     letterSpacing: 2,
   },

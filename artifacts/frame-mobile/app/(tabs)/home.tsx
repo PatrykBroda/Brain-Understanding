@@ -30,6 +30,11 @@ import {
 } from "@/hooks/useCheckin";
 import { apiGet, heroFileUrl } from "@/lib/api";
 import { primaryFocus, type AthleteFact } from "@/lib/primaryFocus";
+import {
+  readinessModifier,
+  applyReadinessModifier,
+  type ChatMessageLike,
+} from "@/lib/readinessModifier";
 
 // ── Real-composite band read (interpretation, not fabrication) ─────────────
 function bandFor(score: number): string {
@@ -52,9 +57,22 @@ const METRIC_LABELS: {
 }[] = [
   { key: "sleep", label: "Sleep", hint: "How rested you woke up" },
   { key: "energy", label: "Energy", hint: "Fuel in the tank right now" },
-  { key: "soreness", label: "Soreness", hint: "100 = no soreness at all" },
-  { key: "stress", label: "Stress", hint: "100 = completely clear-headed" },
+  { key: "soreness", label: "Soreness", hint: "100 = most sore" },
+  { key: "stress", label: "Stress", hint: "100 = most stressed" },
 ];
+
+// Soreness and stress are persisted as recovery quality (100 = fully recovered:
+// no soreness / clear-headed) so the readiness composite can sum all four
+// metrics as "higher is better". The athlete, though, reads them the natural
+// way — 100 = most sore / most stressed — so we invert just these two at the
+// display and input boundary (v = 100 - v). Storage, the composite, and every
+// historical check-in are untouched.
+const INVERTED_METRICS: Partial<
+  Record<(typeof METRIC_LABELS)[number]["key"], true>
+> = {
+  soreness: true,
+  stress: true,
+};
 
 // ── PanResponder slider (0-100) — mobile has no <Slider> dependency ────────
 function MetricSlider({
@@ -127,14 +145,14 @@ const sliderStyles = StyleSheet.create({
     left: 0,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
   },
   thumb: {
     position: "absolute",
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
     top: 6,
   },
 });
@@ -147,11 +165,13 @@ function CheckinForm({
   onDone: () => void;
 }) {
   const save = useSaveCheckin();
+  // Sliders hold display units: soreness/stress are shown as amount (100 = most
+  // sore / most stressed), the inverse of how they're stored.
   const [values, setValues] = useState({
     sleep: existing?.sleep ?? 70,
     energy: existing?.energy ?? 70,
-    soreness: existing?.soreness ?? 70,
-    stress: existing?.stress ?? 70,
+    soreness: existing != null ? 100 - existing.soreness : 30,
+    stress: existing != null ? 100 - existing.stress : 30,
   });
   const [hr, setHr] = useState(
     existing?.restingHr != null ? String(existing.restingHr) : "",
@@ -168,8 +188,15 @@ function CheckinForm({
       return;
     }
     setErr(null);
+    // Convert the two display-inverted metrics back to stored recovery quality.
     save.mutate(
-      { ...values, restingHr },
+      {
+        sleep: values.sleep,
+        energy: values.energy,
+        soreness: 100 - values.soreness,
+        stress: 100 - values.stress,
+        restingHr,
+      },
       {
         onSuccess: onDone,
         onError: (e) =>
@@ -269,7 +296,7 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
               styles.trendBar,
               {
                 height: `${Math.max(6, p.score)}%`,
-                backgroundColor: p.date === last.date ? "#C9883A" : "#3a3a3a",
+                backgroundColor: p.date === last.date ? "#8A6A2F" : "#3a3a3a",
               },
             ]}
           />
@@ -335,7 +362,26 @@ export default function HomeScreen() {
     : null;
   const sessionScore =
     latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
-  const readiness = checkinScore ?? sessionScore;
+
+  // Same lightweight ±10 chat modifier the STATE tab applies, so the Fight
+  // Readiness number stays consistent across screens. Reuses the active
+  // conversation query — no new data flow.
+  const conversationQuery = useQuery<ChatMessageLike[]>({
+    queryKey: ["conversation-active"],
+    queryFn: () =>
+      apiGet<{ messages: ChatMessageLike[] }>("/conversation/active").then((r) =>
+        Array.isArray(r?.messages) ? r.messages : [],
+      ),
+    enabled: !!isSignedIn,
+    staleTime: 60_000,
+  });
+  const chatModifier = useMemo(
+    () => readinessModifier(conversationQuery.data ?? []),
+    [conversationQuery.data],
+  );
+
+  const baseReadiness = checkinScore ?? sessionScore;
+  const readiness = applyReadinessModifier(baseReadiness, chatModifier);
   const provenance =
     checkinScore != null
       ? "TODAY'S CHECK-IN"
@@ -470,7 +516,11 @@ export default function HomeScreen() {
               <View key={key} style={styles.breakdownRow}>
                 <Text style={styles.breakdownLabel}>{label.toUpperCase()}</Text>
                 <Text style={styles.breakdownValue}>
-                  {checkin ? checkin[key] : "—"}
+                  {checkin
+                    ? INVERTED_METRICS[key]
+                      ? 100 - checkin[key]
+                      : checkin[key]
+                    : "—"}
                 </Text>
               </View>
             ))}
@@ -492,13 +542,13 @@ export default function HomeScreen() {
               >
                 {checkin ? (
                   <>
-                    <Feather name="edit-2" size={11} color="#C9883A" />
+                    <Feather name="edit-2" size={11} color="#8A6A2F" />
                     <Text style={styles.editText}>EDIT TODAY'S CHECK-IN</Text>
                   </>
                 ) : (
                   <>
                     <Text style={styles.editText}>LOG TODAY'S CHECK-IN</Text>
-                    <Feather name="chevron-right" size={11} color="#C9883A" />
+                    <Feather name="chevron-right" size={11} color="#8A6A2F" />
                   </>
                 )}
               </Pressable>
@@ -514,7 +564,7 @@ export default function HomeScreen() {
         <View style={styles.trendWrap}>
           {isFramePlus ? (
             historyQuery.isLoading ? (
-              <ActivityIndicator size="small" color="#C9883A" />
+              <ActivityIndicator size="small" color="#8A6A2F" />
             ) : (
               <ReadinessTrend checkins={historyCheckins} />
             )
@@ -561,7 +611,7 @@ export default function HomeScreen() {
               hitSlop={8}
             >
               <Text style={styles.compEmptyCtaText}>SET A CAMP</Text>
-              <Feather name="chevron-right" size={11} color="#C9883A" />
+              <Feather name="chevron-right" size={11} color="#8A6A2F" />
             </Pressable>
           </View>
         )}
@@ -707,7 +757,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 6,
-    color: "#C9883A",
+    color: "#8A6A2F",
     marginTop: 10,
   },
   readyBigEmpty: {
@@ -761,7 +811,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   // Check-in form
   formCard: {
@@ -797,7 +847,7 @@ const styles = StyleSheet.create({
   formValue: {
     fontFamily: "Outfit",
     fontSize: 15,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   formHint: {
     fontFamily: "SpaceMono",
@@ -834,13 +884,13 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(201,136,58,0.4)",
+    borderColor: "rgba(138,106,47,0.4)",
   },
   saveBtnText: {
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   cancelText: {
     fontFamily: "SpaceMono",
@@ -918,7 +968,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   // Competition
   compRow: {
@@ -947,7 +997,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit",
     fontSize: 34,
     lineHeight: 34,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   compDaysLabel: {
     fontFamily: "SpaceMono",
@@ -977,6 +1027,6 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
 });

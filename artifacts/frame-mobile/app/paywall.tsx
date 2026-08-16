@@ -115,14 +115,14 @@ export default function PaywallScreen() {
         <View style={s.perks}>
           {FRAME_PLUS_PERKS.map((p) => (
             <View key={p} style={s.perkRow}>
-              <Feather name="check" size={14} color="#C9883A" />
+              <Feather name="check" size={14} color="#8A6A2F" />
               <Text style={s.perkText}>{p}</Text>
             </View>
           ))}
         </View>
 
         {loading ? (
-          <ActivityIndicator color="#C9883A" style={{ marginTop: 32 }} />
+          <ActivityIndicator color="#8A6A2F" style={{ marginTop: 32 }} />
         ) : !isPurchasesSupported() ? (
           <Text style={s.unavailable}>
             Subscriptions are available in the iOS app.
@@ -184,7 +184,7 @@ const s = StyleSheet.create({
   kicker: {
     fontFamily: "SpaceMono",
     fontSize: 11,
-    color: "#C9883A",
+    color: "#8A6A2F",
     letterSpacing: 4,
     marginBottom: 8,
   },
@@ -201,7 +201,7 @@ const s = StyleSheet.create({
   planBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#C9883A",
+    backgroundColor: "#8A6A2F",
     paddingVertical: 16,
     paddingHorizontal: 20,
     marginBottom: 12,

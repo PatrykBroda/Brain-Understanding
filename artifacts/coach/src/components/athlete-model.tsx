@@ -185,15 +185,15 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
       {/* Filled confidence polygon */}
       <path
         d={filledPath}
-        fill="hsla(32,54%,50%,0.12)"
-        stroke="hsla(32,54%,50%,0.55)"
+        fill="hsla(39,49%,36%,0.12)"
+        stroke="hsla(39,49%,36%,0.55)"
         strokeWidth="1.5"
         strokeLinejoin="round"
       />
 
       {/* Data points */}
       {filledPoints.map((p, i) => (
-        <circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="2.5" fill="hsl(32,54%,50%)" />
+        <circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="2.5" fill="hsl(39,49%,36%)" />
       ))}
 
       {/* Labels */}
@@ -232,7 +232,7 @@ function ConfidenceBar({ pct, segments = 20 }: { pct: number; segments?: number 
           style={{
             background:
               i < filled
-                ? `hsl(32,54%,${50 - (i / segments) * 8}%)`
+                ? `hsl(39,49%,${40 - (i / segments) * 8}%)`
                 : "hsla(0,0%,100%,0.08)",
           }}
         />
@@ -274,12 +274,12 @@ function NodeDivider({ className = "" }: { className?: string }) {
     <div className={`flex items-center gap-3 ${className}`} aria-hidden>
       <div
         className="flex-1 h-px"
-        style={{ background: "linear-gradient(to right, transparent, hsla(35,55%,55%,0.18))" }}
+        style={{ background: "linear-gradient(to right, transparent, hsla(39,49%,36%,0.18))" }}
       />
-      <div className="w-1 h-1 rounded-full" style={{ background: "hsla(35,55%,55%,0.3)" }} />
+      <div className="w-1 h-1 rounded-full" style={{ background: "hsla(39,49%,36%,0.3)" }} />
       <div
         className="flex-1 h-px"
-        style={{ background: "linear-gradient(to left, transparent, hsla(35,55%,55%,0.18))" }}
+        style={{ background: "linear-gradient(to left, transparent, hsla(39,49%,36%,0.18))" }}
       />
     </div>
   );
@@ -301,7 +301,7 @@ function Panel({
       className={`relative overflow-hidden border ${accent ? "border-primary/25" : "border-white/[0.06]"} ${className}`}
       style={{
         background: accent
-          ? "linear-gradient(180deg, hsla(35,55%,52%,0.055), transparent 62%)"
+          ? "linear-gradient(180deg, hsla(39,49%,36%,0.055), transparent 62%)"
           : "linear-gradient(180deg, hsla(0,0%,100%,0.018), transparent 58%)",
         boxShadow: "inset 0 1px 0 hsla(0,0%,100%,0.04)",
       }}
@@ -358,7 +358,7 @@ function FactConfidence({ value }: { value: number }) {
           <span
             key={i}
             className="w-[3px] h-[9px]"
-            style={{ background: i <= v ? "hsl(35,58%,55%)" : "hsla(0,0%,100%,0.1)" }}
+            style={{ background: i <= v ? "hsl(39,49%,36%)" : "hsla(0,0%,100%,0.1)" }}
           />
         ))}
       </div>
@@ -617,8 +617,8 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
             <div
               className="mt-4 px-3.5 py-3"
               style={{
-                border: "1px solid hsla(35,55%,52%,0.28)",
-                background: "linear-gradient(180deg, hsla(35,55%,52%,0.07), transparent 90%)",
+                border: "1px solid hsla(39,49%,36%,0.28)",
+                background: "linear-gradient(180deg, hsla(39,49%,36%,0.07), transparent 90%)",
               }}
             >
               <div className="flex items-baseline justify-between">
@@ -858,7 +858,7 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
                   </div>
                   <div
                     className="flex-1 h-px"
-                    style={{ background: "linear-gradient(to right, hsla(35,55%,55%,0.22), transparent)" }}
+                    style={{ background: "linear-gradient(to right, hsla(39,49%,36%,0.22), transparent)" }}
                   />
                   <div className="flex-none font-mono text-[9px] tabular-nums text-foreground/40">
                     {grouped[c]!.length}
@@ -869,7 +869,7 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
                     <div
                       key={f.id}
                       className="pl-4 py-1 flex items-baseline justify-between gap-3"
-                      style={{ borderLeft: "1px solid hsla(35,55%,55%,0.25)" }}
+                      style={{ borderLeft: "1px solid hsla(39,49%,36%,0.25)" }}
                     >
                       <div
                         className="min-w-0 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/75 truncate"

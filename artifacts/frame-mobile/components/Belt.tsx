@@ -182,7 +182,7 @@ function BeltLadder({ currentIndex }: { currentIndex: number }) {
             <Text
               style={[
                 beltStyles.rungLabel,
-                { color: isCurrent ? "#C9883A" : earned ? "#999" : "#555" },
+                { color: isCurrent ? "#8A6A2F" : earned ? "#999" : "#555" },
               ]}
             >
               {rung.label.slice(0, 3).toUpperCase()}
@@ -397,7 +397,7 @@ const beltStyles = StyleSheet.create({
     borderWidth: 1,
   },
   nodeCurrent: {
-    shadowColor: "#C9883A",
+    shadowColor: "#8A6A2F",
     shadowOpacity: 0.6,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 0 },
@@ -428,11 +428,11 @@ const beltStyles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 8,
     letterSpacing: 2,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   meaning: {
     borderLeftWidth: 1,
-    borderLeftColor: "rgba(201,136,58,0.4)",
+    borderLeftColor: "rgba(138,106,47,0.4)",
     paddingLeft: 12,
     paddingTop: 2,
   },
@@ -440,7 +440,7 @@ const beltStyles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 3,
-    color: "#C9883A",
+    color: "#8A6A2F",
   },
   meaningText: {
     fontFamily: "Outfit",

@@ -122,7 +122,7 @@ export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
         <div className="flex items-center gap-2">
           <span
             className="w-1 h-1 rounded-full"
-            style={{ background: "hsla(35, 65%, 60%, 0.85)" }}
+            style={{ background: "hsla(39,49%,36%, 0.85)" }}
             aria-hidden
           />
           <span className="font-mono text-[10px] tracking-[0.32em] text-foreground/55 font-light uppercase">

@@ -8,7 +8,6 @@ import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { MessageContent } from "@/components/message-content";
 import { FramePlusPill } from "@/components/frame-plus-modal";
 import { EntrySequence } from "@/components/entry-sequence";
-import { BottomNav } from "@/components/bottom-nav";
 import { CompetitionBanner } from "@/components/competition-banner";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { FrameWordmark } from "@/components/frame-wordmark";
@@ -201,7 +200,7 @@ export default function ChatPage() {
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
-            <span className="font-mono text-[10px] uppercase tracking-widest">Frame</span>
+            <span className="font-mono text-[10px] uppercase tracking-widest">Home</span>
           </Link>
           <div className="flex items-center gap-3">
             <FrameWordmark size={22} />
@@ -280,18 +279,8 @@ export default function ChatPage() {
                         </div>
                       )}
                       {msg.role === "assistant" && msg.pending && !msg.content ? (
-                        <div className="flex items-center gap-3 py-2">
-                          <FrameOctagon size={36} spin spinSeconds={4} />
-                          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground synochi-typing-label">
-                            sensing
-                          </span>
-                          <style>{`
-                            @keyframes synochi-typing-fade {
-                              0%, 100% { opacity: 0.5; }
-                              50%      { opacity: 1; }
-                            }
-                            .synochi-typing-label { animation: synochi-typing-fade 1.8s ease-in-out infinite; }
-                          `}</style>
+                        <div className="flex items-center py-2">
+                          <FrameOctagon size={30} spin spinSeconds={4} glow={false} color="#EDEDED" />
                         </div>
                       ) : msg.role === "user" && msg.content ? (
                         <div className="text-foreground/90 px-4 py-3 border-l-2 border-primary/30 bg-white/[0.015] whitespace-pre-wrap text-[0.95rem] leading-relaxed">
@@ -451,8 +440,6 @@ export default function ChatPage() {
             )}
           </div>
         </footer>
-
-        <BottomNav />
       </div>
     </>
   );

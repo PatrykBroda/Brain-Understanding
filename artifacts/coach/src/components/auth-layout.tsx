@@ -42,7 +42,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         className="absolute inset-0 pointer-events-none z-0"
         style={{
           background:
-            "radial-gradient(ellipse 90% 60% at 50% 30%, hsla(35,65%,55%,0.05) 0%, transparent 55%)",
+            "radial-gradient(ellipse 90% 60% at 50% 30%, hsla(39,49%,36%,0.05) 0%, transparent 55%)",
         }}
       />
 
@@ -58,8 +58,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="font-sans font-extralight text-[14px] tracking-[0.55em] text-foreground/95 leading-none">
             FRAME
           </div>
-          <div className="font-sans text-[10px] tracking-[0.04em] text-foreground/45 mt-1.5 font-light italic">
-            The coach that remembers.
+          <div className="font-mono text-[9px] tracking-[0.5em] text-foreground/45 mt-1.5 font-light">
+            MMA · CALIBRATION SYSTEM
           </div>
         </div>
         <div className="w-5" />
