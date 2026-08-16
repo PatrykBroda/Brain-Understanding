@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import Svg, { Polygon } from "react-native-svg";
+import React from "react";
+import Svg, { Circle, Polygon } from "react-native-svg";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -11,23 +11,32 @@ import Animated, {
 interface Props {
   size?: number;
   color?: string;
-  strokeWidth?: number;
   /** Full spin duration in ms. Lower = faster. */
   durationMs?: number;
 }
 
+function octagonPoints(radius: number, rotationDeg = 22.5): string {
+  const pts: string[] = [];
+  for (let i = 0; i < 8; i++) {
+    const angle = ((rotationDeg + i * 45) * Math.PI) / 180;
+    const x = radius * Math.cos(angle);
+    const y = radius * Math.sin(angle);
+    pts.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+  }
+  return pts.join(" ");
+}
+
 /**
- * FRAME loading indicator — a rotating octagon (the cage). Replaces the default
- * radial ActivityIndicator so the "thinking" state reads on-brand. A dim
- * octagon outline sits under a single bright arc that travels the perimeter as
- * the whole shape spins; the octagon's 8-fold symmetry keeps the outline
- * apparently still while the highlight sweeps.
+ * FRAME loading mark — the same woven octagon the web prototype uses
+ * (components/frame-octagon): an outer octagon layered with 8 inner octagons,
+ * each offset 5.625°, plus a filled center dot. Stroke-only so it reads as a
+ * slowly rotating mandala. Defaults to white to mirror the prototype's
+ * currentColor render.
  */
 export function OctagonSpinner({
   size = 20,
-  color = "#C9883A",
-  strokeWidth = 2,
-  durationMs = 1100,
+  color = "#EDEDED",
+  durationMs = 4000,
 }: Props) {
   const spin = useSharedValue(0);
 
@@ -43,43 +52,37 @@ export function OctagonSpinner({
     transform: [{ rotate: `${spin.value * 360}deg` }],
   }));
 
-  const { points, perimeter } = useMemo(() => {
-    const r = size / 2 - strokeWidth;
-    const cx = size / 2;
-    const cy = size / 2;
-    const verts: Array<[number, number]> = [];
-    // Flat-topped octagon: 8 vertices, first offset by 22.5°.
-    for (let i = 0; i < 8; i++) {
-      const a = Math.PI / 8 + (i * Math.PI) / 4;
-      verts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
-    }
-    const side = r * 2 * Math.sin(Math.PI / 8);
-    return {
-      points: verts.map(([x, y]) => `${x},${y}`).join(" "),
-      perimeter: side * 8,
-    };
-  }, [size, strokeWidth]);
-
-  const arc = perimeter * 0.3;
+  const half = size / 2;
+  const outerR = half * 0.96;
+  const innerR = half * 0.72;
+  const strokeOuter = Math.max(0.8, size / 64);
+  const strokeInner = Math.max(0.5, size / 110);
 
   return (
     <Animated.View style={[{ width: size, height: size }, animStyle]}>
-      <Svg width={size} height={size}>
+      <Svg
+        width={size}
+        height={size}
+        viewBox={`${-half} ${-half} ${size} ${size}`}
+      >
         <Polygon
-          points={points}
+          points={octagonPoints(outerR)}
           fill="none"
           stroke={color}
-          strokeWidth={strokeWidth}
-          strokeOpacity={0.22}
+          strokeWidth={strokeOuter}
+          opacity={0.95}
         />
-        <Polygon
-          points={points}
-          fill="none"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={`${arc}, ${perimeter}`}
-        />
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Polygon
+            key={i}
+            points={octagonPoints(innerR, 22.5 + i * (45 / 8))}
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeInner}
+            opacity={0.55 + (i % 2) * 0.18}
+          />
+        ))}
+        <Circle cx={0} cy={0} r={innerR * 0.06} fill={color} opacity={0.8} />
       </Svg>
     </Animated.View>
   );
