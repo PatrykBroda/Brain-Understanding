@@ -1,12 +1,13 @@
 import { Router, type IRouter } from "express";
-import { db, fightersTable, insertFighterSchema, updateFighterSchema } from "@workspace/db";
+import {
+  db,
+  fightersTable,
+  heroImagesTable,
+  insertFighterSchema,
+  updateFighterSchema,
+} from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { promises as fs } from "node:fs";
-import { existsSync } from "node:fs";
-import path from "node:path";
-import crypto from "node:crypto";
 import { getUserFighter } from "../middlewares/authMiddleware";
-import { UPLOADS_DIR } from "./attachments";
 import { deriveSpiritAnimal } from "../lib/spiritAnimals";
 
 const router: IRouter = Router();
@@ -147,8 +148,12 @@ router.patch("/fighter", async (req, res) => {
 });
 
 // ── Customizable faded hero image for the profile fighter-card ────────────────
-// Stored on disk (UPLOADS_DIR) with the safe filename kept in fighters.heroImageUrl.
-// Server-managed only — never writable through the fighter PATCH payload.
+// The image bytes live in the shared Postgres `hero_images` table (one row per
+// fighter), NOT on local disk: the app runs on Replit autoscale where each
+// instance has its own ephemeral filesystem, so a file written on the upload
+// instance is gone by the time the image GET lands on another instance.
+// `fighters.heroImageUrl` holds only a short non-empty marker used for the
+// `hasHero` check and cache-busting — never the payload. Server-managed only.
 
 router.post("/fighter/hero", async (req, res) => {
   const body = req.body as {
@@ -175,6 +180,8 @@ router.post("/fighter/hero", async (req, res) => {
     return;
   }
 
+  // Decode only to validate the payload is real, non-empty and within size.
+  // The canonical stored form is the base64 string itself.
   let bytes: Buffer;
   try {
     bytes = Buffer.from(body.dataBase64, "base64");
@@ -191,21 +198,28 @@ router.post("/fighter/hero", async (req, res) => {
     return;
   }
 
-  const ext = (path.extname(body.filename) || ".png")
-    .toLowerCase()
-    .replace(/[^a-z0-9.]/g, "");
-  const safeName = `hero-${crypto.randomUUID()}${ext}`;
-  await fs.writeFile(path.join(UPLOADS_DIR, safeName), bytes);
+  // Upsert the single per-fighter hero row.
+  await db
+    .insert(heroImagesTable)
+    .values({
+      fighterId: fighter.id,
+      mimeType: body.mimeType,
+      dataBase64: body.dataBase64,
+    })
+    .onConflictDoUpdate({
+      target: heroImagesTable.fighterId,
+      set: {
+        mimeType: body.mimeType,
+        dataBase64: body.dataBase64,
+        updatedAt: new Date(),
+      },
+    });
 
-  // Remove the previous hero file (best-effort) so uploads don't accumulate.
-  const prev = fighter.heroImageUrl;
-  if (prev && /^hero-[a-z0-9.-]+$/i.test(prev)) {
-    fs.unlink(path.join(UPLOADS_DIR, prev)).catch(() => {});
-  }
-
+  // Store a fresh non-empty marker so `hasHero` is true and the client's
+  // cache key (fighter.updatedAt) changes on every upload.
   const [updated] = await db
     .update(fightersTable)
-    .set({ heroImageUrl: safeName })
+    .set({ heroImageUrl: `db:${Date.now()}` })
     .where(eq(fightersTable.id, fighter.id))
     .returning();
   res.json({ fighter: updated ?? fighter });
@@ -213,34 +227,30 @@ router.post("/fighter/hero", async (req, res) => {
 
 router.get("/fighter/hero/file", async (req, res) => {
   const fighter = await getUserFighter(req);
-  const name = fighter?.heroImageUrl;
-  if (!fighter || !name || !/^hero-[a-z0-9.-]+$/i.test(name)) {
+  if (!fighter) {
     res.status(404).end();
     return;
   }
-  const fp = path.join(UPLOADS_DIR, name);
-  if (!existsSync(fp)) {
+  const [row] = await db
+    .select()
+    .from(heroImagesTable)
+    .where(eq(heroImagesTable.fighterId, fighter.id))
+    .limit(1);
+  if (!row) {
     res.status(404).end();
     return;
   }
-  const ext = path.extname(name).toLowerCase();
-  const mime =
-    ext === ".jpg" || ext === ".jpeg"
-      ? "image/jpeg"
-      : ext === ".webp"
-        ? "image/webp"
-        : ext === ".gif"
-          ? "image/gif"
-          : "image/png";
-  res.setHeader("Content-Type", mime);
-  res.setHeader("Cache-Control", "private, max-age=3600");
+  let buf: Buffer;
   try {
-    const buf = await fs.readFile(fp);
-    res.end(buf);
+    buf = Buffer.from(row.dataBase64, "base64");
   } catch (err) {
-    req.log.error({ err }, "hero read failed");
+    req.log.error({ err }, "hero decode failed");
     res.status(500).end();
+    return;
   }
+  res.setHeader("Content-Type", row.mimeType);
+  res.setHeader("Cache-Control", "private, max-age=3600");
+  res.end(buf);
 });
 
 router.delete("/fighter/hero", async (req, res) => {
@@ -249,10 +259,7 @@ router.delete("/fighter/hero", async (req, res) => {
     res.status(404).json({ error: "no fighter" });
     return;
   }
-  const prev = fighter.heroImageUrl;
-  if (prev && /^hero-[a-z0-9.-]+$/i.test(prev)) {
-    fs.unlink(path.join(UPLOADS_DIR, prev)).catch(() => {});
-  }
+  await db.delete(heroImagesTable).where(eq(heroImagesTable.fighterId, fighter.id));
   const [updated] = await db
     .update(fightersTable)
     .set({ heroImageUrl: "" })

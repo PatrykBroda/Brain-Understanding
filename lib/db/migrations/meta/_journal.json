@@ -15,6 +15,13 @@
       "when": 1785995900000,
       "tag": "0001_clerk_to_jwt_upgrade",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786935789294,
+      "tag": "0002_rich_omega_sentinel",
+      "breakpoints": true
     }
   ]
 }
