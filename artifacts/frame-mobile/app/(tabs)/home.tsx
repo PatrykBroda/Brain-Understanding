@@ -84,33 +84,50 @@ function MetricSlider({
 }) {
   const [width, setWidth] = useState(0);
   const widthRef = useRef(0);
-  const valueRef = useRef(value);
-  valueRef.current = value;
+  // The track's absolute left edge in window coordinates. We drive the slider
+  // from the touch's absolute page X (gestureState) minus this offset, rather
+  // than nativeEvent.locationX — locationX is reported relative to whichever
+  // child view (the fill/thumb overlay) actually caught the touch, which made
+  // the value jump. Absolute coordinates are immune to that.
+  const leftRef = useRef(0);
+  const trackRef = useRef<View>(null);
 
-  const setFromX = (x: number) => {
+  const setFromPageX = (pageX: number) => {
     const w = widthRef.current;
     if (w <= 0) return;
-    const pct = Math.max(0, Math.min(1, x / w));
+    const pct = Math.max(0, Math.min(1, (pageX - leftRef.current) / w));
     onChange(Math.round(pct * 100));
+  };
+
+  // Re-measure on each touch start so a scrolled position (this form lives in a
+  // ScrollView) doesn't leave a stale offset.
+  const remeasure = (then?: () => void) => {
+    trackRef.current?.measureInWindow((x, _y, w) => {
+      leftRef.current = x;
+      if (w > 0) {
+        widthRef.current = w;
+        setWidth(w);
+      }
+      then?.();
+    });
   };
 
   const responder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => setFromX(e.nativeEvent.locationX),
-      onPanResponderMove: (e) => setFromX(e.nativeEvent.locationX),
+      // Don't let the enclosing ScrollView steal the drag mid-slide.
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: (_e, g) => remeasure(() => setFromPageX(g.x0)),
+      onPanResponderMove: (_e, g) => setFromPageX(g.moveX),
     }),
   ).current;
 
   return (
     <View
+      ref={trackRef}
       style={sliderStyles.track}
-      onLayout={(e) => {
-        const w = e.nativeEvent.layout.width;
-        widthRef.current = w;
-        setWidth(w);
-      }}
+      onLayout={() => remeasure()}
       {...responder.panHandlers}
     >
       <View style={sliderStyles.trackBg} />

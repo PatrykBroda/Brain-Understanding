@@ -123,20 +123,49 @@ export type SSEChunk =
   | { done: true; content?: never; error?: never }
   | { error: string; content?: never; done?: never };
 
+// Carries the HTTP status (and server error `code`, e.g. "FRAME_PLUS_REQUIRED")
+// so a streaming caller can tell a real transport failure apart from an
+// actionable HTTP response like a 402 free-tier gate.
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+  constructor(status: number, message: string, code?: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
 export async function apiStream(
   path: string,
   body: unknown,
-  onChunk: (chunk: SSEChunk) => void
+  onChunk: (chunk: SSEChunk) => void,
+  signal?: AbortSignal
 ): Promise<void> {
   const headers = await authHeaders({ Accept: "text/event-stream" });
   const res = await fetch(`${_base}${path}`, {
     method: "POST",
     headers,
     body: JSON.stringify(body),
+    signal,
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `HTTP ${res.status}`);
+    // Prefer the server's JSON `{ error, code }` shape; fall back to raw text.
+    let message = `HTTP ${res.status}`;
+    let code: string | undefined;
+    const raw = await res.text().catch(() => "");
+    if (raw) {
+      message = raw;
+      try {
+        const parsed = JSON.parse(raw) as { error?: unknown; code?: unknown };
+        if (typeof parsed.error === "string") message = parsed.error;
+        if (typeof parsed.code === "string") code = parsed.code;
+      } catch {
+        // non-JSON error body — keep the raw text
+      }
+    }
+    throw new ApiError(res.status, message, code);
   }
   const reader = res.body?.getReader();
   if (!reader) throw new Error("No response body");

@@ -18,6 +18,7 @@ import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-co
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import {
+  ApiError,
   apiGet,
   apiPost,
   apiStream,
@@ -34,6 +35,13 @@ import { OctagonSpinner } from "@/components/OctagonSpinner";
 const FRAME_WORDMARK = require("@/assets/images/frame-wordmark.png");
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
+
+// How long to wait for the very first streamed byte before declaring the turn
+// hung. Production first-token latency has been observed up to ~24s, so this is
+// deliberately generous — we only give up when the line has genuinely gone quiet.
+const FIRST_TOKEN_TIMEOUT_MS = 60_000;
+// Once bytes are flowing, a gap longer than this means the stream stalled.
+const STREAM_IDLE_TIMEOUT_MS = 30_000;
 
 interface Message {
   id: string;
@@ -381,16 +389,38 @@ export default function ChatScreen() {
     setIsStreaming(true);
     setShowTyping(true);
 
+    const userMsgId = uid();
     const userMsg: Message = {
-      id: uid(),
+      id: userMsgId,
       role: "user",
       content: trimmed,
       attachments,
     };
     setMessages((prev) => [...prev, userMsg]);
 
+    // Show a failure as a fresh assistant bubble (mobile has no error banner).
+    const showAssistant = (content: string) =>
+      setMessages((prev) => [...prev, { id: uid(), role: "assistant", content }]);
+
     let fullContent = "";
     let added = false;
+    let receivedContent = false;
+    let sawDone = false;
+    let serverError = false;
+
+    // Watchdog: abort a turn that never produces a first byte, or that stalls
+    // mid-stream. Without this a hung request sits forever behind the spinner.
+    const ctrl = new AbortController();
+    let timedOut = false;
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
+    const armWatchdog = (ms: number) => {
+      if (watchdog) clearTimeout(watchdog);
+      watchdog = setTimeout(() => {
+        timedOut = true;
+        ctrl.abort();
+      }, ms);
+    };
+    armWatchdog(FIRST_TOKEN_TIMEOUT_MS);
 
     try {
       await apiStream(
@@ -398,16 +428,18 @@ export default function ChatScreen() {
         { content: trimmed, attachmentIds: attachments.map((a) => a.id) },
         (chunk) => {
           if (chunk.error) {
+            serverError = true;
             setShowTyping(false);
-            if (!added) {
-              setMessages((prev) => [
-                ...prev,
-                { id: uid(), role: "assistant", content: "Something broke. Try again." },
-              ]);
-            }
+            return;
+          }
+          if (chunk.done) {
+            sawDone = true;
             return;
           }
           if (chunk.content) {
+            // Bytes are flowing — reset the (now shorter) idle watchdog.
+            armWatchdog(STREAM_IDLE_TIMEOUT_MS);
+            receivedContent = true;
             fullContent += chunk.content;
             setShowTyping(false);
             if (!added) {
@@ -427,17 +459,36 @@ export default function ChatScreen() {
               });
             }
           }
-        }
+        },
+        ctrl.signal,
       );
-    } catch {
+
+      // Stream closed cleanly. If nothing streamed, say why rather than leaving
+      // a silent, stuck spinner.
       setShowTyping(false);
-      if (!added) {
-        setMessages((prev) => [
-          ...prev,
-          { id: uid(), role: "assistant", content: "Connection dropped. Try again." },
-        ]);
+      if (!receivedContent) {
+        if (serverError) showAssistant("Something broke. Try again.");
+        else if (!sawDone) showAssistant("Lost the thread. Try again.");
+      }
+    } catch (err) {
+      setShowTyping(false);
+      // Free-tier daily coaching limit: not a failed turn. Drop the optimistic
+      // user bubble, restore the draft so nothing is lost, and open the paywall
+      // — mirroring the web client instead of a misleading "connection" error.
+      if (err instanceof ApiError && err.status === 402) {
+        setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
+        setInput(trimmed);
+        if (err.code === "FRAME_PLUS_REQUIRED") router.push("/paywall");
+        else showAssistant("That message couldn't be sent.");
+      } else if (!receivedContent) {
+        showAssistant(
+          timedOut
+            ? "That hung — the line went quiet. Try again."
+            : "Connection dropped. Try again.",
+        );
       }
     } finally {
+      if (watchdog) clearTimeout(watchdog);
       setIsStreaming(false);
       setShowTyping(false);
     }
