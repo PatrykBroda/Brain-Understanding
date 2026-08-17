@@ -147,9 +147,10 @@ export default function StateScreen() {
   // for the readiness modifier.
   const hasSession = (conversationQuery.data?.length ?? 0) > 0;
 
-  // Orb fills the screen horizontally (capped so it stays sane on web/tablet).
+  // Orb sits a touch inside the screen edges so the lattice reads as contained,
+  // not bleeding off-screen (capped so it stays sane on web/tablet).
   const { width } = useWindowDimensions();
-  const orbSize = Math.round(Math.min(width, 440));
+  const orbSize = Math.round(Math.min(width * 0.84, 372));
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -163,14 +164,11 @@ export default function StateScreen() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <View>
-            <Image
-              source={require("../../assets/images/frame-wordmark.png")}
-              style={styles.wordmarkImg}
-              resizeMode="contain"
-            />
-            <Text style={styles.subline}>STATE · CALIBRATION SYSTEM</Text>
-          </View>
+          <Image
+            source={require("../../assets/images/frame-wordmark.png")}
+            style={styles.wordmarkImg}
+            resizeMode="contain"
+          />
         </View>
         <Pressable
           onPress={() => router.push("/(tabs)/profile")}
@@ -186,7 +184,7 @@ export default function StateScreen() {
       <View style={styles.center}>
         <OrbGL state={state} size={orbSize} />
 
-        <Text style={styles.stateCaption}>STATE</Text>
+        <Text style={styles.stateCaption}>STATE · CALIBRATION SYSTEM</Text>
         <Text style={styles.stateLabel}>{state.toUpperCase()}</Text>
         <Text style={styles.stateCue}>{STATE_CUE[state]}</Text>
 
@@ -261,13 +259,6 @@ const styles = StyleSheet.create({
     height: 26,
     tintColor: "#e0e0e0",
   },
-  subline: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 4,
-    color: "#555",
-    marginTop: 4,
-  },
   profileBtn: {
     width: 40,
     height: 40,
@@ -286,9 +277,10 @@ const styles = StyleSheet.create({
   stateCaption: {
     fontFamily: "SpaceMono",
     fontSize: 10,
-    letterSpacing: 6,
+    letterSpacing: 3.5,
     color: "#666",
     marginTop: 8,
+    textAlign: "center",
   },
   stateLabel: {
     fontFamily: "SpaceMono",
@@ -347,22 +339,28 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: "center",
+    paddingHorizontal: 24,
     paddingBottom: 32,
   },
   enterBtn: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#e0e0e0",
-    paddingHorizontal: 48,
-    paddingVertical: 14,
+    width: "100%",
+    maxWidth: 360,
+    height: 58,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(138,106,47,0.38)",
+    backgroundColor: "rgba(138,106,47,0.05)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   enterPressed: {
-    borderColor: "#8A6A2F",
+    borderColor: "rgba(138,106,47,0.7)",
+    backgroundColor: "rgba(138,106,47,0.1)",
   },
   enterText: {
     fontFamily: "SpaceMono",
     fontSize: 13,
     letterSpacing: 6,
-    color: "#e0e0e0",
+    color: "#c9a24b",
   },
 });
