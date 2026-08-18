@@ -153,7 +153,7 @@ export default function StateScreen() {
   // devices (iPhone SE) or when the state text wraps to a second line.
   const { width } = useWindowDimensions();
   const [centerHeight, setCenterHeight] = useState(0);
-  const TEXT_AND_GAPS = 190; // stateCaption + stateLabel + stateCue + readinessRow + gaps
+  const TEXT_AND_GAPS = 160; // stateCaption + stateLabel + stateCue + gaps (readinessRow now lives outside center)
   const orbSize =
     centerHeight > 0
       ? Math.round(Math.min(width, centerHeight - TEXT_AND_GAPS, 400))
@@ -197,8 +197,11 @@ export default function StateScreen() {
         <Text style={styles.stateCaption}>STATE</Text>
         <Text style={styles.stateLabel}>{state.toUpperCase()}</Text>
         <Text style={styles.stateCue}>{STATE_CUE[state]}</Text>
+      </View>
 
-        {/* Fight readiness */}
+      {/* Fight readiness — sits between the orb block and the button so it
+          reads as visually centred in the gap rather than glued to the text */}
+      <View style={styles.readinessMiddle}>
         <Pressable
           style={styles.readinessRow}
           hitSlop={8}
@@ -313,11 +316,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     lineHeight: 16,
   },
+  readinessMiddle: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
   readinessRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginTop: 12,
     paddingVertical: 6,
   },
   readinessLabel: {
