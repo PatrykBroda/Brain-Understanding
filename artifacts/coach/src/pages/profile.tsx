@@ -23,6 +23,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { api, heroFileUrl } from "@/lib/api";
+import { AuthedImage } from "@/components/authed-image";
 import { useAuth } from "@/context/auth-context";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -168,7 +169,7 @@ export default function ProfilePage() {
               >
                 <div className="absolute inset-0 overflow-hidden">
                   {heroSrc ? (
-                    <img
+                    <AuthedImage
                       src={heroSrc}
                       alt=""
                       className="w-full h-full object-cover"
