@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -20,7 +20,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter, type Fighter } from "@/context/FighterContext";
-import { apiGet, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
+import { apiGet, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
 import { primaryFocus } from "@/lib/primaryFocus";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
@@ -199,6 +199,14 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
 function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: string | null }) {
   const qc = useQueryClient();
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [heroToken, setHeroToken] = useState<string | null>(null);
+
+  // Fetch the auth token so we can pass it as a header on the hero Image request.
+  // React Native's Image doesn't send auth headers automatically; without this
+  // the GET /fighter/hero/file returns 401 and the photo never renders.
+  useEffect(() => {
+    getAuthToken().then(setHeroToken);
+  }, [fighter.updatedAt]);
 
   const upload = useMutation({
     mutationFn: (payload: { mimeType: string; filename: string; dataBase64: string }) =>
@@ -258,7 +266,10 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
       <View style={s.band}>
         {heroSrc ? (
           <Image
-            source={{ uri: heroSrc }}
+            source={{
+              uri: heroSrc,
+              ...(heroToken ? { headers: { Authorization: `Bearer ${heroToken}` } } : {}),
+            }}
             style={[StyleSheet.absoluteFill, { opacity: 0.42, transform: [{ scale: zoom }] }]}
             resizeMode="cover"
           />

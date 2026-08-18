@@ -851,7 +851,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 420,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: "rgba(255,255,255,0.14)",
   },
   suggestBtn: {
     flexDirection: "row",
@@ -859,26 +859,26 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
+    borderBottomColor: "rgba(255,255,255,0.10)",
   },
   suggestBtnPressed: {
-    backgroundColor: "rgba(255,255,255,0.02)",
+    backgroundColor: "rgba(255,255,255,0.04)",
   },
   suggestDash: {
     fontFamily: "SpaceMono",
     fontSize: 12,
-    color: "rgba(138,106,47,0.5)",
+    color: "rgba(138,106,47,0.9)",
   },
   suggestText: {
     fontFamily: "SpaceMono",
     fontSize: 12,
     letterSpacing: 0.5,
-    color: "rgba(224,224,224,0.55)",
+    color: "rgba(224,224,224,0.85)",
     flexShrink: 1,
   },
   quickRow: {
     borderTopWidth: 1,
-    borderTopColor: "#1a1a1a",
+    borderTopColor: "#2a2a2a",
     maxHeight: 52,
   },
   quickContent: {
@@ -888,7 +888,7 @@ const styles = StyleSheet.create({
   },
   quickChip: {
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "rgba(255,255,255,0.20)",
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
   quickText: {
     fontFamily: "SpaceMono",
     fontSize: 11,
-    color: "#b0b0b0",
+    color: "#d0d0d0",
     letterSpacing: 1.5,
     textTransform: "uppercase",
   },

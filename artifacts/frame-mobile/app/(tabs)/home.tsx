@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -28,7 +28,7 @@ import {
   useCheckinHistory,
   type DailyCheckin,
 } from "@/hooks/useCheckin";
-import { apiGet, heroFileUrl } from "@/lib/api";
+import { apiGet, getAuthToken, heroFileUrl } from "@/lib/api";
 import { primaryFocus, type AthleteFact } from "@/lib/primaryFocus";
 import {
   readinessModifier,
@@ -410,6 +410,13 @@ export default function HomeScreen() {
   const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
   const zoom = (fighter?.heroZoom ?? 100) / 100;
 
+  // Auth token for the hero image request — Image doesn't send Bearer headers
+  // automatically, so without this the GET /fighter/hero/file returns 401.
+  const [heroToken, setHeroToken] = useState<string | null>(null);
+  useEffect(() => {
+    if (hasHero) getAuthToken().then(setHeroToken);
+  }, [hasHero, fighter?.updatedAt]);
+
   const metaParts = fighter
     ? [
         fighter.primarySport
@@ -433,7 +440,10 @@ export default function HomeScreen() {
       <View style={styles.hero}>
         {heroSrc ? (
           <Image
-            source={{ uri: heroSrc }}
+            source={{
+              uri: heroSrc,
+              ...(heroToken ? { headers: { Authorization: `Bearer ${heroToken}` } } : {}),
+            }}
             style={[
               StyleSheet.absoluteFill,
               { opacity: 0.45, transform: [{ scale: zoom }] },
