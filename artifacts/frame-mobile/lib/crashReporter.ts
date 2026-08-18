@@ -68,3 +68,17 @@ export function reportStartup(context: string): void {
     ts: new Date().toISOString(),
   });
 }
+
+/**
+ * Fire-and-forget layout probe — reports real on-device measured sizes so
+ * rendering bugs (zero-height text, squashed rows) show up in server logs.
+ */
+export function reportLayout(context: string): void {
+  void post({
+    type: "layout",
+    context: `${context} | +${msSinceLaunch()}ms`,
+    appVersion: APP_VERSION,
+    platform: Platform.OS,
+    ts: new Date().toISOString(),
+  });
+}

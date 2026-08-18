@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { z } from "zod";
 
 const CrashPayload = z.object({
-  type: z.enum(["crash", "startup"]).default("crash"),
+  type: z.enum(["crash", "startup", "layout"]).default("crash"),
   message: z.string().optional(),
   stack: z.string().optional(),
   context: z.string().optional(),
@@ -20,7 +20,18 @@ router.post("/crash-log", (req, res) => {
     return;
   }
   const data = parsed.data;
-  if (data.type === "startup") {
+  if (data.type === "layout") {
+    req.log.info(
+      {
+        type: "mobile_layout",
+        appVersion: data.appVersion,
+        platform: data.platform,
+        context: data.context,
+        ts: data.ts,
+      },
+      `MOBILE LAYOUT PROBE — ${data.context ?? "(no context)"}`
+    );
+  } else if (data.type === "startup") {
     req.log.info(
       {
         type: "mobile_startup",

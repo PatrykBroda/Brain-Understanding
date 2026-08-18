@@ -26,6 +26,7 @@ import {
   uploadAttachment,
   type AttachmentDto,
 } from "@/lib/api";
+import { reportLayout } from "@/lib/crashReporter";
 import { useFighter } from "@/context/FighterContext";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { MessageContent } from "@/components/MessageContent";
@@ -313,6 +314,9 @@ export default function ChatScreen() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  // One-shot guards so on-device layout probes report once per mount,
+  // not on every re-layout.
+  const layoutProbes = useRef({ row: false, chip: false, text: false });
 
   const {
     supported: voiceSupported,
@@ -672,15 +676,47 @@ export default function ChatScreen() {
           showsHorizontalScrollIndicator={false}
           style={styles.quickRow}
           contentContainerStyle={styles.quickContent}
+          onLayout={(e) => {
+            if (layoutProbes.current.row) return;
+            layoutProbes.current.row = true;
+            const { width, height } = e.nativeEvent.layout;
+            reportLayout(`quickRow w=${Math.round(width)} h=${Math.round(height)}`);
+          }}
         >
-          {QUICK_ACTIONS.map((a) => (
+          {QUICK_ACTIONS.map((a, i) => (
             <Pressable
               key={a.label}
               style={({ pressed }) => [styles.quickChip, pressed && styles.quickChipPressed]}
               onPress={() => sendQuick(a.prompt)}
               disabled={isStreaming}
+              onLayout={
+                i === 0
+                  ? (e) => {
+                      if (layoutProbes.current.chip) return;
+                      layoutProbes.current.chip = true;
+                      const { width, height } = e.nativeEvent.layout;
+                      reportLayout(`quickChip[0] w=${Math.round(width)} h=${Math.round(height)}`);
+                    }
+                  : undefined
+              }
             >
-              <Text style={styles.quickText}>{a.label}</Text>
+              <Text
+                style={styles.quickText}
+                onTextLayout={
+                  i === 0
+                    ? (e) => {
+                        if (layoutProbes.current.text) return;
+                        layoutProbes.current.text = true;
+                        const lines = e.nativeEvent.lines;
+                        reportLayout(
+                          `quickText[0] lines=${lines.length} h=${Math.round(lines[0]?.height ?? 0)} w=${Math.round(lines[0]?.width ?? 0)}`,
+                        );
+                      }
+                    : undefined
+                }
+              >
+                {a.label}
+              </Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -872,6 +908,7 @@ const styles = StyleSheet.create({
   suggestText: {
     fontFamily: "SpaceMono",
     fontSize: 12,
+    lineHeight: 16,
     letterSpacing: 0.5,
     color: "rgba(224,224,224,0.85)",
     flexShrink: 1,
@@ -880,10 +917,14 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#2a2a2a",
     height: 46,
+    // Never let the KeyboardAvoidingView flex math compress this row —
+    // vertical squash clips the chip text into flat empty strips.
+    flexGrow: 0,
+    flexShrink: 0,
   },
   quickContent: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     gap: 8,
   },
   quickChip: {
@@ -891,6 +932,8 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.20)",
     paddingHorizontal: 14,
     paddingVertical: 6,
+    alignSelf: "center",
+    justifyContent: "center",
   },
   quickChipPressed: {
     borderColor: "#8A6A2F",
@@ -898,6 +941,9 @@ const styles = StyleSheet.create({
   quickText: {
     fontFamily: "SpaceMono",
     fontSize: 11,
+    // Explicit lineHeight: SpaceMono metrics without one can measure
+    // zero/near-zero text height on iOS, rendering the label invisible.
+    lineHeight: 14,
     color: "#d0d0d0",
     letterSpacing: 0.5,
   },
