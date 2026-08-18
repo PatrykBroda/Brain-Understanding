@@ -58,28 +58,28 @@ function uid() {
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   {
-    label: "Analyse session",
+    label: "ANALYSE SESSION",
     prompt:
       "Debrief my last training session — what fragmented, what held, what's the next rep.",
   },
   {
-    label: "Build drill",
+    label: "BUILD DRILL",
     prompt:
       "Prescribe me a drill for my biggest current weakness. Use the drill block.",
   },
   {
-    label: "Fix my game",
+    label: "FIX MY GAME",
     prompt:
       "Diagnose the recurring leak in my game right now and tell me the protocol to close it.",
   },
   {
-    label: "Competition prep",
+    label: "COMPETITION PREP",
     prompt:
       "Walk me through how to prepare my nervous system and tactics for an upcoming competition.",
   },
-  { label: "Regulate", prompt: "I need to regulate right now. Produce a regulate block." },
+  { label: "REGULATE", prompt: "I need to regulate right now. Produce a regulate block." },
   {
-    label: "Reflect",
+    label: "REFLECT",
     prompt:
       "Ask me one sharp question to surface what I'm not seeing about my training this week.",
   },
@@ -879,7 +879,7 @@ const styles = StyleSheet.create({
   quickRow: {
     borderTopWidth: 1,
     borderTopColor: "#2a2a2a",
-    maxHeight: 52,
+    height: 46,
   },
   quickContent: {
     paddingHorizontal: 16,
@@ -899,8 +899,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 11,
     color: "#d0d0d0",
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   inputRow: {
     flexDirection: "row",
