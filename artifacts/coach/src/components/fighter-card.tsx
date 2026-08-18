@@ -11,6 +11,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { api, heroFileUrl, type Fighter } from "@/lib/api";
+import { AuthedImage } from "@/components/authed-image";
 import { sportLabel } from "@/lib/fighter-options";
 import { useAnalyses } from "@/hooks/use-analysis";
 import { useActiveCompetition } from "@/hooks/use-competition";
@@ -120,7 +121,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
         {/* Background image (faded) or fallback gradient */}
         <div className="absolute inset-0 overflow-hidden">
           {heroSrc ? (
-            <img
+            <AuthedImage
               src={heroSrc}
               alt=""
               className="w-full h-full object-cover"

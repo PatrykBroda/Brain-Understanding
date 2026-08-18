@@ -13,6 +13,7 @@ import { FrameOctagon } from "@/components/frame-octagon";
 import { FrameWordmark } from "@/components/frame-wordmark";
 import { Button } from "@/components/ui/button";
 import { api, attachmentFileUrl, type AttachmentDto } from "@/lib/api";
+import { useAuthedObjectUrl } from "@/lib/useAuthedObjectUrl";
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   { label: "Analyse session", prompt: "Debrief my last training session — what fragmented, what held, what's the next rep." },
@@ -39,10 +40,16 @@ function AttachmentThumb({
   att: AttachmentDto;
   onRemove?: () => void;
 }) {
-  const url = attachmentFileUrl(att.id);
+  // The file route is bearer-auth gated and a raw <img>/<video> can't send the
+  // header, so load the bytes through an authed object URL instead.
+  const url = useAuthedObjectUrl(attachmentFileUrl(att.id));
   return (
     <div className="relative inline-block border border-border/60 bg-black overflow-hidden">
-      {att.kind === "image" ? (
+      {!url ? (
+        <div className="flex h-24 w-24 items-center justify-center text-muted-foreground/60 font-mono text-[9px] uppercase tracking-widest">
+          Loading
+        </div>
+      ) : att.kind === "image" ? (
         <img
           src={url}
           alt={att.filename}
@@ -324,9 +331,13 @@ export default function ChatPage() {
                 {QUICK_ACTIONS.map((qa) => (
                   <button
                     key={qa.label}
-                    disabled={isStreaming}
-                    onClick={() => sendMessage(qa.prompt)}
-                    className="flex-none font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-40"
+                    onClick={() => {
+                      // Ignore taps while a reply streams instead of disabling
+                      // the button — `disabled:opacity-40` faded the low-contrast
+                      // label to near-invisible, so the chips looked empty.
+                      if (!isStreaming) sendMessage(qa.prompt);
+                    }}
+                    className="flex-none font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
                   >
                     {qa.label}
                   </button>

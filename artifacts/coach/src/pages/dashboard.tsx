@@ -15,6 +15,7 @@ import { useTodayCheckin, useSaveCheckin, useCheckinHistory } from "@/hooks/use-
 import { useMemory } from "@/hooks/use-memory";
 import { primaryFocus } from "@/lib/primary-focus";
 import { heroFileUrl, api, type DailyCheckin } from "@/lib/api";
+import { AuthedImage } from "@/components/authed-image";
 import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -371,7 +372,7 @@ export default function DashboardPage() {
             onPointerCancel={onHeroPointerUp}
           >
             {heroSrc ? (
-              <img
+              <AuthedImage
                 src={heroSrc}
                 alt=""
                 aria-hidden
