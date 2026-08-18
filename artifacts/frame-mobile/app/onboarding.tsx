@@ -12,6 +12,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiPost } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { type Fighter } from "@/context/FighterContext";
 
 const SPORTS = [
   { key: "bjj", label: "BJJ" },
@@ -117,6 +119,7 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const qc = useQueryClient();
+  const { userId } = useAuth();
 
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
@@ -169,7 +172,7 @@ export default function OnboardingScreen() {
         return;
       }
 
-      await apiPost("/fighter", {
+      const created = await apiPost<{ fighter: Fighter }>("/fighter", {
         name: name.trim(),
         dateOfBirth: dobDate,
         art: sport,
@@ -181,7 +184,18 @@ export default function OnboardingScreen() {
         personality: `Training ${freq} per week. Sport: ${sport}. Belt: ${belt}.`,
       });
 
-      qc.invalidateQueries({ queryKey: ["fighter"] });
+      // Seed the cache with the authoritative created fighter *before* leaving
+      // this screen. The tab layout guard bounces back to /onboarding whenever
+      // it sees fighter=null with isLoading=false; a fire-and-forget invalidate
+      // left that null in place during the refetch window, which forced new
+      // users to complete onboarding twice. Setting the data synchronously
+      // closes that window. Fall back to an awaited refetch if the response is
+      // somehow empty.
+      if (created?.fighter) {
+        qc.setQueryData(["fighter", userId], created.fighter);
+      } else {
+        await qc.refetchQueries({ queryKey: ["fighter"] });
+      }
       router.replace("/(tabs)/home");
     } catch (e: unknown) {
       setError((e as Error).message ?? "Setup failed. Try again.");

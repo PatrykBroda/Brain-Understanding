@@ -5,7 +5,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Platform,
   Pressable,
   RefreshControl,
@@ -23,6 +22,7 @@ import { useFighter, type Fighter } from "@/context/FighterContext";
 import { apiGet, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
 import { primaryFocus } from "@/lib/primaryFocus";
 import { useActiveCompetition } from "@/hooks/useCompetition";
+import { AuthedImage } from "@/components/AuthedImage";
 import { Belt } from "@/components/Belt";
 import { ProfileEditModal } from "@/components/ProfileEditModal";
 import { useEntitlement, useSyncBilling } from "@/hooks/useEntitlement";
@@ -257,8 +257,8 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
     <View>
       <View style={s.band}>
         {heroSrc ? (
-          <Image
-            source={{ uri: heroSrc }}
+          <AuthedImage
+            uri={heroSrc}
             style={[StyleSheet.absoluteFill, { opacity: 0.42, transform: [{ scale: zoom }] }]}
             resizeMode="cover"
           />

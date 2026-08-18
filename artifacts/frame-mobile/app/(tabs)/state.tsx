@@ -149,8 +149,11 @@ export default function StateScreen() {
 
   // Orb sits a touch inside the screen edges so the lattice reads as contained,
   // not bleeding off-screen (capped so it stays sane on web/tablet).
-  const { width } = useWindowDimensions();
-  const orbSize = Math.round(Math.min(width * 0.84, 372));
+  // Size from BOTH axes: width keeps it edge-contained, height keeps the orb +
+  // caption stack from overflowing the centre box and colliding with the ENTER
+  // button on shorter screens.
+  const { width, height } = useWindowDimensions();
+  const orbSize = Math.round(Math.min(width * 0.84, height * 0.34, 372));
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -272,7 +275,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 16,
+    gap: 12,
   },
   stateCaption: {
     fontFamily: "SpaceMono",

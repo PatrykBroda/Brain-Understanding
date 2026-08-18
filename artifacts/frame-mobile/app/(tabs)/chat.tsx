@@ -2,7 +2,7 @@ import { useAuth } from "@/context/AuthContext";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Image,
@@ -28,6 +28,7 @@ import {
 } from "@/lib/api";
 import { useFighter } from "@/context/FighterContext";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { AuthedImage } from "@/components/AuthedImage";
 import { MessageContent } from "@/components/MessageContent";
 import { CompetitionBanner } from "@/components/CompetitionBanner";
 import { OctagonSpinner } from "@/components/OctagonSpinner";
@@ -85,6 +86,37 @@ const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   },
 ];
 
+// Rendered as its own memoized component so the streaming loop (which fires
+// setMessages many times per turn) can't re-render these chips. Under the New
+// Architecture, hammering a horizontally-scrolled <Text> that uses a custom
+// font + letterSpacing with rapid re-renders intermittently drops its glyphs —
+// which showed up as chips going blank mid-conversation. Rendering once and
+// never again sidesteps that entirely.
+const QuickActionsRow = memo(function QuickActionsRow({
+  onPick,
+}: {
+  onPick: (prompt: string) => void;
+}) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.quickRow}
+      contentContainerStyle={styles.quickContent}
+    >
+      {QUICK_ACTIONS.map((a) => (
+        <Pressable
+          key={a.label}
+          style={({ pressed }) => [styles.quickChip, pressed && styles.quickChipPressed]}
+          onPress={() => onPick(a.prompt)}
+        >
+          <Text style={styles.quickText}>{a.label}</Text>
+        </Pressable>
+      ))}
+    </ScrollView>
+  );
+});
+
 const SUGGESTED_PROMPTS = [
   "Debrief tonight's roll",
   "I fragmented under pressure today",
@@ -114,7 +146,7 @@ function AttachmentThumb({
           </Text>
         </View>
       ) : (
-        <Image source={{ uri: src }} style={mb.thumbImg} resizeMode="cover" />
+        <AuthedImage uri={src} style={mb.thumbImg} resizeMode="cover" />
       )}
       {onRemove && (
         <Pressable style={mb.thumbRemove} onPress={onRemove} hitSlop={6}>
@@ -496,10 +528,16 @@ export default function ChatScreen() {
     inputRef.current?.focus();
   }
 
-  function sendQuick(prompt: string) {
+  // Keep the latest handleSend reachable from the stable sendQuick callback
+  // below, so QuickActionsRow's onPick never changes identity (and never
+  // re-renders) while still calling the current closure.
+  const handleSendRef = useRef(handleSend);
+  handleSendRef.current = handleSend;
+
+  const sendQuick = useCallback((prompt: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    handleSend(prompt);
-  }
+    handleSendRef.current(prompt);
+  }, []);
 
   async function resetConversation() {
     if (isStreaming || resetting) return;
@@ -666,25 +704,7 @@ export default function ChatScreen() {
       {/* Quick actions — persist above the input in both the empty state and an
           active conversation (matches the website's suggested-question chips,
           which stay available while chatting instead of disappearing). */}
-      {!isLoadingHistory && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.quickRow}
-          contentContainerStyle={styles.quickContent}
-        >
-          {QUICK_ACTIONS.map((a) => (
-            <Pressable
-              key={a.label}
-              style={({ pressed }) => [styles.quickChip, pressed && styles.quickChipPressed]}
-              onPress={() => sendQuick(a.prompt)}
-              disabled={isStreaming}
-            >
-              <Text style={styles.quickText}>{a.label}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      )}
+      {!isLoadingHistory && <QuickActionsRow onPick={sendQuick} />}
 
       {/* Draft attachments awaiting send */}
       {(drafts.length > 0 || uploading || uploadError) && (

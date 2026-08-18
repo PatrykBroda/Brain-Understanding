@@ -260,7 +260,7 @@ function Wireframe({ live }: { live: MutableRefObject<Cfg> }) {
   const bold = useRef<THREE.LineSegments>(null);
 
   const fineGeo = useMemo(
-    () => new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(1.09, 5)),
+    () => new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(1.09, 3)),
     [],
   );
   const boldGeo = useMemo(
@@ -300,10 +300,11 @@ function Wireframe({ live }: { live: MutableRefObject<Cfg> }) {
     const cfg = live.current;
     scratch.setHSL(cfg.hue / 360, cfg.sat, Math.min(0.85, cfg.light + 0.12));
     fineMat.color.copy(scratch);
-    // Keep the geodesic structure legible even at rest, brightening with load.
-    fineMat.opacity = 0.05 + cfg.emissive * 0.35;
+    // Whisper-faint lattice — just enough structure to catch the light, not a
+    // bright web of white lines. Brightens a touch with load.
+    fineMat.opacity = 0.025 + cfg.emissive * 0.16;
     boldMat.color.copy(scratch);
-    boldMat.opacity = 0.08 + cfg.emissive * 0.45;
+    boldMat.opacity = 0.045 + cfg.emissive * 0.22;
 
     if (fine.current) {
       fine.current.rotation.y -= (cfg.rotSpeed * 0.5 + 0.018) * dt;
@@ -335,14 +336,10 @@ interface RingDef {
 // opposite-z spins — they orbit AGAINST the sphere so the lines read as
 // independent orbits crossing it, not paint stuck to its surface.
 const RING_DEFS: RingDef[] = [
-  { r: 1.42, tube: 0.011, tilt: [Math.PI / 2.1, 0, 0], spin: { z: 1.15 } },
-  { r: 1.50, tube: 0.010, tilt: [Math.PI / 2.6, Math.PI / 4.5, 0.2], spin: { x: -0.7, y: -0.45 } },
-  { r: 1.60, tube: 0.009, tilt: [Math.PI / 3.4, Math.PI / 5.5, 0], spin: { y: -0.85, z: 0.3 } },
-  { r: 1.70, tube: 0.008, tilt: [Math.PI / 2.3, Math.PI / 2.8, 0.5], spin: { x: 0.6, z: -0.55 } },
-  { r: 1.78, tube: 0.008, tilt: [Math.PI / 2.7, Math.PI / 3.2, 0], spin: { y: -0.65, z: 0.4 } },
-  { r: 1.88, tube: 0.007, tilt: [Math.PI / 4.5, Math.PI / 3.6, -0.4], spin: { x: -0.6, z: 0.5 } },
-  { r: 1.96, tube: 0.006, tilt: [Math.PI / 4, Math.PI / 6, 0.4], spin: { y: -0.55, x: 0.42 } },
-  { r: 2.16, tube: 0.005, tilt: [Math.PI / 5.5, Math.PI / 4, 0.8], spin: { z: -0.75, y: 0.35 } },
+  { r: 1.42, tube: 0.009, tilt: [Math.PI / 2.1, 0, 0], spin: { z: 1.15 } },
+  { r: 1.52, tube: 0.008, tilt: [Math.PI / 2.6, Math.PI / 4.5, 0.2], spin: { x: -0.7, y: -0.45 } },
+  { r: 1.62, tube: 0.007, tilt: [Math.PI / 3.4, Math.PI / 5.5, 0], spin: { y: -0.85, z: 0.3 } },
+  { r: 1.72, tube: 0.006, tilt: [Math.PI / 2.7, Math.PI / 3.2, 0], spin: { y: -0.65, z: 0.4 } },
 ];
 // Fade weights per ring — inner rings brightest, outer rings still clearly visible
 const RING_FADE = RING_DEFS.map((_, i) => Math.max(0.5, 1 - i * 0.07));
@@ -368,9 +365,10 @@ function Rings({ live }: { live: MutableRefObject<Cfg> }) {
       if (s.y) mesh.rotation.y += cfg.ringSpeed * s.y * dt;
       if (s.z) mesh.rotation.z += cfg.ringSpeed * s.z * dt;
     }
-    // Ring colour matches orb state — lighter band so they read against the dark sphere
-    scratch.setHSL(cfg.hue / 360, cfg.sat * 0.7, Math.min(0.95, cfg.light + 0.26));
-    const baseOp = 0.6 + cfg.emissive * 0.9;
+    // Ring colour matches orb state — a soft band above the sphere, kept well
+    // short of white so the orbits read as faint traces, not bright scratches.
+    scratch.setHSL(cfg.hue / 360, cfg.sat * 0.7, Math.min(0.6, cfg.light + 0.14));
+    const baseOp = 0.3 + cfg.emissive * 0.55;
     for (let i = 0; i < RING_DEFS.length; i++) {
       const m = mats[i].current;
       if (m) { m.color.copy(scratch); m.opacity = Math.min(0.95, baseOp * RING_FADE[i]); }
