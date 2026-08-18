@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Image,
   Platform,
@@ -147,9 +147,17 @@ export default function StateScreen() {
   // for the readiness modifier.
   const hasSession = (conversationQuery.data?.length ?? 0) > 0;
 
-  // Orb fills the screen horizontally (capped so it stays sane on web/tablet).
+  // Size the orb to fit the available vertical space rather than just the
+  // screen width. The center view holds the orb + ~190px of text/gaps below it;
+  // measuring its actual height prevents the footer from overlapping on short
+  // devices (iPhone SE) or when the state text wraps to a second line.
   const { width } = useWindowDimensions();
-  const orbSize = Math.round(Math.min(width, 440));
+  const [centerHeight, setCenterHeight] = useState(0);
+  const TEXT_AND_GAPS = 190; // stateCaption + stateLabel + stateCue + readinessRow + gaps
+  const orbSize =
+    centerHeight > 0
+      ? Math.round(Math.min(width, centerHeight - TEXT_AND_GAPS, 400))
+      : Math.round(Math.min(width * 0.75, 300)); // safe fallback before first layout
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -183,7 +191,7 @@ export default function StateScreen() {
       </View>
 
       {/* Orb */}
-      <View style={styles.center}>
+      <View style={styles.center} onLayout={(e) => setCenterHeight(e.nativeEvent.layout.height)}>
         <OrbGL state={state} size={orbSize} />
 
         <Text style={styles.stateCaption}>STATE</Text>
