@@ -24,7 +24,7 @@ const IOS_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? "";
 let configured = false;
 
 export function isPurchasesSupported(): boolean {
-  return Platform.OS === "ios" || Platform.OS === "android";
+  return (Platform.OS === "ios" || Platform.OS === "android") && Boolean(IOS_API_KEY);
 }
 
 /** Configure the SDK once, keyed to the signed-in user id (or anonymous). */
@@ -59,7 +59,7 @@ export async function syncPurchasesUser(appUserId: string | null): Promise<void>
 
 /** The purchasable packages from the current RevenueCat offering. */
 export async function getFramePlusPackages(): Promise<PurchasesPackage[]> {
-  if (!isPurchasesSupported()) return [];
+  if (!isPurchasesSupported() || !configured) return [];
   const offerings = await Purchases.getOfferings();
   return offerings.current?.availablePackages ?? [];
 }
@@ -71,11 +71,17 @@ export function hasFramePlus(info: CustomerInfo | null | undefined): boolean {
 export async function purchasePackage(
   pkg: PurchasesPackage,
 ): Promise<CustomerInfo> {
+  if (!configured) {
+    throw new Error("Subscriptions are not configured in this build.");
+  }
   const { customerInfo } = await Purchases.purchasePackage(pkg);
   return customerInfo;
 }
 
 export async function restorePurchases(): Promise<CustomerInfo> {
+  if (!configured) {
+    throw new Error("Subscriptions are not configured in this build.");
+  }
   return Purchases.restorePurchases();
 }
 
