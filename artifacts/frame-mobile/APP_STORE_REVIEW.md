@@ -27,6 +27,10 @@ current offering.
 
 ## App Store Connect
 
+Verified RevenueCat product currently attached to the FRAME+ monthly package:
+
+- `com.frame.mobile.frameplus.monthly`
+
 For every subscription shown in FRAME:
 
 - Put it in the correct subscription group.
@@ -58,10 +62,10 @@ Test on an iPhone and an iPad-sized review device.
 Replace the bracketed values with the exact identifiers from App Store Connect:
 
 > FRAME+ subscriptions are available from Profile > FRAME+ and from locked
-> premium features. The submitted products are [PRODUCT IDENTIFIERS]. They are
-> attached to the current RevenueCat offering and were tested using Apple
-> Sandbox in this build. Restore Purchases is available on both the FRAME+
-> screen and Profile.
+> premium features. The submitted product is
+> `com.frame.mobile.frameplus.monthly`. It is attached to the current RevenueCat offering
+> and the `frame_plus` entitlement. They were tested using Apple Sandbox in this
+> build. Restore Purchases is available on both the FRAME+ screen and Profile.
 >
 > Permanent account deletion is available at Profile > Delete Account. The
 > attached physical-device recording shows sign-in, navigation to the option,
