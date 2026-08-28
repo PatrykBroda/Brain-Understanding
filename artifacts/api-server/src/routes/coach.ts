@@ -18,7 +18,7 @@ import { COACH_SYSTEM_PROMPT_STATIC, buildDynamicContext } from "../lib/synochi"
 import { getOrCreateActiveConversation } from "./conversation";
 import { getActiveFacts } from "../lib/factsService";
 import { extractMemory } from "../lib/memoryExtractor";
-import { UPLOADS_DIR } from "./attachments";
+import { UPLOADS_DIR } from "../lib/uploads";
 import { selectRelevantNodes, buildRetrievalQuery } from "../lib/vaultRetrieval";
 import { openai, OPENAI_COACH_MODEL } from "../lib/openaiClient";
 import {

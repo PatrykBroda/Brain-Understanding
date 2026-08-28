@@ -15,3 +15,4 @@ export * from "./daily_checkins";
 export * from "./google_oauth_states";
 export * from "./model_snapshots";
 export * from "./hero_images";
+export * from "./account_deletion_files";

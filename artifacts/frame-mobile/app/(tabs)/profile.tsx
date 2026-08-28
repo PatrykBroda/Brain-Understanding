@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Platform,
   Pressable,
@@ -20,7 +21,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter, type Fighter } from "@/context/FighterContext";
-import { apiGet, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
+import { apiDelete, apiGet, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
 import { primaryFocus } from "@/lib/primaryFocus";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
@@ -333,6 +334,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [editVisible, setEditVisible] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const { data: entitlement } = useEntitlement();
   const sync = useSyncBilling();
@@ -421,6 +423,58 @@ export default function ProfileScreen() {
   async function handleSignOut() {
     await signOut();
     router.replace("/sign-in");
+  }
+
+  async function deleteAccount() {
+    setDeletingAccount(true);
+    try {
+      await apiDelete<{ deleted: true }>("/account");
+      await signOut();
+      router.replace("/sign-in");
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        "Account deleted",
+        "Your FRAME account and training data have been permanently deleted.",
+      );
+    } catch (error) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        "Could not delete account",
+        error instanceof Error
+          ? error.message
+          : "Your account was not deleted. Please try again.",
+      );
+    } finally {
+      setDeletingAccount(false);
+    }
+  }
+
+  function requestAccountDeletion() {
+    Alert.alert(
+      "Delete your account?",
+      "This permanently deletes your FRAME profile, conversations, analysis history and training data. Your App Store subscription is managed separately.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Continue",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert(
+              "Delete everything permanently?",
+              "This cannot be undone. If you have an active FRAME+ subscription, cancel it separately in your App Store account settings.",
+              [
+                { text: "Keep account", style: "cancel" },
+                {
+                  text: "Delete account",
+                  style: "destructive",
+                  onPress: () => void deleteAccount(),
+                },
+              ],
+            );
+          },
+        },
+      ],
+    );
   }
 
   if (isLoading && !fighter) {
@@ -724,12 +778,40 @@ export default function ProfileScreen() {
           <View style={s.section}>
             {email ? <Text style={s.emailText}>{email}</Text> : null}
             <Pressable
-              style={({ pressed }) => [s.signOutBtn, pressed && s.pressed]}
+              style={({ pressed }) => [
+                s.signOutBtn,
+                deletingAccount && s.disabled,
+                pressed && s.pressed,
+              ]}
               onPress={handleSignOut}
+              disabled={deletingAccount}
             >
               <Feather name="log-out" size={14} color="#666" style={{ marginRight: 6 }} />
               <Text style={s.signOutText}>SIGN OUT</Text>
             </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                s.deleteAccountBtn,
+                deletingAccount && s.disabled,
+                pressed && s.pressed,
+              ]}
+              onPress={requestAccountDeletion}
+              disabled={deletingAccount}
+              accessibilityRole="button"
+              accessibilityLabel="Delete account permanently"
+            >
+              {deletingAccount ? (
+                <ActivityIndicator size="small" color="#b05245" />
+              ) : (
+                <>
+                  <Feather name="trash-2" size={14} color="#b05245" style={{ marginRight: 6 }} />
+                  <Text style={s.deleteAccountText}>DELETE ACCOUNT</Text>
+                </>
+              )}
+            </Pressable>
+            <Text style={s.deleteAccountNote}>
+              Permanently removes your account and all FRAME data.
+            </Text>
           </View>
 
           <ProfileEditModal
@@ -1008,5 +1090,29 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
   },
   signOutText: { fontFamily: "SpaceMono", fontSize: 10, color: "#666", letterSpacing: 3 },
+  deleteAccountBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(176,82,69,0.35)",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginTop: 12,
+  },
+  deleteAccountText: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    color: "#b05245",
+    letterSpacing: 2,
+  },
+  deleteAccountNote: {
+    fontFamily: "Outfit",
+    fontSize: 11,
+    color: "#555",
+    textAlign: "center",
+    marginTop: 8,
+  },
+  disabled: { opacity: 0.45 },
   pressed: { opacity: 0.7 },
 });

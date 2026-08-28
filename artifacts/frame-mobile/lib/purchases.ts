@@ -59,9 +59,18 @@ export async function syncPurchasesUser(appUserId: string | null): Promise<void>
 
 /** The purchasable packages from the current RevenueCat offering. */
 export async function getFramePlusPackages(): Promise<PurchasesPackage[]> {
-  if (!isPurchasesSupported() || !configured) return [];
+  if (!isPurchasesSupported()) return [];
+  if (!configured) {
+    throw new Error("Subscriptions are not configured in this build.");
+  }
   const offerings = await Purchases.getOfferings();
-  return offerings.current?.availablePackages ?? [];
+  if (!offerings.current) {
+    throw new Error("No current subscription offering is configured.");
+  }
+  if (offerings.current.availablePackages.length === 0) {
+    throw new Error("The current subscription offering has no available plans.");
+  }
+  return offerings.current.availablePackages;
 }
 
 export function hasFramePlus(info: CustomerInfo | null | undefined): boolean {

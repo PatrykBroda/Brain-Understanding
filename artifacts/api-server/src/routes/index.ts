@@ -13,6 +13,7 @@ import reportRouter from "./report";
 import competitionRouter from "./competition";
 import checkinRouter from "./checkin";
 import billingRouter from "./billing";
+import accountRouter from "./account";
 import { googlePublicRouter, googleRouter } from "./google";
 import authRouter from "./auth";
 import { requireAuth } from "../middlewares/authMiddleware";
@@ -43,6 +44,7 @@ router.use(reportRouter);
 router.use(competitionRouter);
 router.use(checkinRouter);
 router.use(billingRouter);
+router.use(accountRouter);
 router.use(googleRouter);
 router.use(coachRouter);
 

@@ -9,8 +9,15 @@ import {
   type RevenueCatEvent,
 } from "./lib/revenuecat";
 import { setEntitlementFromRevenueCat } from "./lib/subscriptionService";
+import { cleanupPendingAccountDeletionFiles } from "./lib/accountDeletionService";
 
 const app: Express = express();
+
+// Retry durable private-file cleanup left by a prior account deletion/process
+// interruption. ENOENT counts as success because the byte is already gone.
+void cleanupPendingAccountDeletionFiles().catch((err) => {
+  logger.error({ err }, "pending account-deletion file cleanup failed");
+});
 
 app.use(
   pinoHttp({

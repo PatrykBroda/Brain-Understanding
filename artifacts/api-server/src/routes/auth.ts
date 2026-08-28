@@ -109,6 +109,20 @@ export async function verifyToken(
   }
 }
 
+/** Verify both JWT integrity and that its account still exists. */
+export async function verifyLiveUserToken(
+  token: string,
+): Promise<{ userId: string; email: string } | null> {
+  const payload = await verifyToken(token);
+  if (!payload) return null;
+  const [user] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.id, payload.userId))
+    .limit(1);
+  return user ? payload : null;
+}
+
 // ─── Password policy ──────────────────────────────────────────────────────────
 
 export function validatePassword(password: unknown): string | null {
@@ -206,7 +220,7 @@ router.get("/auth/me", async (req: Request, res: Response) => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
-  const payload = await verifyToken(auth.slice(7));
+  const payload = await verifyLiveUserToken(auth.slice(7));
   if (!payload) {
     res.status(401).json({ error: "Invalid or expired token" });
     return;

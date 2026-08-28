@@ -37,17 +37,29 @@ export default function PaywallScreen() {
 
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
     let alive = true;
+    setLoading(true);
+    setLoadError(null);
     getFramePlusPackages()
       .then((pkgs) => {
         if (alive) setPackages(pkgs);
       })
-      .catch(() => {
-        if (alive) setPackages([]);
+      .catch((error) => {
+        console.warn("RevenueCat offering load failed", error);
+        if (alive) {
+          setPackages([]);
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Plans could not be loaded from the App Store.",
+          );
+        }
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -55,7 +67,7 @@ export default function PaywallScreen() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [loadAttempt]);
 
   function close() {
     if (router.canGoBack()) router.back();
@@ -127,10 +139,21 @@ export default function PaywallScreen() {
           <Text style={s.unavailable}>
             Subscriptions are available in the iOS app.
           </Text>
-        ) : packages.length === 0 ? (
-          <Text style={s.unavailable}>
-            Plans aren&apos;t available right now. Please try again shortly.
-          </Text>
+        ) : loadError || packages.length === 0 ? (
+          <View style={s.unavailableWrap}>
+            <Text style={s.unavailable}>
+              Plans aren&apos;t available right now. Please try again.
+            </Text>
+            {__DEV__ && loadError ? (
+              <Text style={s.diagnostic}>{loadError}</Text>
+            ) : null}
+            <Pressable
+              style={({ pressed }) => [s.retryBtn, pressed && s.pressed]}
+              onPress={() => setLoadAttempt((attempt) => attempt + 1)}
+            >
+              <Text style={s.retryText}>TRY AGAIN</Text>
+            </Pressable>
+          </View>
         ) : (
           packages.map((pkg) => {
             const busy = busyId === pkg.identifier;
@@ -225,6 +248,28 @@ const s = StyleSheet.create({
     textAlign: "center",
     marginTop: 24,
     lineHeight: 20,
+  },
+  unavailableWrap: { alignItems: "center" },
+  diagnostic: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    color: "#555",
+    textAlign: "center",
+    lineHeight: 14,
+    marginTop: 8,
+  },
+  retryBtn: {
+    borderWidth: 1,
+    borderColor: "#252525",
+    paddingVertical: 11,
+    paddingHorizontal: 18,
+    marginTop: 16,
+  },
+  retryText: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    color: "#888",
+    letterSpacing: 2,
   },
   restoreBtn: { alignItems: "center", paddingVertical: 18, marginTop: 8 },
   restoreText: {

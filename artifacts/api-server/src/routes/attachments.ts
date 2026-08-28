@@ -1,18 +1,20 @@
 import { Router, type IRouter } from "express";
-import { db, attachmentsTable, conversationsTable, fightersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import {
+  db,
+  attachmentsTable,
+  conversationsTable,
+  fightersTable,
+  usersTable,
+} from "@workspace/db";
+import { and, eq } from "drizzle-orm";
 import { promises as fs } from "node:fs";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { getUserFighter } from "../middlewares/authMiddleware";
+import { UPLOADS_DIR } from "../lib/uploads";
 
 const router: IRouter = Router();
-
-export const UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
-if (!existsSync(UPLOADS_DIR)) {
-  mkdirSync(UPLOADS_DIR, { recursive: true });
-}
 
 const MAX_BYTES = 12 * 1024 * 1024; // 12MB upload cap
 
@@ -27,27 +29,6 @@ const SAFE_VIDEO_MIME = new Set([
   "video/webm",
   "video/quicktime",
 ]);
-
-async function conversationBelongsToUser(
-  conversationId: number,
-  userId: string,
-): Promise<{ id: number } | null> {
-  const [row] = await db
-    .select({ id: conversationsTable.id })
-    .from(conversationsTable)
-    .innerJoin(fightersTable, eq(fightersTable.id, conversationsTable.fighterId))
-    .where(eq(conversationsTable.id, conversationId))
-    .limit(1);
-  if (!row) return null;
-  const [owner] = await db
-    .select({ userId: fightersTable.userId })
-    .from(conversationsTable)
-    .innerJoin(fightersTable, eq(fightersTable.id, conversationsTable.fighterId))
-    .where(eq(conversationsTable.id, conversationId))
-    .limit(1);
-  if (!owner || owner.userId !== userId) return null;
-  return { id: row.id };
-}
 
 router.post("/attachments", async (req, res) => {
   const body = req.body as {
@@ -83,11 +64,6 @@ router.post("/attachments", async (req, res) => {
     res.status(403).json({ error: "no fighter" });
     return;
   }
-  const conv = await conversationBelongsToUser(body.conversationId, req.userId!);
-  if (!conv) {
-    res.status(404).json({ error: "conversation not found" });
-    return;
-  }
 
   let bytes: Buffer;
   try {
@@ -110,19 +86,63 @@ router.post("/attachments", async (req, res) => {
     .replace(/[^a-z0-9.]/g, "");
   const safeName = `${crypto.randomUUID()}${ext}`;
   const filePath = path.join(UPLOADS_DIR, safeName);
-  await fs.writeFile(filePath, bytes);
+  let fileWritten = false;
+  let att: typeof attachmentsTable.$inferSelect | null = null;
+  try {
+    att = await db.transaction(async (tx) => {
+      // Serialize account-owned writes with DELETE /account. If deletion holds
+      // this lock, we wait and then observe that the user is gone before any
+      // bytes are written. If upload holds it first, deletion waits, then sees
+      // and queues the committed attachment for cleanup.
+      const [account] = await tx
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(eq(usersTable.id, req.userId!))
+        .for("update");
+      if (!account) return null;
 
-  const [att] = await db
-    .insert(attachmentsTable)
-    .values({
-      conversationId: conv.id,
-      kind,
-      mimeType: body.mimeType,
-      filename: body.filename,
-      filePath: safeName,
-      sizeBytes: bytes.length,
-    })
-    .returning();
+      const [conv] = await tx
+        .select({ id: conversationsTable.id })
+        .from(conversationsTable)
+        .innerJoin(
+          fightersTable,
+          eq(fightersTable.id, conversationsTable.fighterId),
+        )
+        .where(
+          and(
+            eq(conversationsTable.id, body.conversationId as number),
+            eq(fightersTable.userId, req.userId!),
+          ),
+        )
+        .limit(1);
+      if (!conv) return null;
+
+      await fs.writeFile(filePath, bytes);
+      fileWritten = true;
+      const [inserted] = await tx
+        .insert(attachmentsTable)
+        .values({
+          conversationId: conv.id,
+          kind,
+          mimeType: body.mimeType as string,
+          filename: body.filename as string,
+          filePath: safeName,
+          sizeBytes: bytes.length,
+        })
+        .returning();
+      return inserted!;
+    });
+  } catch (error) {
+    // Account/conversation deletion can win the race after bytes are written.
+    // Compensate so a failed metadata insert never leaves a private orphan file.
+    await fs.unlink(filePath).catch(() => null);
+    throw error;
+  }
+  if (!att) {
+    if (fileWritten) await fs.unlink(filePath).catch(() => null);
+    res.status(404).json({ error: "account or conversation not found" });
+    return;
+  }
 
   res.json({
     attachment: {

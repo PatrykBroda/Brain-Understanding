@@ -32,6 +32,7 @@ import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
 import {
   verifyToken,
+  verifyLiveUserToken,
   validatePassword,
   rateLimitCheck,
 } from "../routes/auth";
@@ -259,6 +260,10 @@ describe("requireAuth — deleted-user token rejection", () => {
   it("returns HTTP 401 for a deleted-user token", async () => {
     const { status } = await callRequireAuth(deletedUserToken);
     expect(status).toBe(401);
+  });
+
+  it("rejects a deleted-user token for the public /auth/me verifier", async () => {
+    expect(await verifyLiveUserToken(deletedUserToken)).toBeNull();
   });
 
   it("calls next() for a LIVE user token (sanity check)", async () => {
