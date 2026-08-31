@@ -388,6 +388,9 @@ export default function ChatScreen() {
     )
       return;
 
+    // Invalidate the active recognition session before clearing the composer.
+    // iOS may deliver one final result after stop(); the hook ignores it.
+    stopVoice();
     const trimmed = text.trim();
     setInput("");
     setIsStreaming(true);
