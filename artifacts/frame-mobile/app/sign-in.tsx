@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { apiPost } from "@/lib/api";
+import { getAuthErrorMessage } from "@/lib/authErrors";
 
 export default function SignInScreen() {
   const { signIn, sessionRestoreError } = useAuth();
@@ -37,13 +38,7 @@ export default function SignInScreen() {
       await signIn(data.token);
       router.replace("/(tabs)/home");
     } catch (e: unknown) {
-      const msg =
-        (e as Error)?.message ?? "Sign-in failed. Check your credentials.";
-      setError(
-        msg.includes("401") || msg.includes("Incorrect")
-          ? "Incorrect email or password."
-          : msg,
-      );
+      setError(getAuthErrorMessage(e, "sign-in"));
     } finally {
       setLoading(false);
     }

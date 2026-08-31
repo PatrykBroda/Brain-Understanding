@@ -138,7 +138,10 @@ export function validatePassword(password: unknown): string | null {
 router.post("/auth/register", async (req: Request, res: Response) => {
   const ip = req.ip ?? "unknown";
   if (!rateLimitCheck(ip, 5, 15 * 60 * 1000, _registerStore)) {
-    res.status(429).json({ error: "Too many requests. Try again later." });
+    res
+      .set("Retry-After", "900")
+      .status(429)
+      .json({ error: "Too many requests. Try again later." });
     return;
   }
 
@@ -177,7 +180,10 @@ router.post("/auth/login", async (req: Request, res: Response) => {
   const ip = req.ip ?? "unknown";
   if (!rateLimitCheck(ip, 10, 15 * 60 * 1000, _loginStore)) {
     // Generic message — do not reveal whether the account exists.
-    res.status(429).json({ error: "Too many requests. Try again later." });
+    res
+      .set("Retry-After", "900")
+      .status(429)
+      .json({ error: "Too many requests. Try again later." });
     return;
   }
 

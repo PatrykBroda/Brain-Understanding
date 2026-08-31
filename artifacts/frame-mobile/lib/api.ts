@@ -79,8 +79,7 @@ export async function apiGet<T>(path: string): Promise<T> {
   const headers = await authHeaders();
   const res = await fetch(`${_base}${path}`, { headers });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `HTTP ${res.status}`);
+    throw await responseError(res);
   }
   return res.json() as Promise<T>;
 }
@@ -93,8 +92,7 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `HTTP ${res.status}`);
+    throw await responseError(res);
   }
   return res.json() as Promise<T>;
 }
@@ -107,8 +105,7 @@ export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `HTTP ${res.status}`);
+    throw await responseError(res);
   }
   return res.json() as Promise<T>;
 }
@@ -117,8 +114,7 @@ export async function apiDelete<T>(path: string): Promise<T> {
   const headers = await authHeaders();
   const res = await fetch(`${_base}${path}`, { method: "DELETE", headers });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `HTTP ${res.status}`);
+    throw await responseError(res);
   }
   return res.json() as Promise<T>;
 }
@@ -134,12 +130,44 @@ export type SSEChunk =
 export class ApiError extends Error {
   status: number;
   code?: string;
-  constructor(status: number, message: string, code?: string) {
+  retryAfterSeconds?: number;
+  constructor(
+    status: number,
+    message: string,
+    code?: string,
+    retryAfterSeconds?: number,
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
+}
+
+async function responseError(res: Response): Promise<ApiError> {
+  const raw = await res.text().catch(() => "");
+  let message = "";
+  let code: string | undefined;
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as { error?: unknown; code?: unknown };
+      if (typeof parsed.error === "string") message = parsed.error;
+      if (typeof parsed.code === "string") code = parsed.code;
+    } catch {
+      // Non-JSON responses are handled by the status-specific UI message.
+    }
+  }
+  const retryAfterHeader = res.headers.get("Retry-After");
+  const retryAfterSeconds = retryAfterHeader
+    ? Number.parseInt(retryAfterHeader, 10)
+    : undefined;
+  return new ApiError(
+    res.status,
+    message || `Request failed with status ${res.status}.`,
+    code,
+    Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : undefined,
+  );
 }
 
 export async function apiStream(

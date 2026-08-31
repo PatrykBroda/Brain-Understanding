@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { apiPost } from "@/lib/api";
+import { getAuthErrorMessage } from "@/lib/authErrors";
 
 export default function SignUpScreen() {
   const { signIn } = useAuth();
@@ -38,11 +39,7 @@ export default function SignUpScreen() {
       await signIn(data.token);
       router.replace("/onboarding");
     } catch (e: unknown) {
-      const msg =
-        (e as Error)?.message ?? "Sign-up failed.";
-      setError(msg.includes("409") || msg.includes("already exists")
-        ? "An account with that email already exists."
-        : msg);
+      setError(getAuthErrorMessage(e, "sign-up"));
     } finally {
       setLoading(false);
     }
