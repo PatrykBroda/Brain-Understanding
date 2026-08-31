@@ -7,9 +7,10 @@
  *
  * Security controls
  *   Password policy  : 8 character minimum, enforced server-side.
- *   Rate limiting    : 10 login + 5 register attempts per IP per 15 minutes.
- *                      Uses an injectable in-process store so tests can isolate
- *                      windows without spawning a separate process.
+ *   Rate limiting    : 10 login attempts per IP, plus 5 register attempts per
+ *                      normalized email/IP pair and 25 register attempts per IP
+ *                      per 15 minutes. Uses injectable in-process stores so
+ *                      tests can isolate windows without spawning a process.
  *   Token TTL        : 30 days (down from 90; bearer tokens are long-lived and
  *                      not revocable at this point — shorter TTL is the primary
  *                      control; force-reissue on password change is next step).
@@ -55,7 +56,19 @@ interface RateBucket {
 
 /** Global stores — used by production code paths. */
 export const _loginStore = new Map<string, RateBucket>();
+/** Five attempts per normalized email/IP pair. */
 export const _registerStore = new Map<string, RateBucket>();
+/** A separate ceiling prevents bypassing the identity limit by rotating emails. */
+export const _registerIpStore = new Map<string, RateBucket>();
+
+const REGISTER_IDENTITY_MAX_ATTEMPTS = 5;
+const REGISTER_IP_MAX_ATTEMPTS = 25;
+const REGISTER_WINDOW_MS = 15 * 60 * 1000;
+
+/** Normalize the identity used by registration throttling and account storage. */
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
 
 /**
  * Checks whether `key` has exceeded `maxAttempts` within `windowMs`.
@@ -77,6 +90,34 @@ export function rateLimitCheck(
   if (existing.count >= maxAttempts) return false;
   existing.count += 1;
   return true;
+}
+
+/**
+ * Apply both registration limits:
+ * - each normalized email/IP pair gets the original five-attempt allowance;
+ * - each IP gets a larger aggregate allowance so shared networks do not
+ *   unnecessarily share the original five-attempt bucket.
+ *
+ * The aggregate limit is checked first so a caller cannot evade throttling by
+ * changing the email on every request. An attempt that fails the identity
+ * limit still counts against the aggregate IP budget.
+ */
+export function registrationRateLimitCheck(
+  ip: string,
+  email: string,
+  identityStore: Map<string, RateBucket> = _registerStore,
+  ipStore: Map<string, RateBucket> = _registerIpStore,
+): boolean {
+  if (!rateLimitCheck(ip, REGISTER_IP_MAX_ATTEMPTS, REGISTER_WINDOW_MS, ipStore)) {
+    return false;
+  }
+
+  return rateLimitCheck(
+    `${ip}\u0000${normalizeEmail(email)}`,
+    REGISTER_IDENTITY_MAX_ATTEMPTS,
+    REGISTER_WINDOW_MS,
+    identityStore,
+  );
 }
 
 // ─── JWT helpers ──────────────────────────────────────────────────────────────
@@ -137,7 +178,9 @@ export function validatePassword(password: unknown): string | null {
 // POST /api/auth/register
 router.post("/auth/register", async (req: Request, res: Response) => {
   const ip = req.ip ?? "unknown";
-  if (!rateLimitCheck(ip, 5, 15 * 60 * 1000, _registerStore)) {
+  const { email, password } = (req.body ?? {}) as { email?: unknown; password?: unknown };
+  const emailForRateLimit = typeof email === "string" ? email : "<invalid>";
+  if (!registrationRateLimitCheck(ip, emailForRateLimit)) {
     res
       .set("Retry-After", "900")
       .status(429)
@@ -145,11 +188,11 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     return;
   }
 
-  const { email, password } = (req.body ?? {}) as { email?: unknown; password?: unknown };
   if (typeof email !== "string" || !email.includes("@")) {
     res.status(400).json({ error: "Valid email required" });
     return;
   }
+  const normalizedEmail = normalizeEmail(email);
   const pwError = validatePassword(password);
   if (pwError) {
     res.status(400).json({ error: pwError });
@@ -160,7 +203,7 @@ router.post("/auth/register", async (req: Request, res: Response) => {
   const [existing] = await db
     .select({ id: usersTable.id })
     .from(usersTable)
-    .where(eq(usersTable.email, (email as string).toLowerCase()))
+    .where(eq(usersTable.email, normalizedEmail))
     .limit(1);
   if (existing) {
     res.status(409).json({ error: "An account with that email already exists" });
@@ -169,9 +212,9 @@ router.post("/auth/register", async (req: Request, res: Response) => {
 
   const id = crypto.randomUUID();
   const hashedPassword = await bcrypt.hash(password as string, BCRYPT_ROUNDS);
-  await db.insert(usersTable).values({ id, email: (email as string).toLowerCase(), hashedPassword });
+  await db.insert(usersTable).values({ id, email: normalizedEmail, hashedPassword });
 
-  const token = await signToken(id, (email as string).toLowerCase());
+  const token = await signToken(id, normalizedEmail);
   res.status(201).json({ token, userId: id });
 });
 
@@ -196,7 +239,7 @@ router.post("/auth/login", async (req: Request, res: Response) => {
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.email, email.toLowerCase()))
+    .where(eq(usersTable.email, normalizeEmail(email)))
     .limit(1);
 
   // Always run bcrypt.compare — full cost-10 work regardless of account existence,

@@ -30,11 +30,15 @@ import { jwtVerify } from "jose";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
-import {
+import express from "express";
+import type { AddressInfo } from "node:net";
+import authRouter, {
   verifyToken,
   verifyLiveUserToken,
   validatePassword,
+  normalizeEmail,
   rateLimitCheck,
+  registrationRateLimitCheck,
 } from "../routes/auth";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -110,6 +114,64 @@ describe("rateLimitCheck", () => {
     // ip-e1 is exhausted; ip-e2 should still be allowed
     expect(rateLimitCheck("ip-e1", 5, 60_000, store)).toBe(false);
     expect(rateLimitCheck("ip-e2", 5, 60_000, store)).toBe(true);
+  });
+
+  it("normalizes registration emails before using them as identities", () => {
+    expect(normalizeEmail("  Person@Example.COM ")).toBe("person@example.com");
+  });
+
+  it("allows separate people on one IP to use their own registration allowance", () => {
+    const identityStore = new Map();
+    const ipStore = new Map();
+
+    for (let i = 0; i < 5; i++) {
+      expect(
+        registrationRateLimitCheck(
+          "shared-network",
+          `person-${i}@example.com`,
+          identityStore,
+          ipStore,
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("blocks repeated registration abuse for one normalized email", () => {
+    const identityStore = new Map();
+    const ipStore = new Map();
+
+    for (let i = 0; i < 5; i++) {
+      expect(
+        registrationRateLimitCheck("abusive-network", " Victim@Example.com ", identityStore, ipStore),
+      ).toBe(true);
+    }
+    expect(
+      registrationRateLimitCheck("abusive-network", "victim@example.com", identityStore, ipStore),
+    ).toBe(false);
+  });
+
+  it("still blocks email rotation after the per-IP registration ceiling", () => {
+    const identityStore = new Map();
+    const ipStore = new Map();
+
+    for (let i = 0; i < 25; i++) {
+      expect(
+        registrationRateLimitCheck(
+          "rotating-email-network",
+          `new-address-${i}@example.com`,
+          identityStore,
+          ipStore,
+        ),
+      ).toBe(true);
+    }
+    expect(
+      registrationRateLimitCheck(
+        "rotating-email-network",
+        "new-address-25@example.com",
+        identityStore,
+        ipStore,
+      ),
+    ).toBe(false);
   });
 });
 
@@ -194,6 +256,44 @@ describe("user registration — uniqueness", () => {
     ).rejects.toThrow();
     // Cleanup
     await db.delete(usersTable).where(eq(usersTable.id, id1));
+  });
+
+  it("can log in with the same surrounding whitespace accepted at registration", async () => {
+    const normalizedEmail = testEmail("whitespace-login").toLowerCase();
+    const enteredEmail = `  ${normalizedEmail.toUpperCase()}  `;
+    const app = express();
+    app.use(express.json());
+    app.use("/api", authRouter);
+    const server = await new Promise<ReturnType<typeof app.listen>>((resolve) => {
+      const listeningServer = app.listen(0, "127.0.0.1", () => resolve(listeningServer));
+    });
+    const { port } = server.address() as AddressInfo;
+    const baseUrl = `http://127.0.0.1:${port}/api/auth`;
+
+    try {
+      const registration = await fetch(`${baseUrl}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: enteredEmail, password: TEST_PASSWORD }),
+      });
+      expect(registration.status).toBe(201);
+
+      const login = await fetch(`${baseUrl}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: enteredEmail, password: TEST_PASSWORD }),
+      });
+      expect(login.status).toBe(200);
+      await expect(login.json()).resolves.toMatchObject({
+        token: expect.any(String),
+        userId: expect.any(String),
+      });
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+      await db.delete(usersTable).where(eq(usersTable.email, normalizedEmail));
+    }
   });
 });
 
