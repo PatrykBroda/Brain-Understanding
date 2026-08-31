@@ -16,7 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { apiPost } from "@/lib/api";
 
 export default function SignInScreen() {
-  const { signIn } = useAuth();
+  const { signIn, sessionRestoreError } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -34,14 +34,16 @@ export default function SignInScreen() {
         "/auth/login",
         { email, password },
       );
-      signIn(data.token);
+      await signIn(data.token);
       router.replace("/(tabs)/home");
     } catch (e: unknown) {
       const msg =
         (e as Error)?.message ?? "Sign-in failed. Check your credentials.";
-      setError(msg.includes("401") || msg.includes("Incorrect")
-        ? "Incorrect email or password."
-        : msg);
+      setError(
+        msg.includes("401") || msg.includes("Incorrect")
+          ? "Incorrect email or password."
+          : msg,
+      );
     } finally {
       setLoading(false);
     }
@@ -85,7 +87,9 @@ export default function SignInScreen() {
             autoComplete="password"
           />
 
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {error || sessionRestoreError ? (
+            <Text style={styles.errorText}>{error ?? sessionRestoreError}</Text>
+          ) : null}
 
           <Pressable
             style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}

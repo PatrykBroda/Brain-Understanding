@@ -22,11 +22,12 @@ interface AuthState {
   isSignedIn: boolean;
   userId: string | null;
   email: string | null;
+  sessionRestoreError: string | null;
 }
 
 interface AuthContextValue extends AuthState {
   getToken: () => Promise<string | null>;
-  signIn: (token: string) => void;
+  signIn: (token: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -35,7 +36,9 @@ function parseToken(token: string): { sub: string; email: string } | null {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
     const payloadB64 = parts[1]!;
-    const json = atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"));
+    const normalized = payloadB64.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    const json = atob(padded);
     const payload = JSON.parse(json) as { sub?: string; email?: string; exp?: number };
     if (!payload.sub || !payload.email) return null;
     if (payload.exp && payload.exp * 1000 < Date.now()) return null;
@@ -53,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isSignedIn: false,
     userId: null,
     email: null,
+    sessionRestoreError: null,
   });
 
   // Keep a ref to the raw token so getToken() doesn't need to re-read SecureStore.
@@ -71,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               isSignedIn: true,
               userId: parsed.sub,
               email: parsed.email,
+              sessionRestoreError: null,
             });
             return;
           }
@@ -80,7 +85,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setState((s) => ({ ...s, isLoaded: true }));
       })
       .catch(() => {
-        setState((s) => ({ ...s, isLoaded: true }));
+        setState((s) => ({
+          ...s,
+          isLoaded: true,
+          sessionRestoreError:
+            "Your saved login could not be opened. Please sign in again.",
+        }));
       });
   }, []);
 
@@ -88,16 +98,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return tokenRef.current;
   }, []);
 
-  const signIn = useCallback((token: string) => {
+  const signIn = useCallback(async (token: string): Promise<void> => {
     const parsed = parseToken(token);
-    if (!parsed) return;
+    if (!parsed) {
+      throw new Error("The server returned an invalid session. Please try again.");
+    }
+
+    try {
+      await SecureStore.setItemAsync(TOKEN_KEY, token);
+      const stored = await SecureStore.getItemAsync(TOKEN_KEY);
+      if (stored !== token) {
+        throw new Error("Your login could not be saved on this device.");
+      }
+    } catch (error) {
+      await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => null);
+      throw error instanceof Error
+        ? error
+        : new Error("Your login could not be saved on this device.");
+    }
+
     tokenRef.current = token;
-    SecureStore.setItemAsync(TOKEN_KEY, token).catch(() => null);
     setState({
       isLoaded: true,
       isSignedIn: true,
       userId: parsed.sub,
       email: parsed.email,
+      sessionRestoreError: null,
     });
   }, []);
 
@@ -109,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isSignedIn: false,
       userId: null,
       email: null,
+      sessionRestoreError: null,
     });
   }, []);
 

@@ -35,7 +35,7 @@ export default function SignUpScreen() {
         "/auth/register",
         { email, password },
       );
-      signIn(data.token);
+      await signIn(data.token);
       router.replace("/onboarding");
     } catch (e: unknown) {
       const msg =
