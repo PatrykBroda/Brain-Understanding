@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getAuthErrorMessage } from "../lib/authErrors";
+import { AuthSessionError } from "../lib/authSession";
 
 function apiError(
   status: number,
@@ -53,5 +54,19 @@ describe("getAuthErrorMessage", () => {
     expect(
       getAuthErrorMessage(new Error("Network request failed"), "sign-in"),
     ).toBe("We couldn't reach FRAME. Check your connection and try again.");
+  });
+
+  it("distinguishes device session storage failures from rejected credentials", () => {
+    expect(
+      getAuthErrorMessage(
+        new AuthSessionError(
+          "storage",
+          "Your login could not be saved on this device.",
+        ),
+        "sign-in",
+      ),
+    ).toBe(
+      "Your login couldn't be saved on this device. Please restart FRAME and try again.",
+    );
   });
 });

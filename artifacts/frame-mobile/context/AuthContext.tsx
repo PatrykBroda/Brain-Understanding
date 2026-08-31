@@ -14,6 +14,11 @@ import React, {
   type ReactNode,
 } from "react";
 import * as SecureStore from "expo-secure-store";
+import {
+  AuthSessionError,
+  establishSession,
+  parseSessionToken,
+} from "@/lib/authSession";
 
 const TOKEN_KEY = "frame:token";
 
@@ -29,23 +34,6 @@ interface AuthContextValue extends AuthState {
   getToken: () => Promise<string | null>;
   signIn: (token: string) => Promise<void>;
   signOut: () => Promise<void>;
-}
-
-function parseToken(token: string): { sub: string; email: string } | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const payloadB64 = parts[1]!;
-    const normalized = payloadB64.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
-    const json = atob(padded);
-    const payload = JSON.parse(json) as { sub?: string; email?: string; exp?: number };
-    if (!payload.sub || !payload.email) return null;
-    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
-    return { sub: payload.sub, email: payload.email };
-  } catch {
-    return null;
-  }
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -67,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     SecureStore.getItemAsync(TOKEN_KEY)
       .then((raw) => {
         if (raw) {
-          const parsed = parseToken(raw);
+          const parsed = parseSessionToken(raw);
           if (parsed) {
             tokenRef.current = raw;
             setState({
@@ -99,22 +87,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (token: string): Promise<void> => {
-    const parsed = parseToken(token);
-    if (!parsed) {
-      throw new Error("The server returned an invalid session. Please try again.");
-    }
-
+    let parsed;
     try {
-      await SecureStore.setItemAsync(TOKEN_KEY, token);
-      const stored = await SecureStore.getItemAsync(TOKEN_KEY);
-      if (stored !== token) {
-        throw new Error("Your login could not be saved on this device.");
-      }
+      parsed = await establishSession(token, {
+        setItem: (value) => SecureStore.setItemAsync(TOKEN_KEY, value),
+        deleteItem: () => SecureStore.deleteItemAsync(TOKEN_KEY),
+      });
     } catch (error) {
-      await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => null);
-      throw error instanceof Error
-        ? error
-        : new Error("Your login could not be saved on this device.");
+      if (error instanceof AuthSessionError && error.reason === "storage") {
+        console.error("Failed to persist mobile auth session", error);
+      }
+      throw error;
     }
 
     tokenRef.current = token;

@@ -1,3 +1,5 @@
+import { AuthSessionError } from "./authSession";
+
 type AuthAction = "sign-in" | "sign-up";
 
 type ApiErrorLike = {
@@ -62,7 +64,10 @@ export function getAuthErrorMessage(
     }
   }
 
-  if (error instanceof Error && /invalid session/i.test(error.message)) {
+  if (error instanceof AuthSessionError) {
+    if (error.reason === "storage") {
+      return "Your login couldn't be saved on this device. Please restart FRAME and try again.";
+    }
     return "We couldn't start your session. Please try again.";
   }
 
