@@ -1,8 +1,9 @@
-import { useRouter } from "expo-router";
+import { useRouter, useSegments } from "expo-router";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { useEntitlement } from "@/hooks/useEntitlement";
+import { shouldPresentLoginUpsell } from "@/lib/loginUpsell";
 import { isPurchasesSupported } from "@/lib/purchases";
 
 /**
@@ -15,6 +16,7 @@ import { isPurchasesSupported } from "@/lib/purchases";
  */
 export function LoginUpsellGate() {
   const router = useRouter();
+  const routeSegments = useSegments();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const { fighter } = useFighter();
   const { data: entitlement } = useEntitlement();
@@ -24,21 +26,37 @@ export function LoginUpsellGate() {
   const promptedForRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isLoaded) return;
-
     if (!isSignedIn || !userId) {
       promptedForRef.current = null;
       return;
     }
 
-    if (!isPurchasesSupported()) return;
-    if (!fighter) return; // still onboarding
-    if (entitlement?.plan !== "free") return; // subscribed or not resolved yet
-    if (promptedForRef.current === userId) return;
+    if (
+      !shouldPresentLoginUpsell({
+        routeSegments,
+        isLoaded,
+        isSignedIn,
+        userId,
+        hasFighter: !!fighter,
+        plan: entitlement?.plan,
+        purchasesSupported: isPurchasesSupported(),
+        promptedForUser: promptedForRef.current,
+      })
+    ) {
+      return;
+    }
 
     promptedForRef.current = userId;
     router.push("/paywall");
-  }, [isLoaded, isSignedIn, userId, fighter, entitlement?.plan, router]);
+  }, [
+    routeSegments,
+    isLoaded,
+    isSignedIn,
+    userId,
+    fighter,
+    entitlement?.plan,
+    router,
+  ]);
 
   return null;
 }
