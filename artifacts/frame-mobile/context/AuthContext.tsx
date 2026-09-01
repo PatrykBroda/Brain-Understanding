@@ -15,7 +15,6 @@ import React, {
 } from "react";
 import * as SecureStore from "expo-secure-store";
 import {
-  AuthSessionError,
   establishSession,
   parseSessionToken,
 } from "@/lib/authSession";
@@ -28,12 +27,14 @@ interface AuthState {
   userId: string | null;
   email: string | null;
   sessionRestoreError: string | null;
+  sessionPersistenceWarning: string | null;
 }
 
 interface AuthContextValue extends AuthState {
   getToken: () => Promise<string | null>;
-  signIn: (token: string) => Promise<void>;
+  signIn: (token: string) => Promise<"secure" | "memory-only">;
   signOut: () => Promise<void>;
+  dismissSessionPersistenceWarning: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userId: null,
     email: null,
     sessionRestoreError: null,
+    sessionPersistenceWarning: null,
   });
 
   // Keep a ref to the raw token so getToken() doesn't need to re-read SecureStore.
@@ -64,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               userId: parsed.sub,
               email: parsed.email,
               sessionRestoreError: null,
+              sessionPersistenceWarning: null,
             });
             return;
           }
@@ -86,28 +89,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return tokenRef.current;
   }, []);
 
-  const signIn = useCallback(async (token: string): Promise<void> => {
-    let parsed;
-    try {
-      parsed = await establishSession(token, {
-        setItem: (value) => SecureStore.setItemAsync(TOKEN_KEY, value),
-        deleteItem: () => SecureStore.deleteItemAsync(TOKEN_KEY),
-      });
-    } catch (error) {
-      if (error instanceof AuthSessionError && error.reason === "storage") {
-        console.error("Failed to persist mobile auth session", error);
-      }
-      throw error;
-    }
+  const signIn = useCallback(async (
+    token: string,
+  ): Promise<"secure" | "memory-only"> => {
+    const { identity, persistence } = await establishSession(token, {
+      setItem: (value) => SecureStore.setItemAsync(TOKEN_KEY, value),
+      deleteItem: () => SecureStore.deleteItemAsync(TOKEN_KEY),
+    });
 
     tokenRef.current = token;
     setState({
       isLoaded: true,
       isSignedIn: true,
-      userId: parsed.sub,
-      email: parsed.email,
+      userId: identity.sub,
+      email: identity.email,
       sessionRestoreError: null,
+      sessionPersistenceWarning:
+        persistence === "memory-only"
+          ? "You're signed in for now, but this device couldn't save your login. You may need to sign in again after restarting FRAME."
+          : null,
     });
+    return persistence;
+  }, []);
+
+  const dismissSessionPersistenceWarning = useCallback(() => {
+    setState((current) => ({
+      ...current,
+      sessionPersistenceWarning: null,
+    }));
   }, []);
 
   const signOut = useCallback(async () => {
@@ -119,11 +128,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       userId: null,
       email: null,
       sessionRestoreError: null,
+      sessionPersistenceWarning: null,
     });
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, getToken, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        ...state,
+        getToken,
+        signIn,
+        signOut,
+        dismissSessionPersistenceWarning,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

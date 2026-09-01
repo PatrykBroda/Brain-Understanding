@@ -21,3 +21,4 @@
 - [Adding workspace deps](workspace-dep-add.md) — pnpm add fails for @workspace/* packages; edit consumer package.json ("workspace:*") then pnpm install.
 - [Premium gating — indirect leaks](premium-gating-leaks.md) — a per-record 402 gate isn't enough: strip compare params/history trails/sibling-row fields from responses free tier can still reach.
 - [Clerk removal — custom JWT auth](clerk-removal.md) — Clerk fully replaced with jose+bcryptjs; smoke tests need updating (Task #132); migration wiped all user data.
+- [Mobile auth persistence fallback](mobile-auth-persistence-fallback.md) — a valid token must establish the current session even if SecureStore fails; degrade to memory-only, never insecure persistence.

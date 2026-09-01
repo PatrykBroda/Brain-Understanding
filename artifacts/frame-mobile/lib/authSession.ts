@@ -3,6 +3,11 @@ export type SessionIdentity = {
   email: string;
 };
 
+export type EstablishedSession = {
+  identity: SessionIdentity;
+  persistence: "secure" | "memory-only";
+};
+
 type SessionStorage = {
   setItem: (token: string) => Promise<void>;
   deleteItem: () => Promise<void>;
@@ -89,7 +94,7 @@ export function parseSessionToken(
 export async function establishSession(
   token: string,
   storage: SessionStorage,
-): Promise<SessionIdentity> {
+): Promise<EstablishedSession> {
   const identity = parseSessionToken(token);
   if (!identity) {
     throw new AuthSessionError(
@@ -102,11 +107,8 @@ export async function establishSession(
     await storage.setItem(token);
   } catch {
     await storage.deleteItem().catch(() => undefined);
-    throw new AuthSessionError(
-      "storage",
-      "Your login could not be saved on this device.",
-    );
+    return { identity, persistence: "memory-only" };
   }
 
-  return identity;
+  return { identity, persistence: "secure" };
 }

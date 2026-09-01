@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  AuthSessionError,
   establishSession,
   parseSessionToken,
 } from "../lib/authSession";
@@ -69,6 +68,25 @@ describe("parseSessionToken", () => {
 });
 
 describe("establishSession", () => {
+  it("rejects an invalid token without touching secure storage", async () => {
+    let storageTouched = false;
+
+    await expect(
+      establishSession("not-a-jwt", {
+        setItem: async () => {
+          storageTouched = true;
+        },
+        deleteItem: async () => {
+          storageTouched = true;
+        },
+      }),
+    ).rejects.toMatchObject({
+      name: "AuthSessionError",
+      reason: "invalid-token",
+    });
+    expect(storageTouched).toBe(false);
+  });
+
   it("establishes a valid session with one secure write and no read-back", async () => {
     const writes: string[] = [];
     const validToken = token({
@@ -84,11 +102,14 @@ describe("establishSession", () => {
         },
         deleteItem: async () => undefined,
       }),
-    ).resolves.toEqual({ sub: "user-123", email: "athlete@example.com" });
+    ).resolves.toEqual({
+      identity: { sub: "user-123", email: "athlete@example.com" },
+      persistence: "secure",
+    });
     expect(writes).toEqual([validToken]);
   });
 
-  it("identifies and cleans up a secure storage failure", async () => {
+  it("keeps a valid session in memory and cleans up a secure storage failure", async () => {
     let deleted = false;
     const validToken = token({
       sub: "user-123",
@@ -105,9 +126,9 @@ describe("establishSession", () => {
       },
     });
 
-    await expect(result).rejects.toMatchObject({
-      name: "AuthSessionError",
-      reason: "storage",
+    await expect(result).resolves.toEqual({
+      identity: { sub: "user-123", email: "athlete@example.com" },
+      persistence: "memory-only",
     });
     expect(deleted).toBe(true);
   });

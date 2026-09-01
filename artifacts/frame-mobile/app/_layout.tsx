@@ -6,10 +6,10 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
 import React, { useEffect, useRef } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoginUpsellGate } from "@/components/LoginUpsellGate";
@@ -88,6 +88,64 @@ function UserScopedQueryReset() {
   return null;
 }
 
+function SessionPersistenceNotice() {
+  const {
+    sessionPersistenceWarning,
+    dismissSessionPersistenceWarning,
+  } = useAuth();
+  const insets = useSafeAreaInsets();
+
+  if (!sessionPersistenceWarning) return null;
+
+  return (
+    <View
+      accessibilityRole="alert"
+      style={[noticeStyles.root, { top: insets.top + 8 }]}
+    >
+      <Text style={noticeStyles.text}>{sessionPersistenceWarning}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss login warning"
+        hitSlop={12}
+        onPress={dismissSessionPersistenceWarning}
+      >
+        <Text style={noticeStyles.dismiss}>CLOSE</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const noticeStyles = StyleSheet.create({
+  root: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    zIndex: 100,
+    elevation: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: "#17130C",
+    borderWidth: 1,
+    borderColor: "#8A6A2F",
+  },
+  text: {
+    flex: 1,
+    color: "#E0D5BF",
+    fontFamily: "Outfit",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  dismiss: {
+    color: "#C8A96A",
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 1.5,
+  },
+});
+
 /**
  * Branded loading surface shown while fonts / the initial JS bundle resolve.
  * Kept intentionally simple and dependency-free so it can render before the
@@ -162,6 +220,7 @@ function RootLayoutNav() {
           />
           <Stack.Screen name="history" options={{ animation: "slide_from_right" }} />
         </Stack>
+        <SessionPersistenceNotice />
       </FighterProvider>
     </ErrorBoundary>
   );
