@@ -1,10 +1,10 @@
 ---
-name: Native paywall route settling
-description: Why global native upsells must wait until onboarding has fully transitioned into authenticated tabs.
+name: Native onboarding route safety
+description: Why global upsells must wait for tabs and onboarding must guard against rendering after a successful profile save.
 ---
 
-Only present a global post-login paywall after the authenticated tab route is active. A saved fighter profile alone is not proof that navigation has finished settling.
+Only present a global post-login paywall after the authenticated tab route is active. The onboarding route must also redirect away whenever a fighter already exists or its current profile save has succeeded.
 
-**Why:** On native iOS, the entitlement and fighter state can resolve while onboarding is still the route beneath the modal. Pushing the paywall at that moment leaves onboarding in the back stack, so dismissing the paywall appears to restart the questionnaire even though the profile saved successfully.
+**Why:** On native iOS, a successful fighter save and navigation effects can settle in different renders. The app has reproduced a successful profile POST followed by another onboarding POST in the same session. Paywall timing alone is not sufficient protection; the form itself must refuse a second completion.
 
-**How to apply:** Any global modal triggered by auth/server state should also require the intended base route. For post-onboarding upsells, wait for the authenticated tabs rather than firing from onboarding, sign-in, the root redirect, or another modal.
+**How to apply:** Any global modal triggered by auth/server state should require the intended base route. Any one-time setup screen should treat an existing server entity or a completed local save as authoritative and redirect instead of rendering the form again.

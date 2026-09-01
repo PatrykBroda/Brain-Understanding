@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
-import type { Fighter } from "@/context/FighterContext";
+import { useFighter, type Fighter } from "@/context/FighterContext";
 import { apiPost } from "@/lib/api";
 import {
   ageFromDateOfBirth,
@@ -21,6 +21,7 @@ import {
   type DateOfBirthParts,
 } from "@/lib/dateOfBirth";
 import { commitFighterProfile } from "@/lib/fighterProfileCache";
+import { shouldLeaveOnboarding } from "@/lib/onboardingRoute";
 
 const SPORTS = [
   { key: "bjj", label: "BJJ" },
@@ -127,6 +128,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const qc = useQueryClient();
   const { userId } = useAuth();
+  const { fighter } = useFighter();
 
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
@@ -144,11 +146,24 @@ export default function OnboardingScreen() {
   const [error, setError] = useState<string | null>(null);
   const [dobError, setDobError] = useState<string | null>(null);
   const submittingRef = useRef(false);
+  const profileSaveCompletedRef = useRef(false);
   const monthInputRef = useRef<TextInput>(null);
   const yearInputRef = useRef<TextInput>(null);
 
   const dobDate = dateOfBirthFromParts(dob);
   const age = dobDate ? ageFromDateOfBirth(dobDate) : null;
+  const leaveOnboarding = shouldLeaveOnboarding(
+    !!fighter,
+    profileSaveCompletedRef.current,
+  );
+
+  if (fighter) {
+    profileSaveCompletedRef.current = true;
+  }
+
+  if (leaveOnboarding) {
+    return <Redirect href="/(tabs)/home" />;
+  }
 
   function updateDobPart(part: keyof DateOfBirthParts, raw: string) {
     const value = normaliseDateOfBirthPart(raw, part);
@@ -204,6 +219,7 @@ export default function OnboardingScreen() {
         throw new Error("Your fighter profile was saved, but could not be opened.");
       }
 
+      profileSaveCompletedRef.current = true;
       await commitFighterProfile(qc, userId, response.fighter);
       router.replace("/(tabs)/home");
     } catch (e: unknown) {
