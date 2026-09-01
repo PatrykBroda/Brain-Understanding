@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -11,7 +11,16 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
+import type { Fighter } from "@/context/FighterContext";
 import { apiPost } from "@/lib/api";
+import {
+  ageFromDateOfBirth,
+  dateOfBirthFromParts,
+  normaliseDateOfBirthPart,
+  type DateOfBirthParts,
+} from "@/lib/dateOfBirth";
+import { commitFighterProfile } from "@/lib/fighterProfileCache";
 
 const SPORTS = [
   { key: "bjj", label: "BJJ" },
@@ -117,10 +126,15 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const qc = useQueryClient();
+  const { userId } = useAuth();
 
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
-  const [dob, setDob] = useState("");
+  const [dob, setDob] = useState<DateOfBirthParts>({
+    day: "",
+    month: "",
+    year: "",
+  });
   const [sport, setSport] = useState("bjj");
   const [belt, setBelt] = useState("white");
   const [freq, setFreq] = useState("3-4");
@@ -129,24 +143,29 @@ export default function OnboardingScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dobError, setDobError] = useState<string | null>(null);
+  const submittingRef = useRef(false);
+  const monthInputRef = useRef<TextInput>(null);
+  const yearInputRef = useRef<TextInput>(null);
 
-  /** Validate a YYYY-MM-DD string and return a normalised ISO date or null. */
-  function parseDob(raw: string): string | null {
-    const trimmed = raw.trim();
-    // Accept YYYY-MM-DD only.
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
-    const d = new Date(trimmed);
-    if (isNaN(d.getTime())) return null;
-    // Sanity: year must be plausible (1900–today).
-    const year = d.getUTCFullYear();
-    if (year < 1900 || year > new Date().getUTCFullYear()) return null;
-    return trimmed;
+  const dobDate = dateOfBirthFromParts(dob);
+  const age = dobDate ? ageFromDateOfBirth(dobDate) : null;
+
+  function updateDobPart(part: keyof DateOfBirthParts, raw: string) {
+    const value = normaliseDateOfBirthPart(raw, part);
+    setDob((current) => ({ ...current, [part]: value }));
+    setDobError(null);
+
+    if (part === "day" && value.length === 2) {
+      monthInputRef.current?.focus();
+    } else if (part === "month" && value.length === 2) {
+      yearInputRef.current?.focus();
+    }
   }
 
   function next() {
     if (step === 1) {
-      if (!parseDob(dob)) {
-        setDobError("Enter your date of birth as YYYY-MM-DD  (e.g. 1990-06-15)");
+      if (!dobDate) {
+        setDobError("Enter a valid date of birth.");
         return;
       }
       setDobError(null);
@@ -159,33 +178,38 @@ export default function OnboardingScreen() {
   }
 
   async function handleSubmit() {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
     try {
-      const dobDate = parseDob(dob);
       if (!dobDate) {
-        setError("Date of birth is missing or invalid. Go back and enter it as YYYY-MM-DD.");
-        setLoading(false);
+        setError("Date of birth is missing or invalid. Go back and choose a valid date.");
         return;
       }
 
-      await apiPost("/fighter", {
-        name: name.trim(),
-        dateOfBirth: dobDate,
-        art: sport,
-        primarySport: sport,
-        level: belt,
-        trainingFrequency: freq,
-        goals: goals.trim() || null,
-        weaknesses: weaknesses.trim() || null,
-        personality: `Training ${freq} per week. Sport: ${sport}. Belt: ${belt}.`,
-      });
+      const response = await apiPost<{ fighter: Fighter }>("/fighter", {
+          name: name.trim(),
+          dateOfBirth: dobDate,
+          art: sport,
+          primarySport: sport,
+          level: belt,
+          trainingFrequency: freq,
+          goals: goals.trim() || null,
+          weaknesses: weaknesses.trim() || null,
+          personality: `Training ${freq} per week. Sport: ${sport}. Belt: ${belt}.`,
+        });
 
-      qc.invalidateQueries({ queryKey: ["fighter"] });
+      if (!userId || !response.fighter) {
+        throw new Error("Your fighter profile was saved, but could not be opened.");
+      }
+
+      await commitFighterProfile(qc, userId, response.fighter);
       router.replace("/(tabs)/home");
     } catch (e: unknown) {
       setError((e as Error).message ?? "Setup failed. Try again.");
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }
@@ -218,17 +242,53 @@ export default function OnboardingScreen() {
       {step === 1 && (
         <View style={styles.section}>
           <Text style={styles.label}>DATE OF BIRTH</Text>
-          <Text style={styles.hint}>YYYY-MM-DD</Text>
-          <TextInput
-            style={[styles.input, dobError ? { borderColor: "#c0392b" } : null]}
-            value={dob}
-            onChangeText={(t) => { setDob(t); setDobError(null); }}
-            placeholder="1990-06-15"
-            placeholderTextColor="#444"
-            keyboardType="numbers-and-punctuation"
-            autoCorrect={false}
-            autoComplete="birthdate-full"
-          />
+          <Text style={styles.hint}>No hyphens needed</Text>
+          <View style={styles.dobRow}>
+            <View style={styles.dobField}>
+              <Text style={styles.dobLabel}>DAY</Text>
+              <TextInput
+                style={[styles.input, styles.dobInput, dobError ? styles.inputError : null]}
+                value={dob.day}
+                onChangeText={(value) => updateDobPart("day", value)}
+                placeholder="DD"
+                placeholderTextColor="#444"
+                keyboardType="number-pad"
+                maxLength={2}
+                textContentType="none"
+              />
+            </View>
+            <View style={styles.dobField}>
+              <Text style={styles.dobLabel}>MONTH</Text>
+              <TextInput
+                ref={monthInputRef}
+                style={[styles.input, styles.dobInput, dobError ? styles.inputError : null]}
+                value={dob.month}
+                onChangeText={(value) => updateDobPart("month", value)}
+                placeholder="MM"
+                placeholderTextColor="#444"
+                keyboardType="number-pad"
+                maxLength={2}
+                textContentType="none"
+              />
+            </View>
+            <View style={[styles.dobField, styles.yearField]}>
+              <Text style={styles.dobLabel}>YEAR</Text>
+              <TextInput
+                ref={yearInputRef}
+                style={[styles.input, styles.dobInput, dobError ? styles.inputError : null]}
+                value={dob.year}
+                onChangeText={(value) => updateDobPart("year", value)}
+                placeholder="YYYY"
+                placeholderTextColor="#444"
+                keyboardType="number-pad"
+                maxLength={4}
+                textContentType="none"
+              />
+            </View>
+          </View>
+          {age != null ? (
+            <Text style={styles.ageConfirmation}>{age} YEARS OLD</Text>
+          ) : null}
           {dobError ? <Text style={styles.errorText}>{dobError}</Text> : null}
         </View>
       )}
@@ -292,8 +352,7 @@ export default function OnboardingScreen() {
             style={({ pressed }) => [styles.nextBtn, pressed && { opacity: 0.8 }]}
             onPress={next}
             disabled={
-              (step === 0 && !name.trim()) ||
-              (step === 1 && !parseDob(dob))
+              step === 0 && !name.trim()
             }
           >
             <Text style={styles.nextText}>NEXT</Text>
@@ -355,6 +414,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#444",
     marginBottom: 8,
+  },
+  dobRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  dobField: {
+    flex: 1,
+  },
+  yearField: {
+    flex: 1.45,
+  },
+  dobLabel: {
+    fontFamily: "SpaceMono",
+    fontSize: 8,
+    letterSpacing: 1.5,
+    color: "#666",
+    marginBottom: 6,
+  },
+  dobInput: {
+    textAlign: "center",
+    paddingHorizontal: 8,
+    fontSize: 18,
+  },
+  inputError: {
+    borderColor: "#BF1D1D",
+  },
+  ageConfirmation: {
+    marginTop: 12,
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 2,
+    color: "#8A6A2F",
   },
   input: {
     backgroundColor: "#0a0a0a",
