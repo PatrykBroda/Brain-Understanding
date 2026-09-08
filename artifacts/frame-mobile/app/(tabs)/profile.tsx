@@ -809,6 +809,14 @@ export default function ProfileScreen() {
               <Text style={s.privacyLinkText}>PRIVACY POLICY</Text>
               <Feather name="external-link" size={13} color={ACCENT} />
             </Pressable>
+            <Pressable
+              style={s.privacyLink}
+              onPress={() => void Linking.openURL(apiUrl("/terms"))}
+              accessibilityRole="link"
+            >
+              <Text style={s.privacyLinkText}>TERMS OF SERVICE</Text>
+              <Feather name="external-link" size={13} color={ACCENT} />
+            </Pressable>
             {consentQuery.data?.accepted ? (
               <Pressable
                 style={s.withdrawBtn}

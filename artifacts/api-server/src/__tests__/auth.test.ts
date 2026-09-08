@@ -246,6 +246,34 @@ describe("verifyToken", () => {
 // ─── DB-level uniqueness ──────────────────────────────────────────────────────
 
 describe("user registration — uniqueness", () => {
+  it("refuses to create an account without terms and privacy acceptance", async () => {
+    const app = express();
+    app.use(express.json());
+    app.use("/api", authRouter);
+    const server = await new Promise<ReturnType<typeof app.listen>>((resolve) => {
+      const listeningServer = app.listen(0, "127.0.0.1", () => resolve(listeningServer));
+    });
+    const { port } = server.address() as AddressInfo;
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: testEmail("missing-legal"),
+          password: TEST_PASSWORD,
+        }),
+      });
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "LEGAL_CONSENT_REQUIRED",
+      });
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  });
+
   it("cannot insert two users with the same email", async () => {
     const email = testEmail("dup").toLowerCase();
     const id1 = crypto.randomUUID();
@@ -274,7 +302,12 @@ describe("user registration — uniqueness", () => {
       const registration = await fetch(`${baseUrl}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: enteredEmail, password: TEST_PASSWORD }),
+        body: JSON.stringify({
+          email: enteredEmail,
+          password: TEST_PASSWORD,
+          acceptedTerms: true,
+          acceptedPrivacy: true,
+        }),
       });
       expect(registration.status).toBe(201);
 

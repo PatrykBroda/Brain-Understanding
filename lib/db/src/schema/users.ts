@@ -18,6 +18,8 @@ export const usersTable = pgTable("users", {
   // Null means the user has not agreed (or has withdrawn agreement).
   aiAnalysisConsentVersion: text("ai_analysis_consent_version"),
   aiAnalysisConsentAt: timestamp("ai_analysis_consent_at", { withTimezone: true }),
+  legalConsentVersion: text("legal_consent_version"),
+  legalConsentAt: timestamp("legal_consent_at", { withTimezone: true }),
 });
 
 export type User = typeof usersTable.$inferSelect;

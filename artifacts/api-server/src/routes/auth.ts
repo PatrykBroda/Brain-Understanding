@@ -22,6 +22,7 @@ import { Router, type Request, type Response } from "express";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
+import { LEGAL_CONSENT_VERSION } from "../lib/legalConsent";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -178,7 +179,12 @@ export function validatePassword(password: unknown): string | null {
 // POST /api/auth/register
 router.post("/auth/register", async (req: Request, res: Response) => {
   const ip = req.ip ?? "unknown";
-  const { email, password } = (req.body ?? {}) as { email?: unknown; password?: unknown };
+  const { email, password, acceptedTerms, acceptedPrivacy } = (req.body ?? {}) as {
+    email?: unknown;
+    password?: unknown;
+    acceptedTerms?: unknown;
+    acceptedPrivacy?: unknown;
+  };
   const emailForRateLimit = typeof email === "string" ? email : "<invalid>";
   if (!registrationRateLimitCheck(ip, emailForRateLimit)) {
     res
@@ -198,6 +204,13 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     res.status(400).json({ error: pwError });
     return;
   }
+  if (acceptedTerms !== true || acceptedPrivacy !== true) {
+    res.status(400).json({
+      error: "You must accept the Terms of Service and Privacy Policy to create an account",
+      code: "LEGAL_CONSENT_REQUIRED",
+    });
+    return;
+  }
 
   // Reject if email already registered.
   const [existing] = await db
@@ -212,7 +225,13 @@ router.post("/auth/register", async (req: Request, res: Response) => {
 
   const id = crypto.randomUUID();
   const hashedPassword = await bcrypt.hash(password as string, BCRYPT_ROUNDS);
-  await db.insert(usersTable).values({ id, email: normalizedEmail, hashedPassword });
+  await db.insert(usersTable).values({
+    id,
+    email: normalizedEmail,
+    hashedPassword,
+    legalConsentVersion: LEGAL_CONSENT_VERSION,
+    legalConsentAt: new Date(),
+  });
 
   const token = await signToken(id, normalizedEmail);
   res.status(201).json({ token, userId: id });

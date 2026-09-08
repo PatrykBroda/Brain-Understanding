@@ -5,6 +5,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,7 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
-import { apiPost } from "@/lib/api";
+import { apiPost, apiUrl } from "@/lib/api";
 import { getAuthErrorMessage } from "@/lib/authErrors";
 
 export default function SignUpScreen() {
@@ -26,6 +27,7 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   async function handleSignUp() {
     if (loading) return;
@@ -34,7 +36,7 @@ export default function SignUpScreen() {
     try {
       const data = await apiPost<{ token: string; userId: string }>(
         "/auth/register",
-        { email, password },
+        { email, password, acceptedTerms: acceptedLegal, acceptedPrivacy: acceptedLegal },
       );
       await signIn(data.token);
       router.replace("/onboarding");
@@ -80,6 +82,30 @@ export default function SignUpScreen() {
             keyboardType="email-address"
             autoComplete="email"
           />
+          <Pressable
+            style={styles.legalRow}
+            onPress={() => setAcceptedLegal((value) => !value)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: acceptedLegal }}
+          >
+            <View style={[styles.checkbox, acceptedLegal && styles.checkboxChecked]}>
+              <Text style={styles.checkmark}>{acceptedLegal ? "✓" : ""}</Text>
+            </View>
+            <Text style={styles.legalCopy}>
+              I accept the Terms of Service and Privacy Policy.
+            </Text>
+          </Pressable>
+          <View style={styles.policyLinks}>
+            <Pressable onPress={() => void Linking.openURL(apiUrl("/terms"))}>
+              <Text style={styles.policyLink}>VIEW TERMS</Text>
+            </Pressable>
+            <Pressable onPress={() => void Linking.openURL(apiUrl("/privacy"))}>
+              <Text style={styles.policyLink}>VIEW PRIVACY & AI DATA USE</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.aiNote}>
+            AI analysis permission is optional and requested separately before any analysis data is sent to Anthropic.
+          </Text>
           <TextInput
             style={styles.input}
             placeholder="Password (min 8 characters)"
@@ -95,7 +121,7 @@ export default function SignUpScreen() {
           <Pressable
             style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
             onPress={handleSignUp}
-            disabled={loading || !email || !password}
+            disabled={loading || !email || !password || !acceptedLegal}
           >
             {loading ? (
               <ActivityIndicator color="#050505" />
@@ -151,6 +177,53 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     height: 52,
+  },
+  legalRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginTop: 4,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: "#555",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: "#8A6A2F",
+    borderColor: "#8A6A2F",
+  },
+  checkmark: {
+    color: "#050505",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  legalCopy: {
+    flex: 1,
+    color: "#aaa",
+    fontFamily: "Outfit",
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  policyLinks: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  policyLink: {
+    color: "#8A6A2F",
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 1,
+  },
+  aiNote: {
+    color: "#666",
+    fontFamily: "Outfit",
+    fontSize: 11,
+    lineHeight: 16,
   },
   errorText: {
     color: "#BF1D1D",

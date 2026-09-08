@@ -12,6 +12,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,7 +23,12 @@ export default function SignUpPage() {
       const res = await fetch(`${basePath}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          acceptedTerms: acceptedLegal,
+          acceptedPrivacy: acceptedLegal,
+        }),
       });
       const data = (await res.json()) as { token?: string; error?: string };
       if (!res.ok) {
@@ -46,6 +52,24 @@ export default function SignUpPage() {
             <div className="font-mono text-[15px] uppercase tracking-[0.18em] text-foreground/95 font-light">
               Create your FRAME account
             </div>
+            <label className="flex items-start gap-3 text-[11px] text-foreground/65 leading-relaxed">
+              <input
+                type="checkbox"
+                checked={acceptedLegal}
+                onChange={(e) => setAcceptedLegal(e.target.checked)}
+                required
+                className="mt-0.5 accent-[hsl(var(--primary))]"
+              />
+              <span>
+                I accept the{" "}
+                <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-primary underline">Terms of Service</a>
+                {" "}and{" "}
+                <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-primary underline">Privacy Policy and AI data-use disclosure</a>.
+              </span>
+            </label>
+            <p className="font-mono text-[9px] text-foreground/40 leading-relaxed">
+              AI analysis permission is optional and requested separately before data is sent to Anthropic.
+            </p>
             <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/55 mt-1.5">
               Calibration system
             </div>
@@ -92,7 +116,7 @@ export default function SignUpPage() {
 
             <button
               type="submit"
-              disabled={loading || !email || !password}
+              disabled={loading || !email || !password || !acceptedLegal}
               className="bg-primary text-black font-mono uppercase tracking-[0.25em] text-[11px] py-3 rounded-md hover:bg-primary/90 transition-colors shadow-[0_8px_30px_-10px_hsla(39,49%,36%,0.4)] disabled:opacity-50"
             >
               {loading ? "Creating account…" : "Create account"}

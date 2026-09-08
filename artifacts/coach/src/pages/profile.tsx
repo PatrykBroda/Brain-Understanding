@@ -352,6 +352,14 @@ export default function ProfilePage() {
 
               {/* ─── ACCOUNT ───────────────────────────────────────── */}
               <div className="space-y-2.5 pt-6 pb-2">
+                <div className="flex justify-center gap-4 font-mono text-[9px] uppercase tracking-wider">
+                  <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                    Privacy & AI permissions
+                  </a>
+                  <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                    Terms
+                  </a>
+                </div>
                 {email && (
                   <div className="font-mono text-[10px] text-muted-foreground/60 tracking-wide text-center">
                     {email}
