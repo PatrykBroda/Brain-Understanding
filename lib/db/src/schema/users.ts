@@ -14,6 +14,10 @@ export const usersTable = pgTable("users", {
   // Comp / admin accounts: always fully entitled to FRAME+ with no purchase.
   // Checked FIRST in the entitlement resolver.
   isAdmin: boolean("is_admin").notNull().default(false),
+  // Versioned, account-scoped consent for sharing analysis data with Anthropic.
+  // Null means the user has not agreed (or has withdrawn agreement).
+  aiAnalysisConsentVersion: text("ai_analysis_consent_version"),
+  aiAnalysisConsentAt: timestamp("ai_analysis_consent_at", { withTimezone: true }),
 });
 
 export type User = typeof usersTable.$inferSelect;

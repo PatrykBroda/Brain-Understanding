@@ -11,6 +11,10 @@ export function setTokenGetter(fn: () => Promise<string | null>) {
   _getToken = fn;
 }
 
+export function apiUrl(path: string): string {
+  return `${_base}${path}`;
+}
+
 /** Return the current auth token without side-effects — used by Image headers. */
 export async function getAuthToken(): Promise<string | null> {
   return _getToken ? _getToken() : null;

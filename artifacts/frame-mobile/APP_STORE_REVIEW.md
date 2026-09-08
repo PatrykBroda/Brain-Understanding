@@ -42,17 +42,37 @@ For every subscription shown in FRAME:
 - Select the subscription products for the new app version and submit them for
   review together with a new production binary.
 
+## AI data disclosure
+
+- Privacy policy URL: use the production URL ending in `/api/privacy`.
+- In App Privacy, disclose the data categories that match `AI_DATA_FLOW.md`.
+  This includes user content (selected video stills and analysis focus),
+  fitness/performance data (movement signals and scores), and other relevant
+  athlete-profile content used to provide app functionality.
+- Identify Anthropic/Claude as the third-party AI processor in the privacy
+  policy and review notes.
+- Confirm the policy, privacy labels, consent screen, and actual payload all
+  use the same data categories. Photo-library permission is not AI consent.
+- Have the product owner or legal reviewer approve the final policy wording and
+  Anthropic retention/processing statement before submission.
+
 ## Physical-device verification
 
 Install the new build through TestFlight and use an Apple Sandbox tester:
 
-1. Open FRAME+ and confirm plans and localized prices appear.
-2. Complete a purchase and confirm FRAME+ unlocks.
-3. Sign out/reinstall as needed, use **Restore Purchases**, and confirm access
+1. With a fresh account, open Analyse and start a report. Capture the AI
+   permission sheet before any report begins.
+2. Tap **Not now** and confirm the app remains usable and no analysis starts.
+3. Start again, tap **Agree & Analyse**, and confirm the report completes.
+4. Open Profile, open **Privacy Policy**, then withdraw AI permission. Confirm
+   the next analysis asks again.
+5. Open FRAME+ and confirm plans and localized prices appear.
+6. Complete a purchase and confirm FRAME+ unlocks.
+7. Sign out/reinstall as needed, use **Restore Purchases**, and confirm access
    returns.
-4. Open Profile, tap **Delete Account**, capture both confirmation prompts, and
+8. Open Profile, tap **Delete Account**, capture both confirmation prompts, and
    complete deletion.
-5. Confirm the app returns to Sign In and the deleted credentials no longer
+9. Confirm the app returns to Sign In and the deleted credentials no longer
    work.
 
 Test on an iPhone and an iPad-sized review device.
@@ -70,3 +90,13 @@ Replace the bracketed values with the exact identifiers from App Store Connect:
 > Permanent account deletion is available at Profile > Delete Account. The
 > attached physical-device recording shows sign-in, navigation to the option,
 > both confirmations, permanent deletion, and return to Sign In.
+>
+> Before the first AI-powered analysis, FRAME presents a dedicated permission
+> sheet naming Anthropic/Claude and listing the exact data sent and not sent.
+> Choosing Not now leaves the app usable and sends no analysis request. Choosing
+> Agree & Analyse records versioned consent before the analysis begins. Users
+> can review the privacy policy and withdraw permission from Profile. FRAME
+> sends selected still frames (not the raw video), movement signals and scores,
+> session details, requested focus, and minimized relevant performance context.
+> It does not send the user's email, account ID, full name, gym, biography,
+> height or weight to Anthropic.

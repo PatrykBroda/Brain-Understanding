@@ -30,6 +30,8 @@ import {
   recomputeSessionScore,
   ContentValidationError,
 } from "../lib/analysisService";
+import { hasCurrentAiConsent, minimiseAnalysisContext } from "../lib/aiConsent";
+import { usersTable } from "@workspace/db";
 import {
   classifySource,
   normalizeForFetch,
@@ -154,6 +156,22 @@ router.post("/analysis", async (req, res) => {
     return;
   }
 
+  const [consent] = await db
+    .select({
+      version: usersTable.aiAnalysisConsentVersion,
+      acceptedAt: usersTable.aiAnalysisConsentAt,
+    })
+    .from(usersTable)
+    .where(eq(usersTable.id, req.userId as string))
+    .limit(1);
+  if (!hasCurrentAiConsent(consent?.version, consent?.acceptedAt)) {
+    res.status(403).json({
+      error: "Permission is required before sharing analysis data with Anthropic.",
+      code: "AI_CONSENT_REQUIRED",
+    });
+    return;
+  }
+
   const body = req.body as {
     kind?: unknown;
     subject?: unknown;
@@ -270,14 +288,15 @@ router.post("/analysis", async (req, res) => {
 
   try {
     const facts = await getActiveFacts(fighter.id);
+    const aiContext = minimiseAnalysisContext(fighter, facts);
 
     // ---- Opponent scouting branch: categorical read + matchup, no scorecard,
     // no knowledge-loop writes, no self progression. Returns before any of the
     // self-only progression queries below. ----
     if (subject === "opponent") {
       const oppNarrative = await generateOpponentAnalysis({
-        fighter,
-        facts,
+        fighter: aiContext.fighter,
+        facts: aiContext.facts,
         kind: body.kind,
         focus,
         opponentName,
@@ -353,8 +372,8 @@ router.post("/analysis", async (req, res) => {
         : null;
 
     const narrative = await generateAnalysis({
-      fighter,
-      facts,
+      fighter: aiContext.fighter,
+      facts: aiContext.facts,
       kind: body.kind,
       focus,
       load: body.load,

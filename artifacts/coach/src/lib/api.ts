@@ -52,6 +52,19 @@ export type ServerMessage = {
 
 export type AiProvider = "claude" | "openai";
 
+export type AiConsentStatus = {
+  accepted: boolean;
+  version: string;
+  acceptedAt: string | null;
+  disclosure: {
+    provider: string;
+    service: string;
+    purpose: string;
+    sharedData: readonly string[];
+    notShared: readonly string[];
+  };
+};
+
 export type Conversation = {
   id: number;
   fighterId: number;
@@ -354,6 +367,12 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 export const api = {
+  getAiConsent: () => jsonFetch<AiConsentStatus>("api/ai-consent"),
+  setAiConsent: (accepted: boolean) =>
+    jsonFetch<AiConsentStatus>("api/ai-consent", {
+      method: "PATCH",
+      body: JSON.stringify({ accepted }),
+    }),
   getFighter: () => jsonFetch<{ fighter: Fighter | null }>("api/fighter"),
   saveFighter: (input: FighterInput) =>
     jsonFetch<{ fighter: Fighter }>("api/fighter", {

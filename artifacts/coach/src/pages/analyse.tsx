@@ -34,7 +34,7 @@ import {
 import { computeMetrics } from "@/lib/analysis-metrics";
 import { useFramePlus, FramePlusPill } from "@/components/frame-plus-modal";
 import { useSubscription } from "@/hooks/use-subscription";
-import { ApiError, fetchRemoteVideo } from "@/lib/api";
+import { api, ApiError, fetchRemoteVideo } from "@/lib/api";
 import type {
   AnalysisKind,
   AnalysisKeyframe,
@@ -226,6 +226,14 @@ export default function AnalysePage() {
     }
     let extract: ExtractResult | null = null;
     try {
+      const consent = await api.getAiConsent();
+      if (!consent.accepted) {
+        const agreed = window.confirm(
+          `AI analysis permission\n\nFRAME uses ${consent.disclosure.provider}'s ${consent.disclosure.service} service to generate this report. It may receive selected still frames, movement signals, scores, session details, your requested focus, and relevant performance observations. It does not receive your raw video, email, full name, gym, biography, height or weight.\n\nChoose OK to agree and continue. You can withdraw permission from Profile.`,
+        );
+        if (!agreed) return;
+        await api.setAiConsent(true);
+      }
       setPhase({ stage: "reading", pct: 0 });
       extract = await extractPoseFrames(file, (p) => {
         const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;

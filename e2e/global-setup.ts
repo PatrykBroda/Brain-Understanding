@@ -14,6 +14,7 @@ export const TEST_FRESH_EMAIL = "frame-smoke-fresh@example.com";
 export const TEST_PASSWORD = "FrameSmoke2024!";
 
 const BCRYPT_ROUNDS = 10;
+const AI_ANALYSIS_CONSENT_VERSION = "2026-09-08";
 
 async function upsertUser(
   db: Client,
@@ -72,6 +73,16 @@ async function ensureFreshFreePlan(db: Client, userId: string): Promise<void> {
   );
 }
 
+async function ensureAiAnalysisConsent(db: Client, userId: string): Promise<void> {
+  await db.query(
+    `UPDATE users
+        SET ai_analysis_consent_version = $2,
+            ai_analysis_consent_at = NOW()
+      WHERE id = $1`,
+    [userId, AI_ANALYSIS_CONSENT_VERSION],
+  );
+}
+
 async function deleteFreshFighter(db: Client, userId: string): Promise<void> {
   const res = await db.query(
     `DELETE FROM fighters WHERE user_id = $1 RETURNING id`,
@@ -93,6 +104,8 @@ export default async function globalSetup(): Promise<void> {
     await ensureMainFighter(db, mainId);
     await ensureMainFramePlus(db, mainId);
     await ensureFreshFreePlan(db, freshId);
+    await ensureAiAnalysisConsent(db, mainId);
+    await ensureAiAnalysisConsent(db, freshId);
     await deleteFreshFighter(db, freshId);
 
     process.env.TEST_MAIN_USER_ID = mainId;

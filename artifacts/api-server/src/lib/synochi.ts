@@ -371,8 +371,8 @@ export function buildDynamicContext(
   competitionBlock: string | null = null,
 ): string {
   const profile = [
-    `Name: ${fighter.name}`,
-    `Age: ${fighter.age}`,
+    fighter.name ? `Name: ${fighter.name}` : null,
+    fighter.age > 0 ? `Age: ${fighter.age}` : null,
     fighter.primarySport ? `Primary combat sport: ${sportLabel(fighter.primarySport)}` : null,
     `Art: ${fighter.art}`,
     `Level: ${fighter.level}`,

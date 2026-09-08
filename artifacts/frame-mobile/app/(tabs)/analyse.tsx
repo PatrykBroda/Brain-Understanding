@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Animated,
   FlatList,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -18,6 +19,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "@/lib/api";
+import { apiPatch, apiUrl } from "@/lib/api";
+import type { AiConsentStatus } from "@/lib/aiConsent";
+import { AiAnalysisConsentModal } from "@/components/AiAnalysisConsentModal";
 
 type AnalysisKind =
   | "sparring"
@@ -290,6 +294,9 @@ export default function AnalyseScreen() {
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
   const [loadingSession, setLoadingSession] = useState(false);
+  const [consentVisible, setConsentVisible] = useState(false);
+  const [consentStatus, setConsentStatus] = useState<AiConsentStatus | null>(null);
+  const [consentBusy, setConsentBusy] = useState(false);
 
   const [historyMode, setHistoryMode] = useState(false);
   const [resultSource, setResultSource] = useState<"form" | "history">("form");
@@ -495,6 +502,36 @@ export default function AnalyseScreen() {
   }
 
   async function handleSubmit() {
+    setError(null);
+    try {
+      const status = await apiGet<AiConsentStatus>("/ai-consent");
+      setConsentStatus(status);
+      if (!status.accepted) {
+        setConsentVisible(true);
+        return;
+      }
+    } catch (e: unknown) {
+      setError((e as Error).message ?? "Could not check AI analysis permission.");
+      return;
+    }
+    await performSubmit();
+  }
+
+  async function acceptConsentAndSubmit() {
+    setConsentBusy(true);
+    try {
+      const status = await apiPatch<AiConsentStatus>("/ai-consent", { accepted: true });
+      setConsentStatus(status);
+      setConsentVisible(false);
+      await performSubmit();
+    } catch (e: unknown) {
+      setError((e as Error).message ?? "Could not save AI analysis permission.");
+    } finally {
+      setConsentBusy(false);
+    }
+  }
+
+  async function performSubmit() {
     setSubmitting(true);
     setError(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -748,6 +785,15 @@ export default function AnalyseScreen() {
   const submitDisabled = submitting || !hasClip;
 
   return (
+    <>
+    <AiAnalysisConsentModal
+      visible={consentVisible}
+      status={consentStatus}
+      busy={consentBusy}
+      onAccept={() => void acceptConsentAndSubmit()}
+      onDecline={() => setConsentVisible(false)}
+      onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
+    />
     <ScrollView
       style={[styles.root, { paddingTop: topPad }]}
       contentContainerStyle={[styles.inner, { paddingBottom: insets.bottom + 40 }]}
@@ -1120,6 +1166,7 @@ export default function AnalyseScreen() {
         </>
       )}
     </ScrollView>
+    </>
   );
 }
 

@@ -16,6 +16,8 @@ import billingRouter from "./billing";
 import accountRouter from "./account";
 import { googlePublicRouter, googleRouter } from "./google";
 import authRouter from "./auth";
+import privacyRouter from "./privacy";
+import aiConsentRouter from "./aiConsent";
 import { requireAuth } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
@@ -26,6 +28,7 @@ router.use(healthRouter);
 router.use(crashlogRouter);
 // Custom auth routes — register, login, logout, me
 router.use(authRouter);
+router.use(privacyRouter);
 // Google OAuth callback — Google arrives with no session; identity is
 // recovered from the signed `state`, so this MUST stay public.
 router.use(googlePublicRouter);
@@ -34,6 +37,7 @@ router.use(googlePublicRouter);
 router.use(requireAuth);
 
 router.use(fighterRouter);
+router.use(aiConsentRouter);
 router.use(conversationRouter);
 router.use(calibrationRouter);
 router.use(memoryRouter);

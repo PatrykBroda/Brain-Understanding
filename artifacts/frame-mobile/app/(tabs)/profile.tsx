@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Platform,
   Pressable,
   RefreshControl,
@@ -21,7 +22,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter, type Fighter } from "@/context/FighterContext";
-import { apiDelete, apiGet, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
+import { apiDelete, apiGet, apiPatch, apiUrl, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
+import type { AiConsentStatus } from "@/lib/aiConsent";
 import { primaryFocus } from "@/lib/primaryFocus";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
@@ -331,10 +333,27 @@ export default function ProfileScreen() {
   const { signOut, isSignedIn, email } = useAuth();
   const { fighter, isLoading: fighterLoading, refetch } = useFighter();
   const router = useRouter();
+  const qc = useQueryClient();
   const insets = useSafeAreaInsets();
   const [editVisible, setEditVisible] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+
+  const consentQuery = useQuery<AiConsentStatus>({
+    queryKey: ["ai-consent"],
+    queryFn: () => apiGet<AiConsentStatus>("/ai-consent"),
+    enabled: !!isSignedIn,
+  });
+  const withdrawConsent = useMutation({
+    mutationFn: () => apiPatch<AiConsentStatus>("/ai-consent", { accepted: false }),
+    onSuccess: (status) => {
+      qc.setQueryData(["ai-consent"], status);
+      Alert.alert(
+        "Permission withdrawn",
+        "Future AI analysis is now blocked. Your existing reports remain in your account.",
+      );
+    },
+  });
 
   const { data: entitlement } = useEntitlement();
   const sync = useSyncBilling();
@@ -776,6 +795,38 @@ export default function ProfileScreen() {
 
           {/* ACCOUNT */}
           <View style={s.section}>
+            <Text style={s.privacyHeading}>AI ANALYSIS & PRIVACY</Text>
+            <Text style={s.privacyCopy}>
+              {consentQuery.data?.accepted
+                ? "Anthropic/Claude analysis permission is active. FRAME may share selected still frames, movement data and relevant performance context — never your raw video, email or full name."
+                : "AI analysis permission is not active. No analysis data will be sent to Anthropic until you agree in Analyse."}
+            </Text>
+            <Pressable
+              style={s.privacyLink}
+              onPress={() => void Linking.openURL(apiUrl("/privacy"))}
+              accessibilityRole="link"
+            >
+              <Text style={s.privacyLinkText}>PRIVACY POLICY</Text>
+              <Feather name="external-link" size={13} color={ACCENT} />
+            </Pressable>
+            {consentQuery.data?.accepted ? (
+              <Pressable
+                style={s.withdrawBtn}
+                disabled={withdrawConsent.isPending}
+                onPress={() =>
+                  Alert.alert(
+                    "Withdraw AI analysis permission?",
+                    "This blocks future AI analysis. Existing reports and the rest of your account stay available.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      { text: "Withdraw", style: "destructive", onPress: () => withdrawConsent.mutate() },
+                    ],
+                  )
+                }
+              >
+                <Text style={s.withdrawText}>WITHDRAW AI PERMISSION</Text>
+              </Pressable>
+            ) : null}
             {email ? <Text style={s.emailText}>{email}</Text> : null}
             <Pressable
               style={({ pressed }) => [
@@ -829,6 +880,12 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#050505" },
   content: { paddingHorizontal: 20 },
   section: { marginBottom: 32 },
+  privacyHeading: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 2, color: "#aaa", marginBottom: 10 },
+  privacyCopy: { fontFamily: "Outfit", fontSize: 13, lineHeight: 20, color: "#777", marginBottom: 12 },
+  privacyLink: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
+  privacyLinkText: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 1.5, color: ACCENT },
+  withdrawBtn: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#222", paddingVertical: 13, marginBottom: 20 },
+  withdrawText: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 1.4, color: "#b05245" },
   emptyState: {
     fontFamily: "Outfit",
     fontSize: 14,
