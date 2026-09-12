@@ -13,6 +13,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-cont
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoginUpsellGate } from "@/components/LoginUpsellGate";
+import { AiConsentGate } from "@/components/AiConsentGate";
 import { FighterProvider } from "@/context/FighterContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { setApiBase, setTokenGetter } from "@/lib/api";
@@ -197,29 +198,31 @@ function RootLayoutNav() {
         <PurchasesSetup />
         <UserScopedQueryReset />
         <LoginUpsellGate />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#050505" } }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="splash" options={{ animation: "fade" }} />
-          <Stack.Screen name="sign-in" options={{ animation: "fade" }} />
-          <Stack.Screen name="sign-up" options={{ animation: "fade" }} />
-          <Stack.Screen name="onboarding" options={{ animation: "slide_from_right" }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="paywall"
-            options={{
-              animation: "slide_from_bottom",
-              presentation: "modal",
-            }}
-          />
-          <Stack.Screen
-            name="competition"
-            options={{
-              animation: "slide_from_bottom",
-              presentation: "modal",
-            }}
-          />
-          <Stack.Screen name="history" options={{ animation: "slide_from_right" }} />
-        </Stack>
+        <AiConsentGate>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#050505" } }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="splash" options={{ animation: "fade" }} />
+            <Stack.Screen name="sign-in" options={{ animation: "fade" }} />
+            <Stack.Screen name="sign-up" options={{ animation: "fade" }} />
+            <Stack.Screen name="onboarding" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="paywall"
+              options={{
+                animation: "slide_from_bottom",
+                presentation: "modal",
+              }}
+            />
+            <Stack.Screen
+              name="competition"
+              options={{
+                animation: "slide_from_bottom",
+                presentation: "modal",
+              }}
+            />
+            <Stack.Screen name="history" options={{ animation: "slide_from_right" }} />
+          </Stack>
+        </AiConsentGate>
         <SessionPersistenceNotice />
       </FighterProvider>
     </ErrorBoundary>

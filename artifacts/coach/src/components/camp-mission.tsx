@@ -1,15 +1,15 @@
 import { useRef, useState } from "react";
 import { HelpCircle, Lock, RefreshCcw, X } from "lucide-react";
-import { AiConsentModal } from "@/components/ai-consent-modal";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { useFramePlus } from "@/components/frame-plus-modal";
 import { useFighter } from "@/hooks/use-fighter";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   usePlanner,
   useRegeneratePlanner,
   useTogglePlannerItem,
 } from "@/hooks/use-planner";
-import { api, ApiError, type AiConsentStatus, type PlanCategory, type PlanItem } from "@/lib/api";
+import { api, ApiError, type PlanCategory, type PlanItem } from "@/lib/api";
 
 const CATEGORY_ORDER: PlanCategory[] = ["fix", "goal_step", "train", "technique", "regulate"];
 
@@ -63,13 +63,9 @@ export function CampMission() {
   const regen = useRegeneratePlanner();
   const toggle = useTogglePlannerItem();
   const [help, setHelp] = useState(false);
-  const [consentVisible, setConsentVisible] = useState(false);
-  const [consentStatus, setConsentStatus] = useState<AiConsentStatus | null>(null);
-  const [consentBusy, setConsentBusy] = useState(false);
-  const pendingGenerateRef = useRef(false);
   const generationInFlightRef = useRef(false);
-  const consentAcceptingRef = useRef(false);
   const { openUpgrade } = useFramePlus();
+  const queryClient = useQueryClient();
 
   const isPreview = planner.data?.preview === true;
   const plan = planner.data?.plan ?? null;
@@ -105,56 +101,22 @@ export function CampMission() {
     generationInFlightRef.current = true;
     try {
       const status = await api.getAiConsent();
-      setConsentStatus(status);
       if (!status.accepted) {
-        pendingGenerateRef.current = true;
-        setConsentVisible(true);
+        queryClient.setQueryData(["ai-consent"], status);
         return;
       }
       await runGeneration();
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.name === "ApiError" && (err as any).kind === "consent") {
+        queryClient.invalidateQueries({ queryKey: ["ai-consent"] });
+        return;
+      }
       generationInFlightRef.current = false;
-    }
-  }
-
-  async function acceptConsentAndGenerate() {
-    if (consentAcceptingRef.current) return;
-    if (!pendingGenerateRef.current) {
-      setConsentVisible(false);
-      generationInFlightRef.current = false;
-      return;
-    }
-    consentAcceptingRef.current = true;
-    setConsentBusy(true);
-    try {
-      const status = await api.setAiConsent(true);
-      setConsentStatus(status);
-      pendingGenerateRef.current = false;
-      setConsentVisible(false);
-      await runGeneration();
-    } catch {
-      // Keep the intent and modal available so the user can try again.
-      generationInFlightRef.current = false;
-    } finally {
-      setConsentBusy(false);
-      consentAcceptingRef.current = false;
     }
   }
 
   return (
     <>
-      {consentVisible && consentStatus && (
-        <AiConsentModal
-          status={consentStatus}
-          busy={consentBusy}
-          onAccept={() => void acceptConsentAndGenerate()}
-          onDecline={() => {
-            pendingGenerateRef.current = false;
-            generationInFlightRef.current = false;
-            setConsentVisible(false);
-          }}
-        />
-      )}
       <div className="space-y-5">
       {/* Fighter + regenerate row */}
       <div className="flex items-center justify-between">

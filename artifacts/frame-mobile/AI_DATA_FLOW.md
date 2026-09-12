@@ -10,8 +10,12 @@ answers, and App Review notes.
 FRAME may use **Anthropic (Claude)** and **OpenAI**, depending on the selected
 feature and provider. Before an account has accepted the current disclosure,
 nothing is sent to either processor. Consent is account-scoped and records the
-accepted disclosure version and timestamp. A missing timestamp, withdrawal, or
-older version blocks an AI request on the server.
+accepted disclosure version and timestamp. A missing timestamp, decline,
+withdrawal, or older version places the authenticated account behind the
+consent gate: FRAME does not provide normal authenticated use until the
+current disclosure is accepted. Authentication, legal pages, consent
+GET/PATCH, sign-out, and permanent account deletion remain reachable so the
+account can recover or be removed.
 
 The permission sheet renders the exact `sharedData` and `notShared` arrays
 returned by `GET /ai-consent`:
@@ -41,8 +45,10 @@ may be sent to Anthropic/Claude and/or OpenAI. An attached image or video may
 also be sent where applicable. Attachments are uploaded to FRAME first; that
 upload is not an AI request. The clients check `GET /ai-consent` before the
 first send, show the disclosure, and use `PATCH /ai-consent` with
-`{"accepted":true}` before resuming the pending message. Declining leaves the
-composer, attachments, and non-AI features usable.
+`{"accepted":true}` before resuming the pending message. A decline does not
+authorize authenticated FRAME use; it leaves the account at the consent gate
+until the current disclosure is accepted. Sign-out, consent controls, legal
+pages, and permanent account deletion remain available.
 
 Chat coaching can also produce planning, memory, spirit-animal, and other
 coaching results. The server checks current consent before the AI route and
@@ -64,12 +70,18 @@ deleted. The analysis route enforces consent before making an AI request.
 
 ## Server enforcement and user controls
 
-The server's reusable `requireAiConsent`/`hasAiConsentForUser` guard protects
-coach chat, analysis, planner generation, and consent-dependent memory work.
-It returns `AI_CONSENT_REQUIRED` when consent is absent or stale; the client
-must not treat a hidden or bypassed UI as authorization.
+The server's authenticated route gate and reusable
+`requireAiConsent`/`hasAiConsentForUser` guard protect coach chat, analysis,
+planner generation, and consent-dependent memory work. They return
+`AI_CONSENT_REQUIRED` when consent is absent or stale; the client must not
+treat a hidden or bypassed UI as authorization. The immediate provider-boundary
+checks remain in place immediately before provider calls.
 
-Users can decline the sheet and continue using non-AI features. Profile shows
-the current state, links to the privacy policy, and lets the user withdraw
-permission. Withdrawal blocks future AI paths; existing account data and
-reports remain until the user deletes them or the account.
+Declining the sheet, withdrawing permission, or becoming stale after a
+disclosure-version change returns the account to the consent gate. Profile
+shows the current state, links to the privacy policy, and lets the user review
+or accept the current disclosure. Withdrawal blocks future AI paths and
+authenticated FRAME use; existing account data and reports remain until the
+user deletes them or the account. Authentication, legal pages, consent
+GET/PATCH, sign-out, and permanent account deletion remain available while
+the account is gated.

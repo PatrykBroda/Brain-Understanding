@@ -154,6 +154,7 @@ export type ApiErrorKind =
   | "network"
   | "timeout"
   | "auth"
+  | "consent"
   | "payload"
   | "rate_limit"
   | "upgrade_required"
@@ -195,6 +196,22 @@ export class ApiError extends Error {
 }
 
 function classifyStatus(status: number, body: string): ApiError {
+  let parsed: any;
+  try {
+    parsed = JSON.parse(body);
+  } catch {}
+
+  if (status === 403 && parsed?.code === "AI_CONSENT_REQUIRED") {
+    return new ApiError({
+      kind: "consent",
+      status,
+      title: "AI Permission Required",
+      causes: [parsed.error || "AI consent is required before using this feature."],
+      retryable: false,
+      detail: body,
+    });
+  }
+
   if (status === 401 || status === 403) {
     return new ApiError({
       kind: "auth",
@@ -373,6 +390,7 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ accepted }),
     }),
+  deleteAccount: () => jsonFetch<{ deleted: boolean }>("api/account", { method: "DELETE" }),
   getFighter: () => jsonFetch<{ fighter: Fighter | null }>("api/fighter"),
   saveFighter: (input: FighterInput) =>
     jsonFetch<{ fighter: Fighter }>("api/fighter", {
@@ -726,6 +744,16 @@ export async function fetchRemoteVideo(url: string): Promise<File> {
     try {
       const parsed = JSON.parse(body);
       if (parsed?.error) msg = String(parsed.error);
+      if (res.status === 403 && parsed?.code === "AI_CONSENT_REQUIRED") {
+        throw new ApiError({
+          kind: "consent",
+          status: res.status,
+          title: "AI Permission Required",
+          causes: [msg || "AI consent is required before using this feature."],
+          retryable: false,
+          detail: body,
+        });
+      }
     } catch {}
     if (res.status === 401 || res.status === 403) {
       throw new ApiError({

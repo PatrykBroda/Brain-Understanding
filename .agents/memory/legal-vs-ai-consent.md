@@ -1,17 +1,23 @@
 ---
 name: Legal acceptance vs AI permission
-description: Keep mandatory account terms separate from optional third-party AI data-sharing permission.
+description: Keep account legal acceptance separate from the current mandatory authenticated-use AI permission.
 ---
 
 Account registration must require explicit acceptance of the current Terms of
-Service and Privacy Policy. Permission to share analysis data with Anthropic is
-a separate choice: it must not be bundled into account creation, and users can
-decline or withdraw it while retaining non-AI account functionality.
+Service and Privacy Policy. Permission to share relevant feature data with
+Anthropic/Claude or OpenAI remains a separate, versioned choice that is requested
+after authentication and before onboarding. A missing, declined, withdrawn, or
+stale AI consent state blocks normal authenticated FRAME use until the current
+disclosure is accepted.
 
-**Why:** Apple expects informed permission before third-party AI sharing and a
-real ability to decline. Bundling that optional data-sharing permission into
-mandatory account terms would undermine the disclosure and decline flow.
+**Why:** Apple requires informed permission before third-party AI sharing. The
+product owner later chose to make current AI permission a condition of using
+FRAME at all, while preserving a real choice to decline by leaving legal pages,
+sign-out, and permanent account deletion available.
 
 **How to apply:** Keep separate versions/timestamps and UI controls for legal
-acceptance and AI permission. A registration gate may require legal acceptance;
-an AI endpoint must independently require current AI permission.
+acceptance and AI permission. Require legal acceptance during registration, then
+gate onboarding and authenticated content on current AI consent. Keep Privacy,
+Terms, sign-out, consent controls, and permanent account deletion reachable
+without AI consent. Provider calls and retries must still independently recheck
+current consent immediately before transmission.

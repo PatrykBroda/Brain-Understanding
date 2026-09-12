@@ -1,5 +1,5 @@
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,12 +17,132 @@ import SplashPage from "@/pages/splash";
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
 import { useFighter } from "@/hooks/use-fighter";
-import { ApiError } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 import { setApiTokenGetter } from "@/lib/api";
 import { FramePlusProvider } from "@/components/frame-plus-modal";
 import { AuthProvider, useAuth } from "@/context/auth-context";
+import { useAiConsent, useSetAiConsent } from "@/hooks/use-ai-consent";
+import { AiConsentModal } from "@/components/ai-consent-modal";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function ConsentGate({ children }: { children: React.ReactNode }) {
+  const { data, isLoading, isError, error, refetch, isFetching } = useAiConsent();
+  const setConsent = useSetAiConsent();
+  const { signOut } = useAuth();
+  const [, setLocation] = useLocation();
+
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[100dvh] flex-col items-center justify-center gap-4 bg-background text-muted-foreground font-mono text-[10px] uppercase tracking-[0.3em]">
+        <span>Checking permissions</span>
+        <div className="frame-loader-track" role="status" aria-label="Loading">
+          <div className="frame-loader-bar" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    const isAuth = error instanceof ApiError && error.kind === "auth";
+    if (isAuth) {
+      return (
+        <div className="flex h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
+          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive">
+            Session not verified
+          </div>
+          <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+            The backend answered, but your sign-in couldn't be confirmed. Sign in
+            again to continue.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              signOut();
+              setLocation(`${basePath}/sign-in`);
+            }}
+            className="border-y border-foreground/40 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/90 transition-colors hover:border-foreground/80"
+          >
+            Sign in
+          </button>
+        </div>
+      );
+    }
+    return (
+      <div className="flex h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
+        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive">
+          Connection lost
+        </div>
+        <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+          The system couldn't reach the backend to check permissions.
+        </p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="border-y border-foreground/40 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/90 transition-colors hover:border-foreground/80 disabled:opacity-50"
+        >
+          {isFetching ? "Reconnecting" : "Retry"}
+        </button>
+      </div>
+    );
+  }
+
+  // If consent is not accepted, show the mandatory gate
+  if (data && !data.accepted) {
+    return (
+      <>
+        <AiConsentModal
+          status={data}
+          mandatory={true}
+          busy={isAccepting || isDeleting}
+          onAccept={async () => {
+            if (isAccepting || isDeleting) return;
+            setIsAccepting(true);
+            setAcceptError(null);
+            try {
+              await setConsent.mutateAsync(true);
+            } catch (err) {
+              setAcceptError(err instanceof Error ? err.message : "Failed to save permission.");
+            } finally {
+              setIsAccepting(false);
+            }
+          }}
+          onSignOut={async () => {
+            if (isAccepting || isDeleting) return;
+            await signOut();
+            setLocation(`${basePath}/sign-in`);
+          }}
+          onDeleteAccount={async () => {
+            if (isAccepting || isDeleting) return;
+            setIsDeleting(true);
+            setDeleteError(null);
+            try {
+              await api.deleteAccount();
+              await signOut();
+              setLocation(`${basePath}/sign-in`);
+            } catch (err) {
+              setDeleteError(err instanceof Error ? err.message : "Failed to delete account");
+              setIsDeleting(false);
+            }
+          }}
+        />
+        {(deleteError || acceptError) && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] bg-destructive/90 text-destructive-foreground px-4 py-2 text-xs font-mono tracking-wide rounded-md shadow-lg">
+            {deleteError || acceptError}
+          </div>
+        )}
+      </>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 function SplashGate({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
@@ -150,7 +270,11 @@ function Authed({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth();
   if (!isLoaded) return null;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
-  return <Gate>{children}</Gate>;
+  return (
+    <ConsentGate>
+      <Gate>{children}</Gate>
+    </ConsentGate>
+  );
 }
 
 function HomeRoute() {

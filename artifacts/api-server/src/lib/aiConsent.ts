@@ -1,7 +1,7 @@
 import type { AthleteFact, Fighter } from "@workspace/db";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 // This is deliberately a date rather than a semver: changing the disclosure
 // requires the user to review and accept it again.  The database column names
@@ -83,12 +83,39 @@ export class AiConsentRequiredError extends Error {
 export async function requireAiConsent(req: Request, res: Response): Promise<boolean> {
   const userId = req.userId;
   if (userId && (await hasAiConsentForUser(userId))) return true;
+  sendAiConsentRequired(res);
+  return false;
+}
+
+function sendAiConsentRequired(res: Response): void {
   res.status(403).json({
     error: "AI consent is required before using this feature.",
     code: "AI_CONSENT_REQUIRED",
     version: AI_CONSENT_VERSION,
   });
-  return false;
+}
+
+/**
+ * Authenticated FRAME routes are unavailable until the account has accepted
+ * the current disclosure. This is mounted only after the public/auth routes
+ * and the authenticated consent and account-deletion routes, so a user can
+ * always review/update consent or permanently delete the account.
+ *
+ * Provider-boundary callers still use requireAiConsent immediately before
+ * their provider request. This route guard is not a replacement for those
+ * checks: it protects authenticated navigation while the provider checks
+ * protect each individual transmission and retry boundary.
+ */
+export async function requireCurrentAiConsent(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  if (req.userId && (await hasAiConsentForUser(req.userId))) {
+    next();
+    return;
+  }
+  sendAiConsentRequired(res);
 }
 
 const PERFORMANCE_FACT_CATEGORIES = new Set([

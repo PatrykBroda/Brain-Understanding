@@ -52,7 +52,7 @@ export default function SignUpPage() {
             <div className="font-mono text-[15px] uppercase tracking-[0.18em] text-foreground/95 font-light">
               Create your FRAME account
             </div>
-            <label className="flex items-start gap-3 text-[11px] text-foreground/65 leading-relaxed">
+            <label className="flex items-start gap-3 text-[11px] text-foreground/65 leading-relaxed mt-4">
               <input
                 type="checkbox"
                 checked={acceptedLegal}
@@ -67,10 +67,10 @@ export default function SignUpPage() {
                 <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-primary underline">Privacy Policy and AI data-use disclosure</a>.
               </span>
             </label>
-            <p className="font-mono text-[9px] text-foreground/40 leading-relaxed">
-              AI coaching permission is optional and requested separately before any data is sent to Anthropic (Claude) or OpenAI.
+            <p className="font-mono text-[9px] text-foreground/40 leading-relaxed mt-3">
+              FRAME requires your permission to send data to AI providers (Anthropic and OpenAI). You will be prompted to grant this permission after sign-in.
             </p>
-            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/55 mt-1.5">
+            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/55 mt-3">
               Calibration system
             </div>
           </div>

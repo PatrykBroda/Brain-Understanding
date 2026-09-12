@@ -27,7 +27,12 @@ describe("AI analysis consent", () => {
 
   it("accepts only the current disclosure version with a timestamp", () => {
     expect(hasCurrentAiConsent(AI_ANALYSIS_CONSENT_VERSION, new Date())).toBe(true);
+    expect(
+      hasCurrentAiConsent(AI_CONSENT_VERSION, "2026-09-12T00:00:00.000Z"),
+    ).toBe(true);
     expect(hasCurrentAiConsent(AI_ANALYSIS_CONSENT_VERSION, null)).toBe(false);
+    expect(hasCurrentAiConsent(AI_ANALYSIS_CONSENT_VERSION, "")).toBe(false);
+    expect(hasCurrentAiConsent(AI_ANALYSIS_CONSENT_VERSION, undefined)).toBe(false);
     expect(hasCurrentAiConsent(AI_ANALYSIS_CONSENT_VERSION, "not-a-date")).toBe(false);
     expect(hasCurrentAiConsent("older-version", new Date())).toBe(false);
     expect(hasCurrentAiConsent(null, null)).toBe(false);

@@ -73,13 +73,14 @@ Install the recorded TestFlight build and use an Apple Sandbox tester:
    permission sheet before the first AI request.
 2. Verify the sheet names Anthropic (Claude) and OpenAI, says nothing goes to
    either before agreement, and lists the exact server-provided categories.
-3. Tap **Not now**. Confirm the message and any attachments remain available,
-   no coaching request starts, and non-AI navigation remains usable.
+3. Tap **Not now**. Confirm no coaching request starts and the account is
+   shown the consent gate. Authentication, legal pages, consent controls,
+   sign-out, and permanent account deletion remain reachable.
 4. Send again, tap **Agree & Continue**, and confirm the same pending message
    and attachments are sent once (not duplicated).
 5. Open **Analyse** from the bottom navigation and start a report. Confirm the
    same consent contract gates analysis and the report completes after
-   acceptance. Declining leaves other features usable.
+   acceptance. Declining returns the account to the consent gate.
 6. Open **Weekly Mission** and choose Generate or Regenerate. Confirm the same
    permission sheet appears before generation for an account without current
    consent, and that accepting resumes generation exactly once.
@@ -87,12 +88,18 @@ Install the recorded TestFlight build and use an Apple Sandbox tester:
    Open **Privacy Policy**, then choose **Withdraw AI Permission**. Confirm a
    later Chat send, Analyse submission, or Weekly Mission generation asks for
    consent again.
-8. Open **Profile** > **FRAME+** and confirm plans and localized prices appear.
-9. Complete a purchase and confirm FRAME+ unlocks.
-10. Sign out/reinstall as needed, use **Restore Purchases**, and confirm access
-   returns.
-11. Open **Profile** > **Delete Account**, capture both confirmation prompts,
-    complete deletion, and confirm return to Sign In.
+8. Sign out and sign back in as needed. Confirm a declined, withdrawn, or
+   stale-consent account remains at the consent gate until the current
+   disclosure is accepted, while consent GET/PATCH and account deletion remain
+   reachable.
+9. Open **Profile** > **FRAME+** after accepting the current disclosure and
+   confirm plans and localized prices appear.
+10. Complete a purchase and confirm FRAME+ unlocks.
+11. Sign out/reinstall as needed, use **Restore Purchases**, and confirm access
+    returns.
+12. Open **Profile** > **Delete Account**, capture both confirmation prompts,
+    complete deletion, and confirm return to Sign In even when consent is
+    declined or withdrawn.
 
 Test on an iPhone and an iPad-sized review device. Record the exact TestFlight
 version/build above; do not describe the binary as uploaded until that is true.
@@ -108,15 +115,17 @@ Replace bracketed values with the recorded App Store Connect identifiers:
 > Sandbox in TestFlight version `[VERSION]`, build `[BUILD]`. Restore Purchases
 > is available on both the FRAME+ screen and Profile.
 >
-> Before the first AI-powered Chat, Analyse, or Weekly Mission request, FRAME
-> presents a dedicated permission sheet naming Anthropic (Claude) and OpenAI
-> and listing the exact server-provided data categories. Choosing Not now
-> leaves the pending input and non-AI features usable and sends no AI request.
-> Choosing Agree & Continue records versioned consent before the pending
-> request continues exactly once. Users can review the privacy policy and
-> withdraw permission from Profile. The server rechecks the same current
-> consent immediately before chat, analysis, planning, and consent-dependent
-> memory provider calls.
+> Before authenticated FRAME use and before the first AI-powered Chat, Analyse,
+> or Weekly Mission request, FRAME presents a dedicated permission sheet naming
+> Anthropic (Claude) and OpenAI and listing the exact server-provided data
+> categories. Choosing Not now leaves the account at the consent gate and
+> sends no AI request. Authentication, legal pages, consent GET/PATCH,
+> sign-out, and permanent account deletion remain reachable. Choosing Agree &
+> Continue records versioned consent before authenticated use resumes. Users
+> can review the privacy policy and withdraw permission from Profile; a
+> declined, withdrawn, or stale account sees the gate again. The server
+> rechecks the same current consent immediately before chat, analysis,
+> planning, and consent-dependent memory provider calls.
 >
 > Permanent account deletion is available at Profile > Delete Account. The
 > attached physical-device recording shows sign-in, navigation to the option,

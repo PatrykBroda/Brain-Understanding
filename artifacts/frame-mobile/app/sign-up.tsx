@@ -103,9 +103,6 @@ export default function SignUpScreen() {
               <Text style={styles.policyLink}>VIEW PRIVACY & AI DATA USE</Text>
             </Pressable>
           </View>
-          <Text style={styles.aiNote}>
-            AI coaching permission is optional and requested separately before any data is sent to Anthropic (Claude) or OpenAI.
-          </Text>
           <TextInput
             style={styles.input}
             placeholder="Password (min 8 characters)"
@@ -218,12 +215,6 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 1,
-  },
-  aiNote: {
-    color: "#666",
-    fontFamily: "Outfit",
-    fontSize: 11,
-    lineHeight: 16,
   },
   errorText: {
     color: "#BF1D1D",

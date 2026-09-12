@@ -19,6 +19,7 @@ import authRouter from "./auth";
 import privacyRouter from "./privacy";
 import aiConsentRouter from "./aiConsent";
 import { requireAuth } from "../middlewares/authMiddleware";
+import { requireCurrentAiConsent } from "../lib/aiConsent";
 
 const router: IRouter = Router();
 
@@ -36,8 +37,17 @@ router.use(googlePublicRouter);
 // everything below requires a valid JWT
 router.use(requireAuth);
 
-router.use(fighterRouter);
+// These authenticated routes must remain reachable without current consent:
+// users need to be able to read/update consent and permanently delete their
+// account. Auth/sign-out and legal pages are mounted above requireAuth.
 router.use(aiConsentRouter);
+router.use(accountRouter);
+
+// All other authenticated FRAME use requires the current disclosure. Keep the
+// immediate provider-boundary checks in the individual AI services as well.
+router.use(requireCurrentAiConsent);
+
+router.use(fighterRouter);
 router.use(conversationRouter);
 router.use(calibrationRouter);
 router.use(memoryRouter);
@@ -48,7 +58,6 @@ router.use(reportRouter);
 router.use(competitionRouter);
 router.use(checkinRouter);
 router.use(billingRouter);
-router.use(accountRouter);
 router.use(googleRouter);
 router.use(coachRouter);
 

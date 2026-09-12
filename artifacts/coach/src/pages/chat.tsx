@@ -14,8 +14,7 @@ import { FrameWordmark } from "@/components/frame-wordmark";
 import { Button } from "@/components/ui/button";
 import { api, attachmentFileUrl, type AttachmentDto } from "@/lib/api";
 import { useAuthedObjectUrl } from "@/lib/useAuthedObjectUrl";
-import { AiConsentModal } from "@/components/ai-consent-modal";
-import type { AiConsentStatus } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   { label: "Analyse session", prompt: "Debrief my last training session — what fragmented, what held, what's the next rep." },
@@ -124,14 +123,10 @@ export default function ChatPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [consentVisible, setConsentVisible] = useState(false);
-  const [consentStatus, setConsentStatus] = useState<AiConsentStatus | null>(null);
-  const [consentBusy, setConsentBusy] = useState(false);
-  const pendingSendRef = useRef<{ content: string; attachments: AttachmentDto[] } | null>(null);
   // State updates are asynchronous, so use a synchronous guard to cover the
   // awaited consent lookup and the complete stream lifecycle.
   const sendInFlightRef = useRef(false);
-  const consentAcceptingRef = useRef(false);
+  const queryClient = useQueryClient();
 
   // Only reset drafts when the fighter changes — do NOT reset entryActive.
   useEffect(() => {
@@ -181,48 +176,22 @@ export default function ChatPage() {
     let waitingForConsent = false;
     try {
       const status = await api.getAiConsent();
-      setConsentStatus(status);
       if (!status.accepted) {
-        pendingSendRef.current = { content, attachments };
-        setConsentVisible(true);
+        queryClient.setQueryData(["ai-consent"], status);
         waitingForConsent = true;
         return false;
       }
       return await sendMessage(content, attachments);
     } catch (err) {
+      if (err instanceof Error && err.name === "ApiError" && (err as any).kind === "consent") {
+        queryClient.invalidateQueries({ queryKey: ["ai-consent"] });
+        waitingForConsent = true;
+        return false;
+      }
       setUploadError(err instanceof Error ? err.message : "Could not check AI permission.");
       return false;
     } finally {
       if (!waitingForConsent) sendInFlightRef.current = false;
-    }
-  };
-
-  const acceptConsentAndSend = async () => {
-    if (consentAcceptingRef.current) return;
-    const pending = pendingSendRef.current;
-    if (!pending) {
-      setConsentVisible(false);
-      sendInFlightRef.current = false;
-      return;
-    }
-    consentAcceptingRef.current = true;
-    setConsentBusy(true);
-    try {
-      const status = await api.setAiConsent(true);
-      setConsentStatus(status);
-      pendingSendRef.current = null;
-      setConsentVisible(false);
-      const sent = await sendMessage(pending.content, pending.attachments);
-      if (sent) {
-        setDrafts((drafts) => drafts.filter((d) => !pending.attachments.some((a) => a.id === d.id)));
-      }
-    } catch (err) {
-      sendInFlightRef.current = false;
-      setUploadError(err instanceof Error ? err.message : "Could not save AI permission.");
-    } finally {
-      setConsentBusy(false);
-      consentAcceptingRef.current = false;
-      sendInFlightRef.current = false;
     }
   };
 
@@ -264,18 +233,6 @@ export default function ChatPage() {
 
   return (
     <>
-      {consentVisible && consentStatus && (
-        <AiConsentModal
-          status={consentStatus}
-          busy={consentBusy}
-          onAccept={() => void acceptConsentAndSend()}
-          onDecline={() => {
-            pendingSendRef.current = null;
-            sendInFlightRef.current = false;
-            setConsentVisible(false);
-          }}
-        />
-      )}
       {entryActive && (
         <EntrySequence
           fighterName={fighter?.name ?? null}

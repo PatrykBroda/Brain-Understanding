@@ -348,10 +348,6 @@ export default function ProfileScreen() {
     mutationFn: () => apiPatch<AiConsentStatus>("/ai-consent", { accepted: false }),
     onSuccess: (status) => {
       qc.setQueryData(["ai-consent"], status);
-      Alert.alert(
-        "Permission withdrawn",
-        "Future AI coaching is now blocked. Your existing reports remain in your account.",
-      );
     },
   });
 
@@ -797,9 +793,7 @@ export default function ProfileScreen() {
           <View style={s.section}>
             <Text style={s.privacyHeading}>AI COACHING & PRIVACY</Text>
             <Text style={s.privacyCopy}>
-              {consentQuery.data?.accepted
-                ? "AI coaching permission is active. Depending on the feature, FRAME may share the exact categories shown in the permission disclosure with Anthropic/Claude or OpenAI."
-                : "AI coaching permission is not active. Nothing is sent to Anthropic/Claude or OpenAI for AI coaching until you agree in the permission sheet."}
+              FRAME uses AI coaching services. Depending on the feature, FRAME may share the exact categories shown in the permission disclosure with Anthropic (Claude) or OpenAI.
             </Text>
             <Pressable
               style={s.privacyLink}
@@ -824,7 +818,7 @@ export default function ProfileScreen() {
                 onPress={() =>
                   Alert.alert(
                     "Withdraw AI coaching permission?",
-                    "This blocks future AI coaching. Existing reports and non-AI features stay available.",
+                    "Withdrawing permission will immediately restrict your access to FRAME until you re-accept.",
                     [
                       { text: "Cancel", style: "cancel" },
                       { text: "Withdraw", style: "destructive", onPress: () => withdrawConsent.mutate() },

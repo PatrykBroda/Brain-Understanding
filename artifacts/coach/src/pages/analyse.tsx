@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Upload, Film, Crosshair, X, Download, ArrowUpRight, ArrowDownRight, Minus, Link2, Lock, ScrollText } from "lucide-react";
 import { toPng } from "html-to-image";
 import {
@@ -129,6 +130,7 @@ export default function AnalysePage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const mobileScrollRef = useRef<HTMLElement>(null);
   const desktopRightScrollRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   const [kind, setKind] = useState<AnalysisKind>("sparring");
   const [focus, setFocus] = useState("");
@@ -228,13 +230,8 @@ export default function AnalysePage() {
     try {
       const consent = await api.getAiConsent();
       if (!consent.accepted) {
-        const shared = consent.disclosure.sharedData.map((item) => `• ${item}`).join("\n");
-        const notShared = consent.disclosure.notShared.map((item) => `• ${item}`).join("\n");
-        const agreed = window.confirm(
-          `AI coaching permission\n\nFRAME uses Anthropic (Claude) and OpenAI services for AI coaching. Nothing is sent to either before you agree.\n\nWHAT MAY BE SENT\n${shared}\n\nWHAT IS NOT SENT\n${notShared}\n\nChoose OK to agree and continue. You can decline and keep using non-AI features. You can withdraw permission from Profile.`,
-        );
-        if (!agreed) return;
-        await api.setAiConsent(true);
+        queryClient.setQueryData(["ai-consent"], consent);
+        return;
       }
       setPhase({ stage: "reading", pct: 0 });
       extract = await extractPoseFrames(file, (p) => {
@@ -300,7 +297,10 @@ export default function AnalysePage() {
         setVideoUrl(url);
       }
     } catch (err) {
-      if (err instanceof ApiError && err.kind === "upgrade_required") {
+      if (err instanceof ApiError && err.kind === "consent") {
+        queryClient.invalidateQueries({ queryKey: ["ai-consent"] });
+        setPhase({ stage: "idle" });
+      } else if (err instanceof ApiError && err.kind === "upgrade_required") {
         setPhase({ stage: "idle" });
         openUpgrade(err.feature || "video_analysis");
       } else {
@@ -330,6 +330,11 @@ export default function AnalysePage() {
     try {
       file = await fetchRemoteVideo(trimmed);
     } catch (err) {
+      if (err instanceof ApiError && err.kind === "consent") {
+        queryClient.invalidateQueries({ queryKey: ["ai-consent"] });
+        setPhase({ stage: "idle" });
+        return;
+      }
       if (err instanceof ApiError && err.kind === "upgrade_required") {
         setPhase({ stage: "idle" });
         openUpgrade(err.feature || "video_analysis");

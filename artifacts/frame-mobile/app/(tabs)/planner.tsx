@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { apiGet, apiPatch, apiPost, apiUrl } from "@/lib/api";
+import { apiGet, apiPatch, apiPost, apiUrl, ApiError } from "@/lib/api";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 import { toIso } from "@/lib/dateUtils";
@@ -1394,7 +1394,10 @@ function MissionContent() {
         return;
       }
       await runGeneration();
-    } catch {
+    } catch (e: unknown) {
+      if (e instanceof ApiError && e.code === "AI_CONSENT_REQUIRED") {
+        qc.setQueryData(["ai-consent"], { accepted: false });
+      }
       setGenerating(false);
       generationInFlightRef.current = false;
     }
@@ -1411,6 +1414,7 @@ function MissionContent() {
     setConsentBusy(true);
     try {
       const status = await apiPatch<AiConsentStatus>("/ai-consent", { accepted: true });
+      qc.setQueryData(["ai-consent"], status);
       setConsentStatus(status);
       pendingGenerationRef.current = false;
       setConsentVisible(false);
@@ -1447,6 +1451,7 @@ function MissionContent() {
           generationInFlightRef.current = false;
           setGenerating(false);
           setConsentVisible(false);
+          qc.setQueryData(["ai-consent"], { accepted: false });
         }}
         onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
       />

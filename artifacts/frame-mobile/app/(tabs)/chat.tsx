@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import {
   ApiError,
@@ -303,6 +304,7 @@ interface ConversationResponse {
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const qc = useQueryClient();
   const { fighter } = useFighter();
   const { isSignedIn } = useAuth();
 
@@ -433,6 +435,10 @@ export default function ChatScreen() {
         }
       } catch (e: unknown) {
         sendInFlightRef.current = false;
+        if (e instanceof ApiError && e.code === "AI_CONSENT_REQUIRED") {
+          qc.setQueryData(["ai-consent"], { accepted: false });
+          return false;
+        }
         setMessages((prev) => [
           ...prev,
           {
@@ -538,6 +544,10 @@ export default function ChatScreen() {
       streamSucceeded = sawDone && !serverError && !timedOut;
     } catch (err) {
       setShowTyping(false);
+      if (err instanceof ApiError && err.code === "AI_CONSENT_REQUIRED") {
+        qc.setQueryData(["ai-consent"], { accepted: false });
+        return false;
+      }
       // Free-tier daily coaching limit: not a failed turn. Drop the optimistic
       // user bubble, restore the draft so nothing is lost, and open the paywall
       // — mirroring the web client instead of a misleading "connection" error.
@@ -577,6 +587,7 @@ export default function ChatScreen() {
     setConsentBusy(true);
     try {
       const status = await apiPatch<AiConsentStatus>("/ai-consent", { accepted: true });
+      qc.setQueryData(["ai-consent"], status);
       setConsentStatus(status);
       pendingSendRef.current = null;
       setConsentVisible(false);
@@ -692,8 +703,9 @@ export default function ChatScreen() {
       onAccept={() => void acceptConsentAndSend()}
       onDecline={() => {
         pendingSendRef.current = null;
-         sendInFlightRef.current = false;
+        sendInFlightRef.current = false;
         setConsentVisible(false);
+        qc.setQueryData(["ai-consent"], { accepted: false });
       }}
       onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
     />

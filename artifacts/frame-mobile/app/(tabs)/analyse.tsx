@@ -18,7 +18,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiPost } from "@/lib/api";
+import { apiGet, apiPost, ApiError } from "@/lib/api";
 import { apiPatch, apiUrl } from "@/lib/api";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
@@ -511,6 +511,10 @@ export default function AnalyseScreen() {
         return;
       }
     } catch (e: unknown) {
+      if (e instanceof ApiError && e.code === "AI_CONSENT_REQUIRED") {
+        qc.setQueryData(["ai-consent"], { accepted: false });
+        return;
+      }
       setError((e as Error).message ?? "Could not check AI coaching permission.");
       return;
     }
@@ -521,6 +525,7 @@ export default function AnalyseScreen() {
     setConsentBusy(true);
     try {
       const status = await apiPatch<AiConsentStatus>("/ai-consent", { accepted: true });
+      qc.setQueryData(["ai-consent"], status);
       setConsentStatus(status);
       setConsentVisible(false);
       await performSubmit();
@@ -791,7 +796,10 @@ export default function AnalyseScreen() {
       status={consentStatus}
       busy={consentBusy}
       onAccept={() => void acceptConsentAndSubmit()}
-      onDecline={() => setConsentVisible(false)}
+      onDecline={() => {
+        setConsentVisible(false);
+        qc.setQueryData(["ai-consent"], { accepted: false });
+      }}
       onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
     />
     <ScrollView
