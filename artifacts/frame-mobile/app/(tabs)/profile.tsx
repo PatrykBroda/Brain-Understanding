@@ -28,6 +28,7 @@ import { primaryFocus } from "@/lib/primaryFocus";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
 import { ProfileEditModal } from "@/components/ProfileEditModal";
+import { isBjjSport } from "@/lib/fighterOptions";
 import { useEntitlement, useSyncBilling } from "@/hooks/useEntitlement";
 import { restorePurchases, hasFramePlus } from "@/lib/purchases";
 import {
@@ -538,8 +539,8 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {/* RANK — the belt IS the identity */}
-          {fighter.level ? (
+          {/* BJJ rank is shown only to BJJ athletes. */}
+          {fighter.level && isBjjSport(fighter.primarySport) ? (
             <View style={s.beltCard}>
               <Belt level={fighter.level} showMeaning />
             </View>

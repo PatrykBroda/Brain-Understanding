@@ -22,24 +22,12 @@ import {
 } from "@/lib/dateOfBirth";
 import { commitFighterProfile } from "@/lib/fighterProfileCache";
 import { shouldLeaveOnboarding } from "@/lib/onboardingRoute";
-
-const SPORTS = [
-  { key: "bjj", label: "BJJ" },
-  { key: "mma", label: "MMA" },
-  { key: "boxing", label: "Boxing" },
-  { key: "muay_thai", label: "Muay Thai" },
-  { key: "wrestling", label: "Wrestling" },
-  { key: "judo", label: "Judo" },
-  { key: "kickboxing", label: "Kickboxing" },
-];
-
-const BELTS = [
-  { key: "white", label: "White" },
-  { key: "blue", label: "Blue" },
-  { key: "purple", label: "Purple" },
-  { key: "brown", label: "Brown" },
-  { key: "black", label: "Black" },
-];
+import {
+  SPORTS,
+  defaultLevelForSport,
+  levelLabelForSport,
+  levelsForSport,
+} from "@/lib/fighterOptions";
 
 const FREQS = [
   { key: "1-2", label: "1-2x / week" },
@@ -138,7 +126,7 @@ export default function OnboardingScreen() {
     year: "",
   });
   const [sport, setSport] = useState("bjj");
-  const [belt, setBelt] = useState("white");
+  const [level, setLevel] = useState(() => defaultLevelForSport("bjj"));
   const [freq, setFreq] = useState("3-4");
   const [goals, setGoals] = useState("");
   const [weaknesses, setWeaknesses] = useState("");
@@ -208,11 +196,11 @@ export default function OnboardingScreen() {
           dateOfBirth: dobDate,
           art: sport,
           primarySport: sport,
-          level: belt,
+          level,
           trainingFrequency: freq,
           goals: goals.trim() || null,
           weaknesses: weaknesses.trim() || null,
-          personality: `Training ${freq} per week. Sport: ${sport}. Belt: ${belt}.`,
+          personality: `Training ${freq} per week. Sport: ${sport}. ${levelLabelForSport(sport)}: ${level}.`,
         });
 
       if (!userId || !response.fighter) {
@@ -312,10 +300,23 @@ export default function OnboardingScreen() {
       {step === 2 && (
         <View style={styles.section}>
           <Text style={styles.label}>PRIMARY SPORT</Text>
-          <ChipSelector options={SPORTS} value={sport} onSelect={setSport} />
+          <ChipSelector
+            options={SPORTS}
+            value={sport}
+            onSelect={(nextSport) => {
+              setSport(nextSport);
+              setLevel(defaultLevelForSport(nextSport));
+            }}
+          />
 
-          <Text style={[styles.label, { marginTop: 28 }]}>BELT / LEVEL</Text>
-          <ChipSelector options={BELTS} value={belt} onSelect={setBelt} />
+          <Text style={[styles.label, { marginTop: 28 }]}>
+            {levelLabelForSport(sport)}
+          </Text>
+          <ChipSelector
+            options={levelsForSport(sport)}
+            value={level}
+            onSelect={setLevel}
+          />
         </View>
       )}
 

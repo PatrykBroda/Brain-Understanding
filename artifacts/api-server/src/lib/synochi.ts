@@ -375,7 +375,7 @@ export function buildDynamicContext(
     fighter.age > 0 ? `Age: ${fighter.age}` : null,
     fighter.primarySport ? `Primary combat sport: ${sportLabel(fighter.primarySport)}` : null,
     `Art: ${fighter.art}`,
-    `Level: ${fighter.level}`,
+    `${fighter.primarySport === "bjj" ? "BJJ belt" : "Experience / rank"}: ${fighter.level}`,
     `Training frequency: ${fighter.trainingFrequency}`,
     fighter.gym ? `Gym / team: ${fighter.gym}` : null,
     fighter.heightCm ? `Height: ${fighter.heightCm} cm` : null,

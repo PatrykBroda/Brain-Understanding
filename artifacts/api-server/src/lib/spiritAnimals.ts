@@ -30,7 +30,7 @@ const SYSTEM = `You read a martial artist's self-description and assign them a s
 
 Pick the ONE animal whose essence best matches how this person actually moves, thinks, and fights — weighing their personality description most heavily, then their art, level, goals, and weaknesses.
 
-Then write a tagline: ONE short line, 6-12 words, that names what kind of fighter they are. It should land like a coach's read — specific, a little dry-humoured, never flattering, never robotic. NO emojis. Do not restate their age or belt. Do not say "you are a..." — just state the read.
+Then write a tagline: ONE short line, 6-12 words, that names what kind of fighter they are. It should land like a coach's read — specific, a little dry-humoured, never flattering, never robotic. NO emojis. Do not restate their age or rank. Do not say "you are a..." — just state the read.
 
 Good taglines: "All forward gears, no reverse." / "Patient until it is suddenly over." / "Wins the war by never speeding up."
 Bad taglines: "A 27 year old blue belt who likes BJJ." / "You are very strong and skilled!"
@@ -56,7 +56,7 @@ export async function deriveSpiritAnimal(
   fighter: Pick<
     Fighter,
     "name" | "age" | "art" | "level" | "trainingFrequency" | "goals" | "weaknesses" | "personality" | "competes"
-  > & { userId?: string },
+  > & { userId?: string; primarySport?: string | null },
   log: Logger,
 ): Promise<{ animal: SpiritAnimalKey; tagline: string } | null> {
   try {
@@ -67,7 +67,7 @@ export async function deriveSpiritAnimal(
 ${bestiary}
 
 ATHLETE:
-art: ${fighter.art} | level: ${fighter.level} | trains: ${fighter.trainingFrequency} | competes: ${fighter.competes}
+  art: ${fighter.art} | ${fighter.primarySport === "bjj" ? "BJJ belt" : "experience / rank"}: ${fighter.level} | trains: ${fighter.trainingFrequency} | competes: ${fighter.competes}
 goals: ${fighter.goals || "(none stated)"}
 weaknesses: ${fighter.weaknesses || "(none stated)"}
 personality, in their own words: ${fighter.personality || "(none given)"}

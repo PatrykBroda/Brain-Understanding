@@ -23,13 +23,14 @@ import {
   Trash2,
 } from "lucide-react";
 import { api, heroFileUrl } from "@/lib/api";
+import { isBjjSport } from "@/lib/fighter-options";
 import { AuthedImage } from "@/components/authed-image";
 import { useAuth } from "@/context/auth-context";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 // ─── Profile = who I am, in one glance. ──────────────────────────────────────
-// Identity (archetype · belt · mode), one Focus line, one Strength line,
+// Identity (archetype · BJJ belt when applicable · mode), one Focus line, one Strength line,
 // Continue Calibration. Everything deeper lives in Analyse — the laboratory.
 
 function LineItem({
@@ -259,10 +260,11 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* ─── RANK — the belt IS the identity ───────────────── */}
-              <div className="border-x border-b border-white/[0.08] px-4 py-4">
-                <Belt level={fighter.level} showMeaning />
-              </div>
+              {isBjjSport(fighter.primarySport) && (
+                <div className="border-x border-b border-white/[0.08] px-4 py-4">
+                  <Belt level={fighter.level} showMeaning />
+                </div>
+              )}
 
               {/* ─── FOCUS · STRENGTH ──────────────────────────────── */}
               <div className="border-x border-b border-white/[0.08] divide-y divide-white/[0.06]">

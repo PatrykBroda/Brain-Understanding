@@ -2,6 +2,7 @@ import { forwardRef } from "react";
 import { beltKey } from "@/components/belt";
 import type { BeltKey } from "@workspace/archetypes";
 import type { Fighter, VideoAnalysis, NervousSystemLoad } from "@/lib/api";
+import { isBjjSport } from "@/lib/fighter-options";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -40,7 +41,7 @@ export const FrameReportCard = forwardRef<
   HTMLDivElement,
   { analysis: VideoAnalysis; fighter: Fighter | null }
 >(function FrameReportCard({ analysis, fighter }, ref) {
-  const key = fighter ? beltKey(fighter.level) : null;
+  const key = fighter && isBjjSport(fighter.primarySport) ? beltKey(fighter.level) : null;
   const accent = key ? BELT_ACCENT[key] : "#c4382e";
   const spirit = fighter?.spiritAnimal ? `${basePath}/spirit/${fighter.spiritAnimal}.png` : null;
 

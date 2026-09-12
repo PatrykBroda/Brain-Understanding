@@ -3,10 +3,8 @@ import { StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Defs, RadialGradient as SvgRadialGradient, Rect, Stop } from "react-native-svg";
 
-// Belt psychology — ported verbatim from @workspace/archetypes (the web's
-// source of truth). FRAME spans all combat sports, so rank is the universal
-// coloured progression; the athlete's real held belt maps into it, higher
-// belts stay dormant to create aspiration without fabricating progress.
+// BJJ belt psychology — ported verbatim from @workspace/archetypes (the web's
+// source of truth). This component is rendered only for BJJ athletes.
 const BELT_PSYCHOLOGY = [
   {
     key: "white",

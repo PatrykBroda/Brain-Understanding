@@ -15,27 +15,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiPatch } from "@/lib/api";
 import type { Fighter } from "@/context/FighterContext";
+import {
+  SPORTS,
+  LEGACY_SPORTS,
+  defaultLevelForSport,
+  levelLabelForSport,
+  levelsForSport,
+} from "@/lib/fighterOptions";
 
-const SPORTS = [
-  { key: "bjj", label: "BJJ" },
-  { key: "mma", label: "MMA" },
-  { key: "boxing", label: "Boxing" },
-  { key: "muay_thai", label: "Muay Thai" },
-  { key: "kickboxing", label: "Kickboxing" },
-  { key: "wrestling", label: "Wrestling" },
-  { key: "judo", label: "Judo" },
-  { key: "karate", label: "Karate" },
-  { key: "mixed", label: "Mixed" },
-];
-
-const LEVELS = [
-  { key: "White", label: "White" },
-  { key: "Blue", label: "Blue" },
-  { key: "Purple", label: "Purple" },
-  { key: "Brown", label: "Brown" },
-  { key: "Black", label: "Black" },
-  { key: "No belt / other", label: "No belt / other" },
-];
+const PROFILE_SPORTS = [...SPORTS, ...LEGACY_SPORTS];
 
 const FREQS = [
   { key: "1-2x / week", label: "1-2x" },
@@ -99,7 +87,7 @@ function toForm(f: Fighter): FormState {
   return {
     primarySport: f.primarySport ?? "bjj",
     art: f.art ?? f.primarySport ?? "bjj",
-    level: f.level ?? "White",
+    level: f.level ?? defaultLevelForSport(f.primarySport),
     trainingFrequency: f.trainingFrequency ?? "3-4x / week",
     goals: f.goals ?? "",
     weaknesses: f.weaknesses ?? "",
@@ -181,19 +169,23 @@ export function ProfileEditModal({
           <View style={styles.field}>
             <Text style={styles.label}>COMBAT SPORT</Text>
             <ChipSelector
-              options={SPORTS}
+              options={PROFILE_SPORTS}
               value={form.primarySport}
               onSelect={(k) => {
-                set("primarySport", k);
-                set("art", k);
+                setForm((current) => ({
+                  ...current,
+                  primarySport: k,
+                  art: k,
+                  level: defaultLevelForSport(k),
+                }));
               }}
             />
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>BELT / LEVEL</Text>
+            <Text style={styles.label}>{levelLabelForSport(form.primarySport)}</Text>
             <ChipSelector
-              options={LEVELS}
+              options={levelsForSport(form.primarySport)}
               value={form.level}
               onSelect={(k) => set("level", k)}
             />

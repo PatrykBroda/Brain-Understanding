@@ -60,6 +60,16 @@ export function levelsForSport(sport: string): string[] {
   }
 }
 
+export function isBjjSport(sport: string | null | undefined): boolean {
+  return sport?.trim().toLowerCase() === "bjj";
+}
+
+export function levelLabelForSport(sport: string | null | undefined): string {
+  if (isBjjSport(sport)) return "BJJ belt";
+  if (sport?.trim().toLowerCase() === "judo") return "Rank";
+  return "Experience level";
+}
+
 // Optional multi-select "Training background" — other arts the athlete has trained.
 // Same sport list as the primary select (labels are what gets stored).
 export const TRAINING_BACKGROUND_OPTIONS = SPORTS.map((s) => s.label);

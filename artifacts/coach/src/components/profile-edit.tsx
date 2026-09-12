@@ -4,6 +4,7 @@ import { useUpdateFighter } from "@/hooks/use-fighter";
 import type { Fighter, FighterUpdate } from "@/lib/api";
 import {
   levelsForSport,
+  levelLabelForSport,
   FREQUENCIES,
   SPORTS,
   SPORT_STYLE_QUESTIONS,
@@ -283,7 +284,15 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
           <select
             className={INPUT_CLASS}
             value={form.primarySport}
-            onChange={(e) => set("primarySport", e.target.value)}
+            onChange={(e) => {
+              const sport = e.target.value;
+              setForm((current) => ({
+                ...current,
+                primarySport: sport,
+                art: sport ? sportLabel(sport) : current.art,
+                level: levelsForSport(sport || "mma")[0],
+              }));
+            }}
           >
             <option value="">Not set</option>
             {/* Legacy sports (karate/sambo/mixed…) are no longer offered, but the
@@ -299,19 +308,17 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
           </select>
         </div>
         <div>
-          <label className={FIELD_LABEL}>Skill level</label>
+          <label className={FIELD_LABEL}>
+            {levelLabelForSport(form.primarySport)}
+          </label>
           <select
             className={INPUT_CLASS}
             value={form.level}
             onChange={(e) => set("level", e.target.value)}
           >
             {(() => {
-              // Level ladders differ per sport — keep the stored value selectable
-              // even when it isn't in the current sport's ladder (legacy profiles).
               const opts = levelsForSport(form.primarySport || "mma");
-              return form.level && !opts.includes(form.level)
-                ? [form.level, ...opts]
-                : opts;
+              return opts;
             })().map((l) => (
               <option key={l} value={l}>
                 {l}

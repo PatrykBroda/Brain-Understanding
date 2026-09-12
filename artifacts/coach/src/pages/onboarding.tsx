@@ -7,6 +7,7 @@ import {
   SPORTS,
   TRAINING_BACKGROUND_OPTIONS,
   levelsForSport,
+  levelLabelForSport,
   sportLabel,
   ageFromDob,
 } from "@/lib/fighter-options";
@@ -278,7 +279,9 @@ export default function OnboardingPage() {
                 </select>
               </div>
               <div>
-                <label className={FIELD_LABEL}>Skill Level</label>
+                <label className={FIELD_LABEL}>
+                  {levelLabelForSport(form.primarySport)}
+                </label>
                 <select
                   className={INPUT_CLASS}
                   value={form.level}
@@ -323,7 +326,7 @@ export default function OnboardingPage() {
                 className={`${INPUT_CLASS} min-h-[72px] resize-y`}
                 value={form.goals}
                 onChange={(e) => update("goals", e.target.value)}
-                placeholder="e.g. compete at IBJJF blue belt, stop gassing in round 3, build a real top game"
+                placeholder="e.g. compete this season, stop gassing in round 3, build a reliable A-game"
               />
             </div>
 

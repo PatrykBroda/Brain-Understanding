@@ -4,10 +4,8 @@ export function beltKey(level: string): BeltKey | null {
   return beltKeyOf(level);
 }
 
-// The full aspirational rank ladder. FRAME spans all combat sports, so the
-// ladder is the universal coloured progression (white -> black). The athlete's
-// real held belt (BJJ-style key) is mapped into it; future belts stay dormant
-// to create aspiration without fabricating progress numbers.
+// BJJ rank ladder. This component is rendered only for athletes whose primary
+// sport is BJJ; other combat sports use their own experience or rank language.
 type LadderRung = { key: string; label: string; cloth: string; ink: string };
 
 const LADDER: LadderRung[] = [
