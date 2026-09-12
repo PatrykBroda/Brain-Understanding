@@ -39,11 +39,15 @@ current offering.
 Record the actual values after the build is created and distributed. These
 placeholders are intentionally not a claim that a build has been uploaded:
 
-- App Store version: `[RECORD VERSION, e.g. 1.0.0]`
+- App Store version: `1.0.4`
 - iOS build number: `[RECORD BUILD NUMBER]`
-- TestFlight upload status: `[NOT UPLOADED / UPLOADED — RECORD DATE]`
+- TestFlight upload status: `NOT UPLOADED — publish with Expo Launch, then record the upload date`
 - TestFlight processing status: `[RECORD STATUS]`
 - Review device(s): `[RECORD iPhone/iPad models and iOS versions]`
+
+The production profile keeps `autoIncrement: true`, so Expo Launch will assign
+a new iOS build number. Do not replace the build-number placeholder until the
+new build appears in App Store Connect.
 
 ## AI data disclosure
 
@@ -76,14 +80,18 @@ Install the recorded TestFlight build and use an Apple Sandbox tester:
 5. Open **Analyse** from the bottom navigation and start a report. Confirm the
    same consent contract gates analysis and the report completes after
    acceptance. Declining leaves other features usable.
-6. Open **Profile** from the bottom navigation > **AI Coaching & Privacy**.
+6. Open **Weekly Mission** and choose Generate or Regenerate. Confirm the same
+   permission sheet appears before generation for an account without current
+   consent, and that accepting resumes generation exactly once.
+7. Open **Profile** from the bottom navigation > **AI Coaching & Privacy**.
    Open **Privacy Policy**, then choose **Withdraw AI Permission**. Confirm a
-   later Chat send and later Analyse submission ask for consent again.
-7. Open **Profile** > **FRAME+** and confirm plans and localized prices appear.
-8. Complete a purchase and confirm FRAME+ unlocks.
-9. Sign out/reinstall as needed, use **Restore Purchases**, and confirm access
+   later Chat send, Analyse submission, or Weekly Mission generation asks for
+   consent again.
+8. Open **Profile** > **FRAME+** and confirm plans and localized prices appear.
+9. Complete a purchase and confirm FRAME+ unlocks.
+10. Sign out/reinstall as needed, use **Restore Purchases**, and confirm access
    returns.
-10. Open **Profile** > **Delete Account**, capture both confirmation prompts,
+11. Open **Profile** > **Delete Account**, capture both confirmation prompts,
     complete deletion, and confirm return to Sign In.
 
 Test on an iPhone and an iPad-sized review device. Record the exact TestFlight
@@ -100,14 +108,15 @@ Replace bracketed values with the recorded App Store Connect identifiers:
 > Sandbox in TestFlight version `[VERSION]`, build `[BUILD]`. Restore Purchases
 > is available on both the FRAME+ screen and Profile.
 >
-> Before the first AI-powered Chat or Analyse request, FRAME presents a
-> dedicated permission sheet naming Anthropic (Claude) and OpenAI and listing
-> the exact server-provided data categories. Choosing Not now leaves the
-> composer and non-AI features usable and sends no AI request. Choosing Agree
-> & Continue records versioned consent before the pending request continues.
-> Users can review the privacy policy and withdraw permission from Profile.
-> The server enforces the same current consent for chat, analysis, planning,
-> and consent-dependent memory work.
+> Before the first AI-powered Chat, Analyse, or Weekly Mission request, FRAME
+> presents a dedicated permission sheet naming Anthropic (Claude) and OpenAI
+> and listing the exact server-provided data categories. Choosing Not now
+> leaves the pending input and non-AI features usable and sends no AI request.
+> Choosing Agree & Continue records versioned consent before the pending
+> request continues exactly once. Users can review the privacy policy and
+> withdraw permission from Profile. The server rechecks the same current
+> consent immediately before chat, analysis, planning, and consent-dependent
+> memory provider calls.
 >
 > Permanent account deletion is available at Profile > Delete Account. The
 > attached physical-device recording shows sign-in, navigation to the option,
