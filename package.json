@@ -9,7 +9,8 @@
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "test": "vitest run",
     "test:api-server": "vitest run artifacts/api-server/src/__tests__/",
-    "test:coach-smoke": "bash scripts/run-coach-smoke.sh"
+    "test:coach-smoke": "bash scripts/run-coach-smoke.sh",
+    "test:mobile-smoke": "bash scripts/run-mobile-smoke.sh"
   },
   "private": true,
   "devDependencies": {
