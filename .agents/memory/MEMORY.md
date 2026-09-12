@@ -24,3 +24,4 @@
 - [Mobile auth persistence fallback](mobile-auth-persistence-fallback.md) — a valid token must establish the current session even if SecureStore fails; degrade to memory-only, never insecure persistence.
 - [Native onboarding route safety](native-paywall-route-settling.md) — upsells wait for tabs, and onboarding must self-exit once a fighter exists or its save succeeds.
 - [Legal acceptance vs AI permission](legal-vs-ai-consent.md) — registration requires Terms/Privacy acceptance, while third-party AI sharing remains separately optional and withdrawable.
+- [AI consent at provider boundaries](ai-consent-provider-boundaries.md) — recheck current consent immediately before every provider call and retry; never trust an earlier route check for background work.

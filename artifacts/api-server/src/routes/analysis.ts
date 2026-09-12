@@ -30,8 +30,7 @@ import {
   recomputeSessionScore,
   ContentValidationError,
 } from "../lib/analysisService";
-import { hasCurrentAiConsent, minimiseAnalysisContext } from "../lib/aiConsent";
-import { usersTable } from "@workspace/db";
+import { requireAiConsent, minimiseAnalysisContext } from "../lib/aiConsent";
 import {
   classifySource,
   normalizeForFetch,
@@ -156,21 +155,7 @@ router.post("/analysis", async (req, res) => {
     return;
   }
 
-  const [consent] = await db
-    .select({
-      version: usersTable.aiAnalysisConsentVersion,
-      acceptedAt: usersTable.aiAnalysisConsentAt,
-    })
-    .from(usersTable)
-    .where(eq(usersTable.id, req.userId as string))
-    .limit(1);
-  if (!hasCurrentAiConsent(consent?.version, consent?.acceptedAt)) {
-    res.status(403).json({
-      error: "Permission is required before sharing analysis data with Anthropic.",
-      code: "AI_CONSENT_REQUIRED",
-    });
-    return;
-  }
+  if (!(await requireAiConsent(req, res))) return;
 
   const body = req.body as {
     kind?: unknown;
@@ -294,6 +279,9 @@ router.post("/analysis", async (req, res) => {
     // no knowledge-loop writes, no self progression. Returns before any of the
     // self-only progression queries below. ----
     if (subject === "opponent") {
+      // Re-check immediately before the provider call to close withdrawal
+      // races after the initial request guard.
+      if (!(await requireAiConsent(req, res))) return;
       const oppNarrative = await generateOpponentAnalysis({
         fighter: aiContext.fighter,
         facts: aiContext.facts,
@@ -371,6 +359,9 @@ router.post("/analysis", async (req, res) => {
         ? prevRows[0].metrics.signals
         : null;
 
+    // Re-check immediately before the provider call to close withdrawal
+    // races after the initial request guard.
+    if (!(await requireAiConsent(req, res))) return;
     const narrative = await generateAnalysis({
       fighter: aiContext.fighter,
       facts: aiContext.facts,

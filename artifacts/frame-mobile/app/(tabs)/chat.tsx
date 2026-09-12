@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Image,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -20,8 +21,10 @@ import { Feather } from "@expo/vector-icons";
 import {
   ApiError,
   apiGet,
+  apiPatch,
   apiPost,
   apiStream,
+  apiUrl,
   attachmentFileUrl,
   uploadAttachment,
   type AttachmentDto,
@@ -32,6 +35,8 @@ import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { MessageContent } from "@/components/MessageContent";
 import { CompetitionBanner } from "@/components/CompetitionBanner";
 import { OctagonSpinner } from "@/components/OctagonSpinner";
+import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
+import type { AiConsentStatus } from "@/lib/aiConsent";
 
 const FRAME_WORDMARK = require("@/assets/images/frame-wordmark.png");
 
@@ -313,10 +318,27 @@ export default function ChatScreen() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [consentVisible, setConsentVisible] = useState(false);
+  const [consentStatus, setConsentStatus] = useState<AiConsentStatus | null>(null);
+  const [consentBusy, setConsentBusy] = useState(false);
+  const pendingSendRef = useRef<{ text: string; attachments: AttachmentDto[] } | null>(null);
+  // This guard is deliberately synchronous: React state does not update fast
+  // enough to close the window between a tap and the consent lookup resolving.
+  // It stays set while the consent sheet is open so acceptance can resume the
+  // original turn without allowing a second tap to queue another one.
+  const sendInFlightRef = useRef(false);
+  const consentAcceptingRef = useRef(false);
   const inputRef = useRef<TextInput>(null);
   // One-shot guards so on-device layout probes report once per mount,
   // not on every re-layout.
   const layoutProbes = useRef({ row: false, chip: false, text: false });
+
+  useEffect(() => {
+    if (isSignedIn) return;
+    pendingSendRef.current = null;
+    sendInFlightRef.current = false;
+    setConsentVisible(false);
+  }, [isSignedIn]);
 
   const {
     supported: voiceSupported,
@@ -379,14 +401,49 @@ export default function ChatScreen() {
     };
   }, [isSignedIn]);
 
-  async function handleSend(text: string, attachments: AttachmentDto[] = []) {
+  async function handleSend(
+    text: string,
+    attachments: AttachmentDto[] = [],
+    resumeAfterConsent = false,
+  ): Promise<boolean> {
     if (
       (!text.trim() && attachments.length === 0) ||
       isStreaming ||
       !isSignedIn ||
       isLoadingHistory
     )
-      return;
+      return false;
+    if (resumeAfterConsent ? !sendInFlightRef.current : sendInFlightRef.current) {
+      return false;
+    }
+    if (!resumeAfterConsent) sendInFlightRef.current = true;
+
+    // Consent is checked at the boundary immediately before each AI coaching
+    // request. This also notices a withdrawal made from Profile while this
+    // tab stayed mounted. Keep the draft in the composer while the sheet is
+    // open so accepting it can resume this exact message and attachments.
+    if (!resumeAfterConsent) {
+      try {
+        const status = await apiGet<AiConsentStatus>("/ai-consent");
+        setConsentStatus(status);
+        if (!status.accepted) {
+          pendingSendRef.current = { text, attachments };
+          setConsentVisible(true);
+          return false;
+        }
+      } catch (e: unknown) {
+        sendInFlightRef.current = false;
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: uid(),
+            role: "assistant",
+            content: (e as Error).message ?? "Could not check AI permission.",
+          },
+        ]);
+        return false;
+      }
+    }
 
     // Invalidate the active recognition session before clearing the composer.
     // iOS may deliver one final result after stop(); the hook ignores it.
@@ -414,6 +471,7 @@ export default function ChatScreen() {
     let receivedContent = false;
     let sawDone = false;
     let serverError = false;
+    let streamSucceeded = false;
 
     // Watchdog: abort a turn that never produces a first byte, or that stalls
     // mid-stream. Without this a hung request sits forever behind the spinner.
@@ -477,6 +535,7 @@ export default function ChatScreen() {
         if (serverError) showAssistant("Something broke. Try again.");
         else if (!sawDone) showAssistant("Lost the thread. Try again.");
       }
+      streamSucceeded = sawDone && !serverError && !timedOut;
     } catch (err) {
       setShowTyping(false);
       // Free-tier daily coaching limit: not a failed turn. Drop the optimistic
@@ -498,9 +557,41 @@ export default function ChatScreen() {
       if (watchdog) clearTimeout(watchdog);
       setIsStreaming(false);
       setShowTyping(false);
+      sendInFlightRef.current = false;
     }
 
     inputRef.current?.focus();
+    if (!streamSucceeded && trimmed) setInput(trimmed);
+    return streamSucceeded;
+  }
+
+  async function acceptConsentAndSend() {
+    if (consentAcceptingRef.current) return;
+    const pending = pendingSendRef.current;
+    if (!pending) {
+      setConsentVisible(false);
+      sendInFlightRef.current = false;
+      return;
+    }
+    consentAcceptingRef.current = true;
+    setConsentBusy(true);
+    try {
+      const status = await apiPatch<AiConsentStatus>("/ai-consent", { accepted: true });
+      setConsentStatus(status);
+      pendingSendRef.current = null;
+      setConsentVisible(false);
+      const sent = await handleSend(pending.text, pending.attachments, true);
+      if (sent) setDrafts((draft) => draft.filter((d) => !pending.attachments.some((a) => a.id === d.att.id)));
+    } catch (e: unknown) {
+      sendInFlightRef.current = false;
+      setMessages((prev) => [
+        ...prev,
+        { id: uid(), role: "assistant", content: (e as Error).message ?? "Could not save AI permission." },
+      ]);
+    } finally {
+      setConsentBusy(false);
+      consentAcceptingRef.current = false;
+    }
   }
 
   function sendQuick(prompt: string) {
@@ -575,15 +666,17 @@ export default function ChatScreen() {
     setDrafts((d) => d.filter((x) => x.att.id !== id));
   }
 
-  function doSend() {
+  async function doSend() {
     if (isStreaming || isLoadingHistory) return;
     if (!input.trim() && drafts.length === 0) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    handleSend(
-      input,
-      drafts.map((d) => d.att),
+    const text = input;
+    const attachments = drafts.map((d) => d.att);
+    const sent = await handleSend(
+      text,
+      attachments,
     );
-    setDrafts([]);
+    if (sent) setDrafts((draft) => draft.filter((d) => !attachments.some((a) => a.id === d.att.id)));
   }
 
   const reversed = [...messages].reverse();
@@ -591,6 +684,19 @@ export default function ChatScreen() {
     (input.trim().length > 0 || drafts.length > 0) && !isStreaming && !isLoadingHistory;
 
   return (
+    <>
+    <AiConsentModal
+      visible={consentVisible}
+      status={consentStatus}
+      busy={consentBusy}
+      onAccept={() => void acceptConsentAndSend()}
+      onDecline={() => {
+        pendingSendRef.current = null;
+         sendInFlightRef.current = false;
+        setConsentVisible(false);
+      }}
+      onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
+    />
     <KeyboardAvoidingView
       style={[styles.root, { paddingTop: topPad }]}
       behavior="padding"
@@ -813,6 +919,7 @@ export default function ChatScreen() {
         </Pressable>
       </View>
     </KeyboardAvoidingView>
+    </>
   );
 }
 

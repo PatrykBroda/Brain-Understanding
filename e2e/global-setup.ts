@@ -14,7 +14,8 @@ export const TEST_FRESH_EMAIL = "frame-smoke-fresh@example.com";
 export const TEST_PASSWORD = "FrameSmoke2024!";
 
 const BCRYPT_ROUNDS = 10;
-const AI_ANALYSIS_CONSENT_VERSION = "2026-09-08";
+// Keep smoke users on the currently disclosed all-AI consent contract.
+const AI_ANALYSIS_CONSENT_VERSION = "2026-09-12";
 
 async function upsertUser(
   db: Client,

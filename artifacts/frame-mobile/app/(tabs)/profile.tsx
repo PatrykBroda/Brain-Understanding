@@ -350,7 +350,7 @@ export default function ProfileScreen() {
       qc.setQueryData(["ai-consent"], status);
       Alert.alert(
         "Permission withdrawn",
-        "Future AI analysis is now blocked. Your existing reports remain in your account.",
+        "Future AI coaching is now blocked. Your existing reports remain in your account.",
       );
     },
   });
@@ -795,11 +795,11 @@ export default function ProfileScreen() {
 
           {/* ACCOUNT */}
           <View style={s.section}>
-            <Text style={s.privacyHeading}>AI ANALYSIS & PRIVACY</Text>
+            <Text style={s.privacyHeading}>AI COACHING & PRIVACY</Text>
             <Text style={s.privacyCopy}>
               {consentQuery.data?.accepted
-                ? "Anthropic/Claude analysis permission is active. FRAME may share selected still frames, movement data and relevant performance context — never your raw video, email or full name."
-                : "AI analysis permission is not active. No analysis data will be sent to Anthropic until you agree in Analyse."}
+                ? "AI coaching permission is active. Depending on the feature, FRAME may share the exact categories shown in the permission disclosure with Anthropic/Claude or OpenAI."
+                : "AI coaching permission is not active. Nothing is sent to Anthropic/Claude or OpenAI for AI coaching until you agree in the permission sheet."}
             </Text>
             <Pressable
               style={s.privacyLink}
@@ -823,8 +823,8 @@ export default function ProfileScreen() {
                 disabled={withdrawConsent.isPending}
                 onPress={() =>
                   Alert.alert(
-                    "Withdraw AI analysis permission?",
-                    "This blocks future AI analysis. Existing reports and the rest of your account stay available.",
+                    "Withdraw AI coaching permission?",
+                    "This blocks future AI coaching. Existing reports and non-AI features stay available.",
                     [
                       { text: "Cancel", style: "cancel" },
                       { text: "Withdraw", style: "destructive", onPress: () => withdrawConsent.mutate() },

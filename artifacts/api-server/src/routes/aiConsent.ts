@@ -2,28 +2,22 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import {
-  AI_ANALYSIS_CONSENT_VERSION,
-  AI_ANALYSIS_DISCLOSURE,
+  AI_CONSENT_VERSION,
+  AI_CONSENT_DISCLOSURE,
+  getAiConsent,
   hasCurrentAiConsent,
 } from "../lib/aiConsent";
 
 const router: IRouter = Router();
 
 router.get("/ai-consent", async (req, res) => {
-  const [user] = await db
-    .select({
-      version: usersTable.aiAnalysisConsentVersion,
-      acceptedAt: usersTable.aiAnalysisConsentAt,
-    })
-    .from(usersTable)
-    .where(eq(usersTable.id, req.userId as string))
-    .limit(1);
+  const user = await getAiConsent(req.userId as string);
   const accepted = hasCurrentAiConsent(user?.version, user?.acceptedAt);
   res.json({
     accepted,
-    version: AI_ANALYSIS_CONSENT_VERSION,
+    version: AI_CONSENT_VERSION,
     acceptedAt: accepted ? user.acceptedAt : null,
-    disclosure: AI_ANALYSIS_DISCLOSURE,
+    disclosure: AI_CONSENT_DISCLOSURE,
   });
 });
 
@@ -33,15 +27,15 @@ router.patch("/ai-consent", async (req, res) => {
   await db
     .update(usersTable)
     .set({
-      aiAnalysisConsentVersion: accepted ? AI_ANALYSIS_CONSENT_VERSION : null,
+      aiAnalysisConsentVersion: accepted ? AI_CONSENT_VERSION : null,
       aiAnalysisConsentAt: now,
     })
     .where(eq(usersTable.id, req.userId as string));
   res.json({
     accepted,
-    version: AI_ANALYSIS_CONSENT_VERSION,
+    version: AI_CONSENT_VERSION,
     acceptedAt: now,
-    disclosure: AI_ANALYSIS_DISCLOSURE,
+    disclosure: AI_CONSENT_DISCLOSURE,
   });
 });
 

@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { AI_PROVIDER_MAX_RETRIES } from "./aiConsent";
 import {
   ANALYSIS_KINDS,
   ANALYSIS_SUBJECTS,
@@ -31,7 +32,7 @@ function getAnthropic(): Anthropic {
   if (!baseURL || !apiKey) {
     throw new Error("analysis: AI_INTEGRATIONS_ANTHROPIC_* env not set");
   }
-  _anthropic = new Anthropic({ baseURL, apiKey });
+  _anthropic = new Anthropic({ baseURL, apiKey, maxRetries: AI_PROVIDER_MAX_RETRIES });
   return _anthropic;
 }
 

@@ -2,7 +2,7 @@ import React from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 
-export function AiAnalysisConsentModal({
+export function AiConsentModal({
   visible,
   status,
   busy,
@@ -19,13 +19,19 @@ export function AiAnalysisConsentModal({
 }) {
   const disclosure = status?.disclosure;
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onDecline}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={busy ? undefined : onDecline}
+    >
       <ScrollView style={s.root} contentContainerStyle={s.content}>
         <Text style={s.kicker}>YOUR DATA · YOUR CHOICE</Text>
-        <Text style={s.title}>AI ANALYSIS PERMISSION</Text>
+        <Text style={s.title}>AI COACHING PERMISSION</Text>
         <Text style={s.body}>
-          FRAME uses {disclosure?.provider ?? "Anthropic"}’s {disclosure?.service ?? "Claude"} service to
-          generate your performance analysis. Nothing is sent to that service until you agree.
+          FRAME uses Anthropic (Claude) and OpenAI services for AI coaching. The service may receive
+          the exact categories listed below to provide coaching and analysis. Nothing is sent to either
+          Anthropic/Claude or OpenAI before you agree.
         </Text>
 
         <Text style={s.heading}>WHAT MAY BE SENT</Text>
@@ -38,16 +44,16 @@ export function AiAnalysisConsentModal({
           <View key={item} style={s.row}><Text style={s.dot}>•</Text><Text style={s.item}>{item}</Text></View>
         ))}
 
+        {disclosure?.purpose ? <Text style={s.purpose}>{disclosure.purpose}</Text> : null}
         <Text style={s.note}>
-          You can decline and keep using the rest of FRAME. You can withdraw permission from Profile at
-          any time. FRAME stores the resulting report and selected keyframes in your account; the raw
-          video file is not sent to Anthropic.
+          You can decline and keep using non-AI features in FRAME. You can withdraw permission from
+          Profile at any time.
         </Text>
         <Pressable onPress={onPrivacy} accessibilityRole="link">
           <Text style={s.link}>READ THE PRIVACY POLICY</Text>
         </Pressable>
         <Pressable style={[s.accept, busy && s.disabled]} onPress={onAccept} disabled={busy}>
-          {busy ? <ActivityIndicator color="#050505" /> : <Text style={s.acceptText}>AGREE & ANALYSE</Text>}
+          {busy ? <ActivityIndicator color="#050505" /> : <Text style={s.acceptText}>AGREE & CONTINUE</Text>}
         </Pressable>
         <Pressable style={s.decline} onPress={onDecline} disabled={busy}>
           <Text style={s.declineText}>NOT NOW</Text>
@@ -56,6 +62,10 @@ export function AiAnalysisConsentModal({
     </Modal>
   );
 }
+
+// Kept as an alias so the existing analysis integration can adopt the
+// generalized disclosure without changing its request lifecycle.
+export const AiAnalysisConsentModal = AiConsentModal;
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#050505" },
@@ -67,6 +77,7 @@ const s = StyleSheet.create({
   row: { flexDirection: "row", gap: 9, marginBottom: 8 },
   dot: { color: "#8A6A2F", fontSize: 16, lineHeight: 21 },
   item: { flex: 1, fontFamily: "Outfit", fontSize: 14, lineHeight: 21, color: "#bbb" },
+  purpose: { fontFamily: "Outfit", fontSize: 13, lineHeight: 20, color: "#aaa", marginTop: 16 },
   note: { fontFamily: "Outfit", fontSize: 13, lineHeight: 20, color: "#888", marginTop: 18 },
   link: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 1.5, color: "#b99250", marginVertical: 24 },
   accept: { minHeight: 52, alignItems: "center", justifyContent: "center", backgroundColor: "#b99250" },

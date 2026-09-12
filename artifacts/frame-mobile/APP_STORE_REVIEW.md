@@ -1,7 +1,7 @@
 # FRAME App Review checklist
 
-Use this checklist for the next iOS submission. Code changes alone cannot submit
-Apple products or complete App Store Connect metadata.
+Use this checklist for the next iOS submission. Code changes alone cannot
+submit Apple products or complete App Store Connect metadata.
 
 ## Billing contract
 
@@ -15,88 +15,100 @@ Do not create replacement products just to clear a warning. First compare the
 existing Apple product identifiers with the products attached to RevenueCat's
 current offering.
 
-## RevenueCat
+## RevenueCat and App Store Connect
 
 - Confirm the iOS app uses bundle ID `app.replit.frame`.
 - Confirm App Store Connect credentials are valid.
 - Import the intended Apple auto-renewable subscription products.
-- Attach every product to a package in the current offering.
-- Attach every intended product to the `frame_plus` entitlement.
+- Attach every product to a package in the current offering and to the
+  `frame_plus` entitlement.
 - Confirm the production public SDK key is the value supplied to
   `EXPO_PUBLIC_REVENUECAT_IOS_KEY` during the production EAS build.
+- Verified RevenueCat product currently attached to the FRAME+ monthly package:
+  `com.frame.mobile.frameplus.monthly`.
+- Complete subscription group, duration, availability, pricing, tax category,
+  and every required localization.
+- Upload an App Review screenshot showing the FRAME+ paywall and plans.
+- Resolve every **Missing Metadata** warning and confirm Agreements, Tax and
+  Banking has no blocking action.
+- Select the subscription products for the new app version and submit them
+  with the new production binary.
 
-## App Store Connect
+## TestFlight build record
 
-Verified RevenueCat product currently attached to the FRAME+ monthly package:
+Record the actual values after the build is created and distributed. These
+placeholders are intentionally not a claim that a build has been uploaded:
 
-- `com.frame.mobile.frameplus.monthly`
-
-For every subscription shown in FRAME:
-
-- Put it in the correct subscription group.
-- Complete duration, availability, pricing and tax category.
-- Complete every required localization (display name and description).
-- Upload an App Review screenshot that shows the FRAME+ paywall and its plans.
-- Resolve every **Missing Metadata** warning.
-- Confirm Agreements, Tax and Banking has no blocking action.
-- Select the subscription products for the new app version and submit them for
-  review together with a new production binary.
+- App Store version: `[RECORD VERSION, e.g. 1.0.0]`
+- iOS build number: `[RECORD BUILD NUMBER]`
+- TestFlight upload status: `[NOT UPLOADED / UPLOADED — RECORD DATE]`
+- TestFlight processing status: `[RECORD STATUS]`
+- Review device(s): `[RECORD iPhone/iPad models and iOS versions]`
 
 ## AI data disclosure
 
 - Privacy policy URL: use the production URL ending in `/api/privacy`.
-- In App Privacy, disclose the data categories that match `AI_DATA_FLOW.md`.
-  This includes user content (selected video stills and analysis focus),
-  fitness/performance data (movement signals and scores), and other relevant
-  athlete-profile content used to provide app functionality.
-- Identify Anthropic/Claude as the third-party AI processor in the privacy
-  policy and review notes.
-- Confirm the policy, privacy labels, consent screen, and actual payload all
-  use the same data categories. Photo-library permission is not AI consent.
-- Have the product owner or legal reviewer approve the final policy wording and
-  Anthropic retention/processing statement before submission.
+- In App Privacy, disclose the exact categories in `AI_DATA_FLOW.md`: chat
+  messages/conversation context; training and session data, movement signals,
+  scores, session type and clip duration; relevant athlete profile/context;
+  uploaded images or selected video stills; and other user-provided
+  information needed for the feature.
+- Identify **Anthropic (Claude)** and **OpenAI** as the possible third-party AI
+  processors in the privacy policy and review notes.
+- Confirm policy, privacy labels, permission sheet, and actual payload use the
+  same server-provided categories. Photo-library permission is not AI consent.
+- Have the product owner or legal reviewer approve final policy wording and
+  provider retention/processing statements before submission.
 
-## Physical-device verification
+## Physical-device review navigation
 
-Install the new build through TestFlight and use an Apple Sandbox tester:
+Install the recorded TestFlight build and use an Apple Sandbox tester:
 
-1. With a fresh account, open Analyse and start a report. Capture the AI
-   permission sheet before any report begins.
-2. Tap **Not now** and confirm the app remains usable and no analysis starts.
-3. Start again, tap **Agree & Analyse**, and confirm the report completes.
-4. Open Profile, open **Privacy Policy**, then withdraw AI permission. Confirm
-   the next analysis asks again.
-5. Open FRAME+ and confirm plans and localized prices appear.
-6. Complete a purchase and confirm FRAME+ unlocks.
-7. Sign out/reinstall as needed, use **Restore Purchases**, and confirm access
+1. With a fresh account, open **Chat** from the bottom navigation (or Profile >
+   **Continue Calibration**), enter a message, and tap send. Capture the
+   permission sheet before the first AI request.
+2. Verify the sheet names Anthropic (Claude) and OpenAI, says nothing goes to
+   either before agreement, and lists the exact server-provided categories.
+3. Tap **Not now**. Confirm the message and any attachments remain available,
+   no coaching request starts, and non-AI navigation remains usable.
+4. Send again, tap **Agree & Continue**, and confirm the same pending message
+   and attachments are sent once (not duplicated).
+5. Open **Analyse** from the bottom navigation and start a report. Confirm the
+   same consent contract gates analysis and the report completes after
+   acceptance. Declining leaves other features usable.
+6. Open **Profile** from the bottom navigation > **AI Coaching & Privacy**.
+   Open **Privacy Policy**, then choose **Withdraw AI Permission**. Confirm a
+   later Chat send and later Analyse submission ask for consent again.
+7. Open **Profile** > **FRAME+** and confirm plans and localized prices appear.
+8. Complete a purchase and confirm FRAME+ unlocks.
+9. Sign out/reinstall as needed, use **Restore Purchases**, and confirm access
    returns.
-8. Open Profile, tap **Delete Account**, capture both confirmation prompts, and
-   complete deletion.
-9. Confirm the app returns to Sign In and the deleted credentials no longer
-   work.
+10. Open **Profile** > **Delete Account**, capture both confirmation prompts,
+    complete deletion, and confirm return to Sign In.
 
-Test on an iPhone and an iPad-sized review device.
+Test on an iPhone and an iPad-sized review device. Record the exact TestFlight
+version/build above; do not describe the binary as uploaded until that is true.
 
 ## Suggested App Review notes
 
-Replace the bracketed values with the exact identifiers from App Store Connect:
+Replace bracketed values with the recorded App Store Connect identifiers:
 
 > FRAME+ subscriptions are available from Profile > FRAME+ and from locked
 > premium features. The submitted product is
-> `com.frame.mobile.frameplus.monthly`. It is attached to the current RevenueCat offering
-> and the `frame_plus` entitlement. They were tested using Apple Sandbox in this
-> build. Restore Purchases is available on both the FRAME+ screen and Profile.
+> `com.frame.mobile.frameplus.monthly`. It is attached to the current RevenueCat
+> offering and the `frame_plus` entitlement. They were tested using Apple
+> Sandbox in TestFlight version `[VERSION]`, build `[BUILD]`. Restore Purchases
+> is available on both the FRAME+ screen and Profile.
+>
+> Before the first AI-powered Chat or Analyse request, FRAME presents a
+> dedicated permission sheet naming Anthropic (Claude) and OpenAI and listing
+> the exact server-provided data categories. Choosing Not now leaves the
+> composer and non-AI features usable and sends no AI request. Choosing Agree
+> & Continue records versioned consent before the pending request continues.
+> Users can review the privacy policy and withdraw permission from Profile.
+> The server enforces the same current consent for chat, analysis, planning,
+> and consent-dependent memory work.
 >
 > Permanent account deletion is available at Profile > Delete Account. The
 > attached physical-device recording shows sign-in, navigation to the option,
 > both confirmations, permanent deletion, and return to Sign In.
->
-> Before the first AI-powered analysis, FRAME presents a dedicated permission
-> sheet naming Anthropic/Claude and listing the exact data sent and not sent.
-> Choosing Not now leaves the app usable and sends no analysis request. Choosing
-> Agree & Analyse records versioned consent before the analysis begins. Users
-> can review the privacy policy and withdraw permission from Profile. FRAME
-> sends selected still frames (not the raw video), movement signals and scores,
-> session details, requested focus, and minimized relevant performance context.
-> It does not send the user's email, account ID, full name, gym, biography,
-> height or weight to Anthropic.

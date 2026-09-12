@@ -42,6 +42,7 @@ export function useChat() {
   const [userTurnsThisSession, setUserTurnsThisSession] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const lastAttemptRef = useRef<{ content: string; attachments: AttachmentDto[] } | null>(null);
+  const retryInFlightRef = useRef(false);
   const lastUserBubbleIdRef = useRef<string | null>(null);
   const lastAssistantBubbleIdRef = useRef<string | null>(null);
 
@@ -71,12 +72,13 @@ export function useChat() {
   });
 
   const sendMessage = useCallback(
-    async (content: string, attachments: AttachmentDto[] = []) => {
+    async (content: string, attachments: AttachmentDto[] = []): Promise<boolean> => {
       const trimmed = content.trim();
-      if (!trimmed && attachments.length === 0) return;
-      if (isStreaming) return;
+      if (!trimmed && attachments.length === 0) return false;
+      if (isStreaming) return false;
       stop();
       setError(null);
+      let succeeded = false;
 
       // Remember this attempt so a failed turn can be retried one-tap.
       lastAttemptRef.current = { content: trimmed, attachments };
@@ -164,7 +166,7 @@ export function useChat() {
           } else {
             setError("That message couldn't be sent.");
           }
-          return;
+          return false;
         }
         if (!res.ok || !res.body) {
           throw new Error(`Stream failed: ${res.status}`);
@@ -214,6 +216,7 @@ export function useChat() {
         }
 
         if (outcome === "done") {
+          succeeded = true;
           lastAttemptRef.current = null;
           qc.invalidateQueries({ queryKey: ["conversation"] });
           qc.invalidateQueries({ queryKey: ["calibration", "next"] });
@@ -238,13 +241,20 @@ export function useChat() {
         setIsStreaming(false);
         abortRef.current = null;
       }
+      return succeeded;
     },
     [isStreaming, qc, stop, openUpgrade],
   );
 
-  const retry = useCallback(() => {
+  const retry = useCallback(async (): Promise<{
+    success: boolean;
+    attachments: AttachmentDto[];
+  }> => {
     const last = lastAttemptRef.current;
-    if (!last || isStreaming) return;
+    if (!last || isStreaming || retryInFlightRef.current) {
+      return { success: false, attachments: [] };
+    }
+    retryInFlightRef.current = true;
     setError(null);
     // Drop the failed turn's bubbles; sendMessage re-adds them fresh. The
     // server reuses the orphaned user row, so retry doesn't duplicate history.
@@ -255,7 +265,12 @@ export function useChat() {
           m.id !== lastAssistantBubbleIdRef.current,
       ),
     );
-    void sendMessage(last.content, last.attachments);
+    try {
+      const success = await sendMessage(last.content, last.attachments);
+      return { success, attachments: last.attachments };
+    } finally {
+      retryInFlightRef.current = false;
+    }
   }, [isStreaming, sendMessage]);
 
   return {

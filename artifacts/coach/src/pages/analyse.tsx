@@ -228,8 +228,10 @@ export default function AnalysePage() {
     try {
       const consent = await api.getAiConsent();
       if (!consent.accepted) {
+        const shared = consent.disclosure.sharedData.map((item) => `• ${item}`).join("\n");
+        const notShared = consent.disclosure.notShared.map((item) => `• ${item}`).join("\n");
         const agreed = window.confirm(
-          `AI analysis permission\n\nFRAME uses ${consent.disclosure.provider}'s ${consent.disclosure.service} service to generate this report. It may receive selected still frames, movement signals, scores, session details, your requested focus, and relevant performance observations. It does not receive your raw video, email, full name, gym, biography, height or weight.\n\nChoose OK to agree and continue. You can withdraw permission from Profile.`,
+          `AI coaching permission\n\nFRAME uses Anthropic (Claude) and OpenAI services for AI coaching. Nothing is sent to either before you agree.\n\nWHAT MAY BE SENT\n${shared}\n\nWHAT IS NOT SENT\n${notShared}\n\nChoose OK to agree and continue. You can decline and keep using non-AI features. You can withdraw permission from Profile.`,
         );
         if (!agreed) return;
         await api.setAiConsent(true);

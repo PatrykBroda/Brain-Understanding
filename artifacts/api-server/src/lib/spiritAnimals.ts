@@ -2,13 +2,14 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { Logger } from "pino";
 import type { Fighter } from "@workspace/db";
 import { ARCHETYPES, archetypeName, isArchetypeKey, type ArchetypeKey } from "@workspace/archetypes";
+import { AI_PROVIDER_MAX_RETRIES, hasAiConsentForUser } from "./aiConsent";
 
 const baseURL = process.env["AI_INTEGRATIONS_ANTHROPIC_BASE_URL"];
 const apiKey = process.env["AI_INTEGRATIONS_ANTHROPIC_API_KEY"];
 if (!baseURL || !apiKey) {
   throw new Error("Anthropic env vars missing");
 }
-const client = new Anthropic({ baseURL, apiKey });
+const client = new Anthropic({ baseURL, apiKey, maxRetries: AI_PROVIDER_MAX_RETRIES });
 
 // The bestiary is the shared FRAME archetype mythology. The AI may only choose
 // one of these keys; each maps to a pre-rendered emblem in the coach app
@@ -55,7 +56,7 @@ export async function deriveSpiritAnimal(
   fighter: Pick<
     Fighter,
     "name" | "age" | "art" | "level" | "trainingFrequency" | "goals" | "weaknesses" | "personality" | "competes"
-  >,
+  > & { userId?: string },
   log: Logger,
 ): Promise<{ animal: SpiritAnimalKey; tagline: string } | null> {
   try {
@@ -73,6 +74,12 @@ personality, in their own words: ${fighter.personality || "(none given)"}
 
 Assign their spirit animal and tagline now.`;
 
+    // This helper is also exported for non-route callers. Always re-query
+    // current consent immediately before transmitting profile data.
+    if (!fighter.userId || !(await hasAiConsentForUser(fighter.userId))) {
+      log.info("spirit animal derivation skipped without AI consent");
+      return null;
+    }
     const response = await client.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: 512,

@@ -10,13 +10,14 @@ import {
   resolveFact,
   supersedeFact,
 } from "./factsService";
+import { AI_PROVIDER_MAX_RETRIES, hasAiConsentForUser } from "./aiConsent";
 
 const baseURL = process.env["AI_INTEGRATIONS_ANTHROPIC_BASE_URL"];
 const apiKey = process.env["AI_INTEGRATIONS_ANTHROPIC_API_KEY"];
 if (!baseURL || !apiKey) {
   throw new Error("Anthropic env vars missing");
 }
-const client = new Anthropic({ baseURL, apiKey });
+const client = new Anthropic({ baseURL, apiKey, maxRetries: AI_PROVIDER_MAX_RETRIES });
 
 const SYSTEM = `You are the memory writer for a personal BJJ + nervous-system coaching system called Synochi. Your only job is to read the latest exchange between the athlete and the coach and update the athlete's long-term model.
 
@@ -134,6 +135,13 @@ COACH: ${assistantText}
 
 Update the model. Call tools only. No prose.`;
 
+    // Memory extraction is background work. Always check the current DB value
+    // immediately before sending the exchange to the provider; route guards
+    // alone would permit a withdrawal race.
+    if (!(await hasAiConsentForUser(fighter.userId))) {
+      log.info({ fighterId: fighter.id }, "memory extraction skipped without AI consent");
+      return;
+    }
     const response = await client.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: 8192,

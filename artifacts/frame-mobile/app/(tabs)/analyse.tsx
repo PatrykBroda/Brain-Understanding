@@ -21,7 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "@/lib/api";
 import { apiPatch, apiUrl } from "@/lib/api";
 import type { AiConsentStatus } from "@/lib/aiConsent";
-import { AiAnalysisConsentModal } from "@/components/AiAnalysisConsentModal";
+import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 
 type AnalysisKind =
   | "sparring"
@@ -511,7 +511,7 @@ export default function AnalyseScreen() {
         return;
       }
     } catch (e: unknown) {
-      setError((e as Error).message ?? "Could not check AI analysis permission.");
+      setError((e as Error).message ?? "Could not check AI coaching permission.");
       return;
     }
     await performSubmit();
@@ -525,7 +525,7 @@ export default function AnalyseScreen() {
       setConsentVisible(false);
       await performSubmit();
     } catch (e: unknown) {
-      setError((e as Error).message ?? "Could not save AI analysis permission.");
+      setError((e as Error).message ?? "Could not save AI coaching permission.");
     } finally {
       setConsentBusy(false);
     }
@@ -786,7 +786,7 @@ export default function AnalyseScreen() {
 
   return (
     <>
-    <AiAnalysisConsentModal
+    <AiConsentModal
       visible={consentVisible}
       status={consentStatus}
       busy={consentBusy}

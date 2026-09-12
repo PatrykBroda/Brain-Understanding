@@ -15,6 +15,8 @@ import { and, asc, desc, eq, gt } from "drizzle-orm";
 import { COACH_SYSTEM_PROMPT_STATIC, buildDynamicContext } from "./synochi";
 import { openai, OPENAI_COACH_MODEL } from "./openaiClient";
 import { selectRelevantNodes } from "./vaultRetrieval";
+import { AI_PROVIDER_MAX_RETRIES } from "./aiConsent";
+import { AiConsentRequiredError, hasAiConsentForUser } from "./aiConsent";
 
 let _anthropic: Anthropic | null = null;
 function getAnthropic(): Anthropic {
@@ -26,7 +28,7 @@ function getAnthropic(): Anthropic {
       "planner: Claude provider selected but AI_INTEGRATIONS_ANTHROPIC_* env not set",
     );
   }
-  _anthropic = new Anthropic({ baseURL, apiKey });
+  _anthropic = new Anthropic({ baseURL, apiKey, maxRetries: AI_PROVIDER_MAX_RETRIES });
   return _anthropic;
 }
 
@@ -198,13 +200,14 @@ async function callOpenAI(systemStatic: string, dynamic: string): Promise<RawPla
 }
 
 export async function generateWeeklyPlan(args: {
+  userId: string;
   fighter: Fighter;
   facts: AthleteFact[];
   calibrations: Calibration[];
   provider: "claude" | "openai";
   recentChat: string;
 }): Promise<{ items: PlanItem[]; rationale: string }> {
-  const { fighter, facts, calibrations, provider, recentChat } = args;
+  const { userId, fighter, facts, calibrations, provider, recentChat } = args;
   const deepNodes = selectRelevantNodes(
     `${fighter.goals ?? ""}\n${fighter.weaknesses ?? ""}\n${recentChat}`,
     4,
@@ -221,6 +224,11 @@ export async function generateWeeklyPlan(args: {
   const validCalibrationKeys = new Set(calibrations.map((c) => c.promptKey));
 
   for (let attempt = 0; attempt < 2; attempt++) {
+    // Check on every attempt, not just once before generation. A failed first
+    // response can trigger a retry after the athlete withdraws consent.
+    if (!(await hasAiConsentForUser(userId))) {
+      throw new AiConsentRequiredError();
+    }
     const raw =
       provider === "openai"
         ? await callOpenAI(COACH_SYSTEM_PROMPT_STATIC, dynamic)

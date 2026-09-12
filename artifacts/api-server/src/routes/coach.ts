@@ -31,6 +31,11 @@ import { getUpcomingSessions } from "../lib/trainingSessionService";
 import { computeVocabulary, vocabularyPromptBlock } from "../lib/vocabulary";
 import { getEntitlementForUserId } from "../lib/subscriptionService";
 import { countUserMessagesToday, FREE_DAILY_COACHING_LIMIT } from "../lib/featureGates";
+import {
+  AI_PROVIDER_MAX_RETRIES,
+  hasAiConsentForUser,
+  requireAiConsent,
+} from "../lib/aiConsent";
 
 // Build the active-camp coach directive: pressure + phase + honest weight-cut +
 // upcoming scheduled sessions. Null when no camp is live.
@@ -57,7 +62,7 @@ if (!baseURL || !apiKey) {
   );
 }
 
-const client = new Anthropic({ baseURL, apiKey });
+const client = new Anthropic({ baseURL, apiKey, maxRetries: AI_PROVIDER_MAX_RETRIES });
 
 const WELCOME_LOCK_NAMESPACE = 7411;
 
@@ -107,7 +112,6 @@ router.post("/coach/welcome", async (req, res) => {
     res.status(400).json({ error: "no fighter — complete onboarding first" });
     return;
   }
-
   // Cheap pre-lock check: returning athletes (the overwhelming majority of
   // calls) exit here without ever taking the lock.
   if (await fighterHasAnyMessage(fighter.id)) {
@@ -249,6 +253,9 @@ router.post("/coach/chat", async (req, res) => {
     res.status(400).json({ error: "no fighter — complete onboarding first" });
     return;
   }
+  // Check before creating a conversation, persisting the user's message, or
+  // constructing provider payloads. Consent covers both Claude and OpenAI.
+  if (!(await requireAiConsent(req, res))) return;
 
   // Server-enforced free-tier gate: 5 coaching messages per UTC day.
   // Checked BEFORE the SSE stream starts so the client gets clean JSON.
@@ -424,6 +431,13 @@ router.post("/coach/chat", async (req, res) => {
         openaiMessages.push({ role: "user", content } as ChatCompletionMessageParam);
       }
 
+      // The initial route guard is not sufficient: consent may have been
+      // withdrawn while the request was being prepared.
+      if (!(await hasAiConsentForUser(req.userId as string))) {
+        const error = new Error("AI consent is required before using this feature.");
+        (error as Error & { code: string }).code = "AI_CONSENT_REQUIRED";
+        throw error;
+      }
       const stream = await openai.chat.completions.create({
         model: OPENAI_COACH_MODEL,
         max_completion_tokens: 8192,
@@ -451,6 +465,11 @@ router.post("/coach/chat", async (req, res) => {
         claudeMessages.push({ role, content });
       }
 
+      if (!(await hasAiConsentForUser(req.userId as string))) {
+        const error = new Error("AI consent is required before using this feature.");
+        (error as Error & { code: string }).code = "AI_CONSENT_REQUIRED";
+        throw error;
+      }
       const stream = client.messages.stream({
         model: "claude-sonnet-4-6",
         max_tokens: 8192,
@@ -517,7 +536,14 @@ router.post("/coach/chat", async (req, res) => {
         content: assembled,
       });
     }
-    send({ error: err instanceof Error ? err.message : "stream failed" });
+    const code =
+      typeof err === "object" && err !== null && "code" in err && err.code === "AI_CONSENT_REQUIRED"
+        ? "AI_CONSENT_REQUIRED"
+        : undefined;
+    send({
+      error: code ? "AI consent is required before using this feature." : err instanceof Error ? err.message : "stream failed",
+      ...(code ? { code } : {}),
+    });
     res.end();
   }
 });

@@ -14,6 +14,8 @@ import { FrameWordmark } from "@/components/frame-wordmark";
 import { Button } from "@/components/ui/button";
 import { api, attachmentFileUrl, type AttachmentDto } from "@/lib/api";
 import { useAuthedObjectUrl } from "@/lib/useAuthedObjectUrl";
+import { AiConsentModal } from "@/components/ai-consent-modal";
+import type { AiConsentStatus } from "@/lib/api";
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   { label: "Analyse session", prompt: "Debrief my last training session — what fragmented, what held, what's the next rep." },
@@ -122,6 +124,14 @@ export default function ChatPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [consentVisible, setConsentVisible] = useState(false);
+  const [consentStatus, setConsentStatus] = useState<AiConsentStatus | null>(null);
+  const [consentBusy, setConsentBusy] = useState(false);
+  const pendingSendRef = useRef<{ content: string; attachments: AttachmentDto[] } | null>(null);
+  // State updates are asynchronous, so use a synchronous guard to cover the
+  // awaited consent lookup and the complete stream lifecycle.
+  const sendInFlightRef = useRef(false);
+  const consentAcceptingRef = useRef(false);
 
   // Only reset drafts when the fighter changes — do NOT reset entryActive.
   useEffect(() => {
@@ -160,11 +170,71 @@ export default function ChatPage() {
     setDrafts((d) => d.filter((x) => x.id !== id));
   };
 
-  const doSend = () => {
+  const requestSend = async (
+    content: string,
+    attachments: AttachmentDto[] = [],
+  ): Promise<boolean> => {
+    if (isStreaming) return false;
+    if (!content.trim() && attachments.length === 0) return false;
+    if (sendInFlightRef.current) return false;
+    sendInFlightRef.current = true;
+    let waitingForConsent = false;
+    try {
+      const status = await api.getAiConsent();
+      setConsentStatus(status);
+      if (!status.accepted) {
+        pendingSendRef.current = { content, attachments };
+        setConsentVisible(true);
+        waitingForConsent = true;
+        return false;
+      }
+      return await sendMessage(content, attachments);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Could not check AI permission.");
+      return false;
+    } finally {
+      if (!waitingForConsent) sendInFlightRef.current = false;
+    }
+  };
+
+  const acceptConsentAndSend = async () => {
+    if (consentAcceptingRef.current) return;
+    const pending = pendingSendRef.current;
+    if (!pending) {
+      setConsentVisible(false);
+      sendInFlightRef.current = false;
+      return;
+    }
+    consentAcceptingRef.current = true;
+    setConsentBusy(true);
+    try {
+      const status = await api.setAiConsent(true);
+      setConsentStatus(status);
+      pendingSendRef.current = null;
+      setConsentVisible(false);
+      const sent = await sendMessage(pending.content, pending.attachments);
+      if (sent) {
+        setDrafts((drafts) => drafts.filter((d) => !pending.attachments.some((a) => a.id === d.id)));
+      }
+    } catch (err) {
+      sendInFlightRef.current = false;
+      setUploadError(err instanceof Error ? err.message : "Could not save AI permission.");
+    } finally {
+      setConsentBusy(false);
+      consentAcceptingRef.current = false;
+      sendInFlightRef.current = false;
+    }
+  };
+
+  const doSend = async () => {
     if (isStreaming) return;
     if (!input.trim() && drafts.length === 0) return;
-    sendMessage(input, drafts);
-    setDrafts([]);
+    const content = input;
+    const attachments = drafts;
+    const sent = await requestSend(content, attachments);
+    if (sent) {
+      setDrafts((current) => current.filter((draft) => !attachments.some((a) => a.id === draft.id)));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -194,6 +264,18 @@ export default function ChatPage() {
 
   return (
     <>
+      {consentVisible && consentStatus && (
+        <AiConsentModal
+          status={consentStatus}
+          busy={consentBusy}
+          onAccept={() => void acceptConsentAndSend()}
+          onDecline={() => {
+            pendingSendRef.current = null;
+            sendInFlightRef.current = false;
+            setConsentVisible(false);
+          }}
+        />
+      )}
       {entryActive && (
         <EntrySequence
           fighterName={fighter?.name ?? null}
@@ -248,7 +330,7 @@ export default function ChatPage() {
                   {SUGGESTED_PROMPTS.map((prompt) => (
                     <button
                       key={prompt}
-                      onClick={() => sendMessage(prompt)}
+                      onClick={() => void requestSend(prompt)}
                       className="group text-left p-4 bg-background hover:bg-white/[0.02] transition-colors font-mono text-[11px] tracking-wide text-foreground/55 hover:text-foreground"
                     >
                       <span className="text-primary/50 group-hover:text-primary mr-2 transition-colors">—</span>
@@ -297,7 +379,7 @@ export default function ChatPage() {
                         <MessageContent
                           content={msg.content}
                           onTrain={(prompt) => {
-                            if (!isStreaming) sendMessage(prompt);
+                            if (!isStreaming) void requestSend(prompt);
                           }}
                         />
                       ) : null}
@@ -309,7 +391,26 @@ export default function ChatPage() {
                     <span>{error}</span>
                     <button
                       type="button"
-                      onClick={() => retry()}
+                      onClick={() => {
+                        if (sendInFlightRef.current) return;
+                        sendInFlightRef.current = true;
+                        void retry()
+                          .then((result) => {
+                            if (!result.success) return;
+                            setDrafts((current) =>
+                              current.filter(
+                                (draft) => !result.attachments.some((a) => a.id === draft.id),
+                              ),
+                            );
+                          })
+                          .catch(() => {
+                            // The hook surfaces ordinary stream failures in its
+                            // error state; keep the preserved attachments here.
+                          })
+                          .finally(() => {
+                            sendInFlightRef.current = false;
+                          });
+                      }}
                       disabled={isStreaming}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-destructive/50 text-destructive/90 hover:bg-destructive/15 uppercase tracking-widest disabled:opacity-40 transition-colors"
                     >
@@ -335,7 +436,7 @@ export default function ChatPage() {
                       // Ignore taps while a reply streams instead of disabling
                       // the button — `disabled:opacity-40` faded the low-contrast
                       // label to near-invisible, so the chips looked empty.
-                      if (!isStreaming) sendMessage(qa.prompt);
+                      if (!isStreaming) void requestSend(qa.prompt);
                     }}
                     className="flex-none font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
                   >
@@ -441,7 +542,7 @@ export default function ChatPage() {
                 {QUICK_ACTIONS.map((qa) => (
                   <button
                     key={qa.label}
-                    onClick={() => sendMessage(qa.prompt)}
+                    onClick={() => void requestSend(qa.prompt)}
                     className="font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
                   >
                     {qa.label}

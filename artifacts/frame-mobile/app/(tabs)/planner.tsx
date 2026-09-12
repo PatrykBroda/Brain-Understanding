@@ -1,9 +1,10 @@
 import { useAuth } from "@/context/AuthContext";
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Linking,
   Platform,
   Pressable,
   RefreshControl,
@@ -17,7 +18,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import { apiGet, apiPatch, apiPost, apiUrl } from "@/lib/api";
+import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
+import type { AiConsentStatus } from "@/lib/aiConsent";
 import { toIso } from "@/lib/dateUtils";
 import {
   competitionApi,
@@ -1322,6 +1325,12 @@ function MissionContent() {
   const { isSignedIn } = useAuth();
   const qc = useQueryClient();
   const [generating, setGenerating] = useState(false);
+  const [consentVisible, setConsentVisible] = useState(false);
+  const [consentStatus, setConsentStatus] = useState<AiConsentStatus | null>(null);
+  const [consentBusy, setConsentBusy] = useState(false);
+  const pendingGenerationRef = useRef(false);
+  const generationInFlightRef = useRef(false);
+  const consentAcceptingRef = useRef(false);
 
   const {
     data: plan,
@@ -1358,16 +1367,61 @@ function MissionContent() {
     },
   });
 
+  async function runGeneration() {
+    try {
+      await apiPost("/planner/regenerate");
+      qc.invalidateQueries({ queryKey: ["plan"] });
+    } catch {
+      // Keep the planner usable if generation fails.
+    } finally {
+      setGenerating(false);
+      generationInFlightRef.current = false;
+    }
+  }
+
   async function handleGenerate() {
+    if (generationInFlightRef.current || generating || isLoading) return;
+    generationInFlightRef.current = true;
     setGenerating(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      await apiPost("/planner");
-      qc.invalidateQueries({ queryKey: ["plan"] });
+      const status = await apiGet<AiConsentStatus>("/ai-consent");
+      setConsentStatus(status);
+      if (!status.accepted) {
+        pendingGenerationRef.current = true;
+        setConsentVisible(true);
+        setGenerating(false);
+        return;
+      }
+      await runGeneration();
     } catch {
-      // noop
-    } finally {
       setGenerating(false);
+      generationInFlightRef.current = false;
+    }
+  }
+
+  async function acceptConsentAndGenerate() {
+    if (consentAcceptingRef.current) return;
+    if (!pendingGenerationRef.current) {
+      setConsentVisible(false);
+      generationInFlightRef.current = false;
+      return;
+    }
+    consentAcceptingRef.current = true;
+    setConsentBusy(true);
+    try {
+      const status = await apiPatch<AiConsentStatus>("/ai-consent", { accepted: true });
+      setConsentStatus(status);
+      pendingGenerationRef.current = false;
+      setConsentVisible(false);
+      setGenerating(true);
+      await runGeneration();
+    } catch {
+      // Keep the intent and modal available so the user can try again.
+      generationInFlightRef.current = false;
+    } finally {
+      setConsentBusy(false);
+      consentAcceptingRef.current = false;
     }
   }
 
@@ -1382,7 +1436,21 @@ function MissionContent() {
   const totalCount = plan?.items.length ?? 0;
 
   return (
-    <View style={mission.wrap}>
+    <>
+      <AiConsentModal
+        visible={consentVisible}
+        status={consentStatus}
+        busy={consentBusy}
+        onAccept={() => void acceptConsentAndGenerate()}
+        onDecline={() => {
+          pendingGenerationRef.current = false;
+          generationInFlightRef.current = false;
+          setGenerating(false);
+          setConsentVisible(false);
+        }}
+        onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
+      />
+      <View style={mission.wrap}>
       <View style={mission.header}>
         <Text style={mission.headerTitle}>WEEKLY MISSION</Text>
         <Pressable
@@ -1464,7 +1532,8 @@ function MissionContent() {
           ))}
         </>
       )}
-    </View>
+      </View>
+    </>
   );
 }
 

@@ -21,6 +21,7 @@ import { getOrCreateActiveConversation } from "./conversation";
 import { getEntitlementForUserId } from "../lib/subscriptionService";
 import type { PlanItem } from "@workspace/db";
 import { getUserFighter } from "../middlewares/authMiddleware";
+import { hasAiConsentForUser, requireAiConsent } from "../lib/aiConsent";
 
 // Free tier sees a mission preview: the first item in full, the rest as
 // title+category stubs. Shape stays PlanItem-compatible so clients don't break.
@@ -47,13 +48,22 @@ const router: IRouter = Router();
 
 type GenResult =
   | { ok: true; plan: WeeklyPlan }
-  | { ok: false; status: number; error: string };
+  | { ok: false; status: number; error: string; code?: string };
 
 async function runGeneration(
   fighterId: number,
   req: Request,
   fresh: boolean,
 ): Promise<GenResult> {
+  // Defense in depth for callers other than the HTTP handlers.
+  if (!req.userId || !(await hasAiConsentForUser(req.userId))) {
+    return {
+      ok: false,
+      status: 403,
+      error: "AI consent is required before using this feature.",
+      code: "AI_CONSENT_REQUIRED",
+    };
+  }
   const fighter = (
     await db.select().from(fightersTable).where(eq(fightersTable.id, fighterId)).limit(1)
   )[0];
@@ -81,7 +91,18 @@ async function runGeneration(
   const provider = conversation.aiProvider === "openai" ? "openai" : "claude";
 
   try {
+    // Re-check immediately before entering generation; the initial route and
+    // defense-in-depth checks may have raced with consent withdrawal.
+    if (!(await hasAiConsentForUser(req.userId as string))) {
+      return {
+        ok: false,
+        status: 403,
+        error: "AI consent is required before using this feature.",
+        code: "AI_CONSENT_REQUIRED",
+      };
+    }
     const { items, rationale } = await generateWeeklyPlan({
+      userId: req.userId as string,
       fighter,
       facts,
       calibrations,
@@ -116,6 +137,19 @@ async function runGeneration(
     });
     return { ok: true, plan };
   } catch (err) {
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "code" in err &&
+      err.code === "AI_CONSENT_REQUIRED"
+    ) {
+      return {
+        ok: false,
+        status: 403,
+        error: "AI consent is required before using this feature.",
+        code: "AI_CONSENT_REQUIRED",
+      };
+    }
     req.log.error({ err }, "planner generation failed");
     return {
       ok: false,
@@ -140,7 +174,7 @@ router.get("/planner/current", async (req, res) => {
     if (result.ok) {
       plan = result.plan;
     } else if (result.status !== 409) {
-      res.status(result.status).json({ error: result.error });
+      res.status(result.status).json({ error: result.error, ...(result.code ? { code: result.code } : {}) });
       return;
     }
   }
@@ -161,6 +195,7 @@ router.post("/planner/regenerate", async (req, res) => {
     res.status(400).json({ error: "no fighter" });
     return;
   }
+  if (!(await requireAiConsent(req, res))) return;
   const entitlement = await getEntitlementForUserId(req.userId as string);
   if (entitlement.plan === "free") {
     res.status(402).json({
@@ -172,7 +207,7 @@ router.post("/planner/regenerate", async (req, res) => {
   }
   const result = await runGeneration(fighter.id, req, true);
   if (!result.ok) {
-    res.status(result.status).json({ error: result.error });
+    res.status(result.status).json({ error: result.error, ...(result.code ? { code: result.code } : {}) });
     return;
   }
   res.json({ plan: result.plan, completions: [], weekStart: isoMondayUTC().toISOString() });

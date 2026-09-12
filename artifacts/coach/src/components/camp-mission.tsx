@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { HelpCircle, Lock, RefreshCcw, X } from "lucide-react";
+import { AiConsentModal } from "@/components/ai-consent-modal";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { useFramePlus } from "@/components/frame-plus-modal";
 import { useFighter } from "@/hooks/use-fighter";
@@ -8,7 +9,7 @@ import {
   useRegeneratePlanner,
   useTogglePlannerItem,
 } from "@/hooks/use-planner";
-import { ApiError, type PlanCategory, type PlanItem } from "@/lib/api";
+import { api, ApiError, type AiConsentStatus, type PlanCategory, type PlanItem } from "@/lib/api";
 
 const CATEGORY_ORDER: PlanCategory[] = ["fix", "goal_step", "train", "technique", "regulate"];
 
@@ -62,6 +63,12 @@ export function CampMission() {
   const regen = useRegeneratePlanner();
   const toggle = useTogglePlannerItem();
   const [help, setHelp] = useState(false);
+  const [consentVisible, setConsentVisible] = useState(false);
+  const [consentStatus, setConsentStatus] = useState<AiConsentStatus | null>(null);
+  const [consentBusy, setConsentBusy] = useState(false);
+  const pendingGenerateRef = useRef(false);
+  const generationInFlightRef = useRef(false);
+  const consentAcceptingRef = useRef(false);
   const { openUpgrade } = useFramePlus();
 
   const isPreview = planner.data?.preview === true;
@@ -81,8 +88,74 @@ export function CampMission() {
     for (const item of plan.items) grouped[item.category].push(item);
   }
 
+  async function runGeneration() {
+    try {
+      await regen.mutateAsync();
+    } catch (e) {
+      if (e instanceof ApiError && e.kind === "upgrade_required") {
+        openUpgrade("weekly_mission");
+      }
+    } finally {
+      generationInFlightRef.current = false;
+    }
+  }
+
+  async function requestGenerate() {
+    if (generationInFlightRef.current || regen.isPending) return;
+    generationInFlightRef.current = true;
+    try {
+      const status = await api.getAiConsent();
+      setConsentStatus(status);
+      if (!status.accepted) {
+        pendingGenerateRef.current = true;
+        setConsentVisible(true);
+        return;
+      }
+      await runGeneration();
+    } catch {
+      generationInFlightRef.current = false;
+    }
+  }
+
+  async function acceptConsentAndGenerate() {
+    if (consentAcceptingRef.current) return;
+    if (!pendingGenerateRef.current) {
+      setConsentVisible(false);
+      generationInFlightRef.current = false;
+      return;
+    }
+    consentAcceptingRef.current = true;
+    setConsentBusy(true);
+    try {
+      const status = await api.setAiConsent(true);
+      setConsentStatus(status);
+      pendingGenerateRef.current = false;
+      setConsentVisible(false);
+      await runGeneration();
+    } catch {
+      // Keep the intent and modal available so the user can try again.
+      generationInFlightRef.current = false;
+    } finally {
+      setConsentBusy(false);
+      consentAcceptingRef.current = false;
+    }
+  }
+
   return (
-    <div className="space-y-5">
+    <>
+      {consentVisible && consentStatus && (
+        <AiConsentModal
+          status={consentStatus}
+          busy={consentBusy}
+          onAccept={() => void acceptConsentAndGenerate()}
+          onDecline={() => {
+            pendingGenerateRef.current = false;
+            generationInFlightRef.current = false;
+            setConsentVisible(false);
+          }}
+        />
+      )}
+      <div className="space-y-5">
       {/* Fighter + regenerate row */}
       <div className="flex items-center justify-between">
         <div>
@@ -104,16 +177,8 @@ export function CampMission() {
           </button>
           <button
             type="button"
-            onClick={() =>
-              regen.mutate(undefined, {
-                onError: (e) => {
-                  if (e instanceof ApiError && e.kind === "upgrade_required") {
-                    openUpgrade("weekly_mission");
-                  }
-                },
-              })
-            }
-            disabled={regen.isPending}
+            onClick={() => void requestGenerate()}
+            disabled={regen.isPending || !!generationInFlightRef.current}
             className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40 flex items-center gap-1.5"
           >
             {regen.isPending ? (
@@ -356,7 +421,8 @@ export function CampMission() {
 
       <MissionAnimations />
       {help && <HelpOverlay onClose={() => setHelp(false)} />}
-    </div>
+      </div>
+    </>
   );
 }
 

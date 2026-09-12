@@ -104,7 +104,7 @@ export default function SignUpScreen() {
             </Pressable>
           </View>
           <Text style={styles.aiNote}>
-            AI analysis permission is optional and requested separately before any analysis data is sent to Anthropic.
+            AI coaching permission is optional and requested separately before any data is sent to Anthropic (Claude) or OpenAI.
           </Text>
           <TextInput
             style={styles.input}

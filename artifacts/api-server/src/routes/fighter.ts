@@ -9,6 +9,7 @@ import {
 import { eq } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { deriveSpiritAnimal } from "../lib/spiritAnimals";
+import { hasAiConsentForUser } from "../lib/aiConsent";
 
 const router: IRouter = Router();
 
@@ -47,6 +48,7 @@ router.post("/fighter", async (req, res) => {
   }
   const values = { ...parsed.data, age: derivedAge };
   const existing = await getUserFighter(req);
+  const aiConsent = await hasAiConsentForUser(userId);
 
   if (existing) {
     const [updated] = await db
@@ -58,7 +60,9 @@ router.post("/fighter", async (req, res) => {
     // Re-read the spirit animal when the personality changed or it was never set.
     const personalityChanged =
       (parsed.data.personality ?? existing.personality) !== existing.personality;
-    if (updated && (personalityChanged || !updated.spiritAnimal)) {
+    // Profile onboarding/editing must remain available without consent.  The
+    // optional AI enrichment is simply deferred until a consented edit.
+    if (updated && aiConsent && (personalityChanged || !updated.spiritAnimal)) {
       const derived = await deriveSpiritAnimal(updated, req.log);
       if (derived) {
         const [reread] = await db
@@ -79,7 +83,7 @@ router.post("/fighter", async (req, res) => {
     .values({ ...values, userId })
     .returning();
 
-  if (created) {
+  if (created && aiConsent) {
     const derived = await deriveSpiritAnimal(created, req.log);
     if (derived) {
       const [enriched] = await db
@@ -132,7 +136,8 @@ router.patch("/fighter", async (req, res) => {
   // Re-derive the spirit animal when the personality changed.
   const personalityChanged =
     patch.personality != null && patch.personality !== existing.personality;
-  if (updated && personalityChanged) {
+  const aiConsent = await hasAiConsentForUser(req.userId!);
+  if (updated && aiConsent && personalityChanged) {
     const derived = await deriveSpiritAnimal(updated, req.log);
     if (derived) {
       const [reread] = await db

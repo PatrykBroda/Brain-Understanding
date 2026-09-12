@@ -24,11 +24,22 @@ vi.mock("../openaiClient", () => ({
 const { mockMessagesCreate } = vi.hoisted(() => ({
   mockMessagesCreate: vi.fn(),
 }));
+const { mockConsentCheck } = vi.hoisted(() => ({
+  mockConsentCheck: vi.fn(),
+}));
 
 vi.mock("@anthropic-ai/sdk", () => ({
   default: vi.fn(function() {
     return { messages: { create: mockMessagesCreate } };
   }),
+}));
+
+vi.mock("../lib/aiConsent", () => ({
+  AI_PROVIDER_MAX_RETRIES: 0,
+  hasAiConsentForUser: mockConsentCheck,
+  AiConsentRequiredError: class AiConsentRequiredError extends Error {
+    code = "AI_CONSENT_REQUIRED";
+  },
 }));
 
 import { validateAndNormalise, isoMondayUTC, generateWeeklyPlan } from "../lib/plannerService";
@@ -359,12 +370,15 @@ describe("generateWeeklyPlan — retry logic", () => {
 
   beforeEach(() => {
     mockMessagesCreate.mockReset();
+    mockConsentCheck.mockReset();
+    mockConsentCheck.mockResolvedValue(true);
   });
 
   it("succeeds on the first attempt when the plan is valid", async () => {
     mockMessagesCreate.mockResolvedValueOnce(makeValidToolResponse());
 
     const result = await generateWeeklyPlan({
+      userId: "user_1",
       fighter: baseFighter,
       facts,
       calibrations,
@@ -382,6 +396,7 @@ describe("generateWeeklyPlan — retry logic", () => {
       .mockResolvedValueOnce(makeValidToolResponse());
 
     const result = await generateWeeklyPlan({
+      userId: "user_1",
       fighter: baseFighter,
       facts,
       calibrations,
@@ -400,6 +415,7 @@ describe("generateWeeklyPlan — retry logic", () => {
 
     await expect(
       generateWeeklyPlan({
+        userId: "user_1",
         fighter: baseFighter,
         facts,
         calibrations,
@@ -416,6 +432,7 @@ describe("generateWeeklyPlan — retry logic", () => {
 
     await expect(
       generateWeeklyPlan({
+        userId: "user_1",
         fighter: baseFighter,
         facts,
         calibrations,
@@ -423,5 +440,23 @@ describe("generateWeeklyPlan — retry logic", () => {
         recentChat: "",
       }),
     ).rejects.toThrow(/no tool_use/);
+  });
+
+  it("does not call the provider a second time after consent is withdrawn", async () => {
+    mockMessagesCreate.mockResolvedValueOnce(makeInvalidToolResponse());
+    mockConsentCheck.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+
+    const error = await generateWeeklyPlan({
+      userId: "user_1",
+      fighter: baseFighter,
+      facts,
+      calibrations,
+      provider: "claude",
+      recentChat: "",
+    }).catch((err: unknown) => err);
+
+    expect(error).toMatchObject({ code: "AI_CONSENT_REQUIRED" });
+    expect(mockMessagesCreate).toHaveBeenCalledTimes(1);
+    expect(mockConsentCheck).toHaveBeenCalledTimes(2);
   });
 });

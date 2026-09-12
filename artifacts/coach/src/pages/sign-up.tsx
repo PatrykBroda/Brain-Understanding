@@ -68,7 +68,7 @@ export default function SignUpPage() {
               </span>
             </label>
             <p className="font-mono text-[9px] text-foreground/40 leading-relaxed">
-              AI analysis permission is optional and requested separately before data is sent to Anthropic.
+              AI coaching permission is optional and requested separately before any data is sent to Anthropic (Claude) or OpenAI.
             </p>
             <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/55 mt-1.5">
               Calibration system
