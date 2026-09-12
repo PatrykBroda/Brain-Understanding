@@ -14,9 +14,14 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  AI_CONSENT_DISCLOSURE,
+  AI_CONSENT_VERSION,
+  formatAiConsentSummary,
+  formatProviderList,
+} from "@workspace/ai-consent";
 import { useAuth } from "@/context/AuthContext";
 import { apiPost, apiUrl } from "@/lib/api";
-import { AI_CONSENT_VERSION } from "@/lib/aiConsent";
 import { getAuthErrorMessage } from "@/lib/authErrors";
 
 export default function SignUpScreen() {
@@ -117,7 +122,7 @@ export default function SignUpScreen() {
             style={styles.legalRow}
             onPress={() => setAcceptedAiConsent((value) => !value)}
             accessibilityRole="checkbox"
-            accessibilityLabel="Permit FRAME to send relevant data to Anthropic and OpenAI"
+            accessibilityLabel={`Permit FRAME to send relevant data to ${formatProviderList(AI_CONSENT_DISCLOSURE.providers)}`}
             accessibilityHint="Required before you can create an account"
             accessibilityState={{ checked: acceptedAiConsent }}
           >
@@ -131,15 +136,7 @@ export default function SignUpScreen() {
                 {acceptedAiConsent ? "✓" : ""}
               </Text>
             </View>
-            <Text style={styles.legalCopy}>
-              I permit FRAME to send the minimum relevant context to Anthropic
-              (Claude) and/or OpenAI for AI coaching, planning, memory,
-              spirit-animal and performance analysis. This may include chats,
-              training or session data, movement signals, scores, athlete
-              profile context, images, selected video stills and other
-              information I provide. My email address, account ID and raw video
-              files are not sent as AI model context.
-            </Text>
+            <Text style={styles.legalCopy}>{formatAiConsentSummary()}</Text>
           </Pressable>
           <TextInput
             style={styles.input}

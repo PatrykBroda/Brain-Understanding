@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatProviderList } from "@workspace/ai-consent";
 import type { AiConsentStatus } from "@/lib/api";
 
 export function AiConsentModal({
@@ -51,9 +52,9 @@ export function AiConsentModal({
           AI coaching permission
         </h2>
         <p className="mt-5 text-sm leading-relaxed text-foreground/75">
-          FRAME uses Anthropic (Claude) and OpenAI services for AI coaching. The
-          exact categories below come from the FRAME server disclosure. Nothing
-          is sent to either Anthropic/Claude or OpenAI before you agree.
+          FRAME uses {formatProviderList(disclosure.providers)} for AI features.
+          The exact categories below come from the FRAME server disclosure.
+          Nothing is sent to these providers before you agree.
         </p>
 
         <h3 className="mt-7 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">

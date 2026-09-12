@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { formatAiConsentSummary } from "@workspace/ai-consent";
 import {
   AI_CONSENT_DISCLOSURE,
   AI_CONSENT_VERSION,
@@ -23,6 +24,19 @@ describe("AI analysis consent", () => {
     expect(AI_CONSENT_DISCLOSURE.sharedData.join(" ")).toMatch(/athlete profile/i);
     expect(AI_CONSENT_DISCLOSURE.sharedData.join(" ")).toMatch(/images.*video stills/i);
     expect(AI_CONSENT_DISCLOSURE.sharedData.join(" ")).toMatch(/other user-provided/i);
+  });
+
+  it("keeps client-visible signup wording derived from every reviewed disclosure field", () => {
+    const summary = formatAiConsentSummary();
+
+    expect(summary).toContain(AI_CONSENT_DISCLOSURE.purpose);
+    for (const item of [
+      ...AI_CONSENT_DISCLOSURE.providers,
+      ...AI_CONSENT_DISCLOSURE.sharedData,
+      ...AI_CONSENT_DISCLOSURE.notShared,
+    ]) {
+      expect(summary).toContain(item);
+    }
   });
 
   it("accepts only the current disclosure version with a timestamp", () => {

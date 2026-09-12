@@ -14,6 +14,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
     "@googleapis/calendar": "^15.0.0",
+    "@workspace/ai-consent": "workspace:*",
     "@workspace/api-zod": "workspace:*",
     "@workspace/archetypes": "workspace:*",
     "@workspace/db": "workspace:*",

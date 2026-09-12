@@ -24,6 +24,7 @@
     "@types/react-dom": "catalog:",
     "@types/three": "0.184.1",
     "@ungap/structured-clone": "^1.3.0",
+    "@workspace/ai-consent": "workspace:*",
     "@workspace/api-client-react": "workspace:*",
     "@workspace/breath": "workspace:*",
     "expo": "~54.0.36",

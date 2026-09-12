@@ -4,6 +4,9 @@
   "files": [],
   "references": [
     {
+      "path": "./lib/ai-consent"
+    },
+    {
       "path": "./lib/db"
     },
     {

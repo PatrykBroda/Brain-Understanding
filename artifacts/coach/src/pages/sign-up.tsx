@@ -2,7 +2,10 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import AuthLayout from "@/components/auth-layout";
 import { useAuth } from "@/context/auth-context";
-import { AI_CONSENT_VERSION } from "@/lib/api";
+import {
+  AI_CONSENT_VERSION,
+  formatAiConsentSummary,
+} from "@workspace/ai-consent";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -79,15 +82,7 @@ export default function SignUpPage() {
                 required
                 className="mt-0.5 accent-[hsl(var(--primary))]"
               />
-              <span>
-                I permit FRAME to send the minimum relevant context to Anthropic
-                (Claude) and/or OpenAI for AI coaching, planning, memory,
-                spirit-animal and performance-analysis features. This may include
-                chats, training or session data, movement signals, scores, athlete
-                profile context, images, selected video stills and other
-                information I provide. My email address, account ID and raw video
-                files are not sent as AI model context.
-              </span>
+              <span>{formatAiConsentSummary()}</span>
             </label>
             <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/55 mt-3">
               Calibration system

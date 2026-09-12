@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
+import { formatProviderList } from "@workspace/ai-consent";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 
 export function AiConsentModal({
@@ -89,10 +90,9 @@ export function AiConsentModal({
           <Text style={s.title}>AI Data & Privacy</Text>
 
           <Text style={s.intro}>
-            FRAME uses Anthropic (Claude) and OpenAI for personalised coaching,
-            planning and performance analysis. Before relevant training data,
-            messages, images or selected video stills can be sent, we need your
-            permission.
+            {disclosure
+              ? `FRAME uses ${formatProviderList(disclosure.providers)} ${disclosure.purpose}. Before any of the data below can be sent, we need your permission.`
+              : "Loading the current AI data disclosure…"}
           </Text>
 
           {!disclosure ? (
@@ -118,11 +118,7 @@ export function AiConsentModal({
                 <Feather name="cloud" size={24} color="#D1D5DB" style={s.cardIcon} />
                 <View style={s.cardContent}>
                   <Text style={s.cardTitle}>Who receives it?</Text>
-                  <Text style={s.cardBody}>
-                    Relevant data is sent securely to Anthropic (Claude) and/or
-                    OpenAI, depending on the feature. They process it under their
-                    applicable privacy and data-processing terms.
-                  </Text>
+                  <Text style={s.cardBody}>{disclosure.use}</Text>
                 </View>
               </View>
 
@@ -169,7 +165,9 @@ export function AiConsentModal({
               {checked && <Feather name="check" size={16} color="#FFFFFF" />}
             </View>
             <Text style={s.checkboxLabel}>
-              I understand and agree to the sending of my data to Anthropic and OpenAI for the purposes described above.
+              I understand and agree to the sending of my data to{" "}
+              {disclosure ? formatProviderList(disclosure.providers) : "the listed providers"}{" "}
+              for the purposes described above.
             </Text>
           </Pressable>
 

@@ -50,6 +50,7 @@
     "@types/react-dom": "catalog:",
     "@types/three": "^0.184.1",
     "@vitejs/plugin-react": "catalog:",
+    "@workspace/ai-consent": "workspace:*",
     "@workspace/api-client-react": "workspace:*",
     "@workspace/archetypes": "workspace:*",
     "@workspace/breath": "workspace:*",
