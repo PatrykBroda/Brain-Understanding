@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import AuthLayout from "@/components/auth-layout";
 import { useAuth } from "@/context/auth-context";
+import { AI_CONSENT_VERSION } from "@/lib/api";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -13,6 +14,7 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const [acceptedAiConsent, setAcceptedAiConsent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,6 +30,8 @@ export default function SignUpPage() {
           password,
           acceptedTerms: acceptedLegal,
           acceptedPrivacy: acceptedLegal,
+          acceptedAiConsent,
+          aiConsentVersion: AI_CONSENT_VERSION,
         }),
       });
       const data = (await res.json()) as { token?: string; error?: string };
@@ -67,9 +71,24 @@ export default function SignUpPage() {
                 <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-primary underline">Privacy Policy and AI data-use disclosure</a>.
               </span>
             </label>
-            <p className="font-mono text-[9px] text-foreground/40 leading-relaxed mt-3">
-              FRAME requires your permission to send data to AI providers (Anthropic and OpenAI). You will be prompted to grant this permission after sign-in.
-            </p>
+            <label className="flex items-start gap-3 text-left text-[11px] text-foreground/65 leading-relaxed mt-4">
+              <input
+                type="checkbox"
+                checked={acceptedAiConsent}
+                onChange={(e) => setAcceptedAiConsent(e.target.checked)}
+                required
+                className="mt-0.5 accent-[hsl(var(--primary))]"
+              />
+              <span>
+                I permit FRAME to send the minimum relevant context to Anthropic
+                (Claude) and/or OpenAI for AI coaching, planning, memory,
+                spirit-animal and performance-analysis features. This may include
+                chats, training or session data, movement signals, scores, athlete
+                profile context, images, selected video stills and other
+                information I provide. My email address, account ID and raw video
+                files are not sent as AI model context.
+              </span>
+            </label>
             <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/55 mt-3">
               Calibration system
             </div>
@@ -116,7 +135,13 @@ export default function SignUpPage() {
 
             <button
               type="submit"
-              disabled={loading || !email || !password || !acceptedLegal}
+              disabled={
+                loading ||
+                !email ||
+                !password ||
+                !acceptedLegal ||
+                !acceptedAiConsent
+              }
               className="bg-primary text-black font-mono uppercase tracking-[0.25em] text-[11px] py-3 rounded-md hover:bg-primary/90 transition-colors shadow-[0_8px_30px_-10px_hsla(39,49%,36%,0.4)] disabled:opacity-50"
             >
               {loading ? "Creating account…" : "Create account"}

@@ -52,6 +52,9 @@ export function getAuthErrorMessage(
     }
 
     if (error.status === 400) {
+      if (/AI data use|AI consent|current AI/i.test(error.message)) {
+        return "Agree to FRAME's AI data use before creating your account.";
+      }
       if (/valid email/i.test(error.message)) {
         return "Enter a valid email address.";
       }

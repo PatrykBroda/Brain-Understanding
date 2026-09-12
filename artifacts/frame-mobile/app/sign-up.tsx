@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { apiPost, apiUrl } from "@/lib/api";
+import { AI_CONSENT_VERSION } from "@/lib/aiConsent";
 import { getAuthErrorMessage } from "@/lib/authErrors";
 
 export default function SignUpScreen() {
@@ -28,6 +29,7 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const [acceptedAiConsent, setAcceptedAiConsent] = useState(false);
 
   async function handleSignUp() {
     if (loading) return;
@@ -36,7 +38,14 @@ export default function SignUpScreen() {
     try {
       const data = await apiPost<{ token: string; userId: string }>(
         "/auth/register",
-        { email, password, acceptedTerms: acceptedLegal, acceptedPrivacy: acceptedLegal },
+        {
+          email,
+          password,
+          acceptedTerms: acceptedLegal,
+          acceptedPrivacy: acceptedLegal,
+          acceptedAiConsent,
+          aiConsentVersion: AI_CONSENT_VERSION,
+        },
       );
       await signIn(data.token);
       router.replace("/onboarding");
@@ -86,6 +95,7 @@ export default function SignUpScreen() {
             style={styles.legalRow}
             onPress={() => setAcceptedLegal((value) => !value)}
             accessibilityRole="checkbox"
+            accessibilityLabel="Accept the Terms of Service and Privacy Policy"
             accessibilityState={{ checked: acceptedLegal }}
           >
             <View style={[styles.checkbox, acceptedLegal && styles.checkboxChecked]}>
@@ -103,6 +113,34 @@ export default function SignUpScreen() {
               <Text style={styles.policyLink}>VIEW PRIVACY & AI DATA USE</Text>
             </Pressable>
           </View>
+          <Pressable
+            style={styles.legalRow}
+            onPress={() => setAcceptedAiConsent((value) => !value)}
+            accessibilityRole="checkbox"
+            accessibilityLabel="Permit FRAME to send relevant data to Anthropic and OpenAI"
+            accessibilityHint="Required before you can create an account"
+            accessibilityState={{ checked: acceptedAiConsent }}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                acceptedAiConsent && styles.checkboxChecked,
+              ]}
+            >
+              <Text style={styles.checkmark}>
+                {acceptedAiConsent ? "✓" : ""}
+              </Text>
+            </View>
+            <Text style={styles.legalCopy}>
+              I permit FRAME to send the minimum relevant context to Anthropic
+              (Claude) and/or OpenAI for AI coaching, planning, memory,
+              spirit-animal and performance analysis. This may include chats,
+              training or session data, movement signals, scores, athlete
+              profile context, images, selected video stills and other
+              information I provide. My email address, account ID and raw video
+              files are not sent as AI model context.
+            </Text>
+          </Pressable>
           <TextInput
             style={styles.input}
             placeholder="Password (min 8 characters)"
@@ -116,9 +154,34 @@ export default function SignUpScreen() {
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           <Pressable
-            style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
+            style={({ pressed }) => [
+              styles.btn,
+              pressed && styles.btnPressed,
+              (loading ||
+                !email ||
+                !password ||
+                !acceptedLegal ||
+                !acceptedAiConsent) &&
+                styles.btnDisabled,
+            ]}
             onPress={handleSignUp}
-            disabled={loading || !email || !password || !acceptedLegal}
+            disabled={
+              loading ||
+              !email ||
+              !password ||
+              !acceptedLegal ||
+              !acceptedAiConsent
+            }
+            accessibilityRole="button"
+            accessibilityState={{
+              disabled:
+                loading ||
+                !email ||
+                !password ||
+                !acceptedLegal ||
+                !acceptedAiConsent,
+              busy: loading,
+            }}
           >
             {loading ? (
               <ActivityIndicator color="#050505" />
@@ -231,6 +294,9 @@ const styles = StyleSheet.create({
   },
   btnPressed: {
     opacity: 0.85,
+  },
+  btnDisabled: {
+    opacity: 0.5,
   },
   btnText: {
     fontFamily: "SpaceMono",

@@ -1,5 +1,7 @@
 const base = import.meta.env.BASE_URL;
 
+export const AI_CONSENT_VERSION = "2026-09-12";
+
 export type Fighter = {
   id: number;
   name: string;

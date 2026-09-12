@@ -23,6 +23,7 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { LEGAL_CONSENT_VERSION } from "../lib/legalConsent";
+import { AI_CONSENT_VERSION } from "../lib/aiConsent";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -179,11 +180,20 @@ export function validatePassword(password: unknown): string | null {
 // POST /api/auth/register
 router.post("/auth/register", async (req: Request, res: Response) => {
   const ip = req.ip ?? "unknown";
-  const { email, password, acceptedTerms, acceptedPrivacy } = (req.body ?? {}) as {
+  const {
+    email,
+    password,
+    acceptedTerms,
+    acceptedPrivacy,
+    acceptedAiConsent,
+    aiConsentVersion,
+  } = (req.body ?? {}) as {
     email?: unknown;
     password?: unknown;
     acceptedTerms?: unknown;
     acceptedPrivacy?: unknown;
+    acceptedAiConsent?: unknown;
+    aiConsentVersion?: unknown;
   };
   const emailForRateLimit = typeof email === "string" ? email : "<invalid>";
   if (!registrationRateLimitCheck(ip, emailForRateLimit)) {
@@ -211,6 +221,18 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     });
     return;
   }
+  if (
+    acceptedAiConsent !== true ||
+    aiConsentVersion !== AI_CONSENT_VERSION
+  ) {
+    res.status(400).json({
+      error:
+        "You must review and agree to FRAME's current AI data use before creating an account",
+      code: "AI_CONSENT_REQUIRED",
+      version: AI_CONSENT_VERSION,
+    });
+    return;
+  }
 
   // Reject if email already registered.
   const [existing] = await db
@@ -225,12 +247,15 @@ router.post("/auth/register", async (req: Request, res: Response) => {
 
   const id = crypto.randomUUID();
   const hashedPassword = await bcrypt.hash(password as string, BCRYPT_ROUNDS);
+  const acceptedAt = new Date();
   await db.insert(usersTable).values({
     id,
     email: normalizedEmail,
     hashedPassword,
     legalConsentVersion: LEGAL_CONSENT_VERSION,
-    legalConsentAt: new Date(),
+    legalConsentAt: acceptedAt,
+    aiAnalysisConsentVersion: AI_CONSENT_VERSION,
+    aiAnalysisConsentAt: acceptedAt,
   });
 
   const token = await signToken(id, normalizedEmail);

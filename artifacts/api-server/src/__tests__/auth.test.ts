@@ -40,6 +40,7 @@ import authRouter, {
   rateLimitCheck,
   registrationRateLimitCheck,
 } from "../routes/auth";
+import { AI_CONSENT_VERSION, hasCurrentAiConsent } from "../lib/aiConsent";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -274,6 +275,79 @@ describe("user registration — uniqueness", () => {
     }
   });
 
+  it("refuses to create an account without current separate AI permission", async () => {
+    const email = testEmail("missing-ai-consent").toLowerCase();
+    const staleVersionEmail = testEmail("stale-ai-consent").toLowerCase();
+    const app = express();
+    app.use(express.json());
+    app.use("/api", authRouter);
+    const server = await new Promise<ReturnType<typeof app.listen>>((resolve) => {
+      const listeningServer = app.listen(0, "127.0.0.1", () => resolve(listeningServer));
+    });
+    const { port } = server.address() as AddressInfo;
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password: TEST_PASSWORD,
+          acceptedTerms: true,
+          acceptedPrivacy: true,
+          acceptedAiConsent: false,
+          aiConsentVersion: AI_CONSENT_VERSION,
+        }),
+      });
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "AI_CONSENT_REQUIRED",
+      });
+
+      const [createdUser] = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(eq(usersTable.email, email))
+        .limit(1);
+      expect(createdUser).toBeUndefined();
+
+      const staleVersionResponse = await fetch(
+        `http://127.0.0.1:${port}/api/auth/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: staleVersionEmail,
+            password: TEST_PASSWORD,
+            acceptedTerms: true,
+            acceptedPrivacy: true,
+            acceptedAiConsent: true,
+            aiConsentVersion: "older-version",
+          }),
+        },
+      );
+      expect(staleVersionResponse.status).toBe(400);
+      await expect(staleVersionResponse.json()).resolves.toMatchObject({
+        code: "AI_CONSENT_REQUIRED",
+        version: AI_CONSENT_VERSION,
+      });
+
+      const [staleVersionUser] = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(eq(usersTable.email, staleVersionEmail))
+        .limit(1);
+      expect(staleVersionUser).toBeUndefined();
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+      await db.delete(usersTable).where(eq(usersTable.email, email));
+      await db
+        .delete(usersTable)
+        .where(eq(usersTable.email, staleVersionEmail));
+    }
+  });
+
   it("cannot insert two users with the same email", async () => {
     const email = testEmail("dup").toLowerCase();
     const id1 = crypto.randomUUID();
@@ -307,9 +381,31 @@ describe("user registration — uniqueness", () => {
           password: TEST_PASSWORD,
           acceptedTerms: true,
           acceptedPrivacy: true,
+          acceptedAiConsent: true,
+          aiConsentVersion: AI_CONSENT_VERSION,
         }),
       });
       expect(registration.status).toBe(201);
+
+      const [registeredUser] = await db
+        .select({
+          consentVersion: usersTable.aiAnalysisConsentVersion,
+          consentAt: usersTable.aiAnalysisConsentAt,
+          legalConsentAt: usersTable.legalConsentAt,
+        })
+        .from(usersTable)
+        .where(eq(usersTable.email, normalizedEmail))
+        .limit(1);
+      expect(registeredUser?.consentVersion).toBe(AI_CONSENT_VERSION);
+      expect(
+        hasCurrentAiConsent(
+          registeredUser?.consentVersion,
+          registeredUser?.consentAt,
+        ),
+      ).toBe(true);
+      expect(registeredUser?.legalConsentAt).toEqual(
+        registeredUser?.consentAt,
+      );
 
       const login = await fetch(`${baseUrl}/login`, {
         method: "POST",
