@@ -11,7 +11,7 @@ export function useAiConsent() {
 export function useSetAiConsent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (accepted: boolean) => api.setAiConsent(accepted),
+    mutationFn: () => api.acceptAiConsent(),
     onSuccess: (data) => {
       qc.setQueryData(["ai-consent"], data);
     },

@@ -389,10 +389,10 @@ function fileToBase64(file: File): Promise<string> {
 
 export const api = {
   getAiConsent: () => jsonFetch<AiConsentStatus>("api/ai-consent"),
-  setAiConsent: (accepted: boolean) =>
+  acceptAiConsent: () =>
     jsonFetch<AiConsentStatus>("api/ai-consent", {
       method: "PATCH",
-      body: JSON.stringify({ accepted }),
+      body: JSON.stringify({ accepted: true }),
     }),
   deleteAccount: () => jsonFetch<{ deleted: boolean }>("api/account", { method: "DELETE" }),
   getFighter: () => jsonFetch<{ fighter: Fighter | null }>("api/fighter"),

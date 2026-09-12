@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formatProviderList } from "@workspace/ai-consent";
+import { formatProviderList, type AiConsentDisclosure } from "@workspace/ai-consent";
 import type { AiConsentStatus } from "@/lib/api";
 
 export function AiConsentModal({
@@ -10,6 +10,8 @@ export function AiConsentModal({
   onDecline,
   onSignOut,
   onDeleteAccount,
+  signup = false,
+  disclosure: disclosureOverride,
 }: {
   status: AiConsentStatus;
   busy: boolean;
@@ -18,9 +20,12 @@ export function AiConsentModal({
   onDecline?: () => void;
   onSignOut?: () => void;
   onDeleteAccount?: () => void;
+  signup?: boolean;
+  disclosure?: AiConsentDisclosure;
 }) {
-  const disclosure = status.disclosure;
+  const disclosure = disclosureOverride ?? status.disclosure;
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [checked, setChecked] = useState(false);
 
   return (
     <div
@@ -90,6 +95,10 @@ export function AiConsentModal({
             FRAME is an AI-powered system. You must grant permission to continue.
             If you do not agree, you can sign out or permanently delete your account.
           </p>
+        ) : signup ? (
+          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+            FRAME is an AI-powered system. Your account is not created unless you agree.
+          </p>
         ) : (
           <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
             FRAME is an AI-powered system. You must grant permission to use this feature.
@@ -115,10 +124,24 @@ export function AiConsentModal({
           </a>
         </div>
 
+        <label className="mt-6 flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-foreground/75">
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={(event) => setChecked(event.target.checked)}
+            disabled={busy}
+            className="mt-0.5 accent-[hsl(var(--primary))]"
+          />
+          <span>
+            I understand and agree to the sending of my data to{" "}
+            {formatProviderList(disclosure.providers)} for the purposes described above.
+          </span>
+        </label>
+
         <button
           type="button"
           onClick={onAccept}
-          disabled={busy}
+          disabled={busy || !checked}
           className="mt-6 w-full border border-primary bg-primary/90 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-primary-foreground transition-colors hover:bg-primary disabled:cursor-wait disabled:opacity-50"
         >
           {busy ? "Saving permission…" : "Agree & Continue"}
@@ -179,7 +202,7 @@ export function AiConsentModal({
               disabled={busy}
               className="mt-2 w-full px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
             >
-              Not now
+              {signup ? "Go back" : "Not now"}
             </button>
           )
         )}

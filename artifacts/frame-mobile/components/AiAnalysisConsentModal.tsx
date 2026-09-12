@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
-import { formatProviderList } from "@workspace/ai-consent";
+import { formatProviderList, type AiConsentDisclosure } from "@workspace/ai-consent";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 
 export function AiConsentModal({
@@ -25,6 +25,8 @@ export function AiConsentModal({
   onTerms,
   onSignOut,
   onDeleteAccount,
+  signup = false,
+  disclosure: disclosureOverride,
 }: {
   visible: boolean;
   status: AiConsentStatus | null;
@@ -36,9 +38,11 @@ export function AiConsentModal({
   onTerms?: () => void;
   onSignOut?: () => void;
   onDeleteAccount?: () => void;
+  signup?: boolean;
+  disclosure?: AiConsentDisclosure;
 }) {
   const [checked, setChecked] = useState(false);
-  const disclosure = status?.disclosure;
+  const disclosure = disclosureOverride ?? status?.disclosure;
   const insets = useSafeAreaInsets();
 
   // Reset checked state when modal opens/closes
@@ -143,9 +147,8 @@ export function AiConsentModal({
                     </View>
                   ))}
                   <Text style={[s.cardBody, s.controlNote]}>
-                    You can withdraw permission in Profile or permanently delete
-                    your account. Withdrawing permission locks FRAME until you
-                    accept again.
+                     AI permission is required while your FRAME account is active.
+                     If you no longer agree, you can permanently delete your account.
                   </Text>
                 </View>
               </View>
@@ -182,7 +185,7 @@ export function AiConsentModal({
               <Text style={s.linkText}>Read our Privacy Policy</Text>
               <Feather name="chevron-right" size={20} color="#6B7280" />
             </Pressable>
-            {mandatory && onTerms && (
+            {(mandatory || signup) && onTerms && (
               <Pressable
                 style={s.linkRow}
                 onPress={onTerms}
@@ -218,7 +221,7 @@ export function AiConsentModal({
 
           {!mandatory && onDecline ? (
             <Pressable style={s.declineButton} onPress={onDecline} disabled={busy}>
-              <Text style={s.declineButtonText}>Not Now</Text>
+              <Text style={s.declineButtonText}>{signup ? "Go Back" : "Not Now"}</Text>
             </Pressable>
           ) : null}
 

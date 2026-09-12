@@ -22,12 +22,19 @@ router.get("/ai-consent", async (req, res) => {
 });
 
 router.patch("/ai-consent", async (req, res) => {
-  const accepted = (req.body as { accepted?: unknown })?.accepted === true;
-  const now = accepted ? new Date() : null;
+  const accepted = (req.body as { accepted?: unknown })?.accepted;
+  if (accepted !== true) {
+    res.status(400).json({
+      error: "AI permission is required while a FRAME account is active",
+      code: "AI_CONSENT_REQUIRED",
+    });
+    return;
+  }
+  const now = new Date();
   await db
     .update(usersTable)
     .set({
-      aiAnalysisConsentVersion: accepted ? AI_CONSENT_VERSION : null,
+      aiAnalysisConsentVersion: AI_CONSENT_VERSION,
       aiAnalysisConsentAt: now,
     })
     .where(eq(usersTable.id, req.userId as string));

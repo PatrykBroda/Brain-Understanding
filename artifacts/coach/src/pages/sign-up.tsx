@@ -3,9 +3,11 @@ import { useLocation } from "wouter";
 import AuthLayout from "@/components/auth-layout";
 import { useAuth } from "@/context/auth-context";
 import {
+  AI_CONSENT_DISCLOSURE,
   AI_CONSENT_VERSION,
-  formatAiConsentSummary,
 } from "@workspace/ai-consent";
+import { AiConsentModal } from "@/components/ai-consent-modal";
+import type { AiConsentStatus } from "@/lib/api";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -17,10 +19,23 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
-  const [acceptedAiConsent, setAcceptedAiConsent] = useState(false);
+  const [showAiConsent, setShowAiConsent] = useState(false);
+
+  const signupConsentStatus: AiConsentStatus = {
+    accepted: false,
+    version: AI_CONSENT_VERSION,
+    acceptedAt: null,
+    disclosure: AI_CONSENT_DISCLOSURE,
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading || !acceptedLegal) return;
+    setError(null);
+    setShowAiConsent(true);
+  }
+
+  async function createAccount() {
     if (loading) return;
     setLoading(true);
     setError(null);
@@ -33,7 +48,7 @@ export default function SignUpPage() {
           password,
           acceptedTerms: acceptedLegal,
           acceptedPrivacy: acceptedLegal,
-          acceptedAiConsent,
+          acceptedAiConsent: true,
           aiConsentVersion: AI_CONSENT_VERSION,
         }),
       });
@@ -73,16 +88,6 @@ export default function SignUpPage() {
                 {" "}and{" "}
                 <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-primary underline">Privacy Policy and AI data-use disclosure</a>.
               </span>
-            </label>
-            <label className="flex items-start gap-3 text-left text-[11px] text-foreground/65 leading-relaxed mt-4">
-              <input
-                type="checkbox"
-                checked={acceptedAiConsent}
-                onChange={(e) => setAcceptedAiConsent(e.target.checked)}
-                required
-                className="mt-0.5 accent-[hsl(var(--primary))]"
-              />
-              <span>{formatAiConsentSummary()}</span>
             </label>
             <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/55 mt-3">
               Calibration system
@@ -134,8 +139,7 @@ export default function SignUpPage() {
                 loading ||
                 !email ||
                 !password ||
-                !acceptedLegal ||
-                !acceptedAiConsent
+                !acceptedLegal
               }
               className="bg-primary text-black font-mono uppercase tracking-[0.25em] text-[11px] py-3 rounded-md hover:bg-primary/90 transition-colors shadow-[0_8px_30px_-10px_hsla(39,49%,36%,0.4)] disabled:opacity-50"
             >
@@ -156,6 +160,18 @@ export default function SignUpPage() {
           </span>
         </div>
       </div>
+      {showAiConsent && (
+        <AiConsentModal
+          status={signupConsentStatus}
+          disclosure={AI_CONSENT_DISCLOSURE}
+          signup
+          busy={loading}
+          onAccept={() => void createAccount()}
+          onDecline={() => {
+            if (!loading) setShowAiConsent(false);
+          }}
+        />
+      )}
     </AuthLayout>
   );
 }

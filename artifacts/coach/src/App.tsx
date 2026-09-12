@@ -106,7 +106,7 @@ function ConsentGate({ children }: { children: React.ReactNode }) {
             setIsAccepting(true);
             setAcceptError(null);
             try {
-              await setConsent.mutateAsync(true);
+              await setConsent.mutateAsync();
             } catch (err) {
               setAcceptError(err instanceof Error ? err.message : "Failed to save permission.");
             } finally {

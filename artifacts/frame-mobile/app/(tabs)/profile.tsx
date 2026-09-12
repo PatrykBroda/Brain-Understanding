@@ -22,8 +22,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter, type Fighter } from "@/context/FighterContext";
-import { apiDelete, apiGet, apiPatch, apiUrl, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
-import type { AiConsentStatus } from "@/lib/aiConsent";
+import { apiDelete, apiGet, apiUrl, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
 import { primaryFocus } from "@/lib/primaryFocus";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
@@ -339,18 +338,6 @@ export default function ProfileScreen() {
   const [editVisible, setEditVisible] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
-
-  const consentQuery = useQuery<AiConsentStatus>({
-    queryKey: ["ai-consent"],
-    queryFn: () => apiGet<AiConsentStatus>("/ai-consent"),
-    enabled: !!isSignedIn,
-  });
-  const withdrawConsent = useMutation({
-    mutationFn: () => apiPatch<AiConsentStatus>("/ai-consent", { accepted: false }),
-    onSuccess: (status) => {
-      qc.setQueryData(["ai-consent"], status);
-    },
-  });
 
   const { data: entitlement } = useEntitlement();
   const sync = useSyncBilling();
@@ -812,24 +799,6 @@ export default function ProfileScreen() {
               <Text style={s.privacyLinkText}>TERMS OF SERVICE</Text>
               <Feather name="external-link" size={13} color={ACCENT} />
             </Pressable>
-            {consentQuery.data?.accepted ? (
-              <Pressable
-                style={s.withdrawBtn}
-                disabled={withdrawConsent.isPending}
-                onPress={() =>
-                  Alert.alert(
-                    "Withdraw AI coaching permission?",
-                    "Withdrawing permission will immediately restrict your access to FRAME until you re-accept.",
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      { text: "Withdraw", style: "destructive", onPress: () => withdrawConsent.mutate() },
-                    ],
-                  )
-                }
-              >
-                <Text style={s.withdrawText}>WITHDRAW AI PERMISSION</Text>
-              </Pressable>
-            ) : null}
             {email ? <Text style={s.emailText}>{email}</Text> : null}
             <Pressable
               style={({ pressed }) => [
@@ -887,8 +856,6 @@ const s = StyleSheet.create({
   privacyCopy: { fontFamily: "Outfit", fontSize: 13, lineHeight: 20, color: "#777", marginBottom: 12 },
   privacyLink: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
   privacyLinkText: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 1.5, color: ACCENT },
-  withdrawBtn: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#222", paddingVertical: 13, marginBottom: 20 },
-  withdrawText: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 1.4, color: "#b05245" },
   emptyState: {
     fontFamily: "Outfit",
     fontSize: 14,

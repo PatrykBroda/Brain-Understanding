@@ -17,12 +17,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   AI_CONSENT_DISCLOSURE,
   AI_CONSENT_VERSION,
-  formatAiConsentSummary,
-  formatProviderList,
 } from "@workspace/ai-consent";
 import { useAuth } from "@/context/AuthContext";
 import { apiPost, apiUrl } from "@/lib/api";
 import { getAuthErrorMessage } from "@/lib/authErrors";
+import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
+import type { AiConsentStatus } from "@/lib/aiConsent";
 
 export default function SignUpScreen() {
   const { signIn } = useAuth();
@@ -34,9 +34,22 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
-  const [acceptedAiConsent, setAcceptedAiConsent] = useState(false);
+  const [showAiConsent, setShowAiConsent] = useState(false);
 
-  async function handleSignUp() {
+  const signupConsentStatus: AiConsentStatus = {
+    accepted: false,
+    version: AI_CONSENT_VERSION,
+    acceptedAt: null,
+    disclosure: AI_CONSENT_DISCLOSURE,
+  };
+
+  function handleSignUp() {
+    if (loading || !email || password.length < 8 || !acceptedLegal) return;
+    setError(null);
+    setShowAiConsent(true);
+  }
+
+  async function createAccount() {
     if (loading) return;
     setLoading(true);
     setError(null);
@@ -48,7 +61,7 @@ export default function SignUpScreen() {
           password,
           acceptedTerms: acceptedLegal,
           acceptedPrivacy: acceptedLegal,
-          acceptedAiConsent,
+          acceptedAiConsent: true,
           aiConsentVersion: AI_CONSENT_VERSION,
         },
       );
@@ -118,26 +131,6 @@ export default function SignUpScreen() {
               <Text style={styles.policyLink}>VIEW PRIVACY & AI DATA USE</Text>
             </Pressable>
           </View>
-          <Pressable
-            style={styles.legalRow}
-            onPress={() => setAcceptedAiConsent((value) => !value)}
-            accessibilityRole="checkbox"
-            accessibilityLabel={`Permit FRAME to send relevant data to ${formatProviderList(AI_CONSENT_DISCLOSURE.providers)}`}
-            accessibilityHint="Required before you can create an account"
-            accessibilityState={{ checked: acceptedAiConsent }}
-          >
-            <View
-              style={[
-                styles.checkbox,
-                acceptedAiConsent && styles.checkboxChecked,
-              ]}
-            >
-              <Text style={styles.checkmark}>
-                {acceptedAiConsent ? "✓" : ""}
-              </Text>
-            </View>
-            <Text style={styles.legalCopy}>{formatAiConsentSummary()}</Text>
-          </Pressable>
           <TextInput
             style={styles.input}
             placeholder="Password (min 8 characters)"
@@ -157,8 +150,8 @@ export default function SignUpScreen() {
               (loading ||
                 !email ||
                 !password ||
-                !acceptedLegal ||
-                !acceptedAiConsent) &&
+                 !acceptedLegal ||
+                 password.length < 8) &&
                 styles.btnDisabled,
             ]}
             onPress={handleSignUp}
@@ -166,8 +159,8 @@ export default function SignUpScreen() {
               loading ||
               !email ||
               !password ||
-              !acceptedLegal ||
-              !acceptedAiConsent
+               !acceptedLegal ||
+               password.length < 8
             }
             accessibilityRole="button"
             accessibilityState={{
@@ -176,7 +169,7 @@ export default function SignUpScreen() {
                 !email ||
                 !password ||
                 !acceptedLegal ||
-                !acceptedAiConsent,
+                password.length < 8,
               busy: loading,
             }}
           >
@@ -197,6 +190,19 @@ export default function SignUpScreen() {
           </Pressable>
         </Link>
       </ScrollView>
+      <AiConsentModal
+        visible={showAiConsent}
+        status={signupConsentStatus}
+        disclosure={AI_CONSENT_DISCLOSURE}
+        signup
+        busy={loading}
+        onAccept={() => void createAccount()}
+        onDecline={() => {
+          if (!loading) setShowAiConsent(false);
+        }}
+        onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
+        onTerms={() => void Linking.openURL(apiUrl("/terms"))}
+      />
     </KeyboardAvoidingView>
   );
 }
