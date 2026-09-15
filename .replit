@@ -93,3 +93,6 @@ channel = "stable-25_05"
 
 [userenv.shared]
 EXPO_PUBLIC_REVENUECAT_IOS_KEY = "appl_zMjcmylQVVKMHTLLXrCMeLFZMMv"
+
+[userenv.production]
+EXPO_PUBLIC_DOMAIN = "ajsajjajds.com"

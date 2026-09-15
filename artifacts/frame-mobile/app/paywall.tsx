@@ -226,6 +226,21 @@ export default function PaywallScreen() {
           >
             <Text style={s.legalLink}>TERMS OF USE (EULA)</Text>
           </Pressable>
+          {Platform.OS === "ios" ? (
+            <>
+              <Text style={s.legalDivider}>·</Text>
+              <Pressable
+                onPress={() =>
+                  void Linking.openURL("https://apps.apple.com/account/subscriptions")
+                }
+                accessibilityRole="link"
+                accessibilityLabel="Manage App Store subscriptions"
+                hitSlop={8}
+              >
+                <Text style={s.legalLink}>MANAGE SUBSCRIPTION</Text>
+              </Pressable>
+            </>
+          ) : null}
         </View>
       </ScrollView>
     </View>

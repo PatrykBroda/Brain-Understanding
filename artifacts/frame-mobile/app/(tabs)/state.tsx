@@ -207,13 +207,11 @@ export default function StateScreen() {
           hitSlop={8}
           onPress={() =>
             router.push(
-              readiness != null && checkinScore != null
-                ? "/(tabs)/home"
-                : "/(tabs)/analyse",
+              "/(tabs)/home",
             )
           }
           accessibilityLabel={
-            readiness != null ? "View readiness detail" : "Analyse a session"
+            readiness != null ? "View readiness detail" : "Open home"
           }
         >
           <Text style={styles.readinessLabel}>FIGHT READINESS</Text>

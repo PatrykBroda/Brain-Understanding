@@ -19,28 +19,28 @@ export type GlossEntry = {
 
 export const GLOSSARY: Record<string, GlossEntry> = {
   "vagal tone": {
-    quick: "How strong your body's calm-down brake is. Higher = you settle faster after stress.",
-    why: "Strong vagal tone lets you drop your heart rate between exchanges and recover faster between rounds — it's the physiology behind staying composed under pressure.",
-    train: "How do I build my vagal tone for faster recovery between rounds?",
+    quick: "A general term for how the body shifts toward rest after stress.",
+    why: "Breathing and pacing can help you settle between exchanges. FRAME treats this as coaching context, not a clinical measurement.",
+    train: "Give me a breathing and pacing routine for settling between rounds.",
   },
   "vagal": {
     quick: "To do with the nerve that controls your calm-down response.",
   },
   "parasympathetic": {
     quick: "The 'rest and recover' side of your nervous system — the brake pedal.",
-    why: "You win the recovery game in the parasympathetic state — it's where your body refuels and your mind clears between efforts.",
-    train: "How do I switch into a parasympathetic state on demand after a hard round?",
+    why: "Slow breathing and recovery routines can help you feel more settled between efforts.",
+    train: "Give me a practical between-round recovery routine.",
   },
   "sympathetic": {
     quick: "The 'fight or flight' side of your nervous system — the gas pedal.",
-    why: "Too much sympathetic drive too early burns your gas tank and narrows your decision-making — learning to dose it is a skill.",
+    why: "Starting too fast can waste energy and narrow decision-making. Pacing is a trainable skill.",
   },
   "cortisol": {
-    quick: "The main stress hormone. Useful in short bursts, draining when it stays high.",
-    why: "Chronically high cortisol wrecks sleep, recovery and mood — it's often the hidden reason a hard training block stops paying off.",
+    quick: "A hormone involved in the body's stress response.",
+    why: "FRAME does not measure hormones. If sleep, recovery, or mood concerns persist, consult a qualified healthcare professional.",
   },
   "nervous system": {
-    quick: "The body's wiring that controls stress, calm, focus and reactions.",
+    quick: "A broad term for the body systems involved in sensation, movement, and stress responses. FRAME does not measure them clinically.",
   },
   "autonomic": {
     quick: "Automatic body functions you don't consciously control (heart rate, breathing).",

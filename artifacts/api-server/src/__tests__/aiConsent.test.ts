@@ -15,14 +15,14 @@ describe("AI analysis consent", () => {
   });
 
   it("uses the broadened AI consent contract while retaining old exports", () => {
-    expect(AI_CONSENT_VERSION).toBe("2026-09-12");
+    expect(AI_CONSENT_VERSION).toBe("2026-09-16");
     expect(AI_ANALYSIS_CONSENT_VERSION).toBe(AI_CONSENT_VERSION);
     expect(AI_CONSENT_DISCLOSURE.providers).toEqual(
       expect.arrayContaining(["Anthropic (Claude)", "OpenAI"]),
     );
     expect(AI_CONSENT_DISCLOSURE.sharedData.join(" ")).toMatch(/chat messages/i);
     expect(AI_CONSENT_DISCLOSURE.sharedData.join(" ")).toMatch(/athlete profile/i);
-    expect(AI_CONSENT_DISCLOSURE.sharedData.join(" ")).toMatch(/images.*video stills/i);
+    expect(AI_CONSENT_DISCLOSURE.sharedData.join(" ")).toMatch(/images or videos.*video stills/i);
     expect(AI_CONSENT_DISCLOSURE.sharedData.join(" ")).toMatch(/other user-provided/i);
   });
 

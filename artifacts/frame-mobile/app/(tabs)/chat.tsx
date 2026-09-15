@@ -72,17 +72,17 @@ const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   {
     label: "BUILD DRILL",
     prompt:
-      "Prescribe me a drill for my biggest current weakness. Use the drill block.",
+      "Build me a drill for my biggest current weakness. Use the drill block.",
   },
   {
     label: "FIX MY GAME",
     prompt:
-      "Diagnose the recurring leak in my game right now and tell me the protocol to close it.",
+      "Identify the recurring gap in my game right now and give me a training plan to close it.",
   },
   {
     label: "COMPETITION PREP",
     prompt:
-      "Walk me through how to prepare my nervous system and tactics for an upcoming competition.",
+      "Walk me through how to prepare my composure, decision-making, and tactics for an upcoming competition.",
   },
   { label: "REGULATE", prompt: "I need to regulate right now. Produce a regulate block." },
   {

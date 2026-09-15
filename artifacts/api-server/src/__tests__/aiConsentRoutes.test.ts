@@ -42,6 +42,7 @@ describe("authenticated AI-consent route contract", () => {
     expect(mountedRouterIndex("/auth/logout")).toBeLessThan(gateIndex);
     expect(mountedRouterIndex("/privacy")).toBeLessThan(gateIndex);
     expect(mountedRouterIndex("/terms")).toBeLessThan(gateIndex);
+    expect(mountedRouterIndex("/support")).toBeLessThan(gateIndex);
   });
 
   it("places ordinary authenticated FRAME routes behind the gate", () => {

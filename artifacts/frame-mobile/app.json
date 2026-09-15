@@ -31,7 +31,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow FRAME to access your camera roll to select session footage."
+          "photosPermission": "Allow FRAME to select photos and videos for chat attachments and your profile image."
         }
       ],
       [

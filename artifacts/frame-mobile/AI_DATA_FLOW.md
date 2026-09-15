@@ -8,7 +8,8 @@ answers, and App Review notes.
 ## The processors and the consent contract
 
 FRAME may use **Anthropic (Claude)** and **OpenAI**, depending on the selected
-feature and provider. Before an account has accepted the current disclosure,
+feature and provider, with requests potentially routed through **Replit's AI
+integration infrastructure**. Before an account has accepted the current disclosure,
 nothing is sent to either processor. Consent is account-scoped and records the
 accepted disclosure version and timestamp. A missing timestamp, decline,
 withdrawal, or older version places the authenticated account behind the
@@ -25,13 +26,13 @@ returned by `GET /ai-consent`:
 - chat messages and the conversation context needed to answer them
 - training data, session reflections, movement signals, scores, session type and clip duration
 - athlete profile and context, including sport, experience, goals, weaknesses and relevant performance observations
-- uploaded images or selected video stills, where applicable to the requested feature
+- images or videos attached to chat, and selected session-analysis video stills, where applicable to the requested feature
 - other user-provided information included in the request or needed to provide the feature
 
 ### Not sent
 
 - your email address and account ID unless technically required to operate the service
-- raw video files; analysis uses selected stills and derived movement data where applicable
+- raw source clips selected for session analysis; session analysis uses selected stills and derived movement data where applicable
 
 The server owns these categories. If a disclosure changes, its version changes
 and the account must review and accept the sheet again.
@@ -42,8 +43,10 @@ and the account must review and accept the sheet again.
 
 The user-authored chat message and the conversation context needed to answer it
 may be sent to Anthropic/Claude and/or OpenAI. An attached image or video may
-also be sent where applicable. Attachments are uploaded to FRAME first; that
-upload is not an AI request. The clients check `GET /ai-consent` before the
+also be sent where applicable. Raw chat attachments are uploaded to and retained
+by FRAME before they are associated with the message; that upload is not itself
+an AI request. When the message is sent, its selected attachment may be sent to
+the configured AI provider. The clients check `GET /ai-consent` before the
 first send, show the disclosure, and use `PATCH /ai-consent` with
 `{"accepted":true}` before resuming the pending message. A decline does not
 authorize authenticated FRAME use; it leaves the account at the consent gate
@@ -59,8 +62,9 @@ security boundary.
 
 The request to FRAME can contain session type, user-entered focus, clip
 duration, pose-derived movement signals and scores, detected movement events,
-and selected still keyframes. The raw video is processed on the device/web
-client and is not included in the analysis request.
+and selected still keyframes. For session analysis, the source clip is not
+included in the `/analysis` request; the client sends derived signals and
+selected stills where available.
 
 After current consent is confirmed, the minimum relevant context and selected
 stills may be sent to Anthropic/Claude and/or OpenAI for the requested

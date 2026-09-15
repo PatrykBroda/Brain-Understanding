@@ -147,8 +147,10 @@ export function AiConsentModal({
                     </View>
                   ))}
                   <Text style={[s.cardBody, s.controlNote]}>
-                     AI permission is required while your FRAME account is active.
-                     If you no longer agree, you can permanently delete your account.
+                     You can withdraw AI permission from Profile. Withdrawal pauses
+                     authenticated FRAME use and future AI requests until you accept
+                     the current disclosure again. You can also permanently delete
+                     your account.
                   </Text>
                 </View>
               </View>

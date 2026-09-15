@@ -27,10 +27,12 @@ Record one continuous clip that:
 5. Taps Privacy Policy and shows the loaded policy page.
 6. Returns to FRAME+, taps Terms of Use (EULA), and shows the loaded terms page.
 7. Returns to the paywall and shows Restore Purchases.
+8. Opens Manage Subscription and shows Apple subscription settings.
 
 ## App Store Connect metadata checklist
 
 - Put `https://ajsajjajds.com/api/privacy` in the Privacy Policy field.
 - Put `https://ajsajjajds.com/api/terms` in the App Description or EULA field.
-- Confirm both URLs are public, use HTTPS, and load without authentication.
+- Put `https://ajsajjajds.com/api/support` in the Support URL field.
+- Confirm all three URLs are public, use HTTPS, and load without authentication.
 - Attach the screen recording to the App Review reply for this submission.

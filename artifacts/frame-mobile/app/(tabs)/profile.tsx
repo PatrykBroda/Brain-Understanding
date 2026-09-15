@@ -22,7 +22,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter, type Fighter } from "@/context/FighterContext";
-import { apiDelete, apiGet, apiUrl, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
+import { apiDelete, apiGet, apiPatch, apiUrl, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
+import type { AiConsentStatus } from "@/lib/aiConsent";
 import { primaryFocus } from "@/lib/primaryFocus";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
@@ -338,6 +339,7 @@ export default function ProfileScreen() {
   const [editVisible, setEditVisible] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [withdrawingAi, setWithdrawingAi] = useState(false);
 
   const { data: entitlement } = useEntitlement();
   const sync = useSyncBilling();
@@ -426,6 +428,36 @@ export default function ProfileScreen() {
   async function handleSignOut() {
     await signOut();
     router.replace("/sign-in");
+  }
+
+  function requestAiWithdrawal() {
+    Alert.alert(
+      "Withdraw AI permission?",
+      "FRAME will pause coaching, analysis, planning, and other authenticated features until you review and accept the current AI disclosure again. Your existing account data will remain until you delete it or your account.",
+      [
+        { text: "Keep permission", style: "cancel" },
+        {
+          text: "Withdraw permission",
+          style: "destructive",
+          onPress: async () => {
+            setWithdrawingAi(true);
+            try {
+              const status = await apiPatch<AiConsentStatus>("/ai-consent", {
+                accepted: false,
+              });
+              qc.setQueryData(["ai-consent"], status);
+            } catch (error) {
+              Alert.alert(
+                "Permission not changed",
+                error instanceof Error ? error.message : "Please try again.",
+              );
+            } finally {
+              setWithdrawingAi(false);
+            }
+          },
+        },
+      ],
+    );
   }
 
   async function deleteAccount() {
@@ -781,7 +813,7 @@ export default function ProfileScreen() {
           <View style={s.section}>
             <Text style={s.privacyHeading}>AI COACHING & PRIVACY</Text>
             <Text style={s.privacyCopy}>
-              FRAME uses AI coaching services. Depending on the feature, FRAME may share the exact categories shown in the permission disclosure with Anthropic (Claude) or OpenAI.
+              FRAME uses AI coaching services. Depending on the feature, FRAME may share the exact categories shown in the permission disclosure with Anthropic (Claude) or OpenAI. FRAME provides performance coaching, not medical advice or diagnosis.
             </Text>
             <Pressable
               style={s.privacyLink}
@@ -790,6 +822,42 @@ export default function ProfileScreen() {
             >
               <Text style={s.privacyLinkText}>PRIVACY POLICY</Text>
               <Feather name="external-link" size={13} color={ACCENT} />
+            </Pressable>
+            <Pressable
+              style={s.privacyLink}
+              onPress={() => void Linking.openURL(apiUrl("/support"))}
+              accessibilityRole="link"
+            >
+              <Text style={s.privacyLinkText}>SUPPORT</Text>
+              <Feather name="external-link" size={13} color={ACCENT} />
+            </Pressable>
+            <Pressable
+              style={s.privacyLink}
+              onPress={() =>
+                void Linking.openURL("https://apps.apple.com/account/subscriptions")
+              }
+              accessibilityRole="link"
+              accessibilityLabel="Manage App Store subscriptions"
+            >
+              <Text style={s.privacyLinkText}>MANAGE APP STORE SUBSCRIPTION</Text>
+              <Feather name="external-link" size={13} color={ACCENT} />
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                s.withdrawAiBtn,
+                (withdrawingAi || deletingAccount) && s.disabled,
+                pressed && s.pressed,
+              ]}
+              onPress={requestAiWithdrawal}
+              disabled={withdrawingAi || deletingAccount}
+              accessibilityRole="button"
+              accessibilityLabel="Withdraw AI permission"
+            >
+              {withdrawingAi ? (
+                <ActivityIndicator size="small" color="#888" />
+              ) : (
+                <Text style={s.withdrawAiText}>WITHDRAW AI PERMISSION</Text>
+              )}
             </Pressable>
             <Pressable
               style={s.privacyLink}
@@ -833,7 +901,7 @@ export default function ProfileScreen() {
               )}
             </Pressable>
             <Text style={s.deleteAccountNote}>
-              Permanently removes your account and all FRAME data.
+              Permanently removes your active FRAME account data. App Store purchase records and subscription cancellation remain managed by Apple.
             </Text>
           </View>
 
@@ -1107,6 +1175,22 @@ const s = StyleSheet.create({
 
   // Account
   emailText: { fontFamily: "Outfit", fontSize: 13, color: "#666", marginBottom: 12, textAlign: "center" },
+  withdrawAiBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#242424",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  withdrawAiText: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    color: "#888",
+    letterSpacing: 2,
+  },
   signOutBtn: {
     flexDirection: "row",
     alignItems: "center",
