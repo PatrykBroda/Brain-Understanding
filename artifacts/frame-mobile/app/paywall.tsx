@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -18,10 +19,12 @@ import {
   purchasePackage,
   restorePurchases,
   hasFramePlus,
+  getSubscriptionPeriodLabel,
   isPurchasesSupported,
   type PurchasesPackage,
 } from "@/lib/purchases";
 import { useSyncBilling } from "@/hooks/useEntitlement";
+import { apiUrl } from "@/lib/api";
 
 const FRAME_PLUS_PERKS = [
   "Unlimited session analysis",
@@ -131,6 +134,9 @@ export default function PaywallScreen() {
               <Text style={s.perkText}>{p}</Text>
             </View>
           ))}
+          <Text style={s.periodServices}>
+            Every subscription period includes all FRAME+ services listed above.
+          </Text>
         </View>
 
         {loading ? (
@@ -157,6 +163,8 @@ export default function PaywallScreen() {
         ) : (
           packages.map((pkg) => {
             const busy = busyId === pkg.identifier;
+            const period = getSubscriptionPeriodLabel(pkg);
+            if (!period) return null;
             return (
               <Pressable
                 key={pkg.identifier}
@@ -166,7 +174,12 @@ export default function PaywallScreen() {
               >
                 <View style={{ flex: 1 }}>
                   <Text style={s.planTitle}>{pkg.product.title}</Text>
-                  <Text style={s.planPrice}>{pkg.product.priceString}</Text>
+                  <Text style={s.planPrice}>
+                    {pkg.product.priceString} for {period}
+                  </Text>
+                  <Text style={s.planIncludes}>
+                    Includes all FRAME+ services above for {period}.
+                  </Text>
                 </View>
                 {busy ? (
                   <ActivityIndicator color="#050505" />
@@ -195,6 +208,25 @@ export default function PaywallScreen() {
           before the end of the current period. Manage or cancel anytime in your
           {Platform.OS === "ios" ? " App Store" : " store"} account settings.
         </Text>
+        <View style={s.legalLinks}>
+          <Pressable
+            onPress={() => void Linking.openURL(apiUrl("/privacy"))}
+            accessibilityRole="link"
+            accessibilityLabel="Open Privacy Policy"
+            hitSlop={8}
+          >
+            <Text style={s.legalLink}>PRIVACY POLICY</Text>
+          </Pressable>
+          <Text style={s.legalDivider}>·</Text>
+          <Pressable
+            onPress={() => void Linking.openURL(apiUrl("/terms"))}
+            accessibilityRole="link"
+            accessibilityLabel="Open Terms of Use"
+            hitSlop={8}
+          >
+            <Text style={s.legalLink}>TERMS OF USE (EULA)</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );
@@ -221,6 +253,13 @@ const s = StyleSheet.create({
   perks: { gap: 12, marginBottom: 32 },
   perkRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   perkText: { fontFamily: "Outfit", fontSize: 15, color: "#bbb" },
+  periodServices: {
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: 13,
+    color: "#d0d0d0",
+    lineHeight: 19,
+    marginTop: 8,
+  },
   planBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -239,6 +278,13 @@ const s = StyleSheet.create({
     fontSize: 12,
     color: "#3a2a12",
     marginTop: 2,
+  },
+  planIncludes: {
+    fontFamily: "Outfit",
+    fontSize: 11,
+    color: "#2d210f",
+    lineHeight: 15,
+    marginTop: 4,
   },
   pressed: { opacity: 0.8 },
   unavailable: {
@@ -286,4 +332,21 @@ const s = StyleSheet.create({
     lineHeight: 16,
     marginTop: 12,
   },
+  legalLinks: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 16,
+    paddingBottom: 8,
+  },
+  legalLink: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    color: "#8A6A2F",
+    letterSpacing: 1.2,
+    textDecorationLine: "underline",
+  },
+  legalDivider: { color: "#444", fontSize: 12 },
 });

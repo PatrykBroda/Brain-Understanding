@@ -15,6 +15,7 @@ import Purchases, {
   type CustomerInfo,
   type PurchasesPackage,
 } from "react-native-purchases";
+import { getSubscriptionPeriodLabel } from "./subscriptionDisclosure";
 
 /** Must match the entitlement identifier configured in the RevenueCat dashboard. */
 export const FRAME_PLUS_ENTITLEMENT_ID = "frame_plus";
@@ -70,7 +71,19 @@ export async function getFramePlusPackages(): Promise<PurchasesPackage[]> {
   if (offerings.current.availablePackages.length === 0) {
     throw new Error("The current subscription offering has no available plans.");
   }
-  return offerings.current.availablePackages;
+  const packages = offerings.current.availablePackages.filter((pkg) => {
+    const hasPeriod = getSubscriptionPeriodLabel(pkg) !== null;
+    if (!hasPeriod) {
+      console.warn(
+        `Ignoring subscription package ${pkg.identifier}: no valid billing period was returned by the App Store.`,
+      );
+    }
+    return hasPeriod;
+  });
+  if (packages.length === 0) {
+    throw new Error("Subscription periods could not be loaded from the App Store.");
+  }
+  return packages;
 }
 
 export function hasFramePlus(info: CustomerInfo | null | undefined): boolean {
@@ -95,3 +108,4 @@ export async function restorePurchases(): Promise<CustomerInfo> {
 }
 
 export type { CustomerInfo, PurchasesPackage };
+export { getSubscriptionPeriodLabel } from "./subscriptionDisclosure";
