@@ -18,6 +18,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
+import { Redirect } from "expo-router";
 import { apiGet, apiPost, ApiError } from "@/lib/api";
 import { apiPatch, apiUrl } from "@/lib/api";
 import type { AiConsentStatus } from "@/lib/aiConsent";
@@ -276,7 +277,7 @@ function capitalise(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-export default function AnalyseScreen() {
+export function AnalyseImplementation() {
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -1176,6 +1177,10 @@ export default function AnalyseScreen() {
     </ScrollView>
     </>
   );
+}
+
+export default function AnalyseScreen() {
+  return <Redirect href="/(tabs)/home" />;
 }
 
 const styles = StyleSheet.create({

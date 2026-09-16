@@ -34,5 +34,6 @@ Record one continuous clip that:
 - Put `https://ajsajjajds.com/api/privacy` in the Privacy Policy field.
 - Put `https://ajsajjajds.com/api/terms` in the App Description or EULA field.
 - Put `https://ajsajjajds.com/api/support` in the Support URL field.
+- Use `harrystephenrob@gmail.com` as the direct FRAME support contact.
 - Confirm all three URLs are public, use HTTPS, and load without authentication.
 - Attach the screen recording to the App Review reply for this submission.

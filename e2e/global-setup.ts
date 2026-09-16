@@ -8,14 +8,13 @@
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { Client } from "pg";
+import { AI_CONSENT_VERSION } from "@workspace/ai-consent";
 
 export const TEST_MAIN_EMAIL = "frame-smoke-main@example.com";
 export const TEST_FRESH_EMAIL = "frame-smoke-fresh@example.com";
 export const TEST_PASSWORD = "FrameSmoke2024!";
 
 const BCRYPT_ROUNDS = 10;
-// Keep smoke users on the currently disclosed all-AI consent contract.
-const AI_ANALYSIS_CONSENT_VERSION = "2026-09-12";
 
 async function upsertUser(
   db: Client,
@@ -80,7 +79,7 @@ async function ensureAiAnalysisConsent(db: Client, userId: string): Promise<void
         SET ai_analysis_consent_version = $2,
             ai_analysis_consent_at = NOW()
       WHERE id = $1`,
-    [userId, AI_ANALYSIS_CONSENT_VERSION],
+    [userId, AI_CONSENT_VERSION],
   );
 }
 

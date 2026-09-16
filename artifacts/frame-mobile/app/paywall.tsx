@@ -27,7 +27,7 @@ import { useSyncBilling } from "@/hooks/useEntitlement";
 import { apiUrl } from "@/lib/api";
 
 const FRAME_PLUS_PERKS = [
-  "Unlimited session analysis",
+  "Unlimited coaching conversations",
   "Full athlete model + memory",
   "Competition camp planner",
   "Priority coaching depth",

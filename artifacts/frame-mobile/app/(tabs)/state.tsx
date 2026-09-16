@@ -223,7 +223,7 @@ export default function StateScreen() {
             </Text>
           ) : (
             <View style={styles.readinessCta}>
-              <Text style={styles.readinessCtaText}>Analyse a session</Text>
+              <Text style={styles.readinessCtaText}>Open training dashboard</Text>
               <Feather name="chevron-right" size={12} color="#8A6A2F" />
             </View>
           )}

@@ -654,8 +654,8 @@ function CampReviewSection({ review }: { review: CampReview }) {
       {totalAnalyses === 0 ? (
         <View style={rev.body}>
           <Text style={rev.emptyText}>
-            No footage analysed in this camp yet. Upload a round on Analyse and this camp starts
-            reading your trend, session over session.
+            No session analysis is attached to this camp yet. Camp review
+            trends will appear when supported analysis records are available.
           </Text>
         </View>
       ) : (

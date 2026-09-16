@@ -54,6 +54,7 @@ new build appears in App Store Connect.
 
 - Privacy policy URL: use the production URL ending in `/api/privacy`.
 - Support URL: use the production URL ending in `/api/support`.
+- Public support email: `harrystephenrob@gmail.com`.
 - Terms/EULA URL: use the production URL ending in `/api/terms`.
 - In App Privacy, disclose the exact categories in `AI_DATA_FLOW.md`: chat
   messages/conversation context; training and session data, movement signals,
@@ -104,9 +105,9 @@ Install the recorded TestFlight build and use an Apple Sandbox tester:
 1. From Sign Up, accept the Terms and Privacy Policy and continue to the
    separate **AI Data & Privacy** sheet. Capture the sheet before account
    creation.
-2. Verify the sheet names Anthropic (Claude) and OpenAI, says nothing goes to
-   either before agreement, and lists chat images/videos separately from
-   selected session-analysis stills.
+2. Verify the sheet names Anthropic (Claude), OpenAI, and Replit AI integration
+   infrastructure for routing; says nothing goes to them before agreement; and
+   lists chat images/videos separately from selected session-analysis stills.
 3. Tap **Go Back**. Confirm no account is created and no AI request starts.
 4. Open the sheet again, select the acknowledgement, tap **Agree & Continue**,
    and complete onboarding.
@@ -157,8 +158,9 @@ Replace bracketed values with the recorded App Store Connect identifiers:
 >
 > Before authenticated FRAME use and before the first AI-powered Chat or Weekly
 > Mission use, FRAME presents a dedicated permission sheet naming
-> Anthropic (Claude) and OpenAI and listing the exact server-provided data
-> categories. Going back during signup creates no account and sends no AI
+> Anthropic (Claude), OpenAI, and Replit AI integration infrastructure for
+> routing, and listing the exact server-provided data categories. Going back
+> during signup creates no account and sends no AI
 > request. Authentication, legal pages, consent GET/PATCH,
 > sign-out, and permanent account deletion remain reachable. Choosing Agree &
 > Continue records versioned consent before authenticated use resumes. Users
@@ -190,6 +192,7 @@ TestFlight build:
 - [ ] Subscription group, duration, localization, price, availability, tax category, and review screenshot are complete
 - [ ] Agreements, Tax and Banking has no blocking action
 - [ ] Privacy, Terms/EULA, and Support URLs load publicly without authentication
+- [ ] Support email link opens a new message to `harrystephenrob@gmail.com`
 - [ ] App Privacy answers match the worksheet and `AI_DATA_FLOW.md`
 - [ ] Photo-library, microphone, and speech-recognition prompts appear only when invoked and match their shipped purpose strings
 - [ ] Sign-up, onboarding, consent withdrawal/reacceptance, sign-out, and permanent deletion complete on the submitted build
