@@ -173,7 +173,7 @@ export default function PaywallScreen() {
                 disabled={!!busyId || restoring}
                 onPress={() => onBuy(pkg)}
               >
-                <View style={{ flex: 1 }}>
+                <View style={s.planCopy}>
                   <Text style={s.planTitle}>{pkg.product.title}</Text>
                   <Text style={s.planPrice}>
                     {formatSubscriptionRenewal(pkg.product.priceString, period)}
@@ -183,9 +183,13 @@ export default function PaywallScreen() {
                   </Text>
                 </View>
                 {busy ? (
-                  <ActivityIndicator color="#050505" />
+                  <View style={s.planAction}>
+                    <ActivityIndicator color="#050505" />
+                  </View>
                 ) : (
-                  <Feather name="arrow-right" size={16} color="#050505" />
+                  <View style={s.planAction}>
+                    <Feather name="arrow-right" size={16} color="#050505" />
+                  </View>
                 )}
               </Pressable>
             );
@@ -249,7 +253,7 @@ export default function PaywallScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#050505", paddingHorizontal: 24 },
+  root: { flex: 1, backgroundColor: "#050505", paddingHorizontal: 16 },
   closeBtn: { alignSelf: "flex-end", padding: 8 },
   content: { paddingTop: 12 },
   kicker: {
@@ -281,19 +285,35 @@ const s = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#8A6A2F",
     paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 12,
+  },
+  planCopy: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  planAction: {
+    flexShrink: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 24,
+    minHeight: 44,
+    marginLeft: 12,
   },
   planTitle: {
     fontFamily: "Outfit_600SemiBold",
     fontSize: 15,
     color: "#050505",
+    flexShrink: 1,
   },
   planPrice: {
     fontFamily: "SpaceMono",
     fontSize: 12,
     color: "#3a2a12",
+    lineHeight: 18,
     marginTop: 2,
+    flexShrink: 1,
   },
   planIncludes: {
     fontFamily: "Outfit",
@@ -301,6 +321,7 @@ const s = StyleSheet.create({
     color: "#2d210f",
     lineHeight: 15,
     marginTop: 4,
+    flexShrink: 1,
   },
   pressed: { opacity: 0.8 },
   unavailable: {

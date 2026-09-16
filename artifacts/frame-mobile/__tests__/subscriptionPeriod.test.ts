@@ -21,6 +21,21 @@ describe("subscription period disclosure", () => {
     ["$49.99", "1 year", "$49.99/year · Auto-renews yearly until cancelled"],
     ["€2.99", "1 week", "€2.99/week · Auto-renews weekly until cancelled"],
     ["$12.99", "3 months", "$12.99/3 months · Auto-renews every 3 months until cancelled"],
+    [
+      "1 234 567,89 Kč",
+      "1 week",
+      "1 234 567,89 Kč/week · Auto-renews weekly until cancelled",
+    ],
+    [
+      "R$ 12.345,67",
+      "6 months",
+      "R$ 12.345,67/6 months · Auto-renews every 6 months until cancelled",
+    ],
+    [
+      "CHF 12’345.67",
+      "1 year",
+      "CHF 12’345.67/year · Auto-renews yearly until cancelled",
+    ],
   ])(
     "keeps localized price %s and formats renewal cadence for %s",
     (price, period, expected) => {
