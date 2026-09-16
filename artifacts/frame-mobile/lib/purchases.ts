@@ -108,4 +108,7 @@ export async function restorePurchases(): Promise<CustomerInfo> {
 }
 
 export type { CustomerInfo, PurchasesPackage };
-export { getSubscriptionPeriodLabel } from "./subscriptionDisclosure";
+export {
+  formatSubscriptionRenewal,
+  getSubscriptionPeriodLabel,
+} from "./subscriptionDisclosure";

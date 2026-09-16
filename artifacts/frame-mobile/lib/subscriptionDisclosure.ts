@@ -36,3 +36,20 @@ export function getSubscriptionPeriodLabel(
   }
   return formatSubscriptionPeriod(pkg.product.subscriptionPeriod);
 }
+
+const SINGLE_PERIOD_CADENCE: Readonly<Record<string, string>> = {
+  "1 day": "daily",
+  "1 week": "weekly",
+  "1 month": "monthly",
+  "1 year": "yearly",
+};
+
+/** Concise purchase-card copy using the App Store's localized price. */
+export function formatSubscriptionRenewal(
+  localizedPrice: string,
+  period: string,
+): string {
+  const cadence = SINGLE_PERIOD_CADENCE[period] ?? `every ${period}`;
+  const pricePeriod = period.startsWith("1 ") ? period.slice(2) : period;
+  return `${localizedPrice}/${pricePeriod} · Auto-renews ${cadence} until cancelled`;
+}

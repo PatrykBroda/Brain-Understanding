@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatSubscriptionPeriod,
+  formatSubscriptionRenewal,
   getSubscriptionPeriodLabel,
 } from "../lib/subscriptionDisclosure";
 
@@ -14,6 +15,18 @@ describe("subscription period disclosure", () => {
   ])("formats %s from App Store metadata", (period, expected) => {
     expect(formatSubscriptionPeriod(period)).toBe(expected);
   });
+
+  it.each([
+    ["£4.99", "1 month", "£4.99/month · Auto-renews monthly until cancelled"],
+    ["$49.99", "1 year", "$49.99/year · Auto-renews yearly until cancelled"],
+    ["€2.99", "1 week", "€2.99/week · Auto-renews weekly until cancelled"],
+    ["$12.99", "3 months", "$12.99/3 months · Auto-renews every 3 months until cancelled"],
+  ])(
+    "keeps localized price %s and formats renewal cadence for %s",
+    (price, period, expected) => {
+      expect(formatSubscriptionRenewal(price, period)).toBe(expected);
+    },
+  );
 
   it.each([null, undefined, "", "monthly", "P1Y1M"])(
     "rejects missing or unsupported period %s",

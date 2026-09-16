@@ -19,6 +19,7 @@ import {
   purchasePackage,
   restorePurchases,
   hasFramePlus,
+  formatSubscriptionRenewal,
   getSubscriptionPeriodLabel,
   isPurchasesSupported,
   type PurchasesPackage,
@@ -175,10 +176,10 @@ export default function PaywallScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={s.planTitle}>{pkg.product.title}</Text>
                   <Text style={s.planPrice}>
-                    {pkg.product.priceString} for {period}
+                    {formatSubscriptionRenewal(pkg.product.priceString, period)}
                   </Text>
                   <Text style={s.planIncludes}>
-                    Includes all FRAME+ services above for {period}.
+                    Includes all FRAME+ services above.
                   </Text>
                 </View>
                 {busy ? (
