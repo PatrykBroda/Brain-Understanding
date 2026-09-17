@@ -24,6 +24,14 @@ type SubscriptionPackageMetadata = {
   };
 };
 
+/**
+ * Store product titles are merchant-authored metadata and can contain stale
+ * prices or currencies. Keep the in-app plan label price-free.
+ */
+export function getSubscriptionPlanLabel(_storeProductTitle: string): string {
+  return "FRAME+";
+}
+
 /** Billing length from authoritative App Store metadata for auto-renewing plans. */
 export function getSubscriptionPeriodLabel(
   pkg: SubscriptionPackageMetadata,

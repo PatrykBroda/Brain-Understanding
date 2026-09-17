@@ -111,4 +111,5 @@ export type { CustomerInfo, PurchasesPackage };
 export {
   formatSubscriptionRenewal,
   getSubscriptionPeriodLabel,
+  getSubscriptionPlanLabel,
 } from "./subscriptionDisclosure";

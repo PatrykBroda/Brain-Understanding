@@ -21,6 +21,7 @@ import {
   hasFramePlus,
   formatSubscriptionRenewal,
   getSubscriptionPeriodLabel,
+  getSubscriptionPlanLabel,
   isPurchasesSupported,
   type PurchasesPackage,
 } from "@/lib/purchases";
@@ -174,7 +175,9 @@ export default function PaywallScreen() {
                 onPress={() => onBuy(pkg)}
               >
                 <View style={s.planCopy}>
-                  <Text style={s.planTitle}>{pkg.product.title}</Text>
+                  <Text style={s.planTitle}>
+                    {getSubscriptionPlanLabel(pkg.product.title)}
+                  </Text>
                   <Text style={s.planPrice}>
                     {formatSubscriptionRenewal(pkg.product.priceString, period)}
                   </Text>

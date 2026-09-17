@@ -3,9 +3,18 @@ import {
   formatSubscriptionPeriod,
   formatSubscriptionRenewal,
   getSubscriptionPeriodLabel,
+  getSubscriptionPlanLabel,
 } from "../lib/subscriptionDisclosure";
 
 describe("subscription period disclosure", () => {
+  it.each([
+    "FRAME+ $4.99",
+    "FRAME+ £4.99",
+    "FRAME+ — USD 4.99/month",
+  ])("never displays a price-bearing Store product title: %s", (storeTitle) => {
+    expect(getSubscriptionPlanLabel(storeTitle)).toBe("FRAME+");
+  });
+
   it.each([
     ["P1W", "1 week"],
     ["P1M", "1 month"],
