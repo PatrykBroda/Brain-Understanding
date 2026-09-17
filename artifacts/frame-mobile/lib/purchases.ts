@@ -14,8 +14,14 @@ import Purchases, {
   LOG_LEVEL,
   type CustomerInfo,
   type PurchasesPackage,
+  type PurchasesStoreProduct,
 } from "react-native-purchases";
 import { getSubscriptionPeriodLabel } from "./subscriptionDisclosure";
+import {
+  assertPurchasedProductMatches,
+  attachFreshStoreProducts,
+  type FreshPurchasesPackage,
+} from "./storeProductRefresh";
 
 /** Must match the entitlement identifier configured in the RevenueCat dashboard. */
 export const FRAME_PLUS_ENTITLEMENT_ID = "frame_plus";
@@ -59,7 +65,7 @@ export async function syncPurchasesUser(appUserId: string | null): Promise<void>
 }
 
 /** The purchasable packages from the current RevenueCat offering. */
-export async function getFramePlusPackages(): Promise<PurchasesPackage[]> {
+export async function getFramePlusPackages(): Promise<FreshPurchasesPackage[]> {
   if (!isPurchasesSupported()) return [];
   if (!configured) {
     throw new Error("Subscriptions are not configured in this build.");
@@ -83,7 +89,11 @@ export async function getFramePlusPackages(): Promise<PurchasesPackage[]> {
   if (packages.length === 0) {
     throw new Error("Subscription periods could not be loaded from the App Store.");
   }
-  return packages;
+
+  const freshProducts = await Purchases.getProducts(
+    packages.map((pkg) => pkg.product.identifier),
+  );
+  return attachFreshStoreProducts(packages, freshProducts);
 }
 
 export function hasFramePlus(info: CustomerInfo | null | undefined): boolean {
@@ -91,12 +101,14 @@ export function hasFramePlus(info: CustomerInfo | null | undefined): boolean {
 }
 
 export async function purchasePackage(
-  pkg: PurchasesPackage,
+  pkg: FreshPurchasesPackage,
 ): Promise<CustomerInfo> {
   if (!configured) {
     throw new Error("Subscriptions are not configured in this build.");
   }
-  const { customerInfo } = await Purchases.purchasePackage(pkg);
+  const { customerInfo, productIdentifier } =
+    await Purchases.purchaseStoreProduct(pkg.product);
+  assertPurchasedProductMatches(pkg.product.identifier, productIdentifier);
   return customerInfo;
 }
 
@@ -107,9 +119,15 @@ export async function restorePurchases(): Promise<CustomerInfo> {
   return Purchases.restorePurchases();
 }
 
-export type { CustomerInfo, PurchasesPackage };
+export type {
+  CustomerInfo,
+  FreshPurchasesPackage,
+  PurchasesPackage,
+  PurchasesStoreProduct,
+};
 export {
   formatSubscriptionRenewal,
   getSubscriptionPeriodLabel,
   getSubscriptionPlanLabel,
 } from "./subscriptionDisclosure";
+export { shouldRefreshStoreProducts } from "./storeProductRefresh";

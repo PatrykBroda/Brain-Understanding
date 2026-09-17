@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   Linking,
   Platform,
   Pressable,
@@ -23,7 +24,8 @@ import {
   getSubscriptionPeriodLabel,
   getSubscriptionPlanLabel,
   isPurchasesSupported,
-  type PurchasesPackage,
+  shouldRefreshStoreProducts,
+  type FreshPurchasesPackage,
 } from "@/lib/purchases";
 import { useSyncBilling } from "@/hooks/useEntitlement";
 import { apiUrl } from "@/lib/api";
@@ -40,7 +42,7 @@ export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const sync = useSyncBilling();
 
-  const [packages, setPackages] = useState<PurchasesPackage[]>([]);
+  const [packages, setPackages] = useState<FreshPurchasesPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -49,28 +51,41 @@ export default function PaywallScreen() {
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
-    setLoadError(null);
-    getFramePlusPackages()
-      .then((pkgs) => {
-        if (alive) setPackages(pkgs);
-      })
-      .catch((error) => {
-        console.warn("RevenueCat offering load failed", error);
-        if (alive) {
-          setPackages([]);
-          setLoadError(
-            error instanceof Error
-              ? error.message
-              : "Plans could not be loaded from the App Store.",
-          );
-        }
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
+    let loadGeneration = 0;
+
+    const loadPackages = () => {
+      const generation = ++loadGeneration;
+      setPackages([]);
+      setLoading(true);
+      setLoadError(null);
+      void getFramePlusPackages()
+        .then((pkgs) => {
+          if (alive && generation === loadGeneration) setPackages(pkgs);
+        })
+        .catch((error) => {
+          console.warn("StoreKit product refresh failed", error);
+          if (alive && generation === loadGeneration) {
+            setPackages([]);
+            setLoadError(
+              error instanceof Error
+                ? error.message
+                : "Plans could not be loaded from the App Store.",
+            );
+          }
+        })
+        .finally(() => {
+          if (alive && generation === loadGeneration) setLoading(false);
+        });
+    };
+
+    loadPackages();
+    const appStateSubscription = AppState.addEventListener("change", (state) => {
+      if (shouldRefreshStoreProducts(state)) loadPackages();
+    });
+
     return () => {
       alive = false;
+      appStateSubscription.remove();
     };
   }, [loadAttempt]);
 
@@ -79,7 +94,7 @@ export default function PaywallScreen() {
     else router.replace("/(tabs)/home");
   }
 
-  async function onBuy(pkg: PurchasesPackage) {
+  async function onBuy(pkg: FreshPurchasesPackage) {
     setBusyId(pkg.identifier);
     try {
       const info = await purchasePackage(pkg);

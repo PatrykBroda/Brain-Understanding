@@ -5,6 +5,11 @@ import {
   getSubscriptionPeriodLabel,
   getSubscriptionPlanLabel,
 } from "../lib/subscriptionDisclosure";
+import {
+  assertPurchasedProductMatches,
+  attachFreshStoreProducts,
+  shouldRefreshStoreProducts,
+} from "../lib/storeProductRefresh";
 
 describe("subscription period disclosure", () => {
   it.each([
@@ -110,5 +115,63 @@ describe("subscription period disclosure", () => {
         product,
       }),
     ).toBeNull();
+  });
+});
+
+
+describe("fresh StoreKit product matching", () => {
+  const offeringPackage = {
+    identifier: "$rc_monthly",
+    packageType: "MONTHLY",
+    offeringIdentifier: "default",
+    presentedOfferingContext: { offeringIdentifier: "default" },
+    webCheckoutUrl: null,
+    product: {
+      identifier: "com.frame.mobile.frameplus.monthly",
+      priceString: "$4.99",
+    },
+  };
+
+  it("replaces cached offering metadata with the matching fresh StoreKit product", () => {
+    const freshProduct = {
+      identifier: "com.frame.mobile.frameplus.monthly",
+      priceString: "24,99 zł",
+    };
+
+    const [result] = attachFreshStoreProducts(
+      [offeringPackage],
+      [freshProduct],
+    );
+
+    expect(result.product).toBe(freshProduct);
+    expect(result.product.priceString).toBe("24,99 zł");
+    expect(result.identifier).toBe("$rc_monthly");
+  });
+
+  it("fails closed when StoreKit does not return the offered product", () => {
+    expect(() => attachFreshStoreProducts([offeringPackage], [])).toThrow(
+      "Current App Store pricing is unavailable",
+    );
+  });
+
+  it("accepts only a purchase of the displayed product", () => {
+    expect(() =>
+      assertPurchasedProductMatches(
+        "com.frame.mobile.frameplus.monthly",
+        "com.frame.mobile.frameplus.monthly",
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertPurchasedProductMatches(
+        "com.frame.mobile.frameplus.monthly",
+        "different.product",
+      ),
+    ).toThrow("did not match the price shown");
+  });
+
+  it("refreshes StoreKit products only when the app becomes active", () => {
+    expect(shouldRefreshStoreProducts("active")).toBe(true);
+    expect(shouldRefreshStoreProducts("background")).toBe(false);
+    expect(shouldRefreshStoreProducts("inactive")).toBe(false);
   });
 });
