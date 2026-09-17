@@ -18,9 +18,9 @@ import { Feather } from "@expo/vector-icons";
 import {
   getFramePlusPackages,
   purchasePackage,
+  preparePackageForPurchase,
   restorePurchases,
   hasFramePlus,
-  formatSubscriptionRenewal,
   getSubscriptionPeriodLabel,
   getSubscriptionPlanLabel,
   isPurchasesSupported,
@@ -97,7 +97,22 @@ export default function PaywallScreen() {
   async function onBuy(pkg: FreshPurchasesPackage) {
     setBusyId(pkg.identifier);
     try {
-      const info = await purchasePackage(pkg);
+      const preparation = await preparePackageForPurchase(pkg);
+      if (preparation.status === "changed") {
+        setPackages((current) =>
+          current.map((item) =>
+            item.identifier === preparation.pkg.identifier
+              ? preparation.pkg
+              : item,
+          ),
+        );
+        Alert.alert(
+          "App Store details updated",
+          "Apple returned new storefront information. Review the plan and tap again to continue.",
+        );
+        return;
+      }
+      const info = await purchasePackage(preparation.pkg);
       await sync.mutateAsync();
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (hasFramePlus(info)) {
@@ -193,11 +208,16 @@ export default function PaywallScreen() {
                   <Text style={s.planTitle}>
                     {getSubscriptionPlanLabel(pkg.product.title)}
                   </Text>
-                  <Text style={s.planPrice}>
-                    {formatSubscriptionRenewal(pkg.product.priceString, period)}
-                  </Text>
+                  {/*
+                    RevenueCat documents that TestFlight can return USD product
+                    metadata while Apple's confirmation uses the real storefront
+                    currency. TestFlight cannot be identified reliably from this
+                    managed build, so do not present an amount that may be false.
+                  */}
+                  <Text style={s.planPrice}>Billing period: {period}</Text>
                   <Text style={s.planIncludes}>
-                    Includes all FRAME+ services above.
+                    Tap to review Apple&apos;s exact local price. Nothing is charged
+                    until you confirm.
                   </Text>
                 </View>
                 {busy ? (

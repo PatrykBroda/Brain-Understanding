@@ -8,6 +8,7 @@ import {
 import {
   assertPurchasedProductMatches,
   attachFreshStoreProducts,
+  didStoreProductChange,
   shouldRefreshStoreProducts,
 } from "../lib/storeProductRefresh";
 
@@ -173,5 +174,23 @@ describe("fresh StoreKit product matching", () => {
     expect(shouldRefreshStoreProducts("active")).toBe(true);
     expect(shouldRefreshStoreProducts("background")).toBe(false);
     expect(shouldRefreshStoreProducts("inactive")).toBe(false);
+  });
+
+  it("detects a price, currency, or storefront change before purchase", () => {
+    const displayed = {
+      identifier: "frame.monthly",
+      priceString: "$4.99",
+      currencyCode: "USD",
+    };
+
+    expect(
+      didStoreProductChange(
+        displayed,
+        { ...displayed, priceString: "24,99 zł", currencyCode: "PLN" },
+        "US",
+        "PL",
+      ),
+    ).toBe(true);
+    expect(didStoreProductChange(displayed, displayed, "US", "US")).toBe(false);
   });
 });

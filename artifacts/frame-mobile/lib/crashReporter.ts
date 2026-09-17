@@ -1,6 +1,8 @@
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 
-const APP_VERSION = "1.0.3";
+const APP_VERSION = Constants.expoConfig?.version ?? "unknown";
+const BUILD_VERSION = Constants.expoConfig?.ios?.buildNumber ?? null;
 
 // Baseline for elapsed-time measurements: when this module was evaluated
 // (≈ JS bundle start). Every probe reports ms since launch so slow phases
@@ -78,6 +80,31 @@ export function reportLayout(context: string): void {
     type: "layout",
     context: `${context} | +${msSinceLaunch()}ms`,
     appVersion: APP_VERSION,
+    platform: Platform.OS,
+    ts: new Date().toISOString(),
+  });
+}
+
+export type BillingDiagnostic = {
+  stage: "load" | "prepurchase" | "changed";
+  packageIdentifier: string;
+  productIdentifier: string;
+  offeringPriceString: string;
+  offeringCurrencyCode: string;
+  storePriceString: string;
+  storeCurrencyCode: string;
+  storefrontCountryCode: string | null;
+  storeKitMode: "STOREKIT_2";
+  loadedAt: string;
+};
+
+/** Privacy-safe StoreKit metadata only: never include receipts or account IDs. */
+export function reportBillingDiagnostic(diagnostic: BillingDiagnostic): void {
+  void post({
+    type: "billing",
+    billing: diagnostic,
+    appVersion: APP_VERSION,
+    buildVersion: BUILD_VERSION,
     platform: Platform.OS,
     ts: new Date().toISOString(),
   });

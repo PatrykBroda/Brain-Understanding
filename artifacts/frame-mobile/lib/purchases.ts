@@ -12,6 +12,7 @@
 import { Platform } from "react-native";
 import Purchases, {
   LOG_LEVEL,
+  STOREKIT_VERSION,
   type CustomerInfo,
   type PurchasesPackage,
   type PurchasesStoreProduct,
@@ -22,6 +23,8 @@ import {
   attachFreshStoreProducts,
   type FreshPurchasesPackage,
 } from "./storeProductRefresh";
+import { didStoreProductChange } from "./storeProductRefresh";
+import { reportBillingDiagnostic } from "./crashReporter";
 
 /** Must match the entitlement identifier configured in the RevenueCat dashboard. */
 export const FRAME_PLUS_ENTITLEMENT_ID = "frame_plus";
@@ -45,6 +48,8 @@ export function configurePurchases(appUserId: string | null): void {
   Purchases.configure({
     apiKey: IOS_API_KEY,
     appUserID: appUserId ?? undefined,
+    storeKitVersion: STOREKIT_VERSION.STOREKIT_2,
+    diagnosticsEnabled: true,
   });
   configured = true;
 }
@@ -90,10 +95,26 @@ export async function getFramePlusPackages(): Promise<FreshPurchasesPackage[]> {
     throw new Error("Subscription periods could not be loaded from the App Store.");
   }
 
-  const freshProducts = await Purchases.getProducts(
-    packages.map((pkg) => pkg.product.identifier),
+  const loadedAt = new Date().toISOString();
+  const [freshProducts, storefront] = await Promise.all([
+    Purchases.getProducts(packages.map((pkg) => pkg.product.identifier)),
+    Purchases.getStorefront(),
+  ]);
+  const freshPackages = attachFreshStoreProducts(packages, freshProducts).map(
+    (pkg, index) => ({
+      ...pkg,
+      storeContext: {
+        storefrontCountryCode: storefront?.countryCode ?? null,
+        loadedAt,
+        offeringPriceString: packages[index].product.priceString,
+        offeringCurrencyCode: packages[index].product.currencyCode,
+      },
+    }),
   );
-  return attachFreshStoreProducts(packages, freshProducts);
+  for (const pkg of freshPackages) {
+    reportPackageDiagnostic("load", pkg);
+  }
+  return freshPackages;
 }
 
 export function hasFramePlus(info: CustomerInfo | null | undefined): boolean {
@@ -110,6 +131,63 @@ export async function purchasePackage(
     await Purchases.purchaseStoreProduct(pkg.product);
   assertPurchasedProductMatches(pkg.product.identifier, productIdentifier);
   return customerInfo;
+}
+
+export type PurchasePreparation =
+  | { status: "ready"; pkg: FreshPurchasesPackage }
+  | { status: "changed"; pkg: FreshPurchasesPackage };
+
+export async function preparePackageForPurchase(
+  displayedPackage: FreshPurchasesPackage,
+): Promise<PurchasePreparation> {
+  if (!configured) {
+    throw new Error("Subscriptions are not configured in this build.");
+  }
+  const loadedAt = new Date().toISOString();
+  const [products, storefront] = await Promise.all([
+    Purchases.getProducts([displayedPackage.product.identifier]),
+    Purchases.getStorefront(),
+  ]);
+  const [refreshedBase] = attachFreshStoreProducts([displayedPackage], products);
+  const refreshedPackage: FreshPurchasesPackage = {
+    ...refreshedBase,
+    storeContext: {
+      ...displayedPackage.storeContext,
+      storefrontCountryCode: storefront?.countryCode ?? null,
+      loadedAt,
+    },
+  };
+  reportPackageDiagnostic("prepurchase", refreshedPackage);
+
+  const changed = didStoreProductChange(
+    displayedPackage.product,
+    refreshedPackage.product,
+    displayedPackage.storeContext.storefrontCountryCode,
+    refreshedPackage.storeContext.storefrontCountryCode,
+  );
+  if (changed) {
+    reportPackageDiagnostic("changed", refreshedPackage);
+    return { status: "changed", pkg: refreshedPackage };
+  }
+  return { status: "ready", pkg: refreshedPackage };
+}
+
+function reportPackageDiagnostic(
+  stage: "load" | "prepurchase" | "changed",
+  pkg: FreshPurchasesPackage,
+): void {
+  reportBillingDiagnostic({
+    stage,
+    packageIdentifier: pkg.identifier,
+    productIdentifier: pkg.product.identifier,
+    offeringPriceString: pkg.storeContext.offeringPriceString,
+    offeringCurrencyCode: pkg.storeContext.offeringCurrencyCode,
+    storePriceString: pkg.product.priceString,
+    storeCurrencyCode: pkg.product.currencyCode,
+    storefrontCountryCode: pkg.storeContext.storefrontCountryCode,
+    storeKitMode: "STOREKIT_2",
+    loadedAt: pkg.storeContext.loadedAt,
+  });
 }
 
 export async function restorePurchases(): Promise<CustomerInfo> {

@@ -1,15 +1,40 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
 
-const CrashPayload = z.object({
-  type: z.enum(["crash", "startup", "layout"]).default("crash"),
-  message: z.string().optional(),
-  stack: z.string().optional(),
-  context: z.string().optional(),
-  appVersion: z.string().optional(),
-  platform: z.string().optional(),
-  ts: z.string().optional(),
-});
+const CrashPayload = z
+  .object({
+    type: z.enum(["crash", "startup", "layout", "billing"]).default("crash"),
+    message: z.string().optional(),
+    stack: z.string().optional(),
+    context: z.string().optional(),
+    appVersion: z.string().optional(),
+    buildVersion: z.string().nullable().optional(),
+    platform: z.string().optional(),
+    ts: z.string().optional(),
+    billing: z
+      .object({
+        stage: z.enum(["load", "prepurchase", "changed"]),
+        packageIdentifier: z.string(),
+        productIdentifier: z.string(),
+        offeringPriceString: z.string(),
+        offeringCurrencyCode: z.string(),
+        storePriceString: z.string(),
+        storeCurrencyCode: z.string(),
+        storefrontCountryCode: z.string().nullable(),
+        storeKitMode: z.literal("STOREKIT_2"),
+        loadedAt: z.string(),
+      })
+      .optional(),
+  })
+  .superRefine((data, context) => {
+    if (data.type === "billing" && !data.billing) {
+      context.addIssue({
+        code: "custom",
+        message: "billing metadata is required",
+        path: ["billing"],
+      });
+    }
+  });
 
 const router: IRouter = Router();
 
@@ -20,7 +45,19 @@ router.post("/crash-log", (req, res) => {
     return;
   }
   const data = parsed.data;
-  if (data.type === "layout") {
+  if (data.type === "billing") {
+    req.log.info(
+      {
+        type: "mobile_billing",
+        appVersion: data.appVersion,
+        buildVersion: data.buildVersion,
+        platform: data.platform,
+        billing: data.billing,
+        ts: data.ts,
+      },
+      "MOBILE BILLING DIAGNOSTIC",
+    );
+  } else if (data.type === "layout") {
     req.log.info(
       {
         type: "mobile_layout",

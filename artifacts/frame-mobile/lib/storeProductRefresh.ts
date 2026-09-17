@@ -5,10 +5,23 @@ import type {
 
 export type FreshPurchasesPackage = Omit<PurchasesPackage, "product"> & {
   readonly product: PurchasesStoreProduct;
+  readonly storeContext: StoreProductContext;
 };
 
 type ProductIdentity = {
   readonly identifier: string;
+};
+
+type PriceIdentity = ProductIdentity & {
+  readonly priceString: string;
+  readonly currencyCode: string;
+};
+
+export type StoreProductContext = {
+  readonly storefrontCountryCode: string | null;
+  readonly loadedAt: string;
+  readonly offeringPriceString: string;
+  readonly offeringCurrencyCode: string;
 };
 
 export function shouldRefreshStoreProducts(appState: string): boolean {
@@ -50,4 +63,18 @@ export function assertPurchasedProductMatches(
       "The purchased App Store product did not match the price shown.",
     );
   }
+}
+
+export function didStoreProductChange(
+  displayedProduct: PriceIdentity,
+  refreshedProduct: PriceIdentity,
+  displayedStorefrontCountryCode: string | null,
+  refreshedStorefrontCountryCode: string | null,
+): boolean {
+  return (
+    displayedProduct.identifier !== refreshedProduct.identifier ||
+    displayedProduct.priceString !== refreshedProduct.priceString ||
+    displayedProduct.currencyCode !== refreshedProduct.currencyCode ||
+    displayedStorefrontCountryCode !== refreshedStorefrontCountryCode
+  );
 }
