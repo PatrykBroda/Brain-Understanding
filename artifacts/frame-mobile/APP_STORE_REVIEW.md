@@ -8,12 +8,66 @@ submit Apple products or complete App Store Connect metadata.
 - Bundle identifier: `app.replit.frame`
 - RevenueCat entitlement: `frame_plus`
 - Mobile public key variable: `EXPO_PUBLIC_REVENUECAT_IOS_KEY`
-- Source of plans and localized prices: RevenueCat's current offering
+- Source of plans: RevenueCat's current offering. **Localized price display is
+  not verified for TestFlight**; see the price-blocker section below.
 - Purchase provider: Apple In-App Purchase through `react-native-purchases`
 
 Do not create replacement products just to clear a warning. First compare the
 existing Apple product identifiers with the products attached to RevenueCat's
 current offering.
+
+## Subscription price blocker — do not resubmit unchanged
+
+Apple rejected version 1.0 (72) under Guideline 3.1.2(c) because the
+FRAME+ card says "Billing period: 1 month" but shows no amount. Pointing to
+Apple's confirmation sheet does **not** satisfy the requirement to display the
+subscription price inside the app before purchase. An earlier TestFlight build
+displayed `$4.99` from RevenueCat/StoreKit while Apple's purchase sheet
+displayed `24.99 zł`; reloading products did not correct it. Neither amount
+should be hardcoded into the paywall.
+
+RevenueCat documents that TestFlight's StoreKit product metadata can return
+USD while Apple's purchase sheet correctly uses the local currency:
+https://www.revenuecat.com/docs/test-and-launch/sandbox/apple-app-store
+Apple's `SubscriptionStoreView` displays localized subscription prices, but
+its product-ID initializer **also loads subscription data from the App Store**:
+https://developer.apple.com/documentation/storekit/subscriptionstoreview
+There is no evidence yet that this view receives a different, correct price
+on the affected device. Replacing the card with it without an on-device
+comparison would repeat the unverified-refresh mistake. This Linux workspace
+cannot build/run SwiftUI on iOS or inspect the affected TestFlight storefront.
+
+**Release gate:** Test a native candidate on the same Polish storefront.
+Record the current StoreKit country code, product currency and price from
+the privacy-safe billing diagnostics; capture the amount visible *inside*
+the app before tapping Buy and the amount on Apple's confirmation sheet.
+Repeat after a clean install and verify the Apple ID's Media & Purchases
+country. If using `SubscriptionStoreView`, verify its visible amount
+independently; do not infer correctness merely because its purchase succeeds.
+Check at least one other storefront if available. Keep the existing
+RevenueCat offering/product/entitlement and confirm purchase, restore,
+auto-renewal wording and both legal links still work. **Do not resubmit**
+with either an unpriced card or a price known to disagree with Apple's sheet.
+If the native view also shows the wrong amount, report the TestFlight
+metadata mismatch to Apple Developer Support with the build, storefront,
+product identifier, and redacted screenshots; do not substitute a guessed
+regional price.
+
+**App Review response, only after a verified correction:** “Thank you for
+the Guideline 3.1.2(c) feedback. In build [BUILD], open Profile > FRAME+.
+Before initiating an Apple purchase, the plan displays its title,
+subscription length, localized [PRICE]/[PERIOD] and included services.
+Privacy Policy and Terms of Use links are on the same screen. We verified
+the displayed amount against Apple's confirmation sheet on [DEVICE,
+STOREFRONT]. The attached recording shows the price before purchase and
+the matching Apple sheet.” Replace the brackets with observed facts; do
+not send this response for the current unpriced build.
+
+**Recording checklist:** show the new build/version, open Profile > FRAME+,
+pause on the in-app amount and period with included services visible, open
+Privacy and Terms links, then return and open Apple's purchase sheet to
+show the same local amount without confirming a charge. Repeat the
+purchase/restore check separately with a sandbox tester.
 
 ## RevenueCat and App Store Connect
 
@@ -185,6 +239,7 @@ TestFlight build:
 - [ ] Reviewer credentials or fresh-account instructions work from a clean install
 - [ ] Bundle ID, version, and auto-incremented build match App Store Connect
 - [ ] Production RevenueCat key is embedded and the current offering loads
+- [ ] In-app price and per-period amount are visible before purchase and match Apple's sheet on the affected storefront
 - [ ] Sandbox purchase activates `frame_plus`
 - [ ] Restore Purchases restores the same entitlement after reinstall/sign-in
 - [ ] Manage Subscription opens Apple's subscription settings
