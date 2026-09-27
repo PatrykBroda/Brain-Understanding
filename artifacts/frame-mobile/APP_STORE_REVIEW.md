@@ -8,8 +8,10 @@ submit Apple products or complete App Store Connect metadata.
 - Bundle identifier: `app.replit.frame`
 - RevenueCat entitlement: `frame_plus`
 - Mobile public key variable: `EXPO_PUBLIC_REVENUECAT_IOS_KEY`
-- Source of plans: RevenueCat's current offering. **Localized price display is
-  not verified for TestFlight**; see the price-blocker section below.
+- Source of plans: RevenueCat's current offering. The candidate paywall
+  retrieves the standard new-subscriber price from Apple's App Store Connect
+  territory price schedule on the server. **Still unverified in TestFlight**;
+  see the price-blocker section below.
 - Purchase provider: Apple In-App Purchase through `react-native-purchases`
 
 Do not create replacement products just to clear a warning. First compare the
@@ -26,6 +28,19 @@ displayed `$4.99` from RevenueCat/StoreKit while Apple's purchase sheet
 displayed `24.99 zł`; reloading products did not correct it. Neither amount
 should be hardcoded into the paywall.
 
+The candidate implementation requires three **server-only** Replit Secrets:
+`APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID` and
+`APP_STORE_CONNECT_PRIVATE_KEY` (the complete matching .p8 file). The account
+key must be allowed to read the app's subscription pricing. Without these,
+or if the Apple API cannot identify a single current standard price for the
+device's storefront, plans cannot be purchased; Restore remains available.
+The client obtains the product identifier from RevenueCat's current offering,
+uses StoreKit only for the device's storefront country, and rechecks Apple's
+schedule immediately before opening the purchase sheet. No price or currency
+is configured in code. Introductory/promotional pricing and eligibility are
+not sourced by this endpoint; verify any active offer separately before
+submitting, since the sheet can show a different first charge.
+
 RevenueCat documents that TestFlight's StoreKit product metadata can return
 USD while Apple's purchase sheet correctly uses the local currency:
 https://www.revenuecat.com/docs/test-and-launch/sandbox/apple-app-store
@@ -37,7 +52,10 @@ on the affected device. Replacing the card with it without an on-device
 comparison would repeat the unverified-refresh mistake. This Linux workspace
 cannot build/run SwiftUI on iOS or inspect the affected TestFlight storefront.
 
-**Release gate:** Test a native candidate on the same Polish storefront.
+**Release gate:** Configure the server-only API key, verify the endpoint
+returns the expected Polish territory and currency, and test a native candidate
+on the same Polish storefront. The code has not been checked against this
+account's Apple price schedule or an iOS purchase sheet.
 Record the current StoreKit country code, product currency and price from
 the privacy-safe billing diagnostics; capture the amount visible *inside*
 the app before tapping Buy and the amount on Apple's confirmation sheet.

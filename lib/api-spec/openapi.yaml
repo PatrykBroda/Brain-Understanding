@@ -11,6 +11,35 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /billing/apple-price:
+    get:
+      operationId: getAppleSubscriptionPrice
+      summary: Get Apple's current standard subscription price for an App Store storefront
+      description: Authenticated. The product must belong to this app's Apple subscriptions. Returns 503 rather than guessing if Apple pricing cannot be verified.
+      parameters:
+        - name: productId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: countryCode
+          in: query
+          required: true
+          description: Two-letter StoreKit storefront country code.
+          schema:
+            type: string
+            pattern: "^[A-Z]{2}$"
+      responses:
+        "200":
+          description: Current standard new-subscriber price from Apple
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppleSubscriptionPrice"
+        "400":
+          description: Invalid query
+        "503":
+          description: Price cannot be verified
   /healthz:
     get:
       operationId: healthCheck
@@ -26,6 +55,19 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    AppleSubscriptionPrice:
+      type: object
+      properties:
+        productId:
+          type: string
+        territory:
+          type: string
+          description: Two-letter storefront country code.
+        currencyCode:
+          type: string
+        localizedPrice:
+          type: string
+      required: [productId, territory, currencyCode, localizedPrice]
     HealthStatus:
       type: object
       properties:

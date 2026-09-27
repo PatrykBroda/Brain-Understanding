@@ -5,8 +5,26 @@ import {
   setEntitlementFromRevenueCat,
 } from "../lib/subscriptionService";
 import { fetchRevenueCatEntitlement } from "../lib/revenuecat";
+import { getAppleSubscriptionPrice } from "../lib/appleSubscriptionPrice";
 
 const router: IRouter = Router();
+
+router.get("/billing/apple-price", async (req: Request, res: Response): Promise<void> => {
+  const productId = req.query.productId;
+  const countryCode = req.query.countryCode;
+  if (typeof productId !== "string" || productId.length > 150 || !/^[A-Za-z0-9._-]+$/.test(productId) ||
+      typeof countryCode !== "string" || !/^[A-Z]{2}$/.test(countryCode)) {
+    res.status(400).json({ error: "A valid offering product and App Store country are required." });
+    return;
+  }
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    res.json(await getAppleSubscriptionPrice(productId, countryCode));
+  } catch (err) {
+    req.log.warn({ err }, "Apple subscription price unavailable");
+    res.status(503).json({ error: "The current App Store price is unavailable. Please try again later." });
+  }
+});
 
 // GET /billing/status — current entitlement for the signed-in user.
 // Purchases happen natively via Apple IAP (RevenueCat) on the client; this

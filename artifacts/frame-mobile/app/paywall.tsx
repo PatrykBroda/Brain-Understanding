@@ -25,10 +25,11 @@ import {
   getSubscriptionPlanLabel,
   isPurchasesSupported,
   shouldRefreshStoreProducts,
-  type FreshPurchasesPackage,
 } from "@/lib/purchases";
 import { useSyncBilling } from "@/hooks/useEntitlement";
 import { apiUrl } from "@/lib/api";
+import { didVerifiedPriceChange, verifyApplePrice, type VerifiedPackage } from "@/lib/applePrice";
+import { formatSubscriptionRenewal } from "@/lib/subscriptionDisclosure";
 
 const FRAME_PLUS_PERKS = [
   "Unlimited coaching conversations",
@@ -42,7 +43,7 @@ export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const sync = useSyncBilling();
 
-  const [packages, setPackages] = useState<FreshPurchasesPackage[]>([]);
+  const [packages, setPackages] = useState<VerifiedPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -59,6 +60,7 @@ export default function PaywallScreen() {
       setLoading(true);
       setLoadError(null);
       void getFramePlusPackages()
+        .then((pkgs) => Promise.all(pkgs.map(verifyApplePrice)))
         .then((pkgs) => {
           if (alive && generation === loadGeneration) setPackages(pkgs);
         })
@@ -94,25 +96,31 @@ export default function PaywallScreen() {
     else router.replace("/(tabs)/home");
   }
 
-  async function onBuy(pkg: FreshPurchasesPackage) {
+  async function onBuy(pkg: VerifiedPackage) {
     setBusyId(pkg.identifier);
     try {
       const preparation = await preparePackageForPurchase(pkg);
-      if (preparation.status === "changed") {
+      // Query Apple again before opening the native purchase sheet. A failed
+      // check blocks purchase rather than silently using TestFlight's USD.
+      const checked = await verifyApplePrice(preparation.pkg);
+      // StoreKit's priceString/currencyCode can change from one wrong
+      // TestFlight value to another. Only a changed product/period/storefront
+      // or Apple's independently checked price requires another confirmation.
+      if (didVerifiedPriceChange(pkg, checked)) {
         setPackages((current) =>
           current.map((item) =>
-            item.identifier === preparation.pkg.identifier
-              ? preparation.pkg
+            item.identifier === checked.identifier
+              ? checked
               : item,
           ),
         );
         Alert.alert(
-          "App Store details updated",
-          "Apple returned new storefront information. Review the plan and tap again to continue.",
+          "Subscription details updated",
+          "Apple returned new price or storefront information. Review the plan and tap again to continue.",
         );
         return;
       }
-      const info = await purchasePackage(preparation.pkg);
+      const info = await purchasePackage(checked);
       await sync.mutateAsync();
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (hasFramePlus(info)) {
@@ -173,14 +181,15 @@ export default function PaywallScreen() {
 
         {loading ? (
           <ActivityIndicator color="#8A6A2F" style={{ marginTop: 32 }} />
-        ) : !isPurchasesSupported() ? (
+        ) : !isPurchasesSupported() || Platform.OS !== "ios" ? (
           <Text style={s.unavailable}>
             Subscriptions are available in the iOS app.
           </Text>
         ) : loadError || packages.length === 0 ? (
           <View style={s.unavailableWrap}>
             <Text style={s.unavailable}>
-              Plans aren&apos;t available right now. Please try again.
+              Current App Store prices aren&apos;t available. Purchases are paused;
+              you can still restore an existing subscription.
             </Text>
             {__DEV__ && loadError ? (
               <Text style={s.diagnostic}>{loadError}</Text>
@@ -208,16 +217,11 @@ export default function PaywallScreen() {
                   <Text style={s.planTitle}>
                     {getSubscriptionPlanLabel(pkg.product.title)}
                   </Text>
-                  {/*
-                    RevenueCat documents that TestFlight can return USD product
-                    metadata while Apple's confirmation uses the real storefront
-                    currency. TestFlight cannot be identified reliably from this
-                    managed build, so do not present an amount that may be false.
-                  */}
-                  <Text style={s.planPrice}>Billing period: {period}</Text>
+                   <Text style={s.planPrice}>
+                     {formatSubscriptionRenewal(pkg.applePrice.localizedPrice, period)}
+                   </Text>
                   <Text style={s.planIncludes}>
-                    Tap to review Apple&apos;s exact local price. Nothing is charged
-                    until you confirm.
+                     Nothing is charged until you confirm with Apple.
                   </Text>
                 </View>
                 {busy ? (

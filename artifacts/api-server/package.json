@@ -25,6 +25,7 @@
     "drizzle-orm": "catalog:",
     "express": "^5.2.1",
     "http-proxy-middleware": "^4.0.0",
+    "i18n-iso-countries": "^7.14.0",
     "jose": "^6.2.8",
     "openai": "^6.39.0",
     "pino": "^9.14.0",

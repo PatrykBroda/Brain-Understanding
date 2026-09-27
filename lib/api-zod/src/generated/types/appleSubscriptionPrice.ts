@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+
 export interface AppleSubscriptionPrice {
   productId: string;
   /** Two-letter storefront country code. */
@@ -12,17 +13,3 @@ export interface AppleSubscriptionPrice {
   currencyCode: string;
   localizedPrice: string;
 }
-
-export interface HealthStatus {
-  status: string;
-}
-
-export type GetAppleSubscriptionPriceParams = {
-productId: string;
-/**
- * Two-letter StoreKit storefront country code.
- * @pattern ^[A-Z]{2}$
- */
-countryCode: string;
-};
-
