@@ -93,6 +93,8 @@ channel = "stable-25_05"
 
 [userenv.shared]
 EXPO_PUBLIC_REVENUECAT_IOS_KEY = "appl_zMjcmylQVVKMHTLLXrCMeLFZMMv"
+APP_STORE_CONNECT_API_ISSUER_ID = "32522a1c-38bd-4bff-a9aa-959587a72fc1"
+APP_STORE_CONNECT_API_KEY_ID = "J6LZHP9VM9"
 
 [userenv.production]
 EXPO_PUBLIC_DOMAIN = "ajsajjajds.com"

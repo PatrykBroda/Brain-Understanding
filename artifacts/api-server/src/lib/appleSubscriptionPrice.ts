@@ -26,8 +26,10 @@ export type AppleSubscriptionPrice = {
 export class ApplePriceUnavailable extends Error {}
 
 function requiredConfiguration() {
-  const keyId = process.env.APP_STORE_CONNECT_KEY_ID;
-  const issuerId = process.env.APP_STORE_CONNECT_ISSUER_ID;
+  // Key and issuer identifiers are not secret. Prefer server configuration
+  // where available; retain the original secret names for existing installs.
+  const keyId = process.env.APP_STORE_CONNECT_API_KEY_ID || process.env.APP_STORE_CONNECT_KEY_ID;
+  const issuerId = process.env.APP_STORE_CONNECT_API_ISSUER_ID || process.env.APP_STORE_CONNECT_ISSUER_ID;
   const privateKey = process.env.APP_STORE_CONNECT_PRIVATE_KEY;
   if (!keyId || !issuerId || !privateKey) {
     throw new ApplePriceUnavailable("Apple subscription pricing is not configured.");

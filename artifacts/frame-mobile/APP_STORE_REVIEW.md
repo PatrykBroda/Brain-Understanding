@@ -28,9 +28,12 @@ displayed `$4.99` from RevenueCat/StoreKit while Apple's purchase sheet
 displayed `24.99 zł`; reloading products did not correct it. Neither amount
 should be hardcoded into the paywall.
 
-The candidate implementation requires three **server-only** Replit Secrets:
-`APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID` and
-`APP_STORE_CONNECT_PRIVATE_KEY` (the complete matching .p8 file). The account
+The candidate implementation requires the server-only Replit Secret
+`APP_STORE_CONNECT_PRIVATE_KEY` (the complete matching .p8 file). The
+non-secret identifiers can be supplied as server settings
+`APP_STORE_CONNECT_API_KEY_ID` and `APP_STORE_CONNECT_API_ISSUER_ID`
+(the original secret names `APP_STORE_CONNECT_KEY_ID` and
+`APP_STORE_CONNECT_ISSUER_ID` remain supported). The account
 key must be allowed to read the app's subscription pricing. Without these,
 or if the Apple API cannot identify a single current standard price for the
 device's storefront, plans cannot be purchased; Restore remains available.
