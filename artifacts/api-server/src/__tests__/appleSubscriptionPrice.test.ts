@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { resolveTerritory, selectCurrentPrice } from "../lib/appleSubscriptionPrice";
+import { generateKeyPairSync } from "node:crypto";
+import { describe, expect, it, vi } from "vitest";
+import { getAppleSubscriptionPrice, resolveTerritory, selectCurrentPrice } from "../lib/appleSubscriptionPrice";
 
 const territory = { type: "territories", id: "POL", attributes: { currency: "PLN" } };
 const point = (id: string, customerPrice: string) => ({
@@ -15,6 +16,66 @@ const price = (id: string, startDate: string | null, preserved: boolean, planTyp
 });
 
 describe("Apple subscription price selection", () => {
+  it("looks up a GBR storefront through Apple's full API flow and returns a GBP price", async () => {
+    const { privateKey } = generateKeyPairSync("ec", {
+      namedCurve: "P-256",
+      privateKeyEncoding: { type: "pkcs8", format: "pem" },
+      publicKeyEncoding: { type: "spki", format: "pem" },
+    });
+    vi.stubEnv("APP_STORE_CONNECT_API_KEY_ID", "test-key-id");
+    vi.stubEnv("APP_STORE_CONNECT_API_ISSUER_ID", "test-issuer");
+    vi.stubEnv("APP_STORE_CONNECT_PRIVATE_KEY", privateKey);
+    const fetchApple = vi.fn(async (input: string | URL | Request) => {
+      const url = new URL(String(input));
+      let data: unknown[];
+      let included: unknown[] | undefined;
+      if (url.pathname === "/v1/apps") {
+        data = [{ type: "apps", id: "app-1", attributes: { bundleId: "app.replit.frame" } }];
+      } else if (url.pathname === "/v1/territories") {
+        data = [{ type: "territories", id: "GBR", attributes: { currency: "GBP" } }];
+      } else if (url.pathname.endsWith("/subscriptionGroups")) {
+        data = [{ type: "subscriptionGroups", id: "group-1" }];
+      } else if (url.pathname.endsWith("/subscriptions")) {
+        data = [{ type: "subscriptions", id: "subscription-1", attributes: { productId: "app.test.monthly" } }];
+      } else if (url.pathname.endsWith("/prices")) {
+        data = [{
+          type: "subscriptionPrices", id: "price-1",
+          attributes: { startDate: null, preserved: false, planType: "UPFRONT" },
+          relationships: {
+            territory: { data: { id: "GBR" } },
+            subscriptionPricePoint: { data: { id: "point-1" } },
+          },
+        }];
+        included = [
+          { type: "subscriptionPricePoints", id: "point-1", attributes: { customerPrice: "7.99" } },
+          { type: "territories", id: "GBR", attributes: { currency: "GBP" } },
+        ];
+      } else {
+        throw new Error(`Unexpected Apple endpoint: ${url.pathname}`);
+      }
+      return new Response(JSON.stringify({ data, included }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchApple);
+
+    try {
+      const result = await getAppleSubscriptionPrice("app.test.monthly", "GBR");
+      expect(result).toEqual({
+        productId: "app.test.monthly",
+        territory: "GBR",
+        currencyCode: "GBP",
+        localizedPrice: "£7.99",
+      });
+      expect(fetchApple).toHaveBeenCalledTimes(5);
+      const priceRequest = fetchApple.mock.calls
+        .map(([input]) => String(input))
+        .find((url) => url.includes("/prices?"));
+      expect(priceRequest).toContain("filter%5Bterritory%5D=GBR");
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("converts the device's storefront to Apple's territory, without defaulting", () => {
     expect(resolveTerritory("PL", [territory])).toBe("POL");
     expect(resolveTerritory("POL", [territory])).toBe("POL");

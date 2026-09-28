@@ -8,6 +8,7 @@ import {
 } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  apiGet: vi.fn(),
   configure: vi.fn(),
   getOfferings: vi.fn(),
   getProducts: vi.fn(),
@@ -15,6 +16,10 @@ const mocks = vi.hoisted(() => ({
   purchaseStoreProduct: vi.fn(),
   reportBillingDiagnostic: vi.fn(),
   setLogLevel: vi.fn(),
+}));
+
+vi.mock("../lib/api", () => ({
+  apiGet: mocks.apiGet,
 }));
 
 vi.mock("react-native", () => ({
@@ -40,6 +45,7 @@ vi.mock("../lib/crashReporter", () => ({
 
 type PurchasesModule = typeof import("../lib/purchases");
 let purchases: PurchasesModule;
+let applePrice: typeof import("../lib/applePrice");
 
 const offeredProduct = {
   identifier: "app.replit.frame.monthly",
@@ -69,6 +75,7 @@ const offeredPackage = {
 beforeAll(async () => {
   vi.stubEnv("EXPO_PUBLIC_REVENUECAT_IOS_KEY", "test_revenuecat_key");
   purchases = await import("../lib/purchases");
+  applePrice = await import("../lib/applePrice");
   purchases.configurePurchases("test-user");
 });
 
@@ -82,6 +89,33 @@ beforeEach(() => {
 });
 
 describe("RevenueCat StoreKit contract", () => {
+  it("loads a GBR plan, verifies Apple's price twice, and ignores stale USD product metadata", async () => {
+    mocks.getStorefront.mockResolvedValue({ countryCode: "GBR" });
+    mocks.getProducts.mockResolvedValue([offeredProduct]);
+    const ukPrice = {
+      productId: offeredProduct.identifier,
+      territory: "GBR",
+      currencyCode: "GBP",
+      localizedPrice: "£7.99",
+    };
+    mocks.apiGet.mockResolvedValue(ukPrice);
+
+    const [offeringPackage] = await purchases.getFramePlusPackages();
+    const displayed = await applePrice.verifyApplePrice(offeringPackage);
+    const prepared = await purchases.preparePackageForPurchase(displayed);
+    const checked = await applePrice.verifyApplePrice(prepared.pkg);
+
+    expect(prepared.status).toBe("ready");
+    expect(mocks.apiGet).toHaveBeenCalledTimes(2);
+    expect(mocks.apiGet).toHaveBeenCalledWith(
+      `/billing/apple-price?productId=${offeredProduct.identifier}&countryCode=GBR`,
+    );
+    expect(displayed.applePrice).toEqual(ukPrice);
+    expect(checked.product.currencyCode).toBe("USD");
+    expect(applePrice.didVerifiedPriceChange(displayed, checked)).toBe(false);
+    expect(mocks.purchaseStoreProduct).not.toHaveBeenCalled();
+  });
+
   it("loads the offered product from StoreKit and records its storefront", async () => {
     const [pkg] = await purchases.getFramePlusPackages();
 
