@@ -98,6 +98,7 @@ export default function PaywallScreen() {
 
   async function onBuy(pkg: VerifiedPackage) {
     setBusyId(pkg.identifier);
+    let checkingPrice = true;
     try {
       const preparation = await preparePackageForPurchase(pkg);
       // Query Apple again before opening the native purchase sheet. A failed
@@ -120,6 +121,7 @@ export default function PaywallScreen() {
         );
         return;
       }
+      checkingPrice = false;
       const info = await purchasePackage(checked);
       await sync.mutateAsync();
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -128,7 +130,16 @@ export default function PaywallScreen() {
       }
     } catch (err) {
       const e = err as { userCancelled?: boolean; message?: string };
-      if (!e?.userCancelled) {
+      if (checkingPrice) {
+        // A failed last-minute check invalidates the displayed price. Do not
+        // leave a stale, tappable plan on screen while checkout is unavailable.
+        setPackages([]);
+        setLoadError("The current App Store price could not be verified.");
+        Alert.alert(
+          "Current price unavailable",
+          "Purchases are paused until the App Store price can be checked again. You can still restore a subscription.",
+        );
+      } else if (!e?.userCancelled) {
         Alert.alert("Purchase failed", e?.message ?? "Please try again.");
       }
     } finally {

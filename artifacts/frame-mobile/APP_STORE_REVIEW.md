@@ -55,10 +55,11 @@ on the affected device. Replacing the card with it without an on-device
 comparison would repeat the unverified-refresh mistake. This Linux workspace
 cannot build/run SwiftUI on iOS or inspect the affected TestFlight storefront.
 
-**Release gate:** Configure the server-only API key, verify the endpoint
-returns the expected Polish territory and currency, and test a native candidate
-on the same Polish storefront. The code has not been checked against this
-account's Apple price schedule or an iOS purchase sheet.
+**Release gate:** The server-only API key has been authorized and the
+Apple price lookup returned a PLN price for the Polish territory and the
+subscription in RevenueCat's current offering. This verifies the server
+path only. Test a native candidate on the same Polish storefront; the
+in-app amount has **not** been compared with an iOS purchase sheet.
 Record the current StoreKit country code, product currency and price from
 the privacy-safe billing diagnostics; capture the amount visible *inside*
 the app before tapping Buy and the amount on Apple's confirmation sheet.
