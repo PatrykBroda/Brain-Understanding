@@ -33,6 +33,7 @@ import { formatSubscriptionRenewal } from "@/lib/subscriptionDisclosure";
 
 const FRAME_PLUS_PERKS = [
   "Unlimited coaching conversations",
+  "Video analysis and opponent scouting",
   "Full athlete model + memory",
   "Competition camp planner",
   "Priority coaching depth",

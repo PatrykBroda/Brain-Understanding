@@ -16,6 +16,7 @@ import { and, desc, eq, lt } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { getActiveFacts, addFact, confirmFact, findActiveFactByTopic } from "../lib/factsService";
 import { getEntitlementForUserId } from "../lib/subscriptionService";
+import { analysisUpgradeRequired } from "../lib/analysisAccess";
 import { getActiveCompetition } from "../lib/competitionService";
 import {
   generateAnalysis,
@@ -180,39 +181,13 @@ router.post("/analysis", async (req, res) => {
   // athlete's recorded model). Defaults to self for older clients.
   const subject: AnalysisSubject = isValidSubject(body.subject) ? body.subject : "self";
 
-  // Entitlement. Self: the FIRST self analysis is a free one-time taster, then
-  // FRAME+. Opponent scouting is FRAME+ from the first upload — it only earns
-  // its keep once the athlete has a model to contrast against.
+  // All new footage reads require FRAME+. Check before sanitising inputs or
+  // calling the expensive analysis service; the client gate is only UX.
   const entitlement = await getEntitlementForUserId(req.userId as string);
-  if (entitlement.plan === "free") {
-    if (subject === "opponent") {
-      res.status(402).json({
-        error: "Opponent scouting is a FRAME+ feature.",
-        code: "FRAME_PLUS_REQUIRED",
-        feature: "opponent_analysis",
-      });
-      return;
-    }
-    const [existing] = await db
-      .select({ id: videoAnalysesTable.id })
-      .from(videoAnalysesTable)
-      .where(
-        and(
-          eq(videoAnalysesTable.fighterId, fighter.id),
-          // Only the athlete's OWN reads consume the free taster — an opponent
-          // scout (FRAME+ only anyway) never burns it.
-          eq(videoAnalysesTable.subject, "self"),
-        ),
-      )
-      .limit(1);
-    if (existing) {
-      res.status(402).json({
-        error: "Your free analysis is used. FRAME+ makes video analysis unlimited.",
-        code: "FRAME_PLUS_REQUIRED",
-        feature: "video_analysis",
-      });
-      return;
-    }
+  const upgrade = analysisUpgradeRequired(entitlement.plan, subject);
+  if (upgrade) {
+    res.status(402).json(upgrade);
+    return;
   }
 
   if (!isValidKind(body.kind)) {
@@ -521,8 +496,8 @@ router.post("/analysis", async (req, res) => {
 });
 
 // Film-review loop: record the athlete's answer to the ONE grounded follow-up
-// question FRAME asked. No entitlement gate — this is the free half of the loop
-// (the analysis it belongs to was already paid for or was the free taster).
+// question FRAME asked. No entitlement gate — the analysis it belongs to was
+// already available when created, even if that user is now on the free plan.
 router.post("/analysis/:id/answer", async (req, res) => {
   const fighter = await getUserFighter(req);
   if (!fighter) {
@@ -877,32 +852,12 @@ let inFlightRemote = 0;
 
 router.post("/analysis/fetch-remote", async (req, res) => {
   // Gate BEFORE any heavy work (yt-dlp / large downloads land in RAM-backed
-  // /tmp). Mirrors POST /analysis: the first analysis is a free taster, so a
-  // free user with no prior analysis may fetch; after that it's FRAME+.
+  // /tmp). Mirrors POST /analysis: all new reads require FRAME+.
   const remoteEntitlement = await getEntitlementForUserId(req.userId as string);
-  if (remoteEntitlement.plan === "free") {
-    const remoteFighter = await getUserFighter(req);
-    const [existing] = remoteFighter
-      ? await db
-          .select({ id: videoAnalysesTable.id })
-          .from(videoAnalysesTable)
-          .where(
-            and(
-              eq(videoAnalysesTable.fighterId, remoteFighter.id),
-              // Only the athlete's own reads consume the free taster.
-              eq(videoAnalysesTable.subject, "self"),
-            ),
-          )
-          .limit(1)
-      : [];
-    if (existing) {
-      res.status(402).json({
-        error: "Your free analysis is used. FRAME+ makes video analysis unlimited.",
-        code: "FRAME_PLUS_REQUIRED",
-        feature: "video_analysis",
-      });
-      return;
-    }
+  const remoteUpgrade = analysisUpgradeRequired(remoteEntitlement.plan);
+  if (remoteUpgrade) {
+    res.status(402).json(remoteUpgrade);
+    return;
   }
 
   const raw = typeof (req.body as { url?: unknown })?.url === "string" ? (req.body as { url: string }).url.trim() : "";

@@ -16,7 +16,7 @@ const FEATURE_REASON: Record<string, string> = {
   coaching: "You've reached today's coaching limit.",
   analysis_history: "Your past sessions live in FRAME+.",
   weekly_mission: "Your weekly mission is FRAME+.",
-  video_analysis: "You've used your free analysis.",
+  video_analysis: "Video analysis is a FRAME+ feature.",
   opponent_analysis: "Opponent scouting is FRAME+.",
   athlete_model: "The complete Athlete Model is FRAME+.",
   fight_readiness: "Advanced readiness is FRAME+.",

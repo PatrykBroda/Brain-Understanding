@@ -16,6 +16,19 @@ import React, {
 
 const TOKEN_KEY = "frame:token";
 
+// The iOS Analyse WebView supplies its current FRAME session in memory before
+// this app starts. Never persist that bridge token to WebView localStorage.
+declare global {
+  interface Window {
+    __FRAME_MOBILE_TOKEN__?: string;
+  }
+}
+
+// Capture once at module load so React StrictMode's second effect pass cannot
+// fall through to a different user's old WebView localStorage session.
+const embeddedToken = typeof window !== "undefined" ? window.__FRAME_MOBILE_TOKEN__ : undefined;
+if (typeof window !== "undefined") delete window.__FRAME_MOBILE_TOKEN__;
+
 interface AuthState {
   isLoaded: boolean;
   isSignedIn: boolean;
@@ -56,7 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Load token from localStorage on mount.
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(TOKEN_KEY);
+      // An embedded view must never reuse another account's cached web login.
+      const raw = embeddedToken || localStorage.getItem(TOKEN_KEY);
       if (raw) {
         const parsed = parseToken(raw);
         if (parsed) {
@@ -70,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         // Token expired or invalid — clear it.
-        localStorage.removeItem(TOKEN_KEY);
+        if (!embeddedToken) localStorage.removeItem(TOKEN_KEY);
       }
     } catch {
       // localStorage blocked

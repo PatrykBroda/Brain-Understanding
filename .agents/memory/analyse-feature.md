@@ -7,6 +7,21 @@ description: How the video Analyse pipeline is split client/server and the brand
 
 The "Analyse" tab turns uploaded footage into a FRAME nervous-system read.
 
+## iPhone implementation
+The native Analyse tab hosts the existing browser-based pose pipeline in a
+WKWebView and passes the active mobile session to the embedded page in memory.
+Do not restore the former mobile self-rating form as "video analysis": it
+accepted a clip but never inspected any video frames.
+
+**Why:** Native Expo did not have a pose/frame extraction implementation, while
+the web pipeline already performs real on-device movement measurement; exposing
+manual scores as footage-derived results would mislead athletes.
+
+**How to apply:** Maintain the authenticated embedded page and server-side
+FRAME+ gate together. A paid button alone cannot protect the analysis API;
+validate file picking/pose playback and the subscription handoff in a real
+TestFlight build before claiming iPhone playback is verified.
+
 ## Architecture split (deliberate)
 - **All video + pose processing happens in the browser.** MediaPipe PoseLandmarker
   runs client-side; the server never receives or decodes video. The server only

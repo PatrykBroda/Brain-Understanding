@@ -123,10 +123,6 @@ export default function AnalysePage() {
   // status is unavailable, let the request through; the server 402 is the
   // authority and the catch blocks map it to the upgrade modal.
   const knownFree = billingStatus?.plan === "free";
-  // First analysis ever is free (one-time taster). Only pre-gate when we KNOW
-  // the free allowance is already spent; otherwise the server decides.
-  const freeAnalysisUsed =
-    knownFree && (analyses.data?.analyses?.length ?? 0) >= 1;
   const fileRef = useRef<HTMLInputElement>(null);
   const mobileScrollRef = useRef<HTMLElement>(null);
   const desktopRightScrollRef = useRef<HTMLDivElement>(null);
@@ -201,12 +197,10 @@ export default function AnalysePage() {
     (!!pendingFile.current || (sourceMode === "link" && !!lastLink.current));
 
   async function runAnalysis(file: File) {
-    // The first analysis is free; after that it's FRAME+. Prompt the upgrade
-    // BEFORE burning minutes of on-device pose work. Server enforces the same
-    // gate on POST /analysis.
-    // Opponent scouting is FRAME+ only (no free taster); self reads get one free.
+    // Prompt before expensive on-device pose work; server enforces the same
+    // gate for every new analysis.
     const opponentMode = subject === "opponent";
-    if (opponentMode ? knownFree : freeAnalysisUsed) {
+    if (knownFree) {
       openUpgrade(opponentMode ? "opponent_analysis" : "video_analysis");
       return;
     }
@@ -315,7 +309,7 @@ export default function AnalysePage() {
     const trimmed = url.trim();
     if (!trimmed) return;
     const opponentMode = subject === "opponent";
-    if (opponentMode ? knownFree : freeAnalysisUsed) {
+    if (knownFree) {
       openUpgrade(opponentMode ? "opponent_analysis" : "video_analysis");
       return;
     }
@@ -722,7 +716,7 @@ export default function AnalysePage() {
         onChange={onPick}
       />
 
-      <BottomNav />
+      {!new URLSearchParams(window.location.search).has("frameMobile") && <BottomNav />}
 
       <WeeklyReportOverlay open={weeklyReportOpen} onClose={() => setWeeklyReportOpen(false)} />
 

@@ -86,7 +86,10 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="analyse"
-        options={{ href: null }}
+        options={{
+          title: "ANALYSE",
+          tabBarIcon: ({ color }) => <Feather name="film" size={20} color={color} />,
+        }}
       />
       <Tabs.Screen
         name="profile"
