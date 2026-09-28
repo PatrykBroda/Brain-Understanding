@@ -25,10 +25,10 @@ paths:
         - name: countryCode
           in: query
           required: true
-          description: Two-letter StoreKit storefront country code.
+          description: StoreKit storefront country code (ISO alpha-3); alpha-2 is accepted for older clients.
           schema:
             type: string
-            pattern: "^[A-Z]{2}$"
+            pattern: "^[A-Z]{2,3}$"
       responses:
         "200":
           description: Current standard new-subscriber price from Apple
@@ -62,7 +62,7 @@ components:
           type: string
         territory:
           type: string
-          description: Two-letter storefront country code.
+          description: Storefront country code in the same form as the request.
         currencyCode:
           type: string
         localizedPrice:

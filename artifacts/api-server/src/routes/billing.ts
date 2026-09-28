@@ -13,7 +13,7 @@ router.get("/billing/apple-price", async (req: Request, res: Response): Promise<
   const productId = req.query.productId;
   const countryCode = req.query.countryCode;
   if (typeof productId !== "string" || productId.length > 150 || !/^[A-Za-z0-9._-]+$/.test(productId) ||
-      typeof countryCode !== "string" || !/^[A-Z]{2}$/.test(countryCode)) {
+      typeof countryCode !== "string" || !/^[A-Z]{2,3}$/.test(countryCode)) {
     res.status(400).json({ error: "A valid offering product and App Store country are required." });
     return;
   }

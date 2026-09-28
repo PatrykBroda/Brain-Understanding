@@ -81,14 +81,16 @@ function one<T>(items: T[], message: string): T {
   return items[0];
 }
 
-/** Resolve Apple's alpha-3 territory from StoreKit's alpha-2 country.
- * Confirm it is present in Apple's current territory list before using it. */
+/** Resolve Apple's alpha-3 territory from StoreKit's alpha-3 storefront
+ * (or alpha-2 from an older client). Confirm it exists in Apple's list. */
 export function resolveTerritory(countryCode: string, territories: Resource[]): string {
-  if (!/^[A-Z]{2}$/.test(countryCode)) {
-    throw new ApplePriceUnavailable("The App Store storefront could not be identified.");
-  }
-  const id = countries.alpha2ToAlpha3(countryCode);
-  if (!id || !territories.some((t) => t.type === "territories" && t.id === id)) {
+  const id = /^[A-Z]{3}$/.test(countryCode)
+    ? countryCode
+    : /^[A-Z]{2}$/.test(countryCode)
+      ? countries.alpha2ToAlpha3(countryCode)
+      : undefined;
+  if (!id || !countries.alpha3ToAlpha2(id) ||
+      !territories.some((t) => t.type === "territories" && t.id === id)) {
     throw new ApplePriceUnavailable("The App Store storefront has no Apple territory.");
   }
   return id;
@@ -145,7 +147,9 @@ export async function getAppleSubscriptionPrice(productId: string, countryCode: 
   const { amount, currencyCode } = selectCurrentPrice(schedule.data, schedule.included ?? [], territory, today);
   // ICU derives the customary language for the storefront's country without
   // guessing a currency or maintaining a territory-to-locale table.
-  const locale = new Intl.Locale(`und-${countryCode}`).maximize();
+  const alpha2 = countries.alpha3ToAlpha2(territory);
+  if (!alpha2) throw new ApplePriceUnavailable("The App Store storefront could not be identified.");
+  const locale = new Intl.Locale(`und-${alpha2}`).maximize();
   const localizedPrice = new Intl.NumberFormat(locale.toString(), { style: "currency", currency: currencyCode }).format(amount);
   return { productId, territory: countryCode, currencyCode, localizedPrice };
 }

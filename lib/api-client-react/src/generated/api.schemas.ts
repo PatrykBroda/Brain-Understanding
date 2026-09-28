@@ -7,7 +7,7 @@
  */
 export interface AppleSubscriptionPrice {
   productId: string;
-  /** Two-letter storefront country code. */
+  /** Storefront country code in the same form as the request. */
   territory: string;
   currencyCode: string;
   localizedPrice: string;
@@ -20,8 +20,8 @@ export interface HealthStatus {
 export type GetAppleSubscriptionPriceParams = {
 productId: string;
 /**
- * Two-letter StoreKit storefront country code.
- * @pattern ^[A-Z]{2}$
+ * StoreKit storefront country code (ISO alpha-3); alpha-2 is accepted for older clients.
+ * @pattern ^[A-Z]{2,3}$
  */
 countryCode: string;
 };

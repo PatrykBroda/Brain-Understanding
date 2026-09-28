@@ -8,7 +8,7 @@
 
 export interface AppleSubscriptionPrice {
   productId: string;
-  /** Two-letter storefront country code. */
+  /** Storefront country code in the same form as the request. */
   territory: string;
   currencyCode: string;
   localizedPrice: string;

@@ -12,17 +12,17 @@ import * as zod from 'zod';
  * Authenticated. The product must belong to this app's Apple subscriptions. Returns 503 rather than guessing if Apple pricing cannot be verified.
  * @summary Get Apple's current standard subscription price for an App Store storefront
  */
-export const getAppleSubscriptionPriceQueryCountryCodeRegExp = new RegExp('^[A-Z]{2}$');
+export const getAppleSubscriptionPriceQueryCountryCodeRegExp = new RegExp('^[A-Z]{2,3}$');
 
 
 export const GetAppleSubscriptionPriceQueryParams = zod.object({
   "productId": zod.coerce.string(),
-  "countryCode": zod.coerce.string().regex(getAppleSubscriptionPriceQueryCountryCodeRegExp).describe('Two-letter StoreKit storefront country code.')
+  "countryCode": zod.coerce.string().regex(getAppleSubscriptionPriceQueryCountryCodeRegExp).describe('StoreKit storefront country code (ISO alpha-3); alpha-2 is accepted for older clients.')
 })
 
 export const GetAppleSubscriptionPriceResponse = zod.object({
   "productId": zod.string(),
-  "territory": zod.string().describe('Two-letter storefront country code.'),
+  "territory": zod.string().describe('Storefront country code in the same form as the request.'),
   "currencyCode": zod.string(),
   "localizedPrice": zod.string()
 })

@@ -44,6 +44,20 @@ is configured in code. Introductory/promotional pricing and eligibility are
 not sourced by this endpoint; verify any active offer separately before
 submitting, since the sheet can show a different first charge.
 
+StoreKit reports three-letter storefront codes (for example `GBR` or `USA`);
+the app and server now accept those, with two-letter codes retained for older
+clients. The first TestFlight build with the new paywall reported `USA`, so its
+two-letter-only validator hid every price before calling the Apple API. The
+tester says that device's Media & Purchases account is UK. Do not override
+`USA` with `GBR` or assume GBP: TestFlight purchases run in Apple's sandbox,
+where a signed-in Sandbox Apple Account can have its own country/region.
+Check App Store Connect > Users and Access > Sandbox > tester > Country or
+Region. After changing it, sign out and back into the Sandbox account on the
+iPhone as Apple instructs. Then capture a new build's storefront diagnostic
+and compare its in-app amount with the Apple purchase sheet on that device.
+https://developer.apple.com/documentation/storekit/storefront
+https://developer.apple.com/help/app-store-connect/test-in-app-purchases/manage-sandbox-apple-account-settings/
+
 RevenueCat documents that TestFlight's StoreKit product metadata can return
 USD while Apple's purchase sheet correctly uses the local currency:
 https://www.revenuecat.com/docs/test-and-launch/sandbox/apple-app-store

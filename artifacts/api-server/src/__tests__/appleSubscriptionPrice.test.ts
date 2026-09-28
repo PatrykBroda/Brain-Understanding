@@ -17,8 +17,12 @@ const price = (id: string, startDate: string | null, preserved: boolean, planTyp
 describe("Apple subscription price selection", () => {
   it("converts the device's storefront to Apple's territory, without defaulting", () => {
     expect(resolveTerritory("PL", [territory])).toBe("POL");
+    expect(resolveTerritory("POL", [territory])).toBe("POL");
+    expect(resolveTerritory("GBR", [{ ...territory, id: "GBR", attributes: { currency: "GBP" } }])).toBe("GBR");
+    expect(() => resolveTerritory("USA", [territory])).toThrow();
     expect(() => resolveTerritory("US", [territory])).toThrow();
     expect(() => resolveTerritory("XX", [territory])).toThrow();
+    expect(() => resolveTerritory("ZZZ", [territory])).toThrow();
     expect(() => resolveTerritory("", [territory])).toThrow();
   });
   it("chooses the latest effective new-subscriber price, not a grandfathered or future price", () => {

@@ -14,7 +14,9 @@ export type VerifiedPackage = FreshPurchasesPackage & {
  * USD TestFlight product metadata. Never fall back to a StoreKit amount. */
 export async function verifyApplePrice(pkg: FreshPurchasesPackage): Promise<VerifiedPackage> {
   const countryCode = pkg.storeContext.storefrontCountryCode;
-  if (!countryCode || !/^[A-Z]{2}$/.test(countryCode)) {
+  // StoreKit returns ISO 3166-1 alpha-3 (e.g. GBR, USA). Older SDKs may
+  // supply alpha-2; the API validates both against Apple's territory list.
+  if (!countryCode || !/^[A-Z]{2,3}$/.test(countryCode)) {
     throw new Error("Your App Store country could not be identified.");
   }
   const price = await apiGet<VerifiedPackage["applePrice"]>(

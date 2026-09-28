@@ -36,6 +36,22 @@ describe("paywall Apple price verification", () => {
     expect(verified.product.priceString).toBe("$4.99");
   });
 
+  it("passes StoreKit's three-letter UK storefront to Apple without assuming the device's location", async () => {
+    const ukPackage = { ...pkg, storeContext: { ...pkg.storeContext, storefrontCountryCode: "GBR" } };
+    const ukPrice = { ...applePrice, territory: "GBR", currencyCode: "GBP", localizedPrice: "£4.99" };
+    mocks.apiGet.mockResolvedValue(ukPrice);
+    await expect(verifyApplePrice(ukPackage)).resolves.toMatchObject({ applePrice: ukPrice });
+    expect(mocks.apiGet).toHaveBeenCalledWith(
+      "/billing/apple-price?productId=com.frame.mobile.frameplus.monthly&countryCode=GBR",
+    );
+  });
+
+  it("does not reinterpret a USA storefront as the UK account country", async () => {
+    const usPackage = { ...pkg, storeContext: { ...pkg.storeContext, storefrontCountryCode: "USA" } };
+    mocks.apiGet.mockResolvedValue({ ...applePrice, territory: "GBR", currencyCode: "GBP" });
+    await expect(verifyApplePrice(usPackage)).rejects.toThrow("could not be verified");
+  });
+
   it("blocks an unknown storefront without calling the API", async () => {
     await expect(verifyApplePrice({
       ...pkg,

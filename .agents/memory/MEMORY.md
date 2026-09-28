@@ -25,5 +25,5 @@
 - [Native onboarding route safety](native-paywall-route-settling.md) — upsells wait for tabs, and onboarding must self-exit once a fighter exists or its save succeeds.
 - [Legal acceptance vs AI permission](legal-vs-ai-consent.md) — keep legal and AI acceptance separate, but current AI consent now gates all authenticated FRAME use.
 - [AI consent at provider boundaries](ai-consent-provider-boundaries.md) — recheck current consent immediately before every provider call and retry; never trust an earlier route check for background work.
-- [RevenueCat storefront price freshness](revenuecat-storefront-price-freshness.md) — TestFlight may return false USD metadata, but Apple rejects hiding the in-app price; verify alternatives on-device.
+- [RevenueCat storefront price freshness](revenuecat-storefront-price-freshness.md) — TestFlight prices can lie; StoreKit storefront codes are alpha-3, and sandbox region may differ from Media & Purchases.
 - [pnpm workspace package installs](pnpm-workspace-package-installs.md) — generic Node package installer runs pnpm add at root without -w; use a workspace-targeted pnpm add for artifact deps.
