@@ -79,9 +79,24 @@ export async function uploadAttachment(payload: {
   return res.attachment;
 }
 
+/** Transport failures ("The network connection was lost") happen when iOS
+ * reuses a keep-alive connection the server already closed, typically the
+ * first request after the app returns to the foreground. A GET is safe to
+ * repeat, so retry it once on a fresh connection. HTTP errors are not retried. */
+const GET_RETRY_DELAY_MS = 400;
+
+async function fetchGet(url: string, headers: Record<string, string>) {
+  try {
+    return await fetch(url, { headers });
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, GET_RETRY_DELAY_MS));
+    return fetch(url, { headers });
+  }
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const headers = await authHeaders();
-  const res = await fetch(`${_base}${path}`, { headers });
+  const res = await fetchGet(`${_base}${path}`, headers);
   if (!res.ok) {
     throw await responseError(res);
   }
