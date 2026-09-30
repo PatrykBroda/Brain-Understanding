@@ -28,8 +28,9 @@ import {
 } from "@/lib/purchases";
 import { useSyncBilling } from "@/hooks/useEntitlement";
 import { apiUrl } from "@/lib/api";
-import { didVerifiedPriceChange, verifyApplePrice, type VerifiedPackage } from "@/lib/applePrice";
+import { didVerifiedPriceChange, toShownPriceReport, verifyApplePrice, type VerifiedPackage } from "@/lib/applePrice";
 import { formatSubscriptionRenewal } from "@/lib/subscriptionDisclosure";
+import { reportCrash, reportPriceShown } from "@/lib/crashReporter";
 
 const FRAME_PLUS_PERKS = [
   "Unlimited coaching conversations",
@@ -63,10 +64,21 @@ export default function PaywallScreen() {
       void getFramePlusPackages()
         .then((pkgs) => Promise.all(pkgs.map(verifyApplePrice)))
         .then((pkgs) => {
-          if (alive && generation === loadGeneration) setPackages(pkgs);
+          if (alive && generation === loadGeneration) {
+            for (const shown of pkgs) reportPriceShown(toShownPriceReport("shown", shown));
+            setPackages(pkgs);
+          }
         })
         .catch((error) => {
           console.warn("StoreKit product refresh failed", error);
+          // Send it to the server too. On TestFlight there is no console, and
+          // this catch is where a storefront/currency disagreement surfaces —
+          // the one thing needed to tell "Apple is unreachable" apart from
+          // "the App Store country is being reported wrong".
+          reportCrash(
+            error instanceof Error ? error : new Error(String(error)),
+            "paywall-price-load",
+          );
           if (alive && generation === loadGeneration) {
             setPackages([]);
             setLoadError(
@@ -105,6 +117,7 @@ export default function PaywallScreen() {
       // Query Apple again before opening the native purchase sheet. A failed
       // check blocks purchase rather than silently using TestFlight's USD.
       const checked = await verifyApplePrice(preparation.pkg);
+      reportPriceShown(toShownPriceReport("prepurchase", checked));
       // StoreKit's priceString/currencyCode can change from one wrong
       // TestFlight value to another. Only a changed product/period/storefront
       // or Apple's independently checked price requires another confirmation.

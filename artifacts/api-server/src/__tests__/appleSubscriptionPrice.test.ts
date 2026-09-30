@@ -64,6 +64,7 @@ describe("Apple subscription price selection", () => {
         territory: "GBR",
         currencyCode: "GBP",
         localizedPrice: "£7.99",
+        amount: 7.99,
       });
       expect(fetchApple).toHaveBeenCalledTimes(5);
       const priceRequest = fetchApple.mock.calls

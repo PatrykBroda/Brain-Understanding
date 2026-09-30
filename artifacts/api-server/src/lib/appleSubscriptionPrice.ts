@@ -21,6 +21,8 @@ export type AppleSubscriptionPrice = {
   territory: string;
   currencyCode: string;
   localizedPrice: string;
+  /** Numeric customer price, so a charge can be compared exactly. */
+  amount: number;
 };
 
 export class ApplePriceUnavailable extends Error {}
@@ -151,5 +153,5 @@ export async function getAppleSubscriptionPrice(productId: string, countryCode: 
   if (!alpha2) throw new ApplePriceUnavailable("The App Store storefront could not be identified.");
   const locale = new Intl.Locale(`und-${alpha2}`).maximize();
   const localizedPrice = new Intl.NumberFormat(locale.toString(), { style: "currency", currency: currencyCode }).format(amount);
-  return { productId, territory: countryCode, currencyCode, localizedPrice };
+  return { productId, territory: countryCode, currencyCode, localizedPrice, amount };
 }

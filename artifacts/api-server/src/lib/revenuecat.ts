@@ -14,6 +14,11 @@ export interface RevenueCatEvent {
   entitlement_ids?: string[] | null;
   expiration_at_ms?: number | null;
   product_id?: string;
+  // What Apple actually charged — used by the price audit, not entitlement.
+  currency?: string | null;
+  price_in_purchased_currency?: number | null;
+  country_code?: string | null;
+  environment?: string | null;
 }
 
 /**

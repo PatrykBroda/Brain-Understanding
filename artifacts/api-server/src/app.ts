@@ -9,6 +9,7 @@ import {
   type RevenueCatEvent,
 } from "./lib/revenuecat";
 import { setEntitlementFromRevenueCat } from "./lib/subscriptionService";
+import { auditCharged } from "./lib/priceAudit";
 import { cleanupPendingAccountDeletionFiles } from "./lib/accountDeletionService";
 
 const app: Express = express();
@@ -48,6 +49,9 @@ app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 // dashboard. RevenueCat uses a header rather than a body signature, so this
 // runs after express.json(). Keeps the users entitlement cache in sync on
 // purchase / renewal / expiration.
+// Events that carry a real charge, for the paywall price audit.
+const CHARGE_EVENTS = new Set(["INITIAL_PURCHASE", "RENEWAL", "PRODUCT_CHANGE", "NON_RENEWING_PURCHASE"]);
+
 app.post("/api/revenuecat/webhook", async (req, res) => {
   if (!verifyWebhookAuth(req.headers["authorization"])) {
     res.status(401).json({ error: "Unauthorized" });
@@ -65,6 +69,21 @@ app.post("/api/revenuecat/webhook", async (req, res) => {
         active: decision.active,
         expiresAt: decision.expiresAt,
         status: decision.status,
+      });
+    }
+    if (
+      CHARGE_EVENTS.has(event.type) &&
+      event.product_id &&
+      event.currency &&
+      typeof event.price_in_purchased_currency === "number"
+    ) {
+      auditCharged({
+        type: event.type,
+        productId: event.product_id,
+        currency: event.currency,
+        amount: event.price_in_purchased_currency,
+        countryCode: event.country_code ?? null,
+        environment: event.environment ?? null,
       });
     }
     res.status(200).json({ received: true });

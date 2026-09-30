@@ -1,5 +1,6 @@
 import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold } from "@expo-google-fonts/outfit";
 import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
+import Constants from "expo-constants";
 import { useFonts } from "expo-font";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
@@ -17,6 +18,7 @@ import { AiConsentGate } from "@/components/AiConsentGate";
 import { FighterProvider } from "@/context/FighterContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { setApiBase, setTokenGetter } from "@/lib/api";
+import { APP_DOMAIN, resolveApiBase } from "@/lib/appDomain";
 import { configurePurchases, syncPurchasesUser } from "@/lib/purchases";
 import { reportStartup } from "@/lib/crashReporter";
 
@@ -24,15 +26,26 @@ SplashScreen.preventAutoHideAsync();
 
 SystemUI.setBackgroundColorAsync("#050505").catch(() => null);
 
-const domain = process.env.EXPO_PUBLIC_DOMAIN ?? "";
-if (typeof window !== "undefined" && window.location?.origin) {
-  setApiBase(`${window.location.origin}/api`);
-} else if (domain) {
-  setApiBase(`https://${domain}/api`);
+const domain = APP_DOMAIN;
+const apiBase = resolveApiBase({
+  domain,
+  windowOrigin: typeof window !== "undefined" ? window.location?.origin : null,
+});
+if (apiBase) {
+  setApiBase(apiBase);
 }
 
+/**
+ * A native build with no resolvable API base is unusable and, worse, is
+ * unusable *quietly*: every request falls back to a relative path, so the
+ * paywall renders with no price (the Guideline 3.1.2(c) rejection) and the
+ * required Privacy / Terms links do nothing. Fail loudly and visibly instead.
+ * On web the origin is always available, so this can only trip on native.
+ */
+const CONFIG_ERROR = apiBase ? null : "EXPO_PUBLIC_DOMAIN was not provisioned to this build.";
+
 // Probe 1: module-level code ran — JS bundle loaded and env vars are visible.
-reportStartup(`module-init | domain=${domain || "EMPTY"}`);
+reportStartup(`module-init | domain=${domain || "EMPTY"} | apiBase=${apiBase ?? "UNRESOLVED"}`);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -185,6 +198,66 @@ const loadingStyles = StyleSheet.create({
   },
 });
 
+/**
+ * Shown instead of the app when the build has no API host. Deliberately blunt
+ * and self-contained: crash reporting cannot reach the server either in this
+ * state, so a screenshot of this screen has to be enough to diagnose it. The
+ * alternative — booting into an app whose paywall shows no price — is what got
+ * version 1.0 (72) rejected, so this must never be a soft warning.
+ */
+function ConfigErrorScreen({ message }: { message: string }) {
+  const version = Constants.expoConfig?.version ?? "unknown";
+  const build = Constants.expoConfig?.ios?.buildNumber ?? "unknown";
+  return (
+    <View style={configErrorStyles.root}>
+      <Text style={configErrorStyles.wordmark}>FRAME</Text>
+      <Text accessibilityRole="alert" style={configErrorStyles.heading}>
+        BUILD MISCONFIGURED
+      </Text>
+      <Text style={configErrorStyles.body}>{message}</Text>
+      <Text style={configErrorStyles.body}>
+        This build cannot reach the FRAME API, so prices, subscriptions and
+        sign-in will not work. It must not be submitted or distributed. Set the
+        EXPO_PUBLIC_DOMAIN secret for the EAS build profile and rebuild.
+      </Text>
+      <Text style={configErrorStyles.meta}>{`v${version} (${build})`}</Text>
+    </View>
+  );
+}
+
+const configErrorStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+    gap: 16,
+    backgroundColor: "#050505",
+  },
+  wordmark: {
+    fontSize: 18,
+    letterSpacing: 10,
+    color: "#e0e0e0",
+  },
+  heading: {
+    fontSize: 12,
+    letterSpacing: 2,
+    color: "#C8A96A",
+  },
+  body: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+    color: "#E0D5BF",
+  },
+  meta: {
+    marginTop: 8,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: "#6d6d6d",
+  },
+});
+
 function RootLayoutNav() {
   // Probe 4: inside AuthProvider + QueryClient + SafeArea — navigation tree is mounting.
   useEffect(() => {
@@ -257,6 +330,12 @@ export default function RootLayout() {
       reportStartup(`fonts-resolved | error=${fontError ? String(fontError) : "none"}`);
     }
   }, [fontsLoaded, fontError]);
+
+  // No API host means nothing below this point can work. Checked before the
+  // font gate so the failure is visible immediately rather than after a load.
+  if (CONFIG_ERROR) {
+    return <ConfigErrorScreen message={CONFIG_ERROR} />;
+  }
 
   // While fonts / the initial bundle load, show the branded loading screen
   // instead of a blank frame.

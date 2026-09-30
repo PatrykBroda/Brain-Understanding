@@ -7,8 +7,41 @@ export type VerifiedPackage = FreshPurchasesPackage & {
     territory: string;
     currencyCode: string;
     localizedPrice: string;
+    /** Absent from servers older than the price audit. */
+    amount?: number;
   };
 };
+
+export type ShownPriceReport = {
+  stage: "shown" | "prepurchase";
+  productIdentifier: string;
+  storefrontCountryCode: string | null;
+  displayedTerritory: string;
+  displayedCurrencyCode: string;
+  displayedPrice: string;
+  displayedAmount: number | null;
+  storePriceString: string;
+  storeCurrencyCode: string;
+};
+
+/** What the card renders for this package, next to StoreKit's own view, so
+ * the server can audit it (lib/priceAudit on the API) and post a verdict. */
+export function toShownPriceReport(
+  stage: ShownPriceReport["stage"],
+  pkg: VerifiedPackage,
+): ShownPriceReport {
+  return {
+    stage,
+    productIdentifier: pkg.product.identifier,
+    storefrontCountryCode: pkg.storeContext.storefrontCountryCode,
+    displayedTerritory: pkg.applePrice.territory,
+    displayedCurrencyCode: pkg.applePrice.currencyCode,
+    displayedPrice: pkg.applePrice.localizedPrice,
+    displayedAmount: typeof pkg.applePrice.amount === "number" ? pkg.applePrice.amount : null,
+    storePriceString: pkg.product.priceString,
+    storeCurrencyCode: pkg.product.currencyCode,
+  };
+}
 
 /** Apple Connect's scheduled new-subscriber price, not StoreKit's potentially
  * USD TestFlight product metadata. Never fall back to a StoreKit amount. */

@@ -1,6 +1,9 @@
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 
+import { APP_DOMAIN, resolveCrashUrl } from "./appDomain";
+import type { ShownPriceReport } from "./applePrice";
+
 const APP_VERSION = Constants.expoConfig?.version ?? "unknown";
 const BUILD_VERSION = Constants.expoConfig?.ios?.buildNumber ?? null;
 
@@ -13,18 +16,20 @@ export function msSinceLaunch(): number {
   return Date.now() - LAUNCH_TS;
 }
 
-// Hardcoded production domain as fallback so logs always reach the server
-// even if the EXPO_PUBLIC_DOMAIN EAS secret wasn't provisioned.
-const FALLBACK_DOMAIN = "6b386eea-50e2-4d17-95f3-b6714c4e8099-00-nzahz4fd7fpp.riker.replit.dev";
-
 /**
- * Derives the crash-log URL from env var, falling back to the hardcoded
- * production domain. Works before setApiBase() is called (pre-Clerk, pre-font).
- * Uses globalThis.fetch (not expo/fetch) so it runs at module level.
+ * Derives the crash-log URL from EXPO_PUBLIC_DOMAIN, or null when that secret
+ * was not provisioned to the build. Works before setApiBase() is called
+ * (pre-Clerk, pre-font). Uses globalThis.fetch (not expo/fetch) so it runs at
+ * module level.
+ *
+ * There is deliberately no hardcoded fallback. The previous one pointed at the
+ * Replit *dev workspace* domain while calling itself "production", so shipped
+ * TestFlight builds posted their diagnostics to a dev host. A build with no
+ * domain cannot reach the server at all — that is now surfaced by the blocking
+ * startup screen in app/_layout.tsx, not papered over here.
  */
-function getCrashUrl(): string {
-  const domain = process.env.EXPO_PUBLIC_DOMAIN ?? FALLBACK_DOMAIN;
-  return `https://${domain}/api/crash-log`;
+function getCrashUrl(): string | null {
+  return resolveCrashUrl(APP_DOMAIN);
 }
 
 async function post(body: object): Promise<void> {
@@ -103,6 +108,18 @@ export function reportBillingDiagnostic(diagnostic: BillingDiagnostic): void {
   void post({
     type: "billing",
     billing: diagnostic,
+    appVersion: APP_VERSION,
+    buildVersion: BUILD_VERSION,
+    platform: Platform.OS,
+    ts: new Date().toISOString(),
+  });
+}
+
+/** What the paywall card showed. The server judges it and posts to Discord. */
+export function reportPriceShown(price: ShownPriceReport): void {
+  void post({
+    type: "price",
+    price,
     appVersion: APP_VERSION,
     buildVersion: BUILD_VERSION,
     platform: Platform.OS,

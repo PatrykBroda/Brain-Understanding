@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
+import { auditShown, notifyPriceAudit } from "../lib/priceAudit";
 
 const CrashPayload = z
   .object({
-    type: z.enum(["crash", "startup", "layout", "billing"]).default("crash"),
+    type: z.enum(["crash", "startup", "layout", "billing", "price"]).default("crash"),
     message: z.string().optional(),
     stack: z.string().optional(),
     context: z.string().optional(),
@@ -25,6 +26,21 @@ const CrashPayload = z
         loadedAt: z.string(),
       })
       .optional(),
+    // What the paywall card actually rendered, next to StoreKit's view of the
+    // same product. Audited and posted to Discord by lib/priceAudit.
+    price: z
+      .object({
+        stage: z.enum(["shown", "prepurchase"]),
+        productIdentifier: z.string().max(150),
+        storefrontCountryCode: z.string().max(3).nullable(),
+        displayedTerritory: z.string().max(3),
+        displayedCurrencyCode: z.string().max(3),
+        displayedPrice: z.string().max(40),
+        displayedAmount: z.number().nullable(),
+        storePriceString: z.string().max(40),
+        storeCurrencyCode: z.string().max(3),
+      })
+      .optional(),
   })
   .superRefine((data, context) => {
     if (data.type === "billing" && !data.billing) {
@@ -32,6 +48,13 @@ const CrashPayload = z
         code: "custom",
         message: "billing metadata is required",
         path: ["billing"],
+      });
+    }
+    if (data.type === "price" && !data.price) {
+      context.addIssue({
+        code: "custom",
+        message: "price metadata is required",
+        path: ["price"],
       });
     }
   });
@@ -45,7 +68,16 @@ router.post("/crash-log", (req, res) => {
     return;
   }
   const data = parsed.data;
-  if (data.type === "billing") {
+  if (data.type === "price" && data.price) {
+    const verdict = auditShown(data.price, {
+      appVersion: data.appVersion,
+      buildVersion: data.buildVersion,
+    });
+    req.log.info(
+      { type: "mobile_price", ok: verdict.ok, price: data.price, appVersion: data.appVersion, buildVersion: data.buildVersion },
+      "MOBILE PRICE SHOWN",
+    );
+  } else if (data.type === "billing") {
     req.log.info(
       {
         type: "mobile_billing",
@@ -92,6 +124,13 @@ router.post("/crash-log", (req, res) => {
       },
       `MOBILE CRASH — ${data.context ?? "unknown"}: ${data.message ?? "(no message)"}`
     );
+    // A paywall that failed to load a price is the other half of the audit:
+    // the card showed nothing, so say why.
+    if (data.context?.startsWith("paywall-")) {
+      void notifyPriceAudit(
+        `🚫 FRAME+ paywall showed no price (${data.context}${data.appVersion ? ` · build ${data.appVersion}` : ""}): ${(data.message ?? "no message").slice(0, 300)}`,
+      );
+    }
   }
   res.json({ ok: true });
 });
