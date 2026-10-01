@@ -19,6 +19,7 @@ import { getOrCreateActiveConversation } from "./conversation";
 import { getActiveFacts } from "../lib/factsService";
 import { extractMemory } from "../lib/memoryExtractor";
 import { UPLOADS_DIR } from "../lib/uploads";
+import { prepareImageForModel } from "../lib/modelImage";
 import { selectRelevantNodes, buildRetrievalQuery } from "../lib/vaultRetrieval";
 import { openai, OPENAI_COACH_MODEL } from "../lib/openaiClient";
 import {
@@ -175,9 +176,11 @@ async function buildOpenAIUserContent(
     if (a.kind === "image" && OPENAI_IMAGE_MIME.has(a.mimeType) && includeImageBytes) {
       try {
         const buf = await fs.readFile(path.join(UPLOADS_DIR, a.filePath));
+        const img = await prepareImageForModel(buf, a.mimeType);
+        if (!img) throw new Error("image too large for model");
         parts.push({
           type: "image_url",
-          image_url: { url: `data:${a.mimeType};base64,${buf.toString("base64")}` },
+          image_url: { url: `data:${img.mimeType};base64,${img.data.toString("base64")}` },
         });
       } catch {
         parts.push({ type: "text", text: `[image attached but unreadable: ${a.filename}]` });
@@ -207,12 +210,14 @@ async function buildUserMessageContent(
     if (a.kind === "image" && CLAUDE_IMAGE_MIME.has(a.mimeType) && includeImageBytes) {
       try {
         const buf = await fs.readFile(path.join(UPLOADS_DIR, a.filePath));
+        const img = await prepareImageForModel(buf, a.mimeType);
+        if (!img) throw new Error("image too large for model");
         blocks.push({
           type: "image",
           source: {
             type: "base64",
-            media_type: a.mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
-            data: buf.toString("base64"),
+            media_type: img.mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+            data: img.data.toString("base64"),
           },
         });
       } catch {
