@@ -31,6 +31,7 @@ import {
   type AttachmentDto,
 } from "@/lib/api";
 import { reportLayout } from "@/lib/crashReporter";
+import { sendErrorMessage, streamErrorMessage, uploadErrorMessage } from "@/lib/chatErrors";
 import { useFighter } from "@/context/FighterContext";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { MessageContent } from "@/components/MessageContent";
@@ -477,6 +478,7 @@ export default function ChatScreen() {
     let receivedContent = false;
     let sawDone = false;
     let serverError = false;
+    let serverErrorCode: string | undefined;
     let streamSucceeded = false;
 
     // Watchdog: abort a turn that never produces a first byte, or that stalls
@@ -500,6 +502,7 @@ export default function ChatScreen() {
         (chunk) => {
           if (chunk.error) {
             serverError = true;
+            serverErrorCode = chunk.code;
             setShowTyping(false);
             return;
           }
@@ -538,7 +541,10 @@ export default function ChatScreen() {
       // a silent, stuck spinner.
       setShowTyping(false);
       if (!receivedContent) {
-        if (serverError) showAssistant("Something broke. Try again.");
+        if (serverError) {
+          if (serverErrorCode === "AI_CONSENT_REQUIRED") qc.setQueryData(["ai-consent"], { accepted: false });
+          showAssistant(streamErrorMessage(serverErrorCode, attachments.length > 0));
+        }
         else if (!sawDone) showAssistant("Lost the thread. Try again.");
       }
       streamSucceeded = sawDone && !serverError && !timedOut;
@@ -557,11 +563,7 @@ export default function ChatScreen() {
         if (err.code === "FRAME_PLUS_REQUIRED") router.push("/paywall");
         else showAssistant("That message couldn't be sent.");
       } else if (!receivedContent) {
-        showAssistant(
-          timedOut
-            ? "That hung — the line went quiet. Try again."
-            : "Connection dropped. Try again.",
-        );
+        showAssistant(sendErrorMessage(err, { timedOut }));
       }
     } finally {
       if (watchdog) clearTimeout(watchdog);
@@ -667,7 +669,7 @@ export default function ChatScreen() {
       });
       setDrafts((d) => [...d, { att, uri: asset.uri }]);
     } catch (e) {
-      setUploadError(e instanceof Error ? e.message : "Upload failed.");
+      setUploadError(uploadErrorMessage(e));
     } finally {
       setUploading(false);
     }

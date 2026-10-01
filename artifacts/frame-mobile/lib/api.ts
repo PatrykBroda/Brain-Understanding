@@ -141,7 +141,7 @@ export async function apiDelete<T>(path: string): Promise<T> {
 export type SSEChunk =
   | { content: string; done?: never; error?: never }
   | { done: true; content?: never; error?: never }
-  | { error: string; content?: never; done?: never };
+  | { error: string; code?: string; content?: never; done?: never };
 
 // Carries the HTTP status (and server error `code`, e.g. "FRAME_PLUS_REQUIRED")
 // so a streaming caller can tell a real transport failure apart from an

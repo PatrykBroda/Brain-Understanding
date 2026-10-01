@@ -20,6 +20,7 @@ import { getActiveFacts } from "../lib/factsService";
 import { extractMemory } from "../lib/memoryExtractor";
 import { UPLOADS_DIR } from "../lib/uploads";
 import { prepareImageForModel } from "../lib/modelImage";
+import { classifyCoachStreamError } from "../lib/coachStreamError";
 import { selectRelevantNodes, buildRetrievalQuery } from "../lib/vaultRetrieval";
 import { openai, OPENAI_COACH_MODEL } from "../lib/openaiClient";
 import {
@@ -541,14 +542,7 @@ router.post("/coach/chat", async (req, res) => {
         content: assembled,
       });
     }
-    const code =
-      typeof err === "object" && err !== null && "code" in err && err.code === "AI_CONSENT_REQUIRED"
-        ? "AI_CONSENT_REQUIRED"
-        : undefined;
-    send({
-      error: code ? "AI consent is required before using this feature." : err instanceof Error ? err.message : "stream failed",
-      ...(code ? { code } : {}),
-    });
+    send(classifyCoachStreamError(err));
     res.end();
   }
 });
