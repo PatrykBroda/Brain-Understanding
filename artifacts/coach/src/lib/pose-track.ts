@@ -27,6 +27,19 @@ const Q_RANGE = 2; // [-0.5, 1.5]
 
 export type LeadSide = "left" | "right";
 
+/** "You" is blue and the opponent red whenever a clip has both. */
+export const YOU_COLOR = "rgba(77,163,255,0.98)";
+export const OPPONENT_COLOR = "rgba(255,86,86,0.98)";
+export const YOU_HEX = "#4da3ff";
+export const OPPONENT_HEX = "#ff5656";
+
+/** The second person in a two-person clip (shares v/w/h with the athlete's track). */
+export type OpponentTrackWire = {
+  lead: LeadSide | null;
+  t: number[];
+  d: string;
+};
+
 export type PoseTrackWire = {
   v: 1;
   w: number;
@@ -34,6 +47,8 @@ export type PoseTrackWire = {
   lead: LeadSide | null;
   t: number[];
   d: string;
+  /** Optional: the other person in the clip, when the athlete picked "which one is you". */
+  opp?: OpponentTrackWire;
 };
 
 // A frame guaranteed to have landmarks.
@@ -134,7 +149,22 @@ export function encodePoseTrack(
   frames: PoseFrame[],
   width: number,
   height: number,
+  opponentFrames?: PoseFrame[] | null,
 ): PoseTrackWire | null {
+  const main = encodeOne(frames, width, height);
+  if (!main) return null;
+  const wire: PoseTrackWire = { v: 1, w: main.w, h: main.h, lead: main.lead, t: main.t, d: main.d };
+  // The opponent is best-effort: too few frames or too big -> sent without them.
+  const opp = opponentFrames ? encodeOne(opponentFrames, width, height) : null;
+  if (opp) wire.opp = { lead: opp.lead, t: opp.t, d: opp.d };
+  return wire;
+}
+
+function encodeOne(
+  frames: PoseFrame[],
+  width: number,
+  height: number,
+): { w: number; h: number; lead: LeadSide | null; t: number[]; d: string } | null {
   const posed: PosedFrame[] = [];
   let lastMs = -1;
   for (const f of frames) {
@@ -164,13 +194,20 @@ export function encodePoseTrack(
   if (d.length + t.length * 8 > TRACK_MAX_BYTES) return null;
 
   return {
-    v: 1,
     w: Math.max(16, Math.round(width)),
     h: Math.max(16, Math.round(height)),
     lead: inferLeadSide(posed),
     t,
     d,
   };
+}
+
+/** Decode the opponent half of a wire track, or null when there is none / it is malformed. */
+export function decodeOpponentTrack(wire: unknown): DecodedTrack | null {
+  if (!wire || typeof wire !== "object") return null;
+  const w = wire as Partial<PoseTrackWire>;
+  if (!w.opp || typeof w.opp !== "object") return null;
+  return decodePoseTrack({ v: 1, w: w.w, h: w.h, lead: w.opp.lead, t: w.opp.t, d: w.opp.d });
 }
 
 /** Decode a wire track. Returns null if it is not a well-formed v1 track. */

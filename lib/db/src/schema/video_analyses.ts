@@ -147,6 +147,14 @@ export type PoseTrack = {
   lead: "left" | "right" | null;
   t: number[];
   d: string;
+  // Optional second person from a two-person clip ("blue is you, red is the
+  // opponent"): same layout/w/h as above. Absent on single-person clips and on
+  // every row saved before this existed — no migration, the jsonb just grows.
+  opp?: {
+    lead: "left" | "right" | null;
+    t: number[];
+    d: string;
+  };
 };
 
 export const videoAnalysesTable = pgTable("video_analyses", {

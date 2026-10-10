@@ -1,4 +1,4 @@
-import { analyseFrame, wristDrops } from "./analysis-metrics";
+import { analyseFrame, shoulderFloor, wristDrops } from "./analysis-metrics";
 import { LM, MAX_GAP_SEC, type LeadSide, type PosedFrame } from "./pose-track";
 import type { Landmark } from "./pose";
 
@@ -69,7 +69,9 @@ export function torsoLeanDeg(lm: Landmark[]): number | null {
   const dx = (ls.x + rs.x) / 2 - (lh.x + rh.x) / 2;
   const dy = (lh.y + rh.y) / 2 - (ls.y + rs.y) / 2; // up is positive
   if (Math.hypot(dx, dy) < 0.04) return null;
-  return (Math.atan2(dx, dy) * 180) / Math.PI;
+  const deg = (Math.atan2(dx, dy) * 180) / Math.PI;
+  // Shoulders BELOW the hips (past horizontal) is an upside-down skeleton, not a lean.
+  return Math.abs(deg) <= 90 ? deg : null;
 }
 
 /** Insert a null row wherever the track has a hole so lines break there. */
@@ -110,6 +112,9 @@ function median(xs: number[]): number {
  */
 export function computeSeries(frames: PosedFrame[], lead: LeadSide | null): Series[] {
   if (!frames.length) return [];
+  // Same foreshortening floor the scores use (computeMetrics), so a glitch frame
+  // is a gap in the graph exactly where it is excluded from the score.
+  const shoulderMin = shoulderFloor(frames);
 
   // Which wrist is lead/rear (only if measured).
   const leadKey = lead === "left" ? "left" : lead === "right" ? "right" : null;
@@ -125,7 +130,7 @@ export function computeSeries(frames: PosedFrame[], lead: LeadSide | null): Seri
   const handKeys = handLines.map((l) => l.key);
 
   const handRows = withGaps(frames, handKeys, (f) => {
-    const d = wristDrops(f.landmarks);
+    const d = wristDrops(f.landmarks, shoulderMin);
     // Height above the shoulder line (so UP is up): the negative of the drop.
     const left = d.left != null ? -d.left : null;
     const right = d.right != null ? -d.right : null;
@@ -136,7 +141,7 @@ export function computeSeries(frames: PosedFrame[], lead: LeadSide | null): Seri
         : [left, right];
   });
 
-  const stanceRows = withGaps(frames, ["stance"], (f) => [analyseFrame(f.landmarks).stance]);
+  const stanceRows = withGaps(frames, ["stance"], (f) => [analyseFrame(f.landmarks, shoulderMin).stance]);
 
   const hipYs = frames.map((f) => hipY(f.landmarks)).filter((y): y is number => y != null);
   const baseHip = median(hipYs);

@@ -1,6 +1,7 @@
 import { FilesetResolver, PoseLandmarker, type NormalizedLandmark } from "@mediapipe/tasks-vision";
 
 import { SKELETON_CONNECTIONS } from "./pose-track";
+import { trackPeople, type RawPoseFrame } from "./pose-people";
 
 const MP_VERSION = "0.10.35";
 const WASM_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/wasm`;
@@ -52,7 +53,8 @@ function loadLandmarker(): Promise<PoseLandmarker> {
   if (_landmarker) return _landmarker;
   const shared = {
     runningMode: "VIDEO" as const,
-    numPoses: 1,
+    // Two fighters in one clip: identity is tracked across frames (pose-people.ts).
+    numPoses: 2,
     minPoseDetectionConfidence: 0.4,
     minPosePresenceConfidence: 0.4,
     minTrackingConfidence: 0.4,
@@ -98,7 +100,10 @@ export type ExtractProgress = {
 };
 
 export type ExtractResult = {
+  /** The suggested athlete (best-tracked person). Equals people[0]. */
   frames: PoseFrame[];
+  /** Every person followed through the clip, best-first (0, 1 or 2). Same length as frames. */
+  people: PoseFrame[][];
   durationSec: number;
   width: number;
   height: number;
@@ -263,24 +268,23 @@ export async function extractPoseFrames(
   canvas.width = width;
   canvas.height = height;
 
-  const frames: PoseFrame[] = [];
+  const rawFrames: RawPoseFrame[] = [];
   let nextSampleTime = 0;
 
   const sample = (mediaTime: number) => {
-    if (frames.length >= totalSamples) return;
+    if (rawFrames.length >= totalSamples) return;
     if (mediaTime + 1e-6 < nextSampleTime) return;
     // VIDEO running mode needs a strictly increasing timestamp in ms.
     _lastTs = Math.max(_lastTs + 1, Math.round(mediaTime * 1000));
-    let landmarks: Landmark[] | null = null;
+    let poses: Landmark[][] = [];
     try {
       const result = landmarker.detectForVideo(video, _lastTs);
-      const first = result.landmarks?.[0];
-      if (first && first.length >= 33) landmarks = toLandmarks(first);
+      poses = (result.landmarks ?? []).filter((p) => p.length >= 33).map(toLandmarks);
     } catch {
-      landmarks = null;
+      poses = [];
     }
-    frames.push({ timestamp: mediaTime, landmarks });
-    onProgress({ stage: "extracting", done: frames.length, total: totalSamples });
+    rawFrames.push({ timestamp: mediaTime, poses });
+    onProgress({ stage: "extracting", done: rawFrames.length, total: totalSamples });
     do {
       nextSampleTime += SAMPLE_INTERVAL;
     } while (nextSampleTime <= mediaTime);
@@ -335,7 +339,7 @@ export async function extractPoseFrames(
         const onFrame = (_now: number, meta: VideoFrameMeta) => {
           if (finished) return;
           sample(meta.mediaTime);
-          if (meta.mediaTime >= cap - 1e-3 || frames.length >= totalSamples) {
+          if (meta.mediaTime >= cap - 1e-3 || rawFrames.length >= totalSamples) {
             finish();
             return;
           }
@@ -347,7 +351,7 @@ export async function extractPoseFrames(
         const onRaf = () => {
           if (finished) return;
           sample(video.currentTime);
-          if (video.currentTime >= cap - 1e-3 || frames.length >= totalSamples || video.ended) {
+          if (video.currentTime >= cap - 1e-3 || rawFrames.length >= totalSamples || video.ended) {
             finish();
             return;
           }
@@ -362,7 +366,10 @@ export async function extractPoseFrames(
     throw err;
   }
 
-  return { frames, durationSec: cap, width, height, video, canvas };
+  const people = trackPeople(rawFrames, width, height);
+  // No pose anywhere -> keep the frame timeline with empty poses (same as before).
+  const frames: PoseFrame[] = people[0] ?? rawFrames.map((f) => ({ timestamp: f.timestamp, landmarks: null }));
+  return { frames, people, durationSec: cap, width, height, video, canvas };
 }
 
 export function disposeExtract(result: ExtractResult) {
@@ -386,6 +393,8 @@ export async function captureKeyframe(
   result: ExtractResult,
   frame: PoseFrame,
   maxEdge = 520,
+  // Two-person clips: "you" in blue and the opponent in red, same as the player.
+  people?: { youColor: string; opponent: Landmark[] | null; opponentColor: string },
 ): Promise<string> {
   const { video } = result;
   const ok = await seekTo(video, frame.timestamp);
@@ -399,7 +408,8 @@ export async function captureKeyframe(
   const ctx = out.getContext("2d");
   if (!ctx) return "";
   ctx.drawImage(video, 0, 0, w, h);
-  if (frame.landmarks) drawSkeleton(ctx, frame.landmarks, w, h);
+  if (people?.opponent) drawSkeleton(ctx, people.opponent, w, h, people.opponentColor);
+  if (frame.landmarks) drawSkeleton(ctx, frame.landmarks, w, h, people?.youColor);
   return out.toDataURL("image/jpeg", 0.72);
 }
 

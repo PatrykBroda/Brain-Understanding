@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import {
   sanitisePoseTrack,
+  withoutOpponent,
   trackHasFrameNear,
   POSE_BYTES_PER_FRAME,
   POSE_TRACK_MAX_BYTES,
@@ -102,5 +103,48 @@ describe("trackHasFrameNear", () => {
     expect(trackHasFrameNear(track, 0.52)).toBe(true);
     expect(trackHasFrameNear(track, 0.6)).toBe(false);
     expect(trackHasFrameNear(null, 0.5)).toBe(false);
+  });
+});
+
+describe("sanitisePoseTrack — optional opponent (two-person clip)", () => {
+  const opp = (frames = 8, o: Record<string, unknown> = {}) => {
+    const v = validTrack(frames);
+    return { lead: "right", t: v.t, d: v.d, ...o };
+  };
+
+  it("keeps a valid opponent, rebuilt clean, and old single-person tracks have none", () => {
+    const out = sanitisePoseTrack({ ...validTrack(10), opp: { ...opp(8), evil: 1 } });
+    expect(out!.opp).toBeDefined();
+    expect(out!.opp!.lead).toBe("right");
+    expect(Object.keys(out!.opp!).sort()).toEqual(["d", "lead", "t"]);
+    expect("opp" in sanitisePoseTrack(validTrack(10))!).toBe(false);
+  });
+
+  it("a malformed opponent is dropped on its own; the athlete's track survives", () => {
+    for (const bad of [
+      opp(8, { d: "!!!" }),
+      opp(8, { t: [0, 250] }),
+      opp(8, { lead: "up" }),
+      opp(8, { d: Buffer.alloc(3).toString("base64") }),
+      "nope",
+      [],
+    ]) {
+      const out = sanitisePoseTrack({ ...validTrack(10), opp: bad });
+      expect(out).not.toBeNull();
+      expect(out!.opp).toBeUndefined();
+    }
+  });
+
+  it("an oversize opponent is dropped, not the whole track", () => {
+    const big = validTrack(POSE_TRACK_MAX_FRAMES + 1);
+    const out = sanitisePoseTrack({ ...validTrack(10), opp: { lead: null, t: big.t, d: big.d } });
+    expect(out).not.toBeNull();
+    expect(out!.opp).toBeUndefined();
+  });
+
+  it("withoutOpponent strips it", () => {
+    const out = sanitisePoseTrack({ ...validTrack(10), opp: opp(8) })!;
+    expect(withoutOpponent(out).opp).toBeUndefined();
+    expect(withoutOpponent(out).d).toBe(out.d);
   });
 });

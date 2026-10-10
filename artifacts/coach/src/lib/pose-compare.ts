@@ -1,4 +1,8 @@
 import {
+  OPPONENT_COLOR,
+  OPPONENT_HEX,
+  YOU_COLOR,
+  YOU_HEX,
   medianTorsoPx,
   windowFrames,
   windowIsUsable,
@@ -66,6 +70,7 @@ export function buildSessionLanes(
   current: DecodedTrack,
   previous: DecodedTrack,
   labels: { current: string; previous: string },
+  colors?: { current: { color: string; swatch: string }; previous: { color: string; swatch: string } },
 ): { lanes: CompareLane[]; duration: number } | null {
   const sa = specFor(current);
   const sb = specFor(previous);
@@ -75,9 +80,41 @@ export function buildSessionLanes(
   return {
     duration,
     lanes: [
-      { label: labels.current, color: GOLD, swatch: "#d6a05a", frames: current.frames, spec: sa },
-      { label: labels.previous, color: STEEL, swatch: "#7ab8d9", frames: previous.frames, spec: sb },
+      {
+        label: labels.current,
+        color: colors?.current.color ?? GOLD,
+        swatch: colors?.current.swatch ?? "#d6a05a",
+        frames: current.frames,
+        spec: sa,
+      },
+      {
+        label: labels.previous,
+        color: colors?.previous.color ?? STEEL,
+        swatch: colors?.previous.swatch ?? "#7ab8d9",
+        frames: previous.frames,
+        spec: sb,
+      },
     ],
   };
+}
+
+/**
+ * You vs the opponent from ONE two-person clip: both tracks share the clip's
+ * clock, so they play in step with no alignment needed. Blue = you, red = them.
+ * Null when either side lacks usable pose data.
+ */
+export function buildSameClipLanes(
+  you: DecodedTrack,
+  opponent: DecodedTrack,
+): { lanes: CompareLane[]; duration: number } | null {
+  return buildSessionLanes(
+    you,
+    opponent,
+    { current: "You (blue)", previous: "Opponent (red)" },
+    {
+      current: { color: YOU_COLOR, swatch: YOU_HEX },
+      previous: { color: OPPONENT_COLOR, swatch: OPPONENT_HEX },
+    },
+  );
 }
 

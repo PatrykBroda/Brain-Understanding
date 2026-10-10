@@ -7,10 +7,10 @@ import {
   strokeSkeleton,
   type DecodedTrack,
 } from "@/lib/pose-track";
-import { buildBestWorstLanes, buildSessionLanes, fmtSec, type CompareLane } from "@/lib/pose-compare";
+import { buildBestWorstLanes, buildSameClipLanes, buildSessionLanes, fmtSec, type CompareLane } from "@/lib/pose-compare";
 import { Playback } from "@/lib/playback";
 import { useCompareTrack } from "@/hooks/use-analysis";
-import { useDecodedTrack } from "@/components/footage-player";
+import { useDecodedTrack, useDecodedOpponent } from "@/components/footage-player";
 import type { VideoAnalysis } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
@@ -267,10 +267,27 @@ function VsPreviousSession({ analysis, track }: { analysis: VideoAnalysis; track
   );
 }
 
+// ---- (d) you vs the opponent, both tracked in the SAME clip ------------------
+
+function SameClipVsOpponent({ track, opponent }: { track: DecodedTrack; opponent: DecodedTrack | null }) {
+  const built = useMemo(() => (opponent ? buildSameClipLanes(track, opponent) : null), [track, opponent]);
+  if (!built) return null;
+  return (
+    <Block
+      title="You vs your opponent"
+      note="Both fighters from this one clip, side by side and in step. Each is scaled to their own torso size and centred on their hips, so you compare shape and timing, not who was closer to the camera."
+    >
+      <CompareStage lanes={built.lanes} layout="side" duration={built.duration} testId="compare-same-clip" />
+    </Block>
+  );
+}
+
 export function PoseComparisons({ analysis, track }: { analysis: VideoAnalysis; track: DecodedTrack | null }) {
+  const opponent = useDecodedOpponent(analysis.poseTrack ?? null);
   if (!track) return null;
   return (
     <div className="space-y-4" data-testid="pose-comparisons">
+      <SameClipVsOpponent track={track} opponent={opponent} />
       <BestVsWorst analysis={analysis} track={track} />
       <VsPreviousSession analysis={analysis} track={track} />
     </div>
