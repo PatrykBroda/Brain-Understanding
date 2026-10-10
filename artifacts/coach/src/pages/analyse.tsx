@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Upload, Film, Crosshair, X, Download, ArrowUpRight, ArrowDownRight, Minus, Link2, Lock, ScrollText } from "lucide-react";
@@ -33,6 +33,13 @@ import {
   type ExtractResult,
 } from "@/lib/pose";
 import { computeMetrics } from "@/lib/analysis-metrics";
+import { encodePoseTrack } from "@/lib/pose-track";
+import { Playback } from "@/lib/playback";
+import { FootageBlock, useDecodedTrack } from "@/components/footage-player";
+import { MovementGraphs } from "@/components/movement-graphs";
+import { AnnotatedFindingFrame } from "@/components/annotated-finding";
+import { PoseComparisons } from "@/components/pose-comparison";
+import type { DecodedTrack } from "@/lib/pose-track";
 import { useFramePlus, FramePlusPill } from "@/components/frame-plus-modal";
 import { useSubscription } from "@/hooks/use-subscription";
 import { api, ApiError, fetchRemoteVideo } from "@/lib/api";
@@ -127,6 +134,9 @@ export default function AnalysePage() {
   const mobileScrollRef = useRef<HTMLElement>(null);
   const desktopRightScrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  // One shared clock for the desktop workstation (video/ghost on the left, graphs
+  // on the right). The phone Report keeps its own, so the two layouts never fight.
+  const desktopPlayback = useMemo(() => new Playback(), []);
 
   const [kind, setKind] = useState<AnalysisKind>("sparring");
   const [focus, setFocus] = useState("");
@@ -276,6 +286,9 @@ export default function AnalysePage() {
         scores: opponentMode ? [] : metrics.scores,
         detectedEvents,
         keyframes,
+        // Per-frame landmarks (quantised) for overlay/graphs/annotations/comparisons.
+        // null when too few frames locked or it would exceed the size cap.
+        poseTrack: encodePoseTrack(extract.frames, extract.width, extract.height),
         ...(opponentMode
           ? { subject: "opponent" as const, opponentName: opponentName.trim() }
           : {}),
@@ -502,10 +515,11 @@ export default function AnalysePage() {
                 <WorkstationLeft
                   analysis={result}
                   videoUrl={videoUrl}
+                  playback={desktopPlayback}
                   onClose={clearResult}
                 />
               ) : openId != null ? (
-                <SavedWorkstationLeft id={openId} onClose={() => setOpenId(null)} />
+                <SavedWorkstationLeft id={openId} playback={desktopPlayback} onClose={() => setOpenId(null)} />
               ) : null}
             </div>
 
@@ -513,11 +527,11 @@ export default function AnalysePage() {
             <div ref={desktopRightScrollRef} className="flex-1 overflow-y-auto px-7 py-6" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
               {result ? (
                 <div className="space-y-6">
-                  <WorkstationRight analysis={result} fighter={fighter} onClose={clearResult} onSelectSession={onSelectSession} />
+                  <WorkstationRight analysis={result} fighter={fighter} playback={desktopPlayback} onClose={clearResult} onSelectSession={onSelectSession} />
                   {modelUpdate && <ModelUpdateCard update={modelUpdate} />}
                 </div>
               ) : openId != null ? (
-                <SavedWorkstationRight id={openId} compareId={compareId} fighter={fighter} onClose={() => setOpenId(null)} onSelectSession={onSelectSession} />
+                <SavedWorkstationRight id={openId} compareId={compareId} fighter={fighter} playback={desktopPlayback} onClose={() => setOpenId(null)} onSelectSession={onSelectSession} />
               ) : null}
             </div>
           </>
@@ -1121,23 +1135,30 @@ function UploadControls({
 function WorkstationLeft({
   analysis,
   videoUrl,
+  playback,
   onClose,
 }: {
   analysis: VideoAnalysis;
   videoUrl: string | null;
+  playback: Playback;
   onClose: () => void;
 }) {
   const [activeKf, setActiveKf] = useState(0);
   const [localNotes, setLocalNotes] = useState<Record<number, string>>(analysis.keyframeNotes ?? {});
-  const videoRef = useRef<HTMLVideoElement>(null);
   const updateNotes = useUpdateKeyframeNotes(analysis.id);
   const kf = analysis.keyframes[activeKf];
+  const track = useDecodedTrack(analysis.poseTrack);
+  // Footage (video or ghost) is available when there's a video or a track.
+  const hasFootage = !!videoUrl || !!track;
+
+  // New report -> clock back to 0.
+  useEffect(() => {
+    playback.reset(analysis.durationSec);
+  }, [playback, analysis.id, analysis.durationSec]);
 
   function seekTo(ts: number, idx: number) {
     setActiveKf(idx);
-    if (videoRef.current) {
-      videoRef.current.currentTime = ts;
-    }
+    playback.seek(ts);
   }
 
   function commitNote(notes: Record<number, string>) {
@@ -1168,15 +1189,17 @@ function WorkstationLeft({
 
       {/* main area — video player when available, keyframe fallback for saved reports */}
       <div className="flex-1 min-h-0 flex flex-col bg-black">
-        {videoUrl ? (
-          <div className="flex-1 min-h-0 flex items-center justify-center p-3">
-            <video
-              ref={videoRef}
-              src={videoUrl}
-              controls
-              playsInline
-              className="w-full max-h-full border border-border/30 object-contain"
-              style={{ maxHeight: "calc(100% - 1rem)" }}
+        {hasFootage ? (
+          <div className="flex-1 min-h-0 overflow-y-auto p-3">
+            <FootageBlock
+              videoUrl={videoUrl}
+              track={track}
+              events={analysis.detectedEvents ?? []}
+              moments={analysis.replayMoments ?? []}
+              durationSec={analysis.durationSec}
+              playback={playback}
+              videoClassName="w-full border border-border/30 object-contain bg-black"
+              videoStyle={{ maxHeight: "60vh" }}
             />
           </div>
         ) : (
@@ -1211,12 +1234,12 @@ function WorkstationLeft({
         <div className="flex-none border-t border-border/30 bg-black/60 px-4 py-3 space-y-2">
           <div className="font-mono text-[8px] uppercase tracking-[0.35em] text-muted-foreground/70">
             Detected events
-            {videoUrl && (
+            {hasFootage && (
               <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
                 · click to seek · click again to annotate
               </span>
             )}
-            {!videoUrl && (
+            {!hasFootage && (
               <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
                 · click to annotate
               </span>
@@ -1289,17 +1312,20 @@ function WorkstationLeft({
 function WorkstationRight({
   analysis,
   fighter,
+  playback,
   onClose,
   onSelectSession,
 }: {
   analysis: VideoAnalysis;
   fighter: Fighter | null;
+  playback: Playback;
   onClose: () => void;
   onSelectSession?: (id: number) => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const { data: analysesData } = useAnalyses();
+  const track = useDecodedTrack(analysis.poseTrack);
 
   async function saveCard() {
     if (!cardRef.current) return;
@@ -1347,7 +1373,22 @@ function WorkstationRight({
 
       {/* findings table */}
       {analysis.findings.length > 0 && (
-        <FindingsTable findings={analysis.findings} />
+        <FindingsTable
+          findings={analysis.findings}
+          keyframes={analysis.keyframes}
+          track={track}
+          onJump={(ts) => playback.seek(ts)}
+        />
+      )}
+
+      {/* movement graphs — per-frame series from the pose track, synced to playback */}
+      {track && (
+        <MovementGraphs
+          track={track}
+          events={analysis.detectedEvents ?? []}
+          durationSec={analysis.durationSec}
+          playback={playback}
+        />
       )}
 
       {/* raw signals */}
@@ -1362,6 +1403,9 @@ function WorkstationRight({
           <ComparisonSection comparison={cmp} isCustomBaseline={!!analysis.liveComparison} />
         ) : null;
       })()}
+
+      {/* ghost comparisons: best vs worst rep, this vs last session (hidden without data) */}
+      <PoseComparisons analysis={analysis} track={track} />
 
       {/* session-over-session trend chart — desktop only, needs 3+ sessions */}
       {(analysesData?.analyses?.length ?? 0) >= 3 && (
@@ -1384,9 +1428,11 @@ function WorkstationRight({
 
 function SavedWorkstationLeft({
   id,
+  playback,
   onClose,
 }: {
   id: number;
+  playback: Playback;
   onClose: () => void;
 }) {
   const { data, isLoading, isError } = useAnalysis(id);
@@ -1412,25 +1458,27 @@ function SavedWorkstationLeft({
       </div>
     );
   }
-  return <WorkstationLeft analysis={data.analysis} videoUrl={null} onClose={onClose} />;
+  return <WorkstationLeft analysis={data.analysis} videoUrl={null} playback={playback} onClose={onClose} />;
 }
 
 function SavedWorkstationRight({
   id,
   compareId,
   fighter,
+  playback,
   onClose,
   onSelectSession,
 }: {
   id: number;
   compareId: number | null;
   fighter: Fighter | null;
+  playback: Playback;
   onClose: () => void;
   onSelectSession?: (id: number) => void;
 }) {
   const { data, isLoading, isError } = useAnalysis(id, compareId);
   if (isLoading || isError || !data?.analysis) return null;
-  return <WorkstationRight analysis={data.analysis} fighter={fighter} onClose={onClose} onSelectSession={onSelectSession} />;
+  return <WorkstationRight analysis={data.analysis} fighter={fighter} playback={playback} onClose={onClose} onSelectSession={onSelectSession} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -1439,8 +1487,14 @@ function SavedWorkstationRight({
 
 function FindingsTable({
   findings,
+  keyframes,
+  track,
+  onJump,
 }: {
   findings: VideoAnalysis["findings"];
+  keyframes?: AnalysisKeyframe[];
+  track?: DecodedTrack | null;
+  onJump?: (timestamp: number) => void;
 }) {
   return (
     <section className="space-y-3">
@@ -1491,6 +1545,11 @@ function FindingsTable({
                   {f.nervousSystemFraming && (
                     <div className="text-xs text-primary/80 leading-relaxed italic">
                       {f.nervousSystemFraming}
+                    </div>
+                  )}
+                  {keyframes && track && f.keyframeIndex != null && f.bodyRegion && (
+                    <div className="pt-1.5">
+                      <AnnotatedFindingFrame finding={f} keyframes={keyframes} track={track} onJump={onJump} />
                     </div>
                   )}
                 </td>
@@ -2055,8 +2114,14 @@ function Report({
 
   const [localNotes, setLocalNotes] = useState<Record<number, string>>(analysis.keyframeNotes ?? {});
   const updateNotes = useUpdateKeyframeNotes(analysis.id);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const footageRef = useRef<HTMLDivElement>(null);
   const kf = analysis.keyframes[activeKf];
+  const track = useDecodedTrack(analysis.poseTrack);
+  // The phone layout owns its own clock (the desktop workstation has another).
+  const playback = useMemo(() => new Playback(), []);
+  useEffect(() => {
+    playback.reset(analysis.durationSec);
+  }, [playback, analysis.id, analysis.durationSec]);
 
   function commitNote(notes: Record<number, string>) {
     void updateNotes.mutate(notes);
@@ -2064,10 +2129,8 @@ function Report({
 
   function seekTo(ts: number, idx: number) {
     setActiveKf(idx);
-    if (videoRef.current) {
-      videoRef.current.currentTime = ts;
-      videoRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
+    playback.seek(ts);
+    footageRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   return (
@@ -2120,15 +2183,20 @@ function Report({
         ) : null;
       })()}
 
-      {/* inline footage — only for the fresh upload; seeked by keyframes + replay */}
-      {videoUrl && (
-        <video
-          ref={videoRef}
-          src={videoUrl}
-          controls
-          playsInline
-          className="w-full rounded border border-border/40 bg-black"
-        />
+      {/* footage: the fresh upload with live skeleton overlay, or (saved reports, no video
+          stored) the ghost player — both on one clock with the event/replay timeline */}
+      {(videoUrl || track) && (
+        <div ref={footageRef}>
+          <FootageBlock
+            videoUrl={videoUrl}
+            track={track}
+            events={analysis.detectedEvents ?? []}
+            moments={analysis.replayMoments ?? []}
+            durationSec={analysis.durationSec}
+            playback={playback}
+            videoClassName="w-full rounded border border-border/40 bg-black"
+          />
+        </div>
       )}
 
       {/* FRAME Replay — up to three curated moments, tap to seek */}
@@ -2208,13 +2276,34 @@ function Report({
 
       {/* findings table */}
       {analysis.findings.length > 0 && (
-        <FindingsTable findings={analysis.findings} />
+        <FindingsTable
+          findings={analysis.findings}
+          keyframes={analysis.keyframes}
+          track={track}
+          onJump={(ts) => {
+            playback.seek(ts);
+            footageRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }}
+        />
+      )}
+
+      {/* movement graphs from the pose track */}
+      {track && (
+        <MovementGraphs
+          track={track}
+          events={analysis.detectedEvents ?? []}
+          durationSec={analysis.durationSec}
+          playback={playback}
+        />
       )}
 
       {/* raw signals */}
       {analysis.metrics.signals.length > 0 && (
         <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} signalHistory={analysis.signalHistory} hasCustomCompare={!!analysis.liveComparison} onSelectSession={onSelectSession} />
       )}
+
+      {/* ghost comparisons (hidden without data) */}
+      <PoseComparisons analysis={analysis} track={track} />
 
       {/* score provenance */}
       <ScoreProvenance analysis={analysis} />

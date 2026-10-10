@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Crosshair, Shield, AlertTriangle, Target, ScanLine } from "lucide-react";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { useAnalysis } from "@/hooks/use-analysis";
+import { AthleteVsOpponent } from "@/components/pose-comparison";
 import type {
   VideoAnalysis,
   Fighter,
@@ -185,6 +186,9 @@ export function OpponentReport({
           </div>
         </section>
       )}
+
+      {/* athlete vs opponent ghost players — only when BOTH tracks exist */}
+      <AthleteVsOpponent analysis={analysis} />
 
       {/* grounded, hedged parallels */}
       {analysis.styleParallels.length > 0 && (
