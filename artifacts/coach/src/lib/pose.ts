@@ -1,5 +1,7 @@
 import { FilesetResolver, PoseLandmarker, type NormalizedLandmark } from "@mediapipe/tasks-vision";
 
+import { SKELETON_CONNECTIONS } from "./pose-track";
+
 const MP_VERSION = "0.10.35";
 const WASM_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/wasm`;
 const MODEL_URL =
@@ -401,23 +403,7 @@ export async function captureKeyframe(
   return out.toDataURL("image/jpeg", 0.72);
 }
 
-// BlazePose connection pairs (subset that reads cleanly for combat sports).
-const CONNECTIONS: [number, number][] = [
-  [11, 12],
-  [11, 13],
-  [13, 15],
-  [12, 14],
-  [14, 16],
-  [11, 23],
-  [12, 24],
-  [23, 24],
-  [23, 25],
-  [25, 27],
-  [24, 26],
-  [26, 28],
-  [27, 31],
-  [28, 32],
-];
+const CONNECTIONS = SKELETON_CONNECTIONS;
 
 export function drawSkeleton(
   ctx: CanvasRenderingContext2D,

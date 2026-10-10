@@ -1,0 +1,83 @@
+import {
+  medianTorsoPx,
+  windowFrames,
+  windowIsUsable,
+  type DecodedTrack,
+  type NormaliseSpec,
+  type PosedFrame,
+} from "./pose-track";
+import type { ReplayMoment } from "./api";
+
+// Pure builders for the Phase 4 comparison lanes (the components just play them).
+
+const GOLD = "rgba(214,160,90,0.95)";
+const STEEL = "rgba(122,184,217,0.95)";
+
+export function fmtSec(t: number): string {
+  return `${Math.max(0, t).toFixed(1)}s`;
+}
+
+export type CompareLane = {
+  label: string;
+  color: string;
+  /** Hex/rgb used for the legend swatch (same as `color` minus alpha handling). */
+  swatch: string;
+  frames: PosedFrame[];
+  spec: NormaliseSpec;
+};
+
+export function specFor(track: DecodedTrack): NormaliseSpec | null {
+  const scale = medianTorsoPx(track);
+  return scale > 0 ? { scale, w: track.w, h: track.h } : null;
+}
+
+
+// ---- (a) best rep vs worst rep within this clip -----------------------------
+
+const WIN_LEAD_SEC = 1.0;
+const WIN_LEN_SEC = 2.5;
+
+/** The two lanes for best-vs-worst, or null when either moment/window lacks pose data. */
+export function buildBestWorstLanes(
+  moments: ReplayMoment[],
+  track: DecodedTrack | null,
+): { lanes: CompareLane[]; duration: number } | null {
+  if (!track) return null;
+  const best = moments.find((m) => m.role === "best_decision");
+  const worst = moments.find((m) => m.role === "worst_habit");
+  if (!best || !worst || Math.abs(best.timestamp - worst.timestamp) < 0.5) return null;
+  const spec = specFor(track);
+  if (!spec) return null;
+  const mk = (ts: number) => windowFrames(track.frames, Math.max(0, ts - WIN_LEAD_SEC), WIN_LEN_SEC);
+  const wb = mk(best.timestamp);
+  const ww = mk(worst.timestamp);
+  if (!windowIsUsable(wb) || !windowIsUsable(ww)) return null;
+  const duration = Math.min(WIN_LEN_SEC, Math.max(wb[wb.length - 1]!.timestamp, ww[ww.length - 1]!.timestamp));
+  return {
+    duration,
+    lanes: [
+      { label: `Best decision · ${fmtSec(best.timestamp)}`, color: "rgba(52,211,153,0.95)", swatch: "#34d399", frames: wb, spec },
+      { label: `Worst habit · ${fmtSec(worst.timestamp)}`, color: "rgba(248,113,113,0.95)", swatch: "#f87171", frames: ww, spec },
+    ],
+  };
+}
+
+export function buildSessionLanes(
+  current: DecodedTrack,
+  previous: DecodedTrack,
+  labels: { current: string; previous: string },
+): { lanes: CompareLane[]; duration: number } | null {
+  const sa = specFor(current);
+  const sb = specFor(previous);
+  if (!sa || !sb) return null;
+  const duration = Math.min(current.endSec, previous.endSec);
+  if (!(duration > 0.5)) return null;
+  return {
+    duration,
+    lanes: [
+      { label: labels.current, color: GOLD, swatch: "#d6a05a", frames: current.frames, spec: sa },
+      { label: labels.previous, color: STEEL, swatch: "#7ab8d9", frames: previous.frames, spec: sb },
+    ],
+  };
+}
+

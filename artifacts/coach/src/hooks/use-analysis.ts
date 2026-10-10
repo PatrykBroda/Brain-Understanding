@@ -71,3 +71,16 @@ export function useAnswerReview(analysisId: number) {
     },
   });
 }
+
+// Baseline track for the comparison views. Fetched lazily (only when a
+// comparison section is mounted); a null baseline means there is nothing real to
+// compare, and the UI hides the comparison.
+export function useCompareTrack(id: number, enabled: boolean, withId?: number | null) {
+  return useQuery({
+    queryKey: ["analysis-compare-track", id, withId ?? null],
+    queryFn: () => analysisApi.compareTrack(id, withId),
+    enabled,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
