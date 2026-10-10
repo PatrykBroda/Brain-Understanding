@@ -6,5 +6,5 @@ Prevents overwhelm by compressing complexity into manageable, high-leverage dime
 
 Links:  
 [[Latent Structure Extraction]]  
-[[State-Dependent Performance]]  
+[[MECHANISMS/State-Dependent Performance]]  
 [[Predictive Regulation Loop]]

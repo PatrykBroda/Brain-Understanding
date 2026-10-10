@@ -222,7 +222,7 @@ When identity interference is detected:
 
 Linked nodes:
 
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 - [[Central Reorientation]]
     
@@ -328,7 +328,7 @@ A stable man does not need to be seen as anything.
     
 - [[Porting Power Across Environments]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 - [[Central Reorientation]]
     

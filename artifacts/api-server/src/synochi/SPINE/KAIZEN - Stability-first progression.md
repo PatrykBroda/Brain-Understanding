@@ -134,7 +134,7 @@ If more than one fix feels “necessary,” the system is not understood yet.
 
 Linked nodes:
 
-- [[Oscillatory Grinder Compression]]
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]]
     
 - [[Cybernetic Control Layer]]
     
@@ -308,7 +308,7 @@ A grounded man compounds silently.
     
 - [[Constraint-Driven Reality]]
     
-- [[Oscillatory Grinder Compression]]
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]]
     
 - [[Peace = Coherence At Release]]
     

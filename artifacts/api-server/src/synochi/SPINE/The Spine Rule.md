@@ -57,7 +57,7 @@ It belongs to the spine until proven otherwise.
 [[Motor Tension Level]]
 [[Threat Geometry]]
 [[Central Reorientation]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Somatic Awareness]]
 [[Primitive System Imprinting]]
 [[Evolutionary Biological Layer]]

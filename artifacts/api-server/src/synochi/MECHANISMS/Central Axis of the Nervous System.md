@@ -191,7 +191,7 @@ It’s biological coherence.
 [[Arousal]]
 [[Arousal Regulation Over Arousal Suppression]]
 [[Arousal as a Measurable CNS State]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Directional Conduction of Power]]
 [[Attention Control]]
 [[Somatic Grounding]]

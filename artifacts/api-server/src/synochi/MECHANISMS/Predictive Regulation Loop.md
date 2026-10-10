@@ -6,5 +6,5 @@ Describes how learning and behavioural refinement occur through feedback-driven 
 
 Links:  
 [[Sensory Prediction Error]]  
-[[State-Dependent Performance]]  
+[[MECHANISMS/State-Dependent Performance]]  
 [[Behaviour Shapes Identity Loop]]

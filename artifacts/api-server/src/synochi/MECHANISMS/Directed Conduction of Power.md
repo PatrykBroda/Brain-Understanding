@@ -603,7 +603,7 @@ Power is **conducted potential**.
 [[Directional Conduction of Power]]
 [[Masculine Essence]]
 [[Architectural Definition of Power]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Forward Projection Pathway]]
 [[Vertical Structural Dominance]]
 [[Sexual Energy Control]]

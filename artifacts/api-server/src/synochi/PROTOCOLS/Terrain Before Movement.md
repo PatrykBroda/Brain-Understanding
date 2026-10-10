@@ -173,9 +173,9 @@ Survey (addition) → Funnel (removal) → Execution (threshold)
 
 Links:
 
-- [[Oscillatory Grinder Compression]] (coarse cut → counter-cut)
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]] (coarse cut → counter-cut)
     
-- [[KAIZEN Stability-First Progression]] (one correction only)
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]] (one correction only)
     
 - [[Constraint Generates Direction]] (direction emerges from limits)
     
@@ -256,7 +256,7 @@ Use these as a fast map before any decision:
 
   
 
-If answers are unclear → run [[Oscillatory Grinder Compression]] Pass 1 only.
+If answers are unclear → run [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]] Pass 1 only.
 
 ---
 
@@ -346,9 +346,9 @@ It’s power that waits until it’s true. ([[Contained Masculine Authority]])
     
 - [[Constraint-Driven Reality]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
-- [[Oscillatory Grinder Compression]]
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]]
     
 - [[Click / Inevitability Operator]]
     

@@ -37,6 +37,6 @@ Links
     
 - [[Failure as Training Frequency]]
     
-- [[Oscillatory Grinder Compression]]
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]]
     
 - [[Protocol Bible]]

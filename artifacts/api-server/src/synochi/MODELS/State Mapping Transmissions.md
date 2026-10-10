@@ -215,7 +215,7 @@ It’s to maintain [[Perceptual Sovereignty]] inside these fields.
 [[Perceptual Sovereignty]]
 [[Attention Control]]
 [[Masculine Essence – Containment & Directed Force]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Central Reorientation]]
 [[Greek Mapping System – Ancient State Mapping Transmissions]]
 [[Cognitive Conditioning]]

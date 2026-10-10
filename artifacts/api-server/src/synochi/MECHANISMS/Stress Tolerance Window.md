@@ -171,6 +171,6 @@ where I remain coherent, anchored, and effective under pressure.
 [[Embodied Containment]]
 [[Central Reorientation]]
 [[Stress Adaptation]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Primitive System Programming]]
 [[Trigger Activation]]

@@ -37,6 +37,6 @@ Links
     
 - [[Behavioural Consistency as Identity Anchor]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Constraint-Driven Reality]]

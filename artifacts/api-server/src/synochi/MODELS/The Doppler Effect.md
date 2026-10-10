@@ -207,7 +207,7 @@ That is the Doppler effect in Synochi language.
 [[Arousal Architecture]]
 [[Central Axis]]
 [[Containment]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Directional Override]]
 [[Conduction of Power]]
 [[Adaptive Threshold Shifting]]

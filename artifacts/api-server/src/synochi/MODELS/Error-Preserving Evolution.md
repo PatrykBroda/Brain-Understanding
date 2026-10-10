@@ -9,6 +9,6 @@
 **Links:**
 - [[Synochi Spine]]
 - [[Constraint-Driven Reality]]
-- [[KAIZEN / Stability-First Progression]]
+- [[ Stability-First Progression]]
 - [[Perturbation]]
 - [[Feedback Loops]]

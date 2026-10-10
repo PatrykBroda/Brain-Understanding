@@ -128,7 +128,7 @@ Feeds into:
 
 Stabilised by:
 
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Sensory Anchoring]]
     
@@ -222,7 +222,7 @@ Used in:
 [[Directional Authority]]
 [[Central Reorientation]]
 [[Central Axis]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Arousal]]
 [[Sensory Anchoring]]
 [[Momentum]]

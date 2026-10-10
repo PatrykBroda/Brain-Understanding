@@ -37,6 +37,6 @@ Links
     
 - [[Arousal State]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Constraint-Driven Reality]]

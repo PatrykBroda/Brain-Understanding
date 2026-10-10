@@ -7,4 +7,4 @@ Separates decisive action from stress-driven urgency, improving sustainability a
 Links:  
 [[Confidence Under Uncertainty]]  
 [[Regulation Before Execution]]  
-[[State-Dependent Performance]]
+[[MECHANISMS/State-Dependent Performance]]

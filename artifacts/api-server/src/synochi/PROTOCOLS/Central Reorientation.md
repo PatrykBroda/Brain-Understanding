@@ -68,4 +68,4 @@ This is my internal power recapture mechanism.
 [[Fragmentation]]
 [[Motor Intelligence]]
 [[System Alignment]]
-[[Dense Calm Potential]]
+[[Your Potential]]

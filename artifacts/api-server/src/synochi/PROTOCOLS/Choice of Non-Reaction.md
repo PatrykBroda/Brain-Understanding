@@ -37,6 +37,6 @@ Links
     
 - [[Centre Holds Under Scrutiny]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Constraint-Driven Reality]]

@@ -11,4 +11,4 @@
 - [[Cybernetic Control Layer (Wiener)]]
 - [[Coherence Before Intelligence]]
 - [[Signal Integrity]]
-- [[KAIZEN / Stability-First Progression]]
+- [[ Stability-First Progression]]

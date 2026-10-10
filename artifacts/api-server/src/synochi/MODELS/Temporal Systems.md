@@ -127,7 +127,7 @@ Temporal Systems directly govern:
 
 • [[Arousal]]
 
-• [[Dense Calm Potential]]
+• [[Your Potential]]
 
 • [[Instrumented Consciousness]]
 
@@ -230,7 +230,7 @@ No transformation holds.
 [[Chronic Stress vs Acute Stress]]
 [[Nervous System Recalibration]]
 [[Arousal]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Instrumented Consciousness]]
 [[Central Axis]]
 [[Momentum]]

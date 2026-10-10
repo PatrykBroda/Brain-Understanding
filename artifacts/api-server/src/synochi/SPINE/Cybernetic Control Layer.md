@@ -143,7 +143,7 @@ Linked nodes:
 
 - [[Coherence Before Intelligence]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 
   
@@ -169,7 +169,7 @@ Linked nodes:
 
 - [[One Correction Rule]]
     
-- [[Oscillatory Grinder Compression]]
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]]
     
 
   
@@ -370,9 +370,9 @@ True control is invisible.
     
 - [[Near-Miss as System Reset]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
-- [[Oscillatory Grinder Compression]]
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]]
     
 - [[Central Reorientation]]
     

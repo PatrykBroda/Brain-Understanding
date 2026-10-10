@@ -149,7 +149,7 @@ With Vector:
 [[Perceptual Sovereignty]]
 [[Distinction]]
 [[Primitive System Hijacking]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[CNS Recalibration]]
 [[Architectural Definition of Power]]
 [[Performance as Emergent Function]]

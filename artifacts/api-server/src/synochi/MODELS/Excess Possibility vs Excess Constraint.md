@@ -102,7 +102,7 @@ Linked nodes:
 
 - [[Terrain Before Movement]]
     
-- [[Oscillatory Grinder Compression]]
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]]
     
 - [[Constraint Generates Direction]]
     
@@ -311,11 +311,11 @@ A stable man can open and close at will.
     
 - [[Constraint Generates Direction]]
     
-- [[Oscillatory Grinder Compression]]
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]]
     
 - [[Cybernetic Drift]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 - [[Peace = Coherence At Release]]
     

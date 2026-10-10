@@ -887,7 +887,7 @@ Instruction
 When I sense my window has narrowed, downshift deliberately — slow the breath, soften the ribs, reduce inputs, and allow the system to restore its baseline width.
 
 [[Arousal as a Measurable CNS State]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Stress Tolerance Window]]
 [[CNS Regulation]]
 [[Embodied Containment]]
@@ -928,7 +928,7 @@ When I sense my window has narrowed, downshift deliberately — slow the breath,
 [[Nervous System Regulation as Dynamic Power]]
 [[CNS Recalibration]]
 [[Fragmentation]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Perceptual Sovereignty]]
 [[Anticipation vs Real Warning Signals]]
 [[Stress Response]]

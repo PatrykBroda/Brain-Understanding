@@ -33,7 +33,7 @@ Links
 
 - [[Arousal State]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Stillness as Readiness Indicator]]
     

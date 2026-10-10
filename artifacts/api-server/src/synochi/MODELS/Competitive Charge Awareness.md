@@ -39,4 +39,4 @@ Links
     
 - [[Hierarchy Without Attachment]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]

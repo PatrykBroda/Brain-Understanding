@@ -116,7 +116,7 @@ If I don’t correct them, I’m training false patterns.
 [[Breathing: My Interface With the CNS]]
 [[Arousal]]
 [[CNS Recalibration]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Perceptual Sovereignty]]
 [[Integration Periods & Productive Disorientation]]
 [[Trust in My Body]]

@@ -309,7 +309,7 @@ Compression is how power travels.
 
 Linked nodes:
 
-- [[Oscillatory Grinder Compression]]
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]]
     
 - [[Pressure Compounding Condition]]
     
@@ -407,9 +407,9 @@ It is felt after options are gone.
     
 - [[Terrain Before Movement]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
-- [[Oscillatory Grinder Compression]]
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]]
     
 - [[Pressure Compounding Condition]]
     

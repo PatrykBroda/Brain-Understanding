@@ -57,5 +57,5 @@ Pure expression.
 [[Directionality]]
 [[Conduction of Power]]
 [[Containment]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Bruce Lee Principle — Integration • Purification • Directionality]]

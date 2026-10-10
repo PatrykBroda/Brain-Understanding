@@ -35,7 +35,7 @@ This is where practice turns into instinct.
 [[Fragmentation]]
 [[Unorthodox Movement]]
 [[Perceptual Sovereignty]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Performance as Emergent Function]]
 [[Adaptive Movement Patterns]]
 [[Arousal]]

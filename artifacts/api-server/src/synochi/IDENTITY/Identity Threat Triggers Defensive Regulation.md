@@ -6,5 +6,5 @@ Explains emotional reactivity and performance disruption during ego-relevant sit
 
 Links:  
 [[Identity Threat Disrupts Mechanics]]  
-[[State-Dependent Performance]]  
+[[MECHANISMS/State-Dependent Performance]]  
 [[Behaviour Shapes Identity Loop]]

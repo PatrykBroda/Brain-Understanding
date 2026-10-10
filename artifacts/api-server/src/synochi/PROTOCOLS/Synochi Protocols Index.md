@@ -10,3 +10,11 @@ Actionable procedures used to produce state change.
 [[Exposure Dosing Protocol]]
 [[Post-Load Integration Protocol]]
 [[Identity Stabilisation Protocol]]
+
+## Routes by Purpose
+
+| Purpose | Existing entry | Relationship |
+| --- | --- | --- |
+| Restore baseline before optimisation | [[PROTOCOLS/Baseline First, Optimisation Second]] | Re-establish stable routines before adding tools. |
+| Review existing downregulation practices | [[PROTOCOLS/Downregulation Techniques]] | Compare the existing practices and stated use cases. |
+| Support settling after load | [[PROTOCOLS/Post-Load Integration Protocol]] | Connect post-load recovery to reassessment. |

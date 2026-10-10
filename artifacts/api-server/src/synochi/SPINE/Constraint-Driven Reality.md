@@ -234,7 +234,7 @@ Linked nodes:
 
 - [[Noise vs Power Rule]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 
 ---

@@ -10,7 +10,7 @@ It is the *constraint engine* that prevents drift, identity inflation, and noise
 **Links:**
 - [[Constraint-Driven Reality]]
 - [[Coherence Before Intelligence]]
-- [[KAIZEN / Stability-First Progression]]
+- [[ Stability-First Progression]]
 - [[Central Axis]]
 - [[Signal Integrity]]
 - [[Constraint–Selection Collapse (CSC)]]

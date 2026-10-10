@@ -160,7 +160,7 @@ I return to pressure first.
 [[Arousal Regulation]]
 [[Perceptual Sovereignty]]
 [[Motor Intelligence]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Continuation Principle]]
 [[System Alignment Over System Force]]
 [[Core Architecture – Nervous System As Intelligent Infrastructure…]]

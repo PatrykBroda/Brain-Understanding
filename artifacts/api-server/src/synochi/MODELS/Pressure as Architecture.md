@@ -187,7 +187,7 @@ Pressure second.
 Without structure, pressure collapses inward or explodes outward.
 
 [[Directional Conduction of Power]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Central Axis Control]]
 [[Embodied Containment]]
 [[Solar Plexus]]

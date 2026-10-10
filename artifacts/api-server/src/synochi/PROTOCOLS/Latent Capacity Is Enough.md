@@ -35,7 +35,7 @@ Links
     
 - [[Voluntary Restraint Signals Strength]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Stillness as Readiness Indicator]]
     

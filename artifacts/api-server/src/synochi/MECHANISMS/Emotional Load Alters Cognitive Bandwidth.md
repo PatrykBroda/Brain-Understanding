@@ -5,6 +5,6 @@ Function
 Explains why thinking quality drops during emotional stress without implying reduced intelligence.
 
 Links:  
-[[State-Dependent Performance]]  
+[[MECHANISMS/State-Dependent Performance]]  
 [[Neurological Throttle]]  
 [[Identity Threat Disrupts Mechanics]]

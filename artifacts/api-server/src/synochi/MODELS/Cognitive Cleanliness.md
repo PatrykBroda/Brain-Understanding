@@ -35,7 +35,7 @@ Links
     
 - [[Abstraction as Compression, Not Expansion]]
     
-- [[Oscillatory Grinder Compression]]
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]]
     
 - [[Protocol Bible]]
     

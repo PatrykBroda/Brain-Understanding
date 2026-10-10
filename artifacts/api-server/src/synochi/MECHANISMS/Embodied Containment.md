@@ -197,7 +197,7 @@ And this is why I don’t try to “let go” anymore.
 
 I hold correctly.
 
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Directed Conduction of Power]]
 [[Sexual Energy Control]]
 [[Arousal Regulation]]

@@ -2,7 +2,7 @@
 
   
 
-Type: [[Identity Boundary Node]]
+Type: [[Identity Boundary]]
 
   
 

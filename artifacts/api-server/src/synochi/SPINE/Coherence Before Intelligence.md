@@ -181,7 +181,7 @@ Linked nodes:
 
 - [[Central Reorientation]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 
 ---
@@ -302,7 +302,7 @@ he stabilises first.
     
 - [[Identity vs Coherence Split]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 - [[Peace = Coherence At Release]]
     

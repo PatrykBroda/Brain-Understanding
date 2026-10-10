@@ -271,6 +271,6 @@ It puts me back in command.
 [[Embodied Containment]]
 [[Fragmentation]]
 [[Perceptual Sovereignty]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[System Hierarchy]]
 [[Central Axis]]

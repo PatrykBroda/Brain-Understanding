@@ -37,6 +37,6 @@ Links
     
 - [[Observation Pressure]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Embodied Authority]]

@@ -37,6 +37,6 @@ Links
     
 - [[Standards Without Display]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Constraint-Driven Reality]]

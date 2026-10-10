@@ -62,4 +62,4 @@ That’s where my centre of gravity moves back inside.
 [[Arousal Regulation]]
 [[CNS Recalibration]]
 [[Fragmentation]]
-[[Dense Calm Potential]]
+[[Your Potential]]

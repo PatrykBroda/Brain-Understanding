@@ -307,7 +307,7 @@ A grounded man knows when to stop grinding.
     
 - [[Constraint Generates Direction]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 - [[Cybernetic Control Layer]]
     

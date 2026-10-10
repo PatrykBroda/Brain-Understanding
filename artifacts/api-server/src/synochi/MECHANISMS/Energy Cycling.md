@@ -1,0 +1,1 @@
+The nervous system naturally alternates between periods of accumulation, expenditure, recovery, and reorganisation. Performance declines when energy is treated as continuously available rather than cyclically managed.

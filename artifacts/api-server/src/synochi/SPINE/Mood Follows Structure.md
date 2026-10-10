@@ -39,4 +39,4 @@ Links
     
 - [[Central Axis]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]

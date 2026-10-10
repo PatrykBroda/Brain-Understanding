@@ -9,6 +9,6 @@
 **Links:**
 - [[State Transitions]]
 - [[High-Amplitude Oscillation]]
-- [[KAIZEN / Stability-First Progression]]
+- [[ Stability-First Progression]]
 - [[Terrain Before Movement]]
 - [[Baseline Arousal]]

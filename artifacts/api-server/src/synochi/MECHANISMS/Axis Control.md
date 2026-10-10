@@ -145,25 +145,6 @@ It’s learning which one I’m hearing.
 
 [[Arousal]] [[Limbic System & Emotional Integration]] [[Attention Anchoring]] [[Fragmentation]] [[Control of Transition Between States (Mycelium Work)]]
 
-**Anticipation vs real warning signals**
-
-Anticipation is activation without threat.
-A real warning signal is activation with information.
-
-Anticipation feels like:
-	•	Nervous energy before something intentional
-	•	Heightened alertness without a clear danger source
-	•	A body preparing for intensity, not protecting from harm
-	•	Sensation that changes once I recognise it for what it is
-	•	Charge that softens when I reassure my system
-
-Real warning signals feel like:
-	•	A clear internal “no” or resistance
-	•	A tightening that doesn’t soften with reassurance
-	•	A sense of boundary rather than excitement
-	•	A persistent signal instead of a passing wave
-	•	A feeling that escalates rather than diffuses
-
 ## Transition Mechanics
 This covers how the axis shifts, pivots, rotates, and adjusts base without collapsing.
 
@@ -459,12 +440,12 @@ It acts as the internal 'pressure seal' that prevents collapse or overextension 
 [[Breathing Mechanics & CNS Interface]]
 [[Perceptual Sovereignty]]
 [[Fragmentation]]
-[[CNS Recalibration][somat]]
+[[PROTOCOLS/CNS Recalibration|CNS Recalibration]] [somat]
 [[Somatic Grounding]]
 [[Presence as Emergent Effect]]
 [[Arousal as a Measurable CNS State]]
 [[Directional Conduction of Power]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Spinal movement and expression through common body patterns]]
 [[Static vs Flow: Obstructed vs Conducted Energy]]
 [[Interference Minimisation]]
@@ -542,7 +523,7 @@ Training methods that strengthen axis control:
 - Resistance band anti-rotation drills  
 ## Related Nodes
 - [[Arousal & State Level]]
-- [[Breath Mechanics & CNS Interface]]
+- [[MECHANISMS/Breathing Mechanics & CNS Interface|Breath Mechanics & CNS Interface]]
 - [[Perception & Warning Mechanics]]
 - [[Cognitive Conditioning]]
 - [[Regulation]]

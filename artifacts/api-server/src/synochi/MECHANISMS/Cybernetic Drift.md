@@ -127,7 +127,7 @@ Adjustments are delayed to “later.”
 
 Linked nodes:
 
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 - [[Near-Miss as System Reset]]
     
@@ -254,7 +254,7 @@ This node enforces early, boring correction:
 
 Linked nodes:
 
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 - [[Coherence Before Intelligence]]
     
@@ -352,7 +352,7 @@ A stable man does not need failure to learn.
 
 - [[Cybernetic Control Layer]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 - [[Constraint-Driven Reality]]
     

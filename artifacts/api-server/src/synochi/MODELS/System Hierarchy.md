@@ -97,6 +97,6 @@ because they stop trying to lead.
 [[Directionality]]
 [[Perceptual Sovereignty]]
 [[Fragmentation]]
-[[System Alignment over System Force]]
+[[System Alignment Over System Force]]
 [[Response vs Reaction]]
 [[Embodied Containment]]

@@ -102,7 +102,7 @@ Just regulated.
 
 [[Voltage-Gated Permeability]]
 [[Buffer Zone]]
-[[Space]]
+[[Response Space]]
 [[Permeable Membrane Theory]]
 [[Containment]]
 [[Arousal Regulation]]

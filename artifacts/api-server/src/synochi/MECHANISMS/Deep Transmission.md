@@ -144,7 +144,7 @@ Structurally.
 [[Arousal Regulation]]
 [[Fractal Stability]]
 [[Threat Geometry]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Synochi Field]]
 [[Directionality]]
 [[Embodied Application]]

@@ -35,7 +35,7 @@ Links
     
 - [[Centre Holds Under Scrutiny]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Non-Engagement as Power Preservation]]
     

@@ -33,6 +33,6 @@ Links
     
 - [[End States Matter More Than Motives]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Protocol Bible]]

@@ -37,6 +37,6 @@ Links
     
 - [[Boundary Maintenance]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Constraint-Driven Reality]]

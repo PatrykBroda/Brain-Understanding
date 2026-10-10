@@ -45,4 +45,4 @@ Links
     
 - [[Constraint-Driven Reality]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]

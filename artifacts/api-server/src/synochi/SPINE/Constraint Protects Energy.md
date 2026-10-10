@@ -39,4 +39,4 @@ Links
     
 - [[Optionality Preservation]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]

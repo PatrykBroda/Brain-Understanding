@@ -33,7 +33,7 @@ Links
 
 - [[Constraint-Driven Creativity]]
     
-- [[Oscillatory Grinder Compression]]
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]]
     
 - [[Signal-to-Noise Ratio]]
     

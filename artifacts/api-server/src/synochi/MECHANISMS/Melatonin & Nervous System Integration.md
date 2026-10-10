@@ -66,4 +66,4 @@ This is why it links directly to recalibration, adaptation, and the aftershock p
 [[Neural Integration]]
 [[Baseline Reset]]
 [[Fragmentation]]
-[[Dense Calm Potential]]
+[[Your Potential]]

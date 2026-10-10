@@ -34,7 +34,7 @@ Links
 
 - [[Silence as Load-Bearing Structure]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Attention Is A Finite Weapon]]
     

@@ -208,7 +208,7 @@ or becomes stability.
 [[Arousal Regulation]]
 [[Vagus Nerve]]
 [[Fragmentation]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Motor Intelligence]]
 [[Core Architecture – Nervous System As Intelligent Infrastructure…]]
 [[Facial Control & Nervous System]]

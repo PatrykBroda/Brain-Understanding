@@ -35,7 +35,7 @@ Links
     
 - [[Quiet Confidence beats Visible Dominance]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Mythic Field Coherence]]
     

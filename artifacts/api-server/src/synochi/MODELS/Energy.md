@@ -158,6 +158,6 @@ I need better conduction, containment, and direction.
 [[Directional Authority]]
 [[Arousal Regulation]]
 [[Structural Integrity]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Power Threshold]]
 [[Central Axis]]

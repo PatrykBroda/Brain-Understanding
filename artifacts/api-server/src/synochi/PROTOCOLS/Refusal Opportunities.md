@@ -2,7 +2,7 @@
 
   
 
-Type: [[Agency Preservation Node]]
+Type: [[Agency Preservation]]
 
   
 

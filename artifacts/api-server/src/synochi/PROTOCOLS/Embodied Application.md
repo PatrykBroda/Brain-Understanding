@@ -119,7 +119,7 @@ Without embodiment:
 [[Nervous System Regulation]]
 [[Arousal Regulation]]
 [[Threat Geometry]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Perceptual Interface]]
 [[Authority]]
 [[Embodied Mechanics]]

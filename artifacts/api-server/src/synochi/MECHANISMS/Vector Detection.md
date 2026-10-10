@@ -155,5 +155,5 @@ You’re drifting.
 [[Perceptual Sovereignty]]
 [[Central Reorientation]]
 [[Arousal Regulation]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Performance as Emergent Function]]

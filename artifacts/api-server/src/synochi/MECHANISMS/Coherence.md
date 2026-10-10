@@ -7,7 +7,7 @@ My body feels aligned, my perception widens, and my actions become effortless.
 Coherence is when I stop fighting myself and start conducting myself.
 
 [[Central Axis Control]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Directional Force]]
 [[Arousal Regulation]]
 [[Geometry]]

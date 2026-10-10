@@ -7,7 +7,7 @@
 - The system shifts from “prove” → “build” → “hold”
 
 **Links:**
-- [[KAIZEN / Stability-First Progression]]
+- [[ Stability-First Progression]]
 - [[Metabolic Output Expectation]]
 - [[Coherence Before Intelligence]]
 - [[Transition Bands]]

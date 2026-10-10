@@ -39,4 +39,4 @@ Links
     
 - [[Protocol Bible]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]

@@ -5,6 +5,6 @@ Function
 Prevents forced output from dysregulated states, improving consistency and reducing self-sabotage.
 
 Links:  
-[[State-Dependent Performance]]  
+[[MECHANISMS/State-Dependent Performance]]  
 [[Control Precedes Expression]]  
 [[Neurological Throttle]]

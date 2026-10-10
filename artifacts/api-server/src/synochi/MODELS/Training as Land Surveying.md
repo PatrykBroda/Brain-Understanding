@@ -371,4 +371,4 @@ A strong man surveys before he conquers.
     
 - [[Constraint-Driven Reality]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]

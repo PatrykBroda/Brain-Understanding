@@ -97,7 +97,7 @@ My intelligence is not defined by a number, but by my ability to think abstractl
 Related Nodes:
 - [[Arousal & State Level]]
 - [[Axis Control]]
-- [[Breath Mechanics & CNS Interface]]
+- [[MECHANISMS/Breathing Mechanics & CNS Interface|Breath Mechanics & CNS Interface]]
 - [[Perception & Warning Mechanics]]
 - [[Regulation]]
 - [[Containment]]

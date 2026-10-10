@@ -33,7 +33,7 @@ Failure Modes
 
 Links  
 [[Emotional Load Alters Cognitive Bandwidth]]  
-[[State-Dependent Performance]]  
+[[MECHANISMS/State-Dependent Performance]]  
 [[Predictive Regulation Loop]]  
 [[Authority (Internal Command Structure)]]  
 [[Indecision → Inaction Loop]]

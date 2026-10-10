@@ -281,7 +281,7 @@ It is a field test of it.
 [[Continuation Principle]]
 [[CNS Recalibration]]
 [[Technical Movement Chains]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Fragmentation]]
 [[Central Axis]]
 [[Directed Conduction of Power]]

@@ -170,7 +170,7 @@ I just stress it.
 [[Arousal Regulation]]
 [[Stress Tolerance Window]]
 [[Fragmentation]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Neural Integration]]
 [[Catecholamine Cycle]]
 [[Parasympathetic Activation]]

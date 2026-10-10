@@ -73,7 +73,7 @@ Just more usable energy.
 [[Masculine Essence – Containment & Directed Force]]
 [[Sexual Energy Control]]
 [[Embodied Containment]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Catecholamine Cycle]]
 [[Melatonin Secretion]]
 [[CNS Recalibration]]

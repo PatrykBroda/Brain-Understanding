@@ -88,7 +88,7 @@ With it, everything else organises.
 [[Validation Systems]]
 [[Perceptual Sovereignty]]
 [[Central Reorientation]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Fragmentation]]
 [[Arousal Regulation]]
 [[CNS Recalibration]]

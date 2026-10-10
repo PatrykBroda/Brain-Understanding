@@ -6,5 +6,5 @@ Prevents cognitive effort from being wasted while the nervous system is still in
 
 Links:  
 [[Regulation Before Execution]]  
-[[State-Dependent Performance]]  
+[[MECHANISMS/State-Dependent Performance]]  
 [[Neurological Throttle]]

@@ -31,7 +31,7 @@ If readiness feels restless or urgent, preparation phase is unfinished.
 
 Links
 
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Arousal State]]
     

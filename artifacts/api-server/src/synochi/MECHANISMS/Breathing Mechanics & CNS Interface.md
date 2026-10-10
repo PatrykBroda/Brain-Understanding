@@ -98,7 +98,7 @@ It opens the door. The body completes the loop.
 [[Directional Conduction of Power]]
 [[Energy]]
 [[Fascia as Power Transmission Network]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Discharging Stored Sympathetic Energy in Visual States]]
 [[Fragmentation]]
 [[Adaptation — Consolidation Phase]]

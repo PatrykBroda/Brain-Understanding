@@ -63,7 +63,7 @@ It directly interacts with:
     
 - [[Cortisol Curve]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 
 ---
@@ -180,7 +180,7 @@ Key indicators of healthy sleep architecture:
 [[Slow Wave Sleep]]
 [[Light Sleep]]
 [[Instrumented Consciousness]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Momentum]]
 [[Directional Authority]]
 [[Regulation]]

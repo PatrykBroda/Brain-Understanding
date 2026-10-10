@@ -10,5 +10,5 @@
 - [[Coherence Before Intelligence]]
 - [[Synochi Spine]]
 - [[Signal Integrity]]
-- [[KAIZEN / Stability-First Progression]]
+- [[ Stability-First Progression]]
 - [[Constraint-Driven Reality]]

@@ -106,7 +106,7 @@ When it collapses, everything feels too near.
 
 [[Buffer Zone]]
 [[Voltage-Gated Permeability]]
-[[Space]]
+[[Response Space]]
 [[Permeable Membrane Theory]]
 [[Containment]]
 [[Central Axis]]

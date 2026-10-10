@@ -7,4 +7,4 @@ Explains fluctuations in motivation, focus, and action as resource allocation pr
 Links:  
 [[Neurological Throttle]]  
 [[Anhedonia (Fuel Suppression)]]  
-[[State-Dependent Performance]]
+[[MECHANISMS/State-Dependent Performance]]

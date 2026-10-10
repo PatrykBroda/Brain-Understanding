@@ -36,6 +36,6 @@ If stories feel urgent or emotionally charged, state is leading.
 
 • [[Delayed Interpretation]]
 
-• [[Dense Calm Potential]]
+• [[Your Potential]]
 
 • [[Constraint-Driven Reality]]

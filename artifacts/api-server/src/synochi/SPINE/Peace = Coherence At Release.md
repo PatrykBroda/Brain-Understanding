@@ -278,9 +278,9 @@ This preserves energy and prevents rumination.
 
 Linked nodes:
 
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
-- [[Oscillatory Grinder Compression]]
+- [[MECHANISMS/Oscillatory Grinder Comnpression|Oscillatory Grinder Compression]]
     
 
 ---
@@ -350,7 +350,7 @@ A coherent man can stop without losing power.
     
 - [[Constraint Generates Direction]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 - [[Click / Inevitability Operator]]
     

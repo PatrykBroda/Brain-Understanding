@@ -37,6 +37,6 @@ Links
     
 - [[Signal Classification]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Protocol Bible]]

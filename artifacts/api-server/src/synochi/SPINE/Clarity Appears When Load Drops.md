@@ -33,7 +33,7 @@ Links
 
 - [[Load Reduction]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Signal-to-Noise Ratio]]
     

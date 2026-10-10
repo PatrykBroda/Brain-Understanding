@@ -8,7 +8,7 @@
 
 **Links:**
 - [[Coherence Before Intelligence]]
-- [[KAIZEN / Stability-First Progression]]
+- [[ Stability-First Progression]]
 - [[Central Axis]]
 - [[State Transitions]]
 - [[Signal Integrity]]

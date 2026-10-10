@@ -123,7 +123,7 @@ Ensuring behaviour matches chosen state and purpose.
 ## Related Nodes
 - [[Axis Control]]
 - [[Arousal & State Level]]
-- [[Breath Mechanics & CNS Interface]]
+- [[MECHANISMS/Breathing Mechanics & CNS Interface|Breath Mechanics & CNS Interface]]
 - [[Perception & Warning Mechanics]]
 - [[Regulation]]
 - [[Containment]]
@@ -132,3 +132,15 @@ Ensuring behaviour matches chosen state and purpose.
 - [[Integration Periods]]
 - [[Nervous-System Agency]]
 - [[Synochi]]
+
+## Operational Intelligence Routes
+
+| Task | Existing entry | Relationship |
+| --- | --- | --- |
+| Follow the adaptive system cycle | [[SPINE/Synochi Intelligence Loop]] | Connect input, interpretation, action, outcome and learning. |
+| Understand athlete-specific performance | [[MODELS/Athlete Model]] | Separate current state, capability, patterns and intervention history. |
+| Understand the person beyond performance | [[MODELS/User Model]] | Preserve broader values and communication context. |
+| Select what matters now | [[MODELS/Context Engine]] | Activate relevant evidence rather than all stored knowledge. |
+| Interpret before prescribing | [[Guidance Dynamics/Accuracy First Guidance Policy]] | Preserve uncertainty and compare explanations. |
+| Guide without taking ownership | [[Guidance Dynamics/Agency Preservation]] | Keep final choice with the athlete. |
+| Enter combat-specific reasoning | [[COMBAT INTELLIGENCE/Combat Intelligence Hub/Combat Intelligence Hub]] | Use the specialist bridge for observation, diagnosis and training. |

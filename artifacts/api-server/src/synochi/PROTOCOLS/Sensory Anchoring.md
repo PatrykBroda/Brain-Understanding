@@ -140,7 +140,7 @@ It shifts authority from thought to lived sensation.
 [[Central Reorientation]]
 [[Fragmentation Detection]]
 [[Regulation]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Arousal]]
 [[Hijacking]]
 [[Central Axis]]

@@ -1,16 +1,12 @@
+# Identity Stabilises Through Repetition Under Load
 
-Definition:
+## Definition
+Repeatedly functioning effectively under pressure provides behavioural evidence from which a stable self-concept can develop.
 
-Frequent comparison to others destabilises identity by shifting attention from internal direction to external ranking. This increases self-doubt and reduces continuity of self-driven behaviour.
+## Function
+Connect identity development to demonstrated capability in challenging conditions, rather than verbal affirmation or intention alone. Repeated actions feed back into self-concept.
 
-  
-
-Links:
-
-[[Identity Threat Distorts Perception]]
-
-[[Salience Mapping Layer]]
-
-[[Trajectory Tracking Layer]]
-
-[[Behavioural Alignment Reduces Internal Friction]]
+## Source Basis
+- [[MECHANISMS/Identity Through Competence Under Load]] — repeated effective functioning under pressure.
+- [[MECHANISMS/Behaviour Shapes Identity Loop]] — repeated action reinforces self-concept.
+- [[IDENTITY/Identity Is Evidence-Based]] — accumulated behavioural proof rather than affirmation.

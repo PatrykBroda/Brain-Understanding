@@ -5,6 +5,6 @@ Function
 Explains why stress or fatigue often leads to regression into past habits.
 
 Links:  
-[[State-Dependent Performance]]  
+[[MECHANISMS/State-Dependent Performance]]  
 [[Identity as Behavioural Gravity]]  
 [[Neurological Throttle]]

@@ -54,7 +54,7 @@ but to understand that my state conditions the field around me.
 [[Arousal]]
 [[Regulation as Dynamic Power]]
 [[CNS Recalibration]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Directional Conduction of Power]]
 [[Breathing Mechanics & CNS Interface]]
 [[Containment]]

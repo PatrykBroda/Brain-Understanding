@@ -49,7 +49,7 @@ Not by suppression.
 By repetition.
 
 [[Arousal]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Baseline Reset]]
 [[Autonomic Balance]]
 [[Breathing Mechanics & CNS Interface]]

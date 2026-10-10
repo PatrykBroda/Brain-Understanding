@@ -37,6 +37,6 @@ Links
     
 - [[Signal-to-Noise Ratio]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Constraint-Driven Reality]]

@@ -35,7 +35,7 @@ Links
     
 - [[Competitive Charge Awareness]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Constraint-Driven Reality]]
     

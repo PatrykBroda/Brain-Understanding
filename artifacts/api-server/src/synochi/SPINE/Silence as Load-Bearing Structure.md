@@ -37,6 +37,6 @@ Links
     
 - [[Central Axis]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Mythic Field Coherence]]

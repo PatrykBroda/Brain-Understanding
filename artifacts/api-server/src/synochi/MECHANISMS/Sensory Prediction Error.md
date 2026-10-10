@@ -6,5 +6,5 @@ Acts as the core signal that something in the internal model must update for bet
 
 Links:  
 [[Predictive Regulation Loop]]  
-[[State-Dependent Performance]]  
+[[MECHANISMS/State-Dependent Performance]]  
 [[Latent Structure Extraction]]

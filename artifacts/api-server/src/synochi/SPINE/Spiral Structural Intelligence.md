@@ -194,7 +194,7 @@ Spiral Structural Intelligence is the biomechanical expression of:
 
 • [[Nervous System Recalibration]]
 
-• [[Dense Calm Potential]]
+• [[Your Potential]]
 
   
 
@@ -260,7 +260,7 @@ It is structural reprogramming.
 [[Territory]]
 [[Permeable Membrane]]
 [[Nervous System Recalibration]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Arousal]]
 [[Physiological Regulation]]
 [[Central Reorientation]]

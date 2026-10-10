@@ -216,7 +216,7 @@ A proper reset has three phases:
 
 Linked nodes:
 
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 - [[One Correction Rule]]
     
@@ -329,7 +329,7 @@ it refines it.
 
 - [[Cybernetic Control Layer]]
     
-- [[KAIZEN Stability-First Progression]]
+- [[SPINE/KAIZEN - Stability-first progression|KAIZEN Stability-First Progression]]
     
 - [[Constraint Generates Direction]]
     

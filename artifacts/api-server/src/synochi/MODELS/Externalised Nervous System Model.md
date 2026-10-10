@@ -6,5 +6,5 @@ Makes invisible nervous system dynamics observable and trainable through structu
 
 Links:  
 [[Illumination, Not Control]]  
-[[State-Dependent Performance]]  
+[[MECHANISMS/State-Dependent Performance]]  
 [[Latent Structure Extraction]]

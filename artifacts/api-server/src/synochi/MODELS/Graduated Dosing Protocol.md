@@ -11,4 +11,4 @@
 - [[Baseline Arousal]]
 - [[Constraint-Driven Reality]]
 - [[Anti-Chaos Protocol]]
-- [[KAIZEN / Stability-First Progression]]
+- [[ Stability-First Progression]]

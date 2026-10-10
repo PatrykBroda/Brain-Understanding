@@ -72,7 +72,7 @@ The field is the final layer.
 [[Central Axis Control]]
 [[Directional Force]]
 [[Coherence]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Threat Geometry]]
 [[Embodied Application]]
 [[Nervous System Regulation]]

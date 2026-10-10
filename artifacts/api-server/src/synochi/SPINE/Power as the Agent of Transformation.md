@@ -94,7 +94,7 @@ It becomes transformational when aligned with:
     
 - [[Arousal]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 
 ---
@@ -148,7 +148,7 @@ Power activates:
 
 Power is stabilised by:
 
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Sensory Anchoring]]
     
@@ -291,7 +291,7 @@ Links:
 [[Directional Conduction of Power]]
 [[Transformation]]
 [[Structure vs Force]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Embodied Containment]]
 [[System Alignment]]
 [[CNS Recalibration]]
@@ -316,7 +316,7 @@ Links:
 [[Instrumented Consciousness]]
 [[Central Axis]]
 [[Central Reorientation]]
-[[Dense Calm Potential]]
+[[Your Potential]]
 [[Arousal]]
 [[Sensory Anchoring]]
 [[Fragmentation Detection]]

@@ -10,5 +10,5 @@
 - [[Stress Tolerance Window]]
 - [[Perturbation]]
 - [[Adaptive Friction Scaling / Resistance Scaling Law]]
-- [[KAIZEN / Stability-First Progression]]
+- [[ Stability-First Progression]]
 - [[Error-Preserving Evolution]]

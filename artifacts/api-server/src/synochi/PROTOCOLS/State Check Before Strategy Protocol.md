@@ -5,6 +5,6 @@ Function
 Ensures strategies are chosen based on actual capacity rather than assumed or ideal states.
 
 Links:  
-[[State-Dependent Performance]]  
+[[MECHANISMS/State-Dependent Performance]]  
 [[Regulation Before Execution]]  
 [[Neurological Throttle]]

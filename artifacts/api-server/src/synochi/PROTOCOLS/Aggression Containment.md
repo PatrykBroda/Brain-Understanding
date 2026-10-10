@@ -35,7 +35,7 @@ Links
     
 - [[Power Without Grasping]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Masculinity Without Display]]
     

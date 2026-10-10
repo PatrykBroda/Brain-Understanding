@@ -35,7 +35,7 @@ Links
     
 - [[Signal Before Story]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Abstraction Mode]]
     

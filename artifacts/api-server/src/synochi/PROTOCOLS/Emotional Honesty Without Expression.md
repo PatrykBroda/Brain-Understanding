@@ -35,7 +35,7 @@ Links
     
 - [[Emotional Energy Is Directional]]
     
-- [[Dense Calm Potential]]
+- [[Your Potential]]
     
 - [[Boundary Maintenance]]
     
