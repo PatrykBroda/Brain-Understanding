@@ -43,6 +43,13 @@
       "when": 1788888000000,
       "tag": "0005_legal_consent",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789000000000,
+      "tag": "0006_pose_track",
+      "breakpoints": true
     }
   ]
 }

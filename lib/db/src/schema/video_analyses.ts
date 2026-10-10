@@ -21,6 +21,23 @@ export type NervousSystemLoad = (typeof NERVOUS_SYSTEM_LOADS)[number];
 export const ANALYSIS_SUBJECTS = ["self", "opponent"] as const;
 export type AnalysisSubject = (typeof ANALYSIS_SUBJECTS)[number];
 
+// Fixed vocabulary for "where on the body" a finding points. The AI may only
+// pick from this list (plus a real keyframe index); the client resolves the
+// landmarks and movement arrow from the stored pose track — never from the AI.
+export const BODY_REGIONS = [
+  "lead_hand",
+  "rear_hand",
+  "head",
+  "hips",
+  "lead_foot",
+  "rear_foot",
+  "lead_knee",
+  "rear_knee",
+  "shoulders",
+  "torso",
+] as const;
+export type BodyRegion = (typeof BODY_REGIONS)[number];
+
 export type AnalysisFinding = {
   title: string;
   observation: string;
@@ -32,6 +49,11 @@ export type AnalysisFinding = {
   matchesFactId?: number;
   // Fixed-ontology key (lib/ontology) for NEW observations, e.g. "striking.exits".
   subcategory?: string;
+  // Optional grounded visual: the real keyframe this finding is about and the
+  // body region on it. Both or neither; server-validated against the stored
+  // keyframes (and the pose track when present). Omitted when not groundable.
+  keyframeIndex?: number;
+  bodyRegion?: BodyRegion;
 };
 
 export type AnalysisSignal = {
@@ -112,6 +134,21 @@ export type Matchup = {
   notes: string[];
 } | null;
 
+// Compact per-frame pose track (quantised landmarks), v1. Only frames with a
+// pose lock are kept. `d` is base64 of, per frame, 33 x [x u16, y u16, vis u8]
+// (little-endian), x/y mapped from [-0.5, 1.5] to [0, 65535], vis from [0, 1]
+// to [0, 255]. `t` is the per-frame timestamp in integer milliseconds. `w`/`h`
+// is the source video size (aspect only). `lead` is the measured lead side of
+// the stance ("left"|"right") or null when it could not be told honestly.
+export type PoseTrack = {
+  v: 1;
+  w: number;
+  h: number;
+  lead: "left" | "right" | null;
+  t: number[];
+  d: string;
+};
+
 export const videoAnalysesTable = pgTable("video_analyses", {
   id: serial("id").primaryKey(),
   fighterId: integer("fighter_id")
@@ -159,6 +196,10 @@ export const videoAnalysesTable = pgTable("video_analyses", {
   reviewAnswer: text("review_answer").notNull().default(""),
   // FRAME Replay — up to three curated moments tied to real keyframe timestamps.
   replayMoments: jsonb("replay_moments").$type<ReplayMoment[]>().notNull().default([]),
+  // Per-frame pose landmarks (quantised) for the skeleton overlay, movement
+  // graphs, annotated frames and comparisons. Null on analyses saved before
+  // this existed — they render exactly as before.
+  poseTrack: jsonb("pose_track").$type<PoseTrack | null>(),
   durationSec: real("duration_sec").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

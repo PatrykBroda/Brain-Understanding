@@ -19,8 +19,12 @@ import {
   type AthleteFact,
   type ReplayMoment,
   type ReplayRole,
+  type BodyRegion,
+  type PoseTrack,
   REPLAY_ROLES,
+  BODY_REGIONS,
 } from "@workspace/db";
+import { isBodyRegion, trackHasFrameNear } from "./poseTrack";
 import { ONTOLOGY_KEYS, isOntologyKey } from "@workspace/ontology";
 import { COACH_SYSTEM_PROMPT_STATIC, buildDynamicContext } from "./synochi";
 
@@ -60,6 +64,7 @@ HARD RULES:
 - comparisonNote: ONLY if previous-session deltas are provided below — 1-2 sentences on what changed and what it means ("you're less reactive under pressure than last upload; still overcommitting after combinations"). Omit if no prior session.
 - reviewQuestion: ONE short, specific question about THIS session that draws out context the pose cannot see — intent, gameplan, how it felt, whether something was deliberate, who they were working against. Grounded in a finding or the athlete's recorded model, phrased as a coach reviewing film beside them. One sentence. No preamble, no "let me ask you", no numbers. Leave it empty ("") if there is nothing grounded worth asking.
 - replay: the "# Key moments" list below enumerates the REAL detected moments in this clip, each with an index. Pick up to THREE of them and cast each as one of these roles: best_decision, worst_habit, biggest_opportunity. Reference the moment ONLY by its keyframeIndex from that list — never invent a moment or a time. Each replay entry needs a one-sentence grounded note explaining what the body did at that moment and why it earns that role. Use at most one entry per role. Do NOT restate the timestamp or any number in the note — the interface shows the real time. Omit any role you cannot ground in a listed moment; if no moments are listed, return an empty replay list.
+- Finding visuals (optional, per finding): when a finding is about something you can SEE on one of the listed key moments, set keyframeIndex (an index from the "# Key moments" list) and bodyRegion (exactly one of: lead_hand, rear_hand, head, hips, lead_foot, rear_foot, lead_knee, rear_knee, shoulders, torso) so the interface can circle that body part on the real frame and draw the measured movement direction. Prefer moments whose image was supplied. "lead"/"rear" refer to the stance side given under "# Stance" below; if no stance side is given, do NOT use any lead_/rear_ region. Never emit coordinates, pixel positions or times — only the index and the region name. If you cannot ground a finding in a specific listed moment and region, OMIT both fields; most findings should have no visual rather than a guessed one.
 - Voice: calm, observant, precise. A mirror, not a hype machine. No motivational filler.`;
 
 const REPORT_TOOL: Anthropic.Tool = {
@@ -99,6 +104,17 @@ const REPORT_TOOL: Anthropic.Tool = {
               type: "string",
               enum: [...ONTOLOGY_KEYS],
               description: "Ontology key for a NEW observation when one clearly fits. Omit otherwise.",
+            },
+            keyframeIndex: {
+              type: "integer",
+              description:
+                "Index from the '# Key moments' list of the real moment this finding is visible in. Omit (with bodyRegion) if you cannot ground it.",
+            },
+            bodyRegion: {
+              type: "string",
+              enum: [...BODY_REGIONS],
+              description:
+                "Body region to circle on that moment. Omit (with keyframeIndex) if you cannot ground it. lead_/rear_ only when a stance side is given.",
             },
           },
           required: ["title", "observation", "nervousSystemFraming", "severity", "area"],
@@ -183,6 +199,39 @@ export function buildReplayMoments(
   return out;
 }
 
+const SIDED_REGIONS = new Set<BodyRegion>([
+  "lead_hand",
+  "rear_hand",
+  "lead_foot",
+  "rear_foot",
+  "lead_knee",
+  "rear_knee",
+]);
+
+/**
+ * Keep a finding's visual citation (keyframeIndex + bodyRegion) ONLY when it can
+ * be drawn from real data: the keyframe exists, the pose track has a frame at
+ * that keyframe's timestamp (the landmarks come from the track, never the AI),
+ * and a lead_/rear_ region is only kept when the stance side was actually
+ * measured. Otherwise both fields are removed — the finding stays, minus the
+ * visual. Pure — unit-tested.
+ */
+export function resolveFindingEvidence(
+  findings: AnalysisFinding[],
+  keyframes: AnalysisKeyframe[],
+  track: PoseTrack | null,
+): AnalysisFinding[] {
+  return findings.map((f) => {
+    const { keyframeIndex, bodyRegion, ...rest } = f;
+    if (keyframeIndex == null || bodyRegion == null) return rest;
+    const kf = keyframes[keyframeIndex];
+    if (!kf || !track) return rest;
+    if (!trackHasFrameNear(track, kf.timestamp)) return rest;
+    if (SIDED_REGIONS.has(bodyRegion) && !track.lead) return rest;
+    return { ...rest, keyframeIndex, bodyRegion };
+  });
+}
+
 // Brand hard-rule: no emojis in coach output. Strip pictographic codepoints defensively.
 const EMOJI_RE =
   /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200D}]/gu;
@@ -250,6 +299,14 @@ function normalise(raw: Record<string, unknown>): AnalysisNarrative {
       if (typeof sub === "string" && isOntologyKey(sub)) {
         finding.subcategory = sub;
       }
+      // Visual citation: only a well-formed pair survives here; the route then
+      // resolves it against the real keyframes + track (resolveFindingEvidence).
+      const kfIdx = it["keyframeIndex"];
+      const region = it["bodyRegion"];
+      if (typeof kfIdx === "number" && Number.isInteger(kfIdx) && kfIdx >= 0 && isBodyRegion(region)) {
+        finding.keyframeIndex = kfIdx;
+        finding.bodyRegion = region;
+      }
       findings.push(finding);
     }
   }
@@ -301,8 +358,9 @@ function metricsText(args: {
   metrics: AnalysisMetrics;
   prevScores: AnalysisScore[] | null;
   keyframes: AnalysisKeyframe[];
+  leadSide?: "left" | "right" | null;
 }): string {
-  const { kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes } =
+  const { kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes, leadSide } =
     args;
   const sig = metrics.signals.map((s) => `- ${s.label}: ${s.value} — ${s.detail}`);
   const sc = scores.map((s) => `- ${s.label}: ${s.value}/100 — ${s.basis}`);
@@ -325,6 +383,14 @@ function metricsText(args: {
     `# Computed movement signals`,
     ...sig,
   ];
+
+  parts.push(
+    ``,
+    `# Stance`,
+    leadSide
+      ? `lead side (measured from the pose track): the athlete's ${leadSide.toUpperCase()} side is forward — lead_ regions mean their ${leadSide}, rear_ regions the other side`
+      : `lead side: not determined — do not use lead_ or rear_ body regions`,
+  );
 
   if (prevScores && prevScores.length) {
     const prevByKey = new Map(prevScores.map((s) => [s.key, s.value]));
@@ -580,8 +646,9 @@ export async function generateAnalysis(args: {
   prevScores: AnalysisScore[] | null;
   metrics: AnalysisMetrics;
   keyframes: AnalysisKeyframe[];
+  leadSide?: "left" | "right" | null;
 }): Promise<AnalysisNarrative> {
-  const { fighter, facts, kind, focus, load, fragmentationRisk, sessionScore, scores, prevScores, metrics, keyframes } =
+  const { fighter, facts, kind, focus, load, fragmentationRisk, sessionScore, scores, prevScores, metrics, keyframes, leadSide } =
     args;
 
   const dynamic =
@@ -589,7 +656,7 @@ export async function generateAnalysis(args: {
     "\n\n" +
     ANALYSIS_INSTRUCTIONS +
     "\n\n" +
-    metricsText({ kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes });
+    metricsText({ kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes, leadSide });
 
   const content: Anthropic.ContentBlockParam[] = [];
   for (const kf of keyframes.slice(0, 4)) {
