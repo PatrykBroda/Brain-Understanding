@@ -128,8 +128,25 @@ describe("inferLeadSide", () => {
     const mixed = posed(frames(12, (i) => ({ facing: 1, leadLeft: i % 2 === 0 })));
     expect(inferLeadSide(mixed)).toBeNull();
   });
-  it("returns null for a frontal view (nose not ahead of the ears)", () => {
-    const front = posed(frames(12, () => ({ facing: 1, leadLeft: true }))).map((f) => {
+  it("falls back to the head cue when the feet give no facing direction", () => {
+    expect(inferLeadSide(posed(frames(12, () => ({ facing: 1, leadLeft: true, toes: 0 }))))).toBe("left");
+    expect(inferLeadSide(posed(frames(12, () => ({ facing: -1, leadLeft: false, toes: 0 }))))).toBe("right");
+  });
+  it("uses the toe-ahead-of-heel cue even when the head is turned the other way", () => {
+    // body faces image-right (toes point right), head looks back over the shoulder
+    const fs = posed(frames(12, () => ({ facing: 1, leadLeft: true }))).map((f) => {
+      const lm = f.landmarks.map((l) => ({ ...l }));
+      lm[0]!.x = (lm[7]!.x + lm[8]!.x) / 2 - 0.05; // nose behind the ears
+      return { ...f, landmarks: lm };
+    });
+    expect(inferLeadSide(fs)).toBe("left");
+  });
+  it("returns null when the body keeps turning (kata / circling): votes split", () => {
+    const turning = posed(frames(16, (i) => ({ facing: i % 4 < 2 ? 1 : -1, leadLeft: i % 8 < 4 }))); // lead foot alternates as the fighter turns
+    expect(inferLeadSide(turning)).toBeNull();
+  });
+  it("returns null for a frontal view (no toe or nose cue)", () => {
+    const front = posed(frames(12, () => ({ facing: 1, leadLeft: true, toes: 0 }))).map((f) => {
       const lm = f.landmarks.map((l) => ({ ...l }));
       lm[0]!.x = (lm[7]!.x + lm[8]!.x) / 2; // nose dead-centre
       return { ...f, landmarks: lm };

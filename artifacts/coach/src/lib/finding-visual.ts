@@ -40,7 +40,8 @@ export function buildFindingVisual(
   if (!geo) return null;
 
   const vbW = aspect * 100;
-  const ring = { cx: geo.cx * vbW, cy: geo.cy * 100, r: geo.r * 100 };
+  // Floor the ring so it stays legible on a phone-sized thumbnail.
+  const ring = { cx: geo.cx * vbW, cy: geo.cy * 100, r: Math.max(geo.r * 100, 6) };
   const a = movementArrow(track.frames, idx, finding.bodyRegion, track.lead, aspect);
   const arrow = a
     ? { x1: a.from.x * vbW, y1: a.from.y * 100, x2: a.to.x * vbW, y2: a.to.y * 100 }

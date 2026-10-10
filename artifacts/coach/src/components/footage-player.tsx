@@ -363,9 +363,9 @@ export function GhostPlayer({
             playback.seek(Number(e.target.value));
           }}
           aria-label="Scrub movement replay"
-          className="flex-1 accent-[#d6a05a] h-6"
+          className="flex-1 min-w-0 accent-[#d6a05a] h-6"
         />
-        <span ref={timeRef} className="flex-none font-mono text-[9px] text-muted-foreground/80 tabular-nums w-[84px] text-right">
+        <span ref={timeRef} className="flex-none font-mono text-[9px] text-muted-foreground/80 tabular-nums flex-none text-right whitespace-nowrap">
           {fmtTime(0)} / {fmtTime(endSec)}
         </span>
       </div>

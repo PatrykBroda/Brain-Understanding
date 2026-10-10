@@ -3,6 +3,7 @@ import { Pause, Play } from "lucide-react";
 import {
   makePosePoints,
   sampleNormalisedInto,
+  sampleTrack,
   strokeSkeleton,
   type DecodedTrack,
 } from "@/lib/pose-track";
@@ -48,7 +49,6 @@ function CompareStage({
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    playback.reset(duration);
     const out = makePosePoints();
     const ta = makePosePoints();
     const tb = makePosePoints();
@@ -100,7 +100,18 @@ function CompareStage({
       });
     };
 
+    playback.reset(duration);
+    // Open on the first moment every lane actually has a pose (a clip rarely
+    // locks on at exactly 0:00) so the first frame is never an empty canvas.
+    let startAt = 0;
+    for (let t = 0; t <= duration; t += 0.1) {
+      if (lanes.every((l) => sampleTrack(l.frames, t) != null)) {
+        startAt = t;
+        break;
+      }
+    }
     const unsub = playback.subscribe(draw);
+    playback.emit(startAt);
     let raf = 0;
     let last = 0;
     const tick = (now: number) => {
@@ -182,7 +193,7 @@ function CompareStage({
             playback.seek(Number(e.target.value));
           }}
           aria-label="Scrub comparison"
-          className="flex-1 accent-[#d6a05a] h-6"
+          className="flex-1 min-w-0 accent-[#d6a05a] h-6"
         />
         <button
           type="button"
@@ -194,7 +205,7 @@ function CompareStage({
         >
           0.5x
         </button>
-        <span ref={timeRef} className="flex-none font-mono text-[9px] text-muted-foreground/80 tabular-nums w-[78px] text-right">
+        <span ref={timeRef} className="flex-none font-mono text-[9px] text-muted-foreground/80 tabular-nums flex-none text-right whitespace-nowrap">
           0.0s / {fmtSec(duration)}
         </span>
       </div>

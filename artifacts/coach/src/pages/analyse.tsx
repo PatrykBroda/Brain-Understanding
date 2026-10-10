@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Upload, Film, Crosshair, X, Download, ArrowUpRight, ArrowDownRight, Minus, Link2, Lock, ScrollText } from "lucide-react";
@@ -1518,8 +1518,8 @@ function FindingsTable({
           </thead>
           <tbody>
             {findings.map((f, i) => (
+              <Fragment key={i}>
               <tr
-                key={i}
                 className="border-b border-border/30 last:border-0"
               >
                 <td className="px-3 py-2.5 align-top">
@@ -1547,11 +1547,6 @@ function FindingsTable({
                       {f.nervousSystemFraming}
                     </div>
                   )}
-                  {keyframes && track && f.keyframeIndex != null && f.bodyRegion && (
-                    <div className="pt-1.5">
-                      <AnnotatedFindingFrame finding={f} keyframes={keyframes} track={track} onJump={onJump} />
-                    </div>
-                  )}
                 </td>
                 <td className="px-3 py-2.5 align-top">
                   <span
@@ -1567,6 +1562,14 @@ function FindingsTable({
                   </span>
                 </td>
               </tr>
+              {keyframes && track && f.keyframeIndex != null && f.bodyRegion && (
+                <tr className="border-b border-border/30 last:border-0">
+                  <td colSpan={3} className="px-3 pb-3">
+                    <AnnotatedFindingFrame finding={f} keyframes={keyframes} track={track} onJump={onJump} />
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             ))}
           </tbody>
         </table>
