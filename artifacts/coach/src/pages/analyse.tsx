@@ -31,11 +31,14 @@ import {
   captureKeyframe,
   disposeExtract,
   type ExtractResult,
+  type PoseFrame,
 } from "@/lib/pose";
 import { computeMetrics } from "@/lib/analysis-metrics";
-import { encodePoseTrack } from "@/lib/pose-track";
+import { OPPONENT_COLOR, YOU_COLOR, encodePoseTrack } from "@/lib/pose-track";
+import { detectTwoPeople, splitAthlete } from "@/lib/pose-people";
+import { PersonPicker, type PersonPickerData } from "@/components/person-picker";
 import { Playback } from "@/lib/playback";
-import { FootageBlock, useDecodedTrack } from "@/components/footage-player";
+import { FootageBlock, useDecodedOpponent, useDecodedTrack } from "@/components/footage-player";
 import { MovementGraphs } from "@/components/movement-graphs";
 import { AnnotatedFindingFrame } from "@/components/annotated-finding";
 import { PoseComparisons } from "@/components/pose-comparison";
@@ -90,6 +93,7 @@ type Phase =
   | { stage: "reading"; pct: number }
   | { stage: "tracking"; pct: number }
   | { stage: "detecting" }
+  | { stage: "pick" } // two people in the clip: waiting for "which one is you?"
   | { stage: "loading_ai" }
   | { stage: "error"; title: string; causes: string[]; retryable: boolean };
 
@@ -189,11 +193,24 @@ export default function AnalysePage() {
   const pendingFile = useRef<File | null>(null);
   const lastLink = useRef<string | null>(null);
   const videoUrlRef = useRef<string | null>(null);
+  // "Which one is you?" - the picker data plus the resolver the analysis run awaits.
+  const [pickData, setPickData] = useState<PersonPickerData | null>(null);
+  const pickResolve = useRef<((choice: 0 | 1 | null) => void) | null>(null);
+
+  function answerPick(choice: 0 | 1 | null) {
+    const resolve = pickResolve.current;
+    pickResolve.current = null;
+    setPickData(null);
+    resolve?.(choice);
+  }
 
   // Revoke any outstanding blob URL when the component unmounts
   useEffect(() => {
     return () => {
       if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
+      // Leaving mid-question: release the run (it disposes the video on the way out).
+      pickResolve.current?.(null);
+      pickResolve.current = null;
     };
   }, []);
 
@@ -245,7 +262,43 @@ export default function AnalysePage() {
       });
 
       setPhase({ stage: "detecting" });
-      const metrics = computeMetrics(extract.frames);
+
+      // Two people in the clip? Ask who is the athlete BEFORE anything is scored.
+      // Single-person clips (and opponent scouts) skip this and behave as before.
+      let athleteFrames = extract.frames;
+      let opponentFrames: PoseFrame[] | null = null;
+      const two = opponentMode ? null : detectTwoPeople(extract.people, extract.width, extract.height);
+      if (two) {
+        const shot = await captureKeyframe(extract, {
+          timestamp: extract.people[0]![two.pickerFrame]!.timestamp,
+          landmarks: null,
+        });
+        const a = extract.people[0]![two.pickerFrame]!.landmarks;
+        const b = extract.people[1]![two.pickerFrame]!.landmarks;
+        let choice: 0 | 1 = 0; // no usable still -> fall back to the suggestion rather than blocking
+        if (shot && a && b) {
+          const picked = await new Promise<0 | 1 | null>((resolve) => {
+            pickResolve.current = resolve;
+            setPickData({
+              image: shot,
+              aspect: extract!.width / extract!.height,
+              people: [{ landmarks: a }, { landmarks: b }],
+            });
+            setPhase({ stage: "pick" });
+          });
+          if (picked === null) {
+            setPhase({ stage: "idle" });
+            return;
+          }
+          choice = picked;
+          setPhase({ stage: "detecting" });
+        }
+        const split = splitAthlete(extract.people, choice);
+        athleteFrames = split.athlete;
+        opponentFrames = split.opponent;
+      }
+
+      const metrics = computeMetrics(athleteFrames);
 
       if (metrics.poseFrames < 3) {
         throw new Error(
@@ -255,9 +308,18 @@ export default function AnalysePage() {
 
       const keyframes: AnalysisKeyframe[] = [];
       for (const m of metrics.keyMoments) {
-        const frame = extract.frames.find((f) => Math.abs(f.timestamp - m.timestamp) < 0.001);
+        const fi = athleteFrames.findIndex((f) => Math.abs(f.timestamp - m.timestamp) < 0.001);
+        const frame = athleteFrames[fi];
         if (!frame) continue;
-        const img = await captureKeyframe(extract, frame);
+        // With an opponent in the clip the still shows you in blue and them in red.
+        const img = await captureKeyframe(
+          extract,
+          frame,
+          520,
+          opponentFrames
+            ? { youColor: YOU_COLOR, opponent: opponentFrames[fi]?.landmarks ?? null, opponentColor: OPPONENT_COLOR }
+            : undefined,
+        );
         if (img)
           keyframes.push({
             timestamp: m.timestamp,
@@ -288,7 +350,7 @@ export default function AnalysePage() {
         keyframes,
         // Per-frame landmarks (quantised) for overlay/graphs/annotations/comparisons.
         // null when too few frames locked or it would exceed the size cap.
-        poseTrack: encodePoseTrack(extract.frames, extract.width, extract.height),
+        poseTrack: encodePoseTrack(athleteFrames, extract.width, extract.height, opponentFrames),
         ...(opponentMode
           ? { subject: "opponent" as const, opponentName: opponentName.trim() }
           : {}),
@@ -734,8 +796,11 @@ export default function AnalysePage() {
 
       <WeeklyReportOverlay open={weeklyReportOpen} onClose={() => setWeeklyReportOpen(false)} />
 
-      {busy && (
+      {busy && phase.stage !== "pick" && (
         <CinematicOverlay phase={phase} kindLabel={KINDS.find((k) => k.value === kind)?.label ?? ""} />
+      )}
+      {phase.stage === "pick" && pickData && (
+        <PersonPicker data={pickData} onPick={answerPick} onCancel={() => answerPick(null)} />
       )}
       {danger && <div className="pointer-events-none fixed inset-0 z-0 frame-danger-glow" />}
     </div>
@@ -1148,6 +1213,7 @@ function WorkstationLeft({
   const updateNotes = useUpdateKeyframeNotes(analysis.id);
   const kf = analysis.keyframes[activeKf];
   const track = useDecodedTrack(analysis.poseTrack);
+  const opponent = useDecodedOpponent(analysis.poseTrack);
   // Footage (video or ghost) is available when there's a video or a track.
   const hasFootage = !!videoUrl || !!track;
 
@@ -1194,6 +1260,7 @@ function WorkstationLeft({
             <FootageBlock
               videoUrl={videoUrl}
               track={track}
+              opponent={opponent}
               events={analysis.detectedEvents ?? []}
               moments={analysis.replayMoments ?? []}
               durationSec={analysis.durationSec}
@@ -2120,6 +2187,7 @@ function Report({
   const footageRef = useRef<HTMLDivElement>(null);
   const kf = analysis.keyframes[activeKf];
   const track = useDecodedTrack(analysis.poseTrack);
+  const opponent = useDecodedOpponent(analysis.poseTrack);
   // The phone layout owns its own clock (the desktop workstation has another).
   const playback = useMemo(() => new Playback(), []);
   useEffect(() => {
@@ -2193,6 +2261,7 @@ function Report({
           <FootageBlock
             videoUrl={videoUrl}
             track={track}
+            opponent={opponent}
             events={analysis.detectedEvents ?? []}
             moments={analysis.replayMoments ?? []}
             durationSec={analysis.durationSec}

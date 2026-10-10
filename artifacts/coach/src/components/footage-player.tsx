@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play, ScanLine } from "lucide-react";
 import {
+  OPPONENT_COLOR,
+  OPPONENT_HEX,
+  YOU_COLOR,
+  YOU_HEX,
   blendInto,
   containRect,
+  decodeOpponentTrack,
   decodePoseTrack,
   makePosePoints,
   sampleTrack,
@@ -40,6 +45,31 @@ export function useDecodedTrack(wire: PoseTrackWire | null | undefined): Decoded
   return useMemo(() => (wire ? decodePoseTrack(wire) : null), [wire]);
 }
 
+/** Decode the opponent half of a wire track (two-person clips) once per object identity. */
+export function useDecodedOpponent(wire: PoseTrackWire | null | undefined): DecodedTrack | null {
+  return useMemo(() => (wire ? decodeOpponentTrack(wire) : null), [wire]);
+}
+
+/** "You (blue) · Opponent (red)" - shown whenever a clip has both people. */
+export function PeopleLegend() {
+  return (
+    <span
+      className="inline-flex items-center gap-3 font-mono text-[8px] uppercase tracking-widest text-muted-foreground/85"
+      data-testid="people-legend"
+    >
+      <span className="inline-flex items-center gap-1.5">
+        <i className="inline-block w-3.5 h-[3px]" style={{ background: YOU_HEX }} />
+        You (blue)
+      </span>
+      <span className="text-muted-foreground/40">·</span>
+      <span className="inline-flex items-center gap-1.5">
+        <i className="inline-block w-3.5 h-[3px]" style={{ background: OPPONENT_HEX }} />
+        Opponent (red)
+      </span>
+    </span>
+  );
+}
+
 function fmtTime(t: number): string {
   const s = Math.max(0, t);
   const m = Math.floor(s / 60);
@@ -75,6 +105,7 @@ type RVFCVideo = HTMLVideoElement & {
 export function SkeletonVideo({
   src,
   track,
+  opponent = null,
   playback,
   skeletonOn,
   className,
@@ -82,6 +113,8 @@ export function SkeletonVideo({
 }: {
   src: string;
   track: DecodedTrack | null;
+  /** The other person in the clip, when known. Then "you" is blue and they are red. */
+  opponent?: DecodedTrack | null;
   playback: Playback;
   skeletonOn: boolean;
   className?: string;
@@ -104,6 +137,7 @@ export function SkeletonVideo({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const pts: PosePoints = makePosePoints();
+    const oppPts: PosePoints = makePosePoints();
     let disposed = false;
     let rvfcId = 0;
     let rafId = 0;
@@ -114,18 +148,23 @@ export function SkeletonVideo({
       ctx.setTransform(fit.dpr, 0, 0, fit.dpr, 0, 0);
       ctx.clearRect(0, 0, fit.w, fit.h);
       if (!onRef.current || !track) return;
-      const s = sampleTrack(track.frames, t);
-      if (!s) return; // no honest pose here (lost lock) -> no skeleton
-      blendInto(pts, s);
       const r = containRect(fit.w, fit.h, video.videoWidth || track.w, video.videoHeight || track.h);
-      for (let i = 0; i < pts.x.length; i++) {
-        pts.x[i] = r.x + pts.x[i]! * r.w;
-        pts.y[i] = r.y + pts.y[i]! * r.h;
-      }
       const lw = Math.max(1.6, r.w / 260);
       const dot = Math.max(2, r.w / 150);
-      strokeSkeleton(ctx, pts, "rgba(0,0,0,0.55)", lw + 2.4, dot + 1.2);
-      strokeSkeleton(ctx, pts, SKELETON_GOLD, lw, dot);
+      const paint = (tr: DecodedTrack, buf: PosePoints, color: string) => {
+        const s = sampleTrack(tr.frames, t);
+        if (!s) return; // no honest pose here (lost lock) -> no skeleton
+        blendInto(buf, s);
+        for (let i = 0; i < buf.x.length; i++) {
+          buf.x[i] = r.x + buf.x[i]! * r.w;
+          buf.y[i] = r.y + buf.y[i]! * r.h;
+        }
+        strokeSkeleton(ctx, buf, "rgba(0,0,0,0.55)", lw + 2.4, dot + 1.2);
+        strokeSkeleton(ctx, buf, color, lw, dot);
+      };
+      // Opponent underneath, athlete on top.
+      if (opponent) paint(opponent, oppPts, OPPONENT_COLOR);
+      paint(track, pts, opponent ? YOU_COLOR : SKELETON_GOLD);
     };
 
     const unsub = playback.subscribe(draw);
@@ -185,7 +224,7 @@ export function SkeletonVideo({
       video.removeEventListener("timeupdate", emitNow);
       redrawRef.current = () => {};
     };
-  }, [track, playback, src]);
+  }, [track, opponent, playback, src]);
 
   return (
     <div className="relative w-full" data-testid="skeleton-video">
@@ -230,10 +269,12 @@ export function SkeletonToggle({ on, onChange }: { on: boolean; onChange: (v: bo
 
 export function GhostPlayer({
   track,
+  opponent = null,
   playback,
   duration,
 }: {
   track: DecodedTrack;
+  opponent?: DecodedTrack | null;
   playback: Playback;
   duration: number;
 }) {
@@ -253,6 +294,7 @@ export function GhostPlayer({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const pts = makePosePoints();
+    const oppPts = makePosePoints();
     playback.duration = Math.max(playback.duration, endSec);
 
     const draw = (t: number) => {
@@ -271,23 +313,28 @@ export function GhostPlayer({
       ctx.moveTo(0, fit.h * 0.97);
       ctx.lineTo(fit.w, fit.h * 0.97);
       ctx.stroke();
-      const s = sampleTrack(track.frames, t);
-      if (!s) {
+      const r = containRect(fit.w, fit.h, track.w, track.h);
+      const lw = Math.max(1.8, r.w / 200);
+      const dot = Math.max(2.2, r.w / 120);
+      const paint = (tr: DecodedTrack, buf: PosePoints, color: string): boolean => {
+        const s = sampleTrack(tr.frames, t);
+        if (!s) return false;
+        blendInto(buf, s);
+        for (let i = 0; i < buf.x.length; i++) {
+          buf.x[i] = r.x + buf.x[i]! * r.w;
+          buf.y[i] = r.y + buf.y[i]! * r.h;
+        }
+        strokeSkeleton(ctx, buf, color, lw, dot);
+        return true;
+      };
+      const oppDrawn = opponent ? paint(opponent, oppPts, OPPONENT_COLOR) : false;
+      const youDrawn = paint(track, pts, opponent ? YOU_COLOR : SKELETON_GOLD);
+      if (!youDrawn && !oppDrawn) {
         ctx.fillStyle = "rgba(255,255,255,0.35)";
         ctx.font = "10px ui-monospace, monospace";
         ctx.textAlign = "center";
         ctx.fillText("NO POSE LOCK HERE", fit.w / 2, fit.h / 2);
-        return;
       }
-      blendInto(pts, s);
-      const r = containRect(fit.w, fit.h, track.w, track.h);
-      for (let i = 0; i < pts.x.length; i++) {
-        pts.x[i] = r.x + pts.x[i]! * r.w;
-        pts.y[i] = r.y + pts.y[i]! * r.h;
-      }
-      const lw = Math.max(1.8, r.w / 200);
-      const dot = Math.max(2.2, r.w / 120);
-      strokeSkeleton(ctx, pts, SKELETON_GOLD, lw, dot);
     };
 
     const unsub = playback.subscribe(draw);
@@ -332,7 +379,7 @@ export function GhostPlayer({
       startRef.current = () => {};
       stopRef.current = () => {};
     };
-  }, [track, playback, endSec]);
+  }, [track, opponent, playback, endSec]);
 
   return (
     <div className="w-full space-y-2" data-testid="ghost-player">
@@ -341,6 +388,11 @@ export function GhostPlayer({
         <div className="absolute left-2 top-2 font-mono text-[8px] uppercase tracking-[0.3em] text-muted-foreground/70">
           Movement replay · footage not stored
         </div>
+        {opponent && (
+          <div className="absolute left-2 bottom-2">
+            <PeopleLegend />
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-3">
         <button
@@ -496,6 +548,7 @@ export function FootageTimeline({
 export function FootageBlock({
   videoUrl,
   track,
+  opponent = null,
   events,
   moments,
   durationSec,
@@ -505,6 +558,7 @@ export function FootageBlock({
 }: {
   videoUrl: string | null;
   track: DecodedTrack | null;
+  opponent?: DecodedTrack | null;
   events: DetectedEvent[];
   moments: ReplayMoment[];
   durationSec: number;
@@ -529,20 +583,25 @@ export function FootageBlock({
         <SkeletonVideo
           src={videoUrl}
           track={track}
+          opponent={opponent}
           playback={playback}
           skeletonOn={skeletonOn}
           className={videoClassName}
           style={videoStyle}
         />
       ) : track ? (
-        <GhostPlayer track={track} playback={playback} duration={duration} />
+        <GhostPlayer track={track} opponent={opponent} playback={playback} duration={duration} />
       ) : null}
       {videoUrl && track && (
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <SkeletonToggle on={skeletonOn} onChange={setSkeletonOn} />
-          <span className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/55 text-right">
-            measured pose · drawn live
-          </span>
+          {opponent ? (
+            <PeopleLegend />
+          ) : (
+            <span className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/55 text-right">
+              measured pose · drawn live
+            </span>
+          )}
         </div>
       )}
       <FootageTimeline duration={duration} events={events} moments={moments} playback={playback} />

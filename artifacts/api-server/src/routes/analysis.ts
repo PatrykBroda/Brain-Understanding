@@ -41,7 +41,7 @@ import {
   RemoteFetchError,
 } from "../lib/remoteFetch";
 import { downloadYouTube, YtDlpError } from "../lib/ytdlp";
-import { sanitisePoseTrack } from "../lib/poseTrack";
+import { sanitisePoseTrack, withoutOpponent } from "../lib/poseTrack";
 
 // The "Athlete Model Updated" payload — every value read back from the DB
 // after real writes, never estimated. Rendered under the FRAME REPORT.
@@ -910,7 +910,8 @@ router.get("/analysis/:id/compare-track", async (req, res) => {
       id: baseline.id,
       kind: baseline.kind,
       createdAt: baseline.createdAt,
-      poseTrack: track,
+      // Comparisons only ever need the athlete's own track, not the opponent half.
+      poseTrack: withoutOpponent(track),
     },
   });
 });

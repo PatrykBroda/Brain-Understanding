@@ -81,6 +81,36 @@ function scale(v: number, lo: number, hi: number): number {
   return clamp01((v - lo) / (hi - lo));
 }
 
+// Pose glitch guards. The per-frame ratios below divide by shoulder width, which
+// collapses when the athlete turns side-on (foreshortened shoulders) and turns a
+// normal pose into "stance 9 shoulder widths". Those frames are gapped (null),
+// never plotted or averaged. The same guards feed the scores AND the graphs.
+export const MIN_SHOULDER_W = 0.02; // absolute floor (normalised units)
+export const FORESHORTEN_RATIO = 0.5; // below this fraction of the clip median = foreshortened
+export const MAX_HAND_OFFSET = 3.0; // wrist can't sit further than this from the shoulder line
+export const MAX_STANCE = 5; // ankle gap can't exceed this many shoulder widths
+
+/**
+ * Per-clip shoulder-width floor: frames whose shoulders are much narrower than
+ * the clip's median are foreshortened/glitched, so shoulder-width ratios are
+ * not trusted there.
+ */
+export function shoulderFloor(frames: { landmarks: Landmark[] | null }[]): number {
+  const ws: number[] = [];
+  for (const f of frames) {
+    const lm = f.landmarks;
+    if (!lm) continue;
+    const ls = lm[L_SHOULDER];
+    const rs = lm[R_SHOULDER];
+    if (!vis(ls) || !vis(rs)) continue;
+    const w = dist(ls!, rs!);
+    if (w > MIN_SHOULDER_W) ws.push(w);
+  }
+  if (!ws.length) return MIN_SHOULDER_W;
+  ws.sort((a, b) => a - b);
+  return Math.max(MIN_SHOULDER_W, ws[Math.floor(ws.length / 2)]! * FORESHORTEN_RATIO);
+}
+
 export type PerFrame = {
   t: number;
   guardDrop: number | null; // wrist below shoulder, normalised by shoulder width (higher = hands lower)
@@ -98,19 +128,30 @@ export type PerFrame = {
  * "guard drop" score input AND the movement graphs, so they always agree:
  * guardDrop (below) is exactly the mean of the visible wrists' values.
  */
-export function wristDrops(lm: Landmark[]): { left: number | null; right: number | null } {
+export function wristDrops(
+  lm: Landmark[],
+  shoulderMin = MIN_SHOULDER_W,
+): { left: number | null; right: number | null } {
   const ls = lm[L_SHOULDER];
   const rs = lm[R_SHOULDER];
   const none = { left: null, right: null };
   if (!vis(ls) || !vis(rs)) return none;
   const shoulderW = dist(ls!, rs!);
-  if (shoulderW <= 0.02) return none;
+  if (shoulderW <= shoulderMin) return none;
   const shoulderY = (ls!.y + rs!.y) / 2;
-  const drop = (w: Landmark | undefined) => (vis(w) ? (w!.y - shoulderY) / shoulderW : null);
+  const drop = (w: Landmark | undefined) => {
+    if (!vis(w)) return null;
+    const d = (w!.y - shoulderY) / shoulderW;
+    // An arm can't reach this far from the shoulder line: it's a pose glitch.
+    return Math.abs(d) <= MAX_HAND_OFFSET ? d : null;
+  };
   return { left: drop(lm[L_WRIST]), right: drop(lm[R_WRIST]) };
 }
 
-export function analyseFrame(lm: Landmark[]): Omit<PerFrame, "t" | "energy"> {
+export function analyseFrame(
+  lm: Landmark[],
+  shoulderMin = MIN_SHOULDER_W,
+): Omit<PerFrame, "t" | "energy"> {
   const ls = lm[L_SHOULDER];
   const rs = lm[R_SHOULDER];
   const lh = lm[L_HIP];
@@ -125,9 +166,9 @@ export function analyseFrame(lm: Landmark[]): Omit<PerFrame, "t" | "energy"> {
   const haveShoulders = vis(ls) && vis(rs);
   const shoulderW = haveShoulders ? dist(ls!, rs!) : 0;
 
-  if (haveShoulders && shoulderW > 0.02) {
+  if (haveShoulders && shoulderW > shoulderMin) {
     const shoulderY = (ls!.y + rs!.y) / 2;
-    const drops = wristDrops(lm);
+    const drops = wristDrops(lm, shoulderMin);
     const visibleDrops = [drops.left, drops.right].filter((d): d is number => d != null);
     if (visibleDrops.length) guardDrop = mean(visibleDrops); // >0 hands below shoulders
     const ears = [lm[L_EAR], lm[R_EAR]].filter((e) => vis(e)) as Landmark[];
@@ -146,10 +187,13 @@ export function analyseFrame(lm: Landmark[]): Omit<PerFrame, "t" | "energy"> {
 
   if (vis(lh) && vis(rh)) {
     hipMidX = (lh!.x + rh!.x) / 2;
-    if (shoulderW > 0.02) {
+    if (shoulderW > shoulderMin) {
       const la = lm[L_ANKLE];
       const ra = lm[R_ANKLE];
-      if (vis(la) && vis(ra)) stance = dist(la!, ra!) / shoulderW;
+      if (vis(la) && vis(ra)) {
+        const st = dist(la!, ra!) / shoulderW;
+        stance = st <= MAX_STANCE ? st : null; // beyond this is a glitch, not a stance
+      }
     }
   }
 
@@ -175,12 +219,13 @@ export function computeMetrics(frames: PoseFrame[]): MetricsResult {
   const per: PerFrame[] = [];
   let prev: Landmark[] | null = null;
   let prevT = 0;
+  const shoulderMin = shoulderFloor(frames);
   for (const f of frames) {
     if (!f.landmarks) {
       prev = null;
       continue;
     }
-    const base = analyseFrame(f.landmarks);
+    const base = analyseFrame(f.landmarks, shoulderMin);
     let energy: number | null = null;
     if (prev) {
       const ds: number[] = [];
