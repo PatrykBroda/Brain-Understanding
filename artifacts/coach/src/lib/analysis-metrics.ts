@@ -81,7 +81,7 @@ function scale(v: number, lo: number, hi: number): number {
   return clamp01((v - lo) / (hi - lo));
 }
 
-type PerFrame = {
+export type PerFrame = {
   t: number;
   guardDrop: number | null; // wrist below shoulder, normalised by shoulder width (higher = hands lower)
   shrug: number | null; // ear-to-shoulder gap / shoulder width (lower = shoulders up = tension)
@@ -91,7 +91,26 @@ type PerFrame = {
   energy: number | null; // total joint displacement vs previous frame
 };
 
-function analyseFrame(lm: Landmark[]): Omit<PerFrame, "t" | "energy"> {
+/**
+ * Per-wrist guard drop: how far each wrist sits below the shoulder line, in
+ * shoulder widths (>0 = hand below the shoulders). null when the shoulders (or
+ * that wrist) aren't reliably visible. This is the single definition behind the
+ * "guard drop" score input AND the movement graphs, so they always agree:
+ * guardDrop (below) is exactly the mean of the visible wrists' values.
+ */
+export function wristDrops(lm: Landmark[]): { left: number | null; right: number | null } {
+  const ls = lm[L_SHOULDER];
+  const rs = lm[R_SHOULDER];
+  const none = { left: null, right: null };
+  if (!vis(ls) || !vis(rs)) return none;
+  const shoulderW = dist(ls!, rs!);
+  if (shoulderW <= 0.02) return none;
+  const shoulderY = (ls!.y + rs!.y) / 2;
+  const drop = (w: Landmark | undefined) => (vis(w) ? (w!.y - shoulderY) / shoulderW : null);
+  return { left: drop(lm[L_WRIST]), right: drop(lm[R_WRIST]) };
+}
+
+export function analyseFrame(lm: Landmark[]): Omit<PerFrame, "t" | "energy"> {
   const ls = lm[L_SHOULDER];
   const rs = lm[R_SHOULDER];
   const lh = lm[L_HIP];
@@ -108,11 +127,9 @@ function analyseFrame(lm: Landmark[]): Omit<PerFrame, "t" | "energy"> {
 
   if (haveShoulders && shoulderW > 0.02) {
     const shoulderY = (ls!.y + rs!.y) / 2;
-    const wrists = [lm[L_WRIST], lm[R_WRIST]].filter((w) => vis(w)) as Landmark[];
-    if (wrists.length) {
-      const wristY = mean(wrists.map((w) => w.y));
-      guardDrop = (wristY - shoulderY) / shoulderW; // >0 hands below shoulders
-    }
+    const drops = wristDrops(lm);
+    const visibleDrops = [drops.left, drops.right].filter((d): d is number => d != null);
+    if (visibleDrops.length) guardDrop = mean(visibleDrops); // >0 hands below shoulders
     const ears = [lm[L_EAR], lm[R_EAR]].filter((e) => vis(e)) as Landmark[];
     if (ears.length) {
       const earY = mean(ears.map((e) => e.y));

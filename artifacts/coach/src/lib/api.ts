@@ -527,6 +527,9 @@ export type AnalysisFinding = {
   nervousSystemFraming: string;
   severity: "low" | "medium" | "high";
   area: string;
+  // Optional grounded visual (both or neither): the real keyframe + body region.
+  keyframeIndex?: number;
+  bodyRegion?: BodyRegion;
 };
 
 export type AnalysisSignal = {
@@ -543,6 +546,9 @@ export type AnalysisMetrics = {
   loadBasis: string;
   signals: AnalysisSignal[];
 };
+
+export type { BodyRegion, PoseTrackWire } from "./pose-track";
+import type { BodyRegion, PoseTrackWire } from "./pose-track";
 
 export type AnalysisKeyframe = {
   timestamp: number;
@@ -623,6 +629,8 @@ export type VideoAnalysis = {
   metrics: AnalysisMetrics;
   keyframes: AnalysisKeyframe[];
   keyframeNotes: Record<number, string>;
+  // Quantised per-frame landmarks. Null/absent on analyses saved before tracks existed.
+  poseTrack?: PoseTrackWire | null;
   reviewQuestion: string;
   reviewAnswer: string;
   replayMoments: ReplayMoment[];
@@ -697,6 +705,7 @@ export type CreateAnalysisInput = {
   scores: AnalysisScore[];
   detectedEvents: DetectedEvent[];
   keyframes: AnalysisKeyframe[];
+  poseTrack?: PoseTrackWire | null;
   // Opponent Mode. Defaults to a "self" read server-side when omitted.
   subject?: AnalysisSubject;
   opponentName?: string;
@@ -818,6 +827,11 @@ export const analysisApi = {
       method: "POST",
       body: JSON.stringify(input),
     }),
+  // Baseline pose track for comparison views (null baseline = nothing real to compare).
+  compareTrack: (id: number, withId?: number | null) =>
+    jsonFetch<{
+      baseline: { id: number; kind: AnalysisKind; createdAt: string; poseTrack: PoseTrackWire } | null;
+    }>(`api/analysis/${id}/compare-track${withId != null ? `?withId=${withId}` : ""}`),
   updateNotes: (id: number, notes: Record<number, string>) =>
     jsonFetch<{ analysis: VideoAnalysis }>(`api/analysis/${id}/notes`, {
       method: "PATCH",
