@@ -19,11 +19,11 @@ export function AnnotatedFindingFrame({
 }) {
   const v = useMemo(() => buildFindingVisual(finding, keyframes, track), [finding, keyframes, track]);
   if (!v) return null;
-  const sw = 1.1;
+  const sw = 1.5;
   return (
     <figure className="space-y-1.5" data-testid="annotated-finding">
       <div
-        className="relative w-full max-w-[340px] border border-border/40 bg-black overflow-hidden"
+        className="relative w-full max-w-[520px] border border-border/40 bg-black overflow-hidden"
         style={{ aspectRatio: String(v.vbW / 100) }}
       >
         <img src={v.keyframe.imageBase64} alt={v.keyframe.caption} className="absolute inset-0 w-full h-full" />
@@ -68,7 +68,7 @@ export function AnnotatedFindingFrame({
             x={v.labelPos.x}
             y={v.labelPos.y}
             textAnchor={v.labelPos.anchor}
-            fontSize={3.4}
+            fontSize={4.2}
             fontFamily="ui-monospace, monospace"
             letterSpacing={0.4}
             fill={RING}

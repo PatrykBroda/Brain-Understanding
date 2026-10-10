@@ -219,36 +219,54 @@ function visOk(lm: Landmark | undefined, min = 0.5): lm is Landmark {
   return !!lm && lm.visibility >= min;
 }
 
+// Per-frame facing cues, in torso lengths (>0 = facing image-right).
+const FOOT_FACING_MIN = 0.08;
+const HEAD_FACING_MIN = 0.06;
+
 /**
- * Which side is forward, measured — never assumed. In a profile-ish view the
- * nose sits ahead of the ear line, which tells us the facing direction; the
- * ankle further along that direction is the lead foot. We only call it when
- * enough frames agree. Frontal / ambiguous footage returns null, and every
- * visual that needs "lead"/"rear" is then hidden or labelled left/right.
+ * Which side is forward, measured — never assumed. The facing direction comes
+ * from where the toes point relative to the heels (the steadiest cue in a
+ * profile-ish view), falling back to the nose sitting ahead of the ear line;
+ * the ankle further along that direction is the lead foot. We only call it when
+ * enough frames agree. Frontal footage, or movement that keeps turning (kata,
+ * circling), returns null — and every visual that needs "lead"/"rear" is then
+ * hidden or labelled left/right instead.
  */
 export function inferLeadSide(frames: PosedFrame[]): LeadSide | null {
   let left = 0;
   let right = 0;
   for (const f of frames) {
     const lm = f.landmarks;
-    const nose = lm[LM.NOSE];
-    const le = lm[LM.L_EAR];
-    const re = lm[LM.R_EAR];
     const ls = lm[LM.L_SHOULDER];
     const rs = lm[LM.R_SHOULDER];
     const lh = lm[LM.L_HIP];
     const rh = lm[LM.R_HIP];
     const la = lm[LM.L_ANKLE];
     const ra = lm[LM.R_ANKLE];
-    if (!visOk(nose) || !visOk(ls) || !visOk(rs) || !visOk(lh) || !visOk(rh)) continue;
-    if (!visOk(la) || !visOk(ra)) continue;
-    const ears = [le, re].filter((e): e is Landmark => visOk(e));
-    if (!ears.length) continue;
-    const earX = ears.reduce((s, e) => s + e.x, 0) / ears.length;
+    if (!visOk(ls) || !visOk(rs) || !visOk(lh) || !visOk(rh)) continue;
+    if (!visOk(la, 0.4) || !visOk(ra, 0.4)) continue;
     const torso = Math.hypot((ls.x + rs.x) / 2 - (lh.x + rh.x) / 2, (ls.y + rs.y) / 2 - (lh.y + rh.y) / 2);
     if (torso < 0.05) continue;
-    const facing = (nose.x - earX) / torso; // >0: facing image-right
-    if (Math.abs(facing) < 0.06) continue;
+
+    let facing = 0;
+    const lHeel = lm[29];
+    const rHeel = lm[30];
+    const lToe = lm[31];
+    const rToe = lm[32];
+    if (visOk(lHeel, 0.4) && visOk(rHeel, 0.4) && visOk(lToe, 0.4) && visOk(rToe, 0.4)) {
+      const foot = ((lToe.x - lHeel.x) + (rToe.x - rHeel.x)) / 2 / torso;
+      if (Math.abs(foot) >= FOOT_FACING_MIN) facing = foot;
+    }
+    if (facing === 0) {
+      const nose = lm[LM.NOSE];
+      const ears = [lm[LM.L_EAR], lm[LM.R_EAR]].filter((e): e is Landmark => visOk(e));
+      if (visOk(nose) && ears.length) {
+        const head = (nose.x - ears.reduce((sum, e) => sum + e.x, 0) / ears.length) / torso;
+        if (Math.abs(head) >= HEAD_FACING_MIN) facing = head;
+      }
+    }
+    if (facing === 0) continue;
+
     const sep = (la.x - ra.x) / torso;
     if (Math.abs(sep) < 0.15) continue;
     const leadIsLeft = facing > 0 ? la.x > ra.x : la.x < ra.x;

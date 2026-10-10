@@ -12,6 +12,7 @@ export type FigureOpts = {
   handsUp?: number; // wrist height above shoulder line, in shoulder widths
   stance?: number; // ankle gap in shoulder widths
   lean?: number; // shoulders offset from hips, in torso lengths (+ = image-right)
+  toes?: number; // toe-minus-heel offset in the facing direction (image units); 0 = feet give no facing cue
   vis?: number;
 };
 
@@ -25,6 +26,7 @@ export function figure(o: FigureOpts = {}): Landmark[] {
     handsUp = 0.3,
     stance = 1.6,
     lean = 0,
+    toes = 0.05,
     vis = 0.9,
   } = o;
   const torso = 0.22 * scale;
@@ -71,13 +73,13 @@ export function figure(o: FigureOpts = {}): Landmark[] {
   set(28, leadLeft ? backX : frontX, ankleY);
   set(25, (leadLeft ? frontX : backX) * 0.5 + cx * 0.5, hipY + 0.22 * scale);
   set(26, (leadLeft ? backX : frontX) * 0.5 + cx * 0.5, hipY + 0.22 * scale);
-  for (const [i, base] of [
-    [29, 27],
-    [31, 27],
-    [30, 28],
-    [32, 28],
+  for (const [i, base, dir] of [
+    [29, 27, -0.3],
+    [31, 27, 0.7],
+    [30, 28, -0.3],
+    [32, 28, 0.7],
   ] as const) {
-    set(i, lm[base]!.x + 0.01, lm[base]!.y + 0.01);
+    set(i, lm[base]!.x + facing * dir * toes * scale, lm[base]!.y + 0.01);
   }
   return lm;
 }

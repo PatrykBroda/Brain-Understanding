@@ -1,4 +1,4 @@
-import { BODY_REGIONS, type BodyRegion, type PoseTrack } from "@workspace/db";
+import type { PoseTrack } from "@workspace/db";
 
 // Server side of the compact pose-track wire format (v1). The browser quantises
 // the per-frame BlazePose landmarks (see artifacts/coach/src/lib/pose-track.ts —
@@ -66,8 +66,4 @@ export function trackHasFrameNear(
   if (!track) return false;
   const ms = timestampSec * 1000;
   return track.t.some((x) => Math.abs(x - ms) <= tolSec * 1000);
-}
-
-export function isBodyRegion(v: unknown): v is BodyRegion {
-  return typeof v === "string" && (BODY_REGIONS as readonly string[]).includes(v);
 }

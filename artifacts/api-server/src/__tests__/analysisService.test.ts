@@ -38,6 +38,7 @@ import {
   buildReplayMoments,
   buildCampReview,
   resolveFindingEvidence,
+  isBodyRegion,
   isValidSubject,
   gateMatchup,
   MIN_FACTS_FOR_MATCHUP,
@@ -608,6 +609,16 @@ describe("gateMatchup", () => {
 
   it("returns the matchup when both sides are well above the floors", () => {
     expect(gateMatchup(sampleMatchup, 12, 9)).toBe(sampleMatchup);
+  });
+});
+
+describe("isBodyRegion", () => {
+  it("only accepts the fixed region enum", () => {
+    expect(isBodyRegion("lead_hand")).toBe(true);
+    expect(isBodyRegion("torso")).toBe(true);
+    expect(isBodyRegion("left_pinky")).toBe(false);
+    expect(isBodyRegion(3)).toBe(false);
+    expect(isBodyRegion(undefined)).toBe(false);
   });
 });
 

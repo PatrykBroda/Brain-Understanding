@@ -1,24 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
-
-vi.mock("@workspace/db", () => ({
-  BODY_REGIONS: [
-    "lead_hand",
-    "rear_hand",
-    "head",
-    "hips",
-    "lead_foot",
-    "rear_foot",
-    "lead_knee",
-    "rear_knee",
-    "shoulders",
-    "torso",
-  ],
-}));
+import { describe, it, expect } from "vitest";
 
 import {
   sanitisePoseTrack,
   trackHasFrameNear,
-  isBodyRegion,
   POSE_BYTES_PER_FRAME,
   POSE_TRACK_MAX_BYTES,
   POSE_TRACK_MAX_FRAMES,
@@ -111,17 +95,12 @@ describe("sanitisePoseTrack — rejects bad input", () => {
   });
 });
 
-describe("trackHasFrameNear / isBodyRegion", () => {
+describe("trackHasFrameNear", () => {
   const track = sanitisePoseTrack(validTrack(8))!;
   it("matches a frame within tolerance and rejects a far timestamp", () => {
     expect(trackHasFrameNear(track, 0.5)).toBe(true);
     expect(trackHasFrameNear(track, 0.52)).toBe(true);
     expect(trackHasFrameNear(track, 0.6)).toBe(false);
     expect(trackHasFrameNear(null, 0.5)).toBe(false);
-  });
-  it("only accepts the fixed region enum", () => {
-    expect(isBodyRegion("lead_hand")).toBe(true);
-    expect(isBodyRegion("left_pinky")).toBe(false);
-    expect(isBodyRegion(3)).toBe(false);
   });
 });

@@ -24,7 +24,7 @@ import {
   REPLAY_ROLES,
   BODY_REGIONS,
 } from "@workspace/db";
-import { isBodyRegion, trackHasFrameNear } from "./poseTrack";
+import { trackHasFrameNear } from "./poseTrack";
 import { ONTOLOGY_KEYS, isOntologyKey } from "@workspace/ontology";
 import { COACH_SYSTEM_PROMPT_STATIC, buildDynamicContext } from "./synochi";
 
@@ -197,6 +197,10 @@ export function buildReplayMoments(
     });
   }
   return out;
+}
+
+export function isBodyRegion(v: unknown): v is BodyRegion {
+  return typeof v === "string" && (BODY_REGIONS as readonly string[]).includes(v);
 }
 
 const SIDED_REGIONS = new Set<BodyRegion>([
