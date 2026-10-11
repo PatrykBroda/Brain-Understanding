@@ -19,7 +19,8 @@ export type PersonPickerData = {
 
 const COLORS = [YOU_HEX, OPPONENT_HEX] as const;
 const NAMES = ["Blue", "Red"] as const;
-const VIS = 0.3;
+// Same threshold the picker still was chosen with (poseQuality): draw only joints the model is sure of.
+const VIS = 0.5;
 
 function Skeleton({ lm, vbW, color }: { lm: Landmark[]; vbW: number; color: string }) {
   const x = (p: Landmark) => p.x * vbW;
