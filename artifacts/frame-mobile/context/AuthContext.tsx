@@ -1,6 +1,6 @@
 /**
  * Custom auth context for the mobile app — replaces @clerk/clerk-expo.
- * JWT is stored in SecureStore under "frame:token".
+ * JWT is stored in SecureStore under "frame.token".
  * Provides: isLoaded, isSignedIn, userId, email, getToken, signOut.
  */
 
@@ -19,7 +19,10 @@ import {
   parseSessionToken,
 } from "@/lib/authSession";
 
-const TOKEN_KEY = "frame:token";
+// SecureStore keys may only contain letters, digits, ".", "-" and "_". The old
+// "frame:token" key was rejected, so the login never saved and every cold start
+// signed the user out.
+const TOKEN_KEY = "frame.token";
 
 interface AuthState {
   isLoaded: boolean;
