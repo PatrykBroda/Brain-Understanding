@@ -52,3 +52,19 @@ export class Playback {
     this.emit(0);
   }
 }
+
+export const SNAP_PX = 14;
+
+/** Timestamp of the marker nearest to x (px along a bar of `width`), or null if none is within SNAP_PX. */
+export function nearestMarker(timestamps: number[], dur: number, x: number, width: number): number | null {
+  let best: number | null = null;
+  let bestD = SNAP_PX + 1e-6;
+  for (const t of timestamps) {
+    const d = Math.abs((Math.min(1, Math.max(0, t / dur)) * width) - x);
+    if (d <= bestD) {
+      best = t;
+      bestD = d;
+    }
+  }
+  return best;
+}

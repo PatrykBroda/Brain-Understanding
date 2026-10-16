@@ -15,7 +15,7 @@ import {
   type DecodedTrack,
   type PosePoints,
 } from "@/lib/pose-track";
-import type { Playback } from "@/lib/playback";
+import { nearestMarker, type Playback } from "@/lib/playback";
 import type { DetectedEvent, PoseTrackWire, ReplayMoment } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
@@ -451,11 +451,27 @@ export function FootageTimeline({
     });
   }, [playback, dur]);
 
-  function seekFromPointer(clientX: number) {
+  // Markers can sit a few px apart (events a quarter-second apart on a long clip), so per-marker
+  // hit boxes overlapped and a tap seeked to whichever sat on top. Instead the bar owns every
+  // pointer: a press within SNAP_PX of a marker jumps to the NEAREST one, anywhere else seeks to
+  // the pointer. The marker buttons stay in the tab order for keyboard use.
+  function seekFromPointer(clientX: number, snap = false) {
     const bar = barRef.current;
     if (!bar) return;
     const rect = bar.getBoundingClientRect();
     if (rect.width <= 0) return;
+    if (snap) {
+      const hit = nearestMarker(
+        [...events.map((e) => e.timestamp), ...moments.map((m) => m.timestamp)],
+        dur,
+        clientX - rect.left,
+        rect.width,
+      );
+      if (hit != null) {
+        playback.seek(hit);
+        return;
+      }
+    }
     playback.seek(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) * dur);
   }
 
@@ -474,7 +490,7 @@ export function FootageTimeline({
         style={{ touchAction: "pan-y" }}
         onPointerDown={(e) => {
           (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-          seekFromPointer(e.clientX);
+          seekFromPointer(e.clientX, true);
         }}
         onPointerMove={(e) => {
           if (e.buttons) seekFromPointer(e.clientX);
@@ -487,9 +503,8 @@ export function FootageTimeline({
             type="button"
             title={`${ev.label} · ${ev.timestamp.toFixed(1)}s`}
             aria-label={`${ev.label} at ${ev.timestamp.toFixed(1)} seconds`}
-            onPointerDown={(e) => e.stopPropagation()}
             onClick={() => playback.seek(ev.timestamp)}
-            className="absolute top-0 h-[22px] w-5 -ml-2.5 flex items-center justify-center"
+            className="absolute top-0 h-[22px] w-5 -ml-2.5 flex items-center justify-center pointer-events-none"
             style={{ left: `${Math.min(100, (ev.timestamp / dur) * 100)}%` }}
             data-testid="timeline-event"
           >
@@ -502,9 +517,8 @@ export function FootageTimeline({
             type="button"
             title={`${m.label} · ${m.timestamp.toFixed(1)}s`}
             aria-label={`${m.label} at ${m.timestamp.toFixed(1)} seconds`}
-            onPointerDown={(e) => e.stopPropagation()}
             onClick={() => playback.seek(m.timestamp)}
-            className="absolute bottom-0 h-[22px] w-5 -ml-2.5 flex items-center justify-center"
+            className="absolute bottom-0 h-[22px] w-5 -ml-2.5 flex items-center justify-center pointer-events-none"
             style={{ left: `${Math.min(100, (m.timestamp / dur) * 100)}%` }}
             data-testid="timeline-moment"
           >
