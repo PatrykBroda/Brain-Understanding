@@ -74,16 +74,39 @@ export function skeletonSane(lm: Landmark[], w: number, h: number): boolean {
 
 export type ScrubResult = { frames: PoseFrame[]; judged: number; dropped: number };
 
-/** Same frames, with impossible skeletons turned into "no lock" (null landmarks). */
+// A joint the model places outside the picture (an athlete cut off by the frame edge, or a crop
+// of a wider shot) is a guess, not a measurement: it is marked not-visible so it is neither drawn
+// nor measured (and the lead-side / guard maths simply don't see it).
+const OFF_FRAME_MARGIN = 0.02;
+
+export function maskOffFrame(lm: Landmark[]): Landmark[] {
+  let any = false;
+  const out = lm.map((p) => {
+    if (p.visibility > 0 && (p.x < -OFF_FRAME_MARGIN || p.x > 1 + OFF_FRAME_MARGIN || p.y < -OFF_FRAME_MARGIN || p.y > 1 + OFF_FRAME_MARGIN)) {
+      any = true;
+      return { ...p, visibility: 0 };
+    }
+    return p;
+  });
+  return any ? out : lm;
+}
+
+/**
+ * Same frames, with off-frame joints hidden and impossible skeletons turned into "no lock"
+ * (null landmarks). Inputs are never mutated.
+ */
 export function scrubInsaneSkeletons(frames: PoseFrame[], w: number, h: number): ScrubResult {
   let judged = 0;
   let dropped = 0;
   const out = frames.map((f) => {
     if (!f.landmarks) return f;
     judged++;
-    if (skeletonSane(f.landmarks, w, h)) return f;
-    dropped++;
-    return { ...f, landmarks: null };
+    const lm = maskOffFrame(f.landmarks);
+    if (!skeletonSane(lm, w, h)) {
+      dropped++;
+      return { ...f, landmarks: null };
+    }
+    return lm === f.landmarks ? f : { ...f, landmarks: lm };
   });
   return { frames: out, judged, dropped };
 }
