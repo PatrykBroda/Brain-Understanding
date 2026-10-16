@@ -111,6 +111,15 @@ export function scrubInsaneSkeletons(frames: PoseFrame[], w: number, h: number):
   return { frames: out, judged, dropped };
 }
 
+/** Angle (degrees, 0-180) of the shoulders-above-hips axis from vertical, or null when the torso is not visible. */
+export function torsoTiltDeg(lm: Landmark[], w: number, h: number): number | null {
+  const ok = (i: number) => (lm[i]?.visibility ?? 0) >= VIS;
+  if (![11, 12, 23, 24].every(ok)) return null;
+  const vx = ((lm[11]!.x + lm[12]!.x) / 2 - (lm[23]!.x + lm[24]!.x) / 2) * w;
+  const vy = ((lm[23]!.y + lm[24]!.y) / 2 - (lm[11]!.y + lm[12]!.y) / 2) * h; // + = shoulders above hips
+  return Math.abs(Math.atan2(vx, vy)) * (180 / Math.PI);
+}
+
 // ---------------------------------------------------------------------------
 // Clip-level verdict: is this track good enough to DRAW (overlay, ghost, graphs, annotated
 // findings, comparisons)? Calibrated on 19 real clips (jobs/frame-tracking/clips): standing
@@ -173,10 +182,8 @@ export function trackReliability(
       ((lm[11]!.x + lm[12]!.x) / 2 - (lm[23]!.x + lm[24]!.x) / 2) * w,
       ((lm[11]!.y + lm[12]!.y) / 2 - (lm[23]!.y + lm[24]!.y) / 2) * h,
     );
-    const vx = (lm[11]!.x + lm[12]!.x) / 2 - (lm[23]!.x + lm[24]!.x) / 2;
-    const vy = (lm[23]!.y + lm[24]!.y) / 2 - (lm[11]!.y + lm[12]!.y) / 2; // + = shoulders above hips
     judgedTorso++;
-    if (Math.abs(Math.atan2(vx * w, vy * h)) * (180 / Math.PI) > TILT_DEG) tilted++;
+    if ((torsoTiltDeg(lm, w, h) ?? 0) > TILT_DEG) tilted++;
     if (prev && f.timestamp - prev.t <= 0.6 && torso + prev.torso > 0) {
       dT.push(Math.abs(torso - prev.torso) / ((torso + prev.torso) / 2));
     }
