@@ -84,6 +84,22 @@ describe("trackReliability", () => {
     expect(r.reasons.join(" ")).toMatch(/impossible/);
   });
 
+  it("is low when the body is mostly horizontal (ground work, lying down, rotated video)", () => {
+    const lying = frames(40, (i) => ({ cx: 0.4 + (i % 8) * 0.01 })).map((f) => ({
+      ...f,
+      // rotate the whole figure 90 degrees about its hip centre (image coordinates, y down)
+      landmarks: f.landmarks!.map((p) => ({ ...p, x: 0.5 + (p.y - 0.55) * (H / W), y: 0.55 - (p.x - 0.5) * (W / H) })),
+    }));
+    const r = rel(lying);
+    expect(r.level).toBe("low");
+    expect(r.reasons.join(" ")).toMatch(/horizontal/);
+    expect(r.tiltedShare).toBeGreaterThan(0.9);
+  });
+
+  it("an upright clip is not tilted", () => {
+    expect(rel(frames(40, () => ({}))).tiltedShare).toBe(0);
+  });
+
   it("one-off glitches in an otherwise good clip do not fail it", () => {
     const fs = frames(40, (i) => ({ cx: 0.4 + (i % 8) * 0.01 }));
     fs[10]!.landmarks![15] = { x: 0.01, y: 0.99, z: 0, visibility: 0.9 };
