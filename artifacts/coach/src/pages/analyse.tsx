@@ -220,6 +220,17 @@ export default function AnalysePage() {
     };
   }, []);
 
+  // The upload form is taller than a phone screen and the error renders under it: after the
+  // progress overlay closes the user would be looking at an unchanged form with no sign anything
+  // went wrong. Bring the error into view.
+  useEffect(() => {
+    if (phase.stage !== "error") return;
+    const id = requestAnimationFrame(() => {
+      document.querySelector('[data-testid="analyse-error"]')?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [phase.stage]);
+
   const busy = phase.stage !== "idle" && phase.stage !== "error";
   const danger = result?.fragmentationRisk === "high" || result?.nervousSystemLoad === "high";
   // Retry is offered when there's something to retry: a picked file, or a link
@@ -756,7 +767,7 @@ export default function AnalysePage() {
               </section>
 
               {phase.stage === "error" && (
-                <div className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
+                <div data-testid="analyse-error" role="alert" className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
                   <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
                     {phase.title}
                   </div>
@@ -1185,7 +1196,7 @@ function UploadControls({
       </section>
 
       {phase.stage === "error" && (
-        <div className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
+        <div data-testid="analyse-error" role="alert" className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
           <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
             {phase.title}
           </div>
