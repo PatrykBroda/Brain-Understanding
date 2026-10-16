@@ -122,6 +122,10 @@ export function scrubInsaneSkeletons(frames: PoseFrame[], w: number, h: number):
 const MIN_POSED_SHARE = 0.25; // of sampled frames
 const MIN_SANE_SHARE = 0.75; // of posed frames
 const MAX_TORSO_JITTER = 0.25; // median |change in torso length| between consecutive samples
+// Guard/stance/level are defined for an upright athlete. Calibrated: standing work is tilted past
+// 60 degrees in under ~7% of frames; floor grappling / lying / rotated video in 60-90%.
+const TILT_DEG = 60;
+const MAX_TILTED_SHARE = 0.5;
 
 export type TrackReliability = {
   level: "good" | "low";
@@ -130,6 +134,8 @@ export type TrackReliability = {
   posedShare: number;
   saneShare: number;
   torsoJitter: number;
+  /** Share of judged frames whose torso is more than 60 degrees off vertical. */
+  tiltedShare: number;
 };
 
 function median(a: number[]): number {
@@ -149,6 +155,8 @@ export function trackReliability(
   const posedShare = frames.length ? posed / (frames.length || 1) : 0;
   const sane = scrubbed.judged ? 1 - scrubbed.dropped / scrubbed.judged : 0;
   const dT: number[] = [];
+  let tilted = 0;
+  let judgedTorso = 0;
   let prev: { t: number; torso: number } | null = null;
   for (const f of frames) {
     const lm = f.landmarks;
@@ -165,15 +173,22 @@ export function trackReliability(
       ((lm[11]!.x + lm[12]!.x) / 2 - (lm[23]!.x + lm[24]!.x) / 2) * w,
       ((lm[11]!.y + lm[12]!.y) / 2 - (lm[23]!.y + lm[24]!.y) / 2) * h,
     );
+    const vx = (lm[11]!.x + lm[12]!.x) / 2 - (lm[23]!.x + lm[24]!.x) / 2;
+    const vy = (lm[23]!.y + lm[24]!.y) / 2 - (lm[11]!.y + lm[12]!.y) / 2; // + = shoulders above hips
+    judgedTorso++;
+    if (Math.abs(Math.atan2(vx * w, vy * h)) * (180 / Math.PI) > TILT_DEG) tilted++;
     if (prev && f.timestamp - prev.t <= 0.6 && torso + prev.torso > 0) {
       dT.push(Math.abs(torso - prev.torso) / ((torso + prev.torso) / 2));
     }
     prev = { t: f.timestamp, torso };
   }
   const torsoJitter = median(dT);
+  const tiltedShare = judgedTorso ? tilted / judgedTorso : 0;
   const reasons: string[] = [];
   if (posedShare < MIN_POSED_SHARE) reasons.push("the athlete was found in only a small part of the clip");
   if (scrubbed.judged >= 5 && sane < MIN_SANE_SHARE) reasons.push("many skeletons were physically impossible (a folded or twisted body)");
   if (dT.length >= 5 && torsoJitter > MAX_TORSO_JITTER) reasons.push("the body outline kept jumping between frames (close-up or heavy overlap)");
-  return { level: reasons.length ? "low" : "good", reasons, posedShare, saneShare: sane, torsoJitter };
+  if (judgedTorso >= 5 && tiltedShare > MAX_TILTED_SHARE)
+    reasons.push("the body was mostly horizontal or upside down (ground work, lying down or a rotated video)");
+  return { level: reasons.length ? "low" : "good", reasons, posedShare, saneShare: sane, torsoJitter, tiltedShare };
 }
