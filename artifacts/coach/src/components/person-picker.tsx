@@ -93,8 +93,15 @@ export function PersonPicker({
         </svg>
         {/* tap targets over each person's box */}
         {data.people.map((p, i) => {
-          const box = poseBoxNorm(p.landmarks);
-          if (!box) return null;
+          const raw = poseBoxNorm(p.landmarks);
+          if (!raw) return null;
+          // Keep the tap target inside the still: legs running off the bottom of the frame used to
+          // push the box over the "is me" buttons underneath.
+          const x0 = Math.max(0, raw.x - 0.02);
+          const y0 = Math.max(0, raw.y - 0.02);
+          const x1 = Math.min(1, raw.x + raw.w + 0.02);
+          const y1 = Math.min(1, raw.y + raw.h + 0.02);
+          if (x1 <= x0 || y1 <= y0) return null;
           return (
             <button
               key={i}
@@ -104,10 +111,10 @@ export function PersonPicker({
               data-testid={`pick-skeleton-${NAMES[i]!.toLowerCase()}`}
               className="absolute"
               style={{
-                left: `${(box.x - 0.02) * 100}%`,
-                top: `${(box.y - 0.02) * 100}%`,
-                width: `${(box.w + 0.04) * 100}%`,
-                height: `${(box.h + 0.04) * 100}%`,
+                left: `${x0 * 100}%`,
+                top: `${y0 * 100}%`,
+                width: `${(x1 - x0) * 100}%`,
+                height: `${(y1 - y0) * 100}%`,
                 border: `1.5px dashed ${COLORS[i]}`,
                 background: "transparent",
               }}
