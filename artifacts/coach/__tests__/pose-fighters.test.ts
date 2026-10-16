@@ -302,6 +302,24 @@ describe("pickerStill + detectTwoPeople", () => {
     expect(detectTwoPeople([a, b], W, H)).toBeNull();
   });
 
+  it("no picker when the skeletons are twisted or the fighters are lying down (floor grappling)", () => {
+    // bow-tie torso: hips swapped under the shoulders
+    const twisted = (cx: number) => {
+      const lm = figure({ cx });
+      const t = lm[23]!;
+      lm[23] = lm[24]!;
+      lm[24] = t;
+      return { lm };
+    };
+    expect(detectTwoPeople([frames(14, () => twisted(0.3)), frames(14, () => twisted(0.7))], W, H)).toBeNull();
+
+    // the same upright figures rotated 90 degrees about their hips = lying on the mat
+    const lying = (cx: number) => ({
+      lm: figure({ cx }).map((p) => ({ ...p, x: cx + (p.y - 0.55) * (H / W), y: 0.55 - (p.x - cx) * (W / H) })),
+    });
+    expect(detectTwoPeople([frames(14, () => lying(0.3)), frames(14, () => lying(0.7))], W, H)).toBeNull();
+  });
+
   it("asks (with a clean still) when both fighters are tracked well", () => {
     const a = frames(14, (i) => fighter(i, 0.3, 1));
     const b = frames(14, (i) => fighter(i, 0.7, -1, 1));

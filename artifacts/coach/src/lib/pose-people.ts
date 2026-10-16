@@ -1,4 +1,5 @@
 import type { Landmark, PoseFrame } from "./pose";
+import { skeletonSane, torsoTiltDeg } from "./pose-sanity";
 
 // ---------------------------------------------------------------------------
 // Two people in one clip. MediaPipe is asked for up to 2 poses per sampled
@@ -474,7 +475,10 @@ export function pickerStill(
     // Two fighters in one ring are about the same size on screen; a tiny one next to a big one is a
     // far-off bystander or a folded-up skeleton, not the second fighter.
     const alike = Math.min(sizeA, sizeB) / Math.max(sizeA, sizeB, 1e-6) >= 0.45;
-    const clean = qa.ok && qb.ok && overlap <= 0.35 && cut <= 0.12 && edge === 0 && alike;
+    // ...and each skeleton must look like an upright body: never ask the user to pick between a
+    // folded or lying-down skeleton (floor grappling) and another.
+    const bodies = [la, lb].every((l) => skeletonSane(l, w, h) && (torsoTiltDeg(l, w, h) ?? 0) <= 60);
+    const clean = qa.ok && qb.ok && overlap <= 0.35 && cut <= 0.12 && edge === 0 && alike && bodies;
     // confidence (0..2) + separation (0..1.5) + readable size (0..0.6) - cropped
     const score =
       qa.score +
