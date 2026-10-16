@@ -36,6 +36,8 @@ import {
 import { computeMetrics } from "@/lib/analysis-metrics";
 import { OPPONENT_COLOR, YOU_COLOR, encodePoseTrack } from "@/lib/pose-track";
 import { detectTwoPeople, splitAthlete } from "@/lib/pose-people";
+import { useIsDesktop } from "@/hooks/use-mobile";
+import { scrubInsaneSkeletons, trackReliability } from "@/lib/pose-sanity";
 import { PersonPicker, type PersonPickerData } from "@/components/person-picker";
 import { Playback } from "@/lib/playback";
 import { FootageBlock, useDecodedOpponent, useDecodedTrack } from "@/components/footage-player";
@@ -141,6 +143,8 @@ export default function AnalysePage() {
   // One shared clock for the desktop workstation (video/ghost on the left, graphs
   // on the right). The phone Report keeps its own, so the two layouts never fight.
   const desktopPlayback = useMemo(() => new Playback(), []);
+  // Mount only the layout that is showing (see useIsDesktop): both used to be mounted and CSS-hidden.
+  const isDesktop = useIsDesktop();
 
   const [kind, setKind] = useState<AnalysisKind>("sparring");
   const [focus, setFocus] = useState("");
@@ -188,6 +192,8 @@ export default function AnalysePage() {
   const [openId, setOpenId] = useState<number | null>(null);
   const [compareId, setCompareId] = useState<number | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  // Set when the tracker was not reliable enough to draw a skeleton for the fresh upload.
+  const [trackNote, setTrackNote] = useState<string | null>(null);
   const [sourceMode, setSourceMode] = useState<"upload" | "link">("upload");
   const [linkUrl, setLinkUrl] = useState("");
   const pendingFile = useRef<File | null>(null);
@@ -233,6 +239,7 @@ export default function AnalysePage() {
     }
     setResult(null);
     setModelUpdate(null);
+    setTrackNote(null);
     setOpenId(null);
     setOpenOpponentId(null);
     if (file.size > MAX_VIDEO_BYTES) {
@@ -267,7 +274,9 @@ export default function AnalysePage() {
       // Single-person clips (and opponent scouts) skip this and behave as before.
       let athleteFrames = extract.frames;
       let opponentFrames: PoseFrame[] | null = null;
-      const two = opponentMode ? null : detectTwoPeople(extract.people, extract.width, extract.height);
+      // A scout upload asks too ("who are you scouting?") - otherwise a two-person clip would
+      // silently scout whoever the tracker happened to rank first.
+      const two = detectTwoPeople(extract.people, extract.width, extract.height);
       if (two) {
         const shot = await captureKeyframe(extract, {
           timestamp: extract.people[0]![two.pickerFrame]!.timestamp,
@@ -295,14 +304,23 @@ export default function AnalysePage() {
         }
         const split = splitAthlete(extract.people, choice);
         athleteFrames = split.athlete;
-        opponentFrames = split.opponent;
+        // A scout is categorical about ONE person: the other fighter is not stored as "opponent".
+        opponentFrames = opponentMode ? null : split.opponent;
       }
+
+      // Never draw or score a skeleton that cannot be a body (folded/twisted, limbs far too long):
+      // those frames become "no lock". Then judge the clip as a whole: if the tracker was not
+      // reliable, the read is kept but no skeleton visuals are built or shown.
+      const scrub = scrubInsaneSkeletons(athleteFrames, extract.width, extract.height);
+      athleteFrames = scrub.frames;
+      if (opponentFrames) opponentFrames = scrubInsaneSkeletons(opponentFrames, extract.width, extract.height).frames;
+      const reliability = trackReliability(athleteFrames, extract.width, extract.height, scrub);
 
       const metrics = computeMetrics(athleteFrames);
 
       if (metrics.poseFrames < 3) {
         throw new Error(
-          "couldn't lock onto a body in this clip — make sure the athlete is clearly in frame",
+          "couldn't get a reliable body lock in this clip. Ground work, close-ups and heavy overlap confuse the tracker - try a wider, steadier shot with the athlete clearly in frame",
         );
       }
 
@@ -350,13 +368,19 @@ export default function AnalysePage() {
         keyframes,
         // Per-frame landmarks (quantised) for overlay/graphs/annotations/comparisons.
         // null when too few frames locked or it would exceed the size cap.
-        poseTrack: encodePoseTrack(athleteFrames, extract.width, extract.height, opponentFrames),
+        poseTrack:
+          reliability.level === "good" ? encodePoseTrack(athleteFrames, extract.width, extract.height, opponentFrames) : null,
         ...(opponentMode
           ? { subject: "opponent" as const, opponentName: opponentName.trim() }
           : {}),
       });
       setResult(res.analysis);
       setModelUpdate(res.modelUpdate ?? null);
+      setTrackNote(
+        reliability.level === "good"
+          ? null
+          : `Skeleton, graphs and comparisons are off for this clip: ${reliability.reasons.join("; ")}. The read below only uses the ${metrics.poseFrames} frames where a body was found.`,
+      );
       setPhase({ stage: "idle" });
       // Create a blob URL for the desktop video player — revoke the previous one first
       if (pendingFile.current) {
@@ -418,6 +442,7 @@ export default function AnalysePage() {
 
   function clearResult() {
     setResult(null);
+    setTrackNote(null);
     setModelUpdate(null);
     if (videoUrlRef.current) {
       URL.revokeObjectURL(videoUrlRef.current);
@@ -483,6 +508,7 @@ export default function AnalysePage() {
       {/* ------------------------------------------------------------------ */}
       {/* MOBILE layout — stacked, single scroll column                       */}
       {/* ------------------------------------------------------------------ */}
+      {!isDesktop && (
       <main ref={mobileScrollRef} className="flex-1 min-h-0 overflow-y-auto md:hidden">
         <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
           {opponentResult ? (
@@ -495,7 +521,7 @@ export default function AnalysePage() {
             </div>
           ) : selfResult ? (
             <div className="space-y-6" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
-              <Report analysis={selfResult} fighter={fighter} videoUrl={videoUrl} onClose={clearResult} onSelectSession={onSelectSession} />
+              <Report analysis={selfResult} fighter={fighter} videoUrl={videoUrl} trackNote={trackNote} onClose={clearResult} onSelectSession={onSelectSession} />
               {modelUpdate && <ModelUpdateCard update={modelUpdate} />}
             </div>
           ) : openId != null ? (
@@ -547,10 +573,12 @@ export default function AnalysePage() {
           )}
         </div>
       </main>
+      )}
 
       {/* ------------------------------------------------------------------ */}
       {/* DESKTOP workstation layout — two panels, side by side               */}
       {/* ------------------------------------------------------------------ */}
+      {isDesktop && (
       <main className="flex-1 min-h-0 hidden md:flex divide-x divide-border/30">
         {showingOpponent ? (
           <div
@@ -577,6 +605,7 @@ export default function AnalysePage() {
                 <WorkstationLeft
                   analysis={result}
                   videoUrl={videoUrl}
+                  trackNote={trackNote}
                   playback={desktopPlayback}
                   onClose={clearResult}
                 />
@@ -783,6 +812,7 @@ export default function AnalysePage() {
           </>
         )}
       </main>
+      )}
 
       <input
         ref={fileRef}
@@ -800,7 +830,12 @@ export default function AnalysePage() {
         <CinematicOverlay phase={phase} kindLabel={KINDS.find((k) => k.value === kind)?.label ?? ""} />
       )}
       {phase.stage === "pick" && pickData && (
-        <PersonPicker data={pickData} onPick={answerPick} onCancel={() => answerPick(null)} />
+        <PersonPicker
+          data={pickData}
+          mode={subject === "opponent" ? "scout" : "athlete"}
+          onPick={answerPick}
+          onCancel={() => answerPick(null)}
+        />
       )}
       {danger && <div className="pointer-events-none fixed inset-0 z-0 frame-danger-glow" />}
     </div>
@@ -1200,11 +1235,13 @@ function UploadControls({
 function WorkstationLeft({
   analysis,
   videoUrl,
+  trackNote = null,
   playback,
   onClose,
 }: {
   analysis: VideoAnalysis;
   videoUrl: string | null;
+  trackNote?: string | null;
   playback: Playback;
   onClose: () => void;
 }) {
@@ -1259,6 +1296,7 @@ function WorkstationLeft({
           <div className="flex-1 min-h-0 overflow-y-auto p-3">
             <FootageBlock
               videoUrl={videoUrl}
+              trackNote={trackNote}
               track={track}
               opponent={opponent}
               events={analysis.detectedEvents ?? []}
@@ -2149,12 +2187,14 @@ function Report({
   analysis,
   fighter,
   videoUrl,
+  trackNote = null,
   onClose,
   onSelectSession,
 }: {
   analysis: VideoAnalysis;
   fighter: Fighter | null;
   videoUrl: string | null;
+  trackNote?: string | null;
   onClose: () => void;
   onSelectSession?: (id: number) => void;
 }) {
@@ -2260,6 +2300,7 @@ function Report({
         <div ref={footageRef}>
           <FootageBlock
             videoUrl={videoUrl}
+            trackNote={trackNote}
             track={track}
             opponent={opponent}
             events={analysis.detectedEvents ?? []}
