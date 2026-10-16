@@ -2,6 +2,7 @@ import { FilesetResolver, PoseLandmarker, type NormalizedLandmark } from "@media
 
 import { SKELETON_CONNECTIONS } from "./pose-track";
 import { selectFighters, type RawPoseFrame } from "./pose-people";
+import { playbackRateFor, smoothCost } from "./sampling-rate";
 
 const MP_VERSION = "0.10.35";
 const WASM_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/wasm`;
@@ -241,7 +242,7 @@ export type ExtractResult = {
 const MAX_DURATION = 75; // analyse at most the first 75s
 const SAMPLE_INTERVAL = 0.25; // ~4fps sampling
 const MAX_FRAMES = 220;
-const PLAYBACK_RATE = 2; // play-through at 2x to keep processing time sane (keep <= 2)
+const PLAYBACK_RATE = 1; // start at real time; the rate then follows the measured cost per sample (sampling-rate.ts)
 const STALL_MS = 6000; // if media time stops advancing for this long, fail honestly
 
 // requestVideoFrameCallback is missing from older TS DOM libs — declare the shape we use.
@@ -398,7 +399,10 @@ export async function extractPoseFrames(
   const cap = Math.min(durationRaw, MAX_DURATION);
   const width = video.videoWidth || 640;
   const height = video.videoHeight || 360;
-  const totalSamples = Math.max(1, Math.min(Math.ceil(cap / SAMPLE_INTERVAL), MAX_FRAMES));
+  // A clip long enough to exceed MAX_FRAMES at 4fps is sampled more sparsely across its WHOLE length
+  // (never cut short at MAX_FRAMES while reporting the full duration).
+  const interval = Math.max(SAMPLE_INTERVAL, cap / MAX_FRAMES);
+  const totalSamples = Math.max(1, Math.min(Math.ceil(cap / interval), MAX_FRAMES));
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -449,15 +453,37 @@ export async function extractPoseFrames(
     }
   };
 
+  // Warm up: the first inference initialises the graph and can take seconds. Playback has been
+  // running since the file-picker gesture (through the model loads and this warm-up), so do it
+  // first and then rewind to the top - otherwise the opening seconds of a clip (all of a short
+  // one) pass by unsampled.
+  try {
+    _lastTs = Math.max(_lastTs + 1, Math.round(video.currentTime * 1000));
+    landmarker.detectForVideo(video, _lastTs);
+    if (second && cctx) {
+      cctx.drawImage(video, 0, 0, sw, sh);
+      findMore([]);
+    }
+  } catch {
+    // warm-up is best-effort
+  }
+  if (video.currentTime > 0.05 || video.ended) {
+    await seekTo(video, 0);
+    if (video.paused) await Promise.resolve(video.play()).catch(() => {});
+  }
+
   const rawFrames: RawPoseFrame[] = [];
   let nextSampleTime = 0;
 
+  let costMs: number | null = null;
+  let appliedRate = PLAYBACK_RATE;
   const sample = (mediaTime: number) => {
     if (rawFrames.length >= totalSamples) return;
     if (mediaTime + 1e-6 < nextSampleTime) return;
+    const costStart = performance.now();
     // Only spend a second inference per frame while the sampler is keeping up with the
     // video; on a slow device the extra pass would starve the sampling itself.
-    const keepingUp = mediaTime - nextSampleTime <= SAMPLE_INTERVAL * 0.5;
+    const keepingUp = mediaTime - nextSampleTime <= interval * 0.5;
     // VIDEO running mode needs a strictly increasing timestamp in ms.
     _lastTs = Math.max(_lastTs + 1, Math.round(mediaTime * 1000));
     let poses: Landmark[][] = [];
@@ -487,8 +513,19 @@ export async function extractPoseFrames(
     rawFrames.push({ timestamp: mediaTime, poses, primary, app });
     onProgress({ stage: "extracting", done: rawFrames.length, total: totalSamples });
     do {
-      nextSampleTime += SAMPLE_INTERVAL;
+      nextSampleTime += interval;
     } while (nextSampleTime <= mediaTime);
+    // Slow device: slow the video so the next slot is not skipped (see sampling-rate.ts).
+    costMs = smoothCost(costMs, performance.now() - costStart);
+    const want = playbackRateFor(costMs, interval);
+    if (Math.abs(want - appliedRate) / appliedRate > 0.15) {
+      try {
+        video.playbackRate = want;
+        appliedRate = want;
+      } catch {
+        // ignore - rate is an optimisation only
+      }
+    }
   };
 
   try {
