@@ -358,6 +358,7 @@ router.post("/analysis", async (req, res) => {
       metrics,
       keyframes,
       leadSide: poseTrack?.lead ?? null,
+      opponentTracked: !!poseTrack?.opp,
     });
 
     const comparison = buildComparison(scores, prevScores, narrative.comparisonNote);
