@@ -249,8 +249,17 @@ function dateLabel(iso: string): string {
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }
 
-function VsPreviousSession({ analysis, track }: { analysis: VideoAnalysis; track: DecodedTrack | null }) {
-  const { data } = useCompareTrack(analysis.id, !!track && analysis.subject !== "opponent");
+function VsPreviousSession({
+  analysis,
+  track,
+  baselineId,
+}: {
+  analysis: VideoAnalysis;
+  track: DecodedTrack | null;
+  baselineId: number | null;
+}) {
+  // A session the user pinned as "vs" baseline wins over "the previous one of the same kind".
+  const { data } = useCompareTrack(analysis.id, !!track && analysis.subject !== "opponent", baselineId);
   const baselineTrack = useDecodedTrack(data?.baseline?.poseTrack ?? null);
   const built = useMemo(() => {
     if (!track || !baselineTrack || !data?.baseline) return null;
@@ -286,14 +295,22 @@ function SameClipVsOpponent({ track, opponent }: { track: DecodedTrack; opponent
   );
 }
 
-export function PoseComparisons({ analysis, track }: { analysis: VideoAnalysis; track: DecodedTrack | null }) {
+export function PoseComparisons({
+  analysis,
+  track,
+  baselineId = null,
+}: {
+  analysis: VideoAnalysis;
+  track: DecodedTrack | null;
+  baselineId?: number | null;
+}) {
   const opponent = useDecodedOpponent(analysis.poseTrack ?? null);
   if (!track) return null;
   return (
     <div className="space-y-4" data-testid="pose-comparisons">
       <SameClipVsOpponent track={track} opponent={opponent} />
       <BestVsWorst analysis={analysis} track={track} />
-      <VsPreviousSession analysis={analysis} track={track} />
+      <VsPreviousSession analysis={analysis} track={track} baselineId={baselineId} />
     </div>
   );
 }

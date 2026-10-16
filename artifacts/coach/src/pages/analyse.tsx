@@ -1418,12 +1418,14 @@ function WorkstationRight({
   analysis,
   fighter,
   playback,
+  baselineId = null,
   onClose,
   onSelectSession,
 }: {
   analysis: VideoAnalysis;
   fighter: Fighter | null;
   playback: Playback;
+  baselineId?: number | null;
   onClose: () => void;
   onSelectSession?: (id: number) => void;
 }) {
@@ -1510,7 +1512,7 @@ function WorkstationRight({
       })()}
 
       {/* ghost comparisons: best vs worst rep, this vs last session (hidden without data) */}
-      <PoseComparisons analysis={analysis} track={track} />
+      <PoseComparisons analysis={analysis} track={track} baselineId={baselineId} />
 
       {/* session-over-session trend chart — desktop only, needs 3+ sessions */}
       {(analysesData?.analyses?.length ?? 0) >= 3 && (
@@ -1583,7 +1585,7 @@ function SavedWorkstationRight({
 }) {
   const { data, isLoading, isError } = useAnalysis(id, compareId);
   if (isLoading || isError || !data?.analysis) return null;
-  return <WorkstationRight analysis={data.analysis} fighter={fighter} playback={playback} onClose={onClose} onSelectSession={onSelectSession} />;
+  return <WorkstationRight analysis={data.analysis} fighter={fighter} playback={playback} baselineId={compareId} onClose={onClose} onSelectSession={onSelectSession} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -2188,6 +2190,7 @@ function Report({
   fighter,
   videoUrl,
   trackNote = null,
+  baselineId = null,
   onClose,
   onSelectSession,
 }: {
@@ -2195,6 +2198,8 @@ function Report({
   fighter: Fighter | null;
   videoUrl: string | null;
   trackNote?: string | null;
+  /** Saved reports: the session picked as "vs" baseline, so the pose overlay compares against it too. */
+  baselineId?: number | null;
   onClose: () => void;
   onSelectSession?: (id: number) => void;
 }) {
@@ -2416,7 +2421,7 @@ function Report({
       )}
 
       {/* ghost comparisons (hidden without data) */}
-      <PoseComparisons analysis={analysis} track={track} />
+      <PoseComparisons analysis={analysis} track={track} baselineId={baselineId} />
 
       {/* score provenance */}
       <ScoreProvenance analysis={analysis} />
@@ -2472,7 +2477,7 @@ function SavedReport({
       </div>
     );
   }
-  return <Report analysis={data.analysis} fighter={fighter} videoUrl={null} onClose={onClose} onSelectSession={onSelectSession} />;
+  return <Report analysis={data.analysis} fighter={fighter} videoUrl={null} baselineId={compareId} onClose={onClose} onSelectSession={onSelectSession} />;
 }
 
 // ---------------------------------------------------------------------------
