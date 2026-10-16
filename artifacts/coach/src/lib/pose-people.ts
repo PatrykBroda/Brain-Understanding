@@ -70,7 +70,11 @@ function blendApp(old: number[] | null, next: number[] | null): number[] | null 
 
 // "Meaningful share" for the picker.
 export const MIN_SECOND_FRAMES = 6;
-export const MIN_SECOND_SHARE = 0.2; // of all sampled frames
+// The second person must be there for a real share of the FIRST person's frames (not of all sampled
+// frames: when the model misses both fighters in many frames, an absolute 20% flipped the picker
+// on and off from run to run on the same clip), and for a small floor of all frames.
+export const MIN_SECOND_SHARE = 0.3; // of the first person's pose frames
+export const MIN_SECOND_TOTAL_SHARE = 0.08; // of all sampled frames
 export const MIN_PAIRED_FRAMES = 3; // frames where both are present
 export const MIN_SIZE_RATIO = 0.4; // second person's size vs the first's (ignore far background people)
 
@@ -501,7 +505,8 @@ export function detectTwoPeople(tracks: PoseFrame[][], w: number, h: number): Tw
   const sa = trackStats(a, w, h);
   const sb = trackStats(b, w, h);
   const total = a.length;
-  if (!total || sb.count < MIN_SECOND_FRAMES || sb.count / total < MIN_SECOND_SHARE) return null;
+  if (!total || sb.count < MIN_SECOND_FRAMES || sb.count / total < MIN_SECOND_TOTAL_SHARE) return null;
+  if (sb.count / Math.max(sa.count, 1) < MIN_SECOND_SHARE) return null;
   if (sa.size <= 0 || sb.size / sa.size < MIN_SIZE_RATIO) return null;
 
   let paired = 0;

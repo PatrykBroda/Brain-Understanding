@@ -159,6 +159,27 @@ describe("picker: when to ask and what to suggest", () => {
     expect(detectTwoPeople(tracks, W, H)).toBeNull();
   });
 
+  it("still asks when the model misses both fighters in many frames (share is vs the first person's frames)", () => {
+    // 100 sampled frames; A found in 40, B in 16 of those (B = 40% of A but only 16% of all
+    // frames: the old absolute-20%-of-all-frames rule refused this)
+    const tracks = trackPeople(
+      raw(100, (i) => (i % 5 < 2 ? { a: { cx: 0.3, hipY: 0.45 }, ...(Math.floor(i / 5) % 5 < 2 ? { b: { cx: 0.7, hipY: 0.45, scale: 0.95 } } : {}) } : {})),
+      W,
+      H,
+    );
+    expect(tracks).toHaveLength(2);
+    expect(detectTwoPeople(tracks, W, H)).not.toBeNull();
+  });
+
+  it("does not ask when the second person is a small fraction of the first's frames", () => {
+    const tracks = trackPeople(
+      raw(100, (i) => ({ a: { cx: 0.3, hipY: 0.45 }, ...(i % 10 === 0 ? { b: { cx: 0.7, hipY: 0.45 } } : {}) })),
+      W,
+      H,
+    );
+    expect(detectTwoPeople(tracks, W, H)).toBeNull();
+  });
+
   it("does not ask for a tiny background person", () => {
     const tracks = trackPeople(
       raw(20, () => ({ a: { cx: 0.3, hipY: 0.45 }, b: { cx: 0.8, hipY: 0.3, scale: 0.25 } })),
