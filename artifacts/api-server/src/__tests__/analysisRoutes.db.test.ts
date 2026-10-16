@@ -27,8 +27,6 @@ import { db, usersTable, fightersTable, videoAnalysesTable } from "@workspace/db
 import { AI_CONSENT_VERSION } from "@workspace/ai-consent";
 import apiRouter from "../routes";
 import { signToken } from "../routes/auth";
-import { encodePoseTrack } from "../../../coach/src/lib/pose-track";
-import { frames } from "../../../coach/__tests__/pose-fixtures";
 
 const EMAIL = `analysis-db-${Date.now()}@example.com`;
 let server: Server;
@@ -68,11 +66,34 @@ const OPP_NARRATIVE = {
   matchup: { summary: "x", advantages: [], risks: [], gamePlan: [] },
 };
 
+// Wire format v1 (owned by artifacts/coach/src/lib/pose-track.ts; the coach contract test keeps the
+// two in step): per frame 33 landmarks x (x u16 LE, y u16 LE, vis u8). Built here without importing
+// the coach so the api-server's own typecheck stays self-contained.
+function packFrames(n: number, phase: number) {
+  const buf = Buffer.alloc(n * 33 * 5);
+  let o = 0;
+  for (let i = 0; i < n; i++) {
+    for (let k = 0; k < 33; k++) {
+      buf.writeUInt16LE(Math.round((0.3 + 0.4 * ((k + i + phase) % 7) / 7) * 65535), o);
+      buf.writeUInt16LE(Math.round((0.1 + 0.8 * k / 33) * 65535), o + 2);
+      buf[o + 4] = 230;
+      o += 5;
+    }
+  }
+  return { t: Array.from({ length: n }, (_, i) => i * 250), d: buf.toString("base64") };
+}
+
 function wireTrack(opts: { opp?: boolean; n?: number } = {}) {
   const n = opts.n ?? 30;
-  const t = frames(n, (i) => ({ cx: 0.3 + (i % 10) * 0.02, handsUp: i < 15 ? 0.6 : -0.4 }));
-  const opp = opts.opp ? frames(n, (i) => ({ cx: 0.7 - (i % 10) * 0.02, handsUp: 0.4 })) : undefined;
-  return encodePoseTrack(t, 1280, 720, opp);
+  const main = packFrames(n, 0);
+  return {
+    v: 1,
+    w: 1280,
+    h: 720,
+    lead: "left" as const,
+    ...main,
+    ...(opts.opp ? { opp: { lead: null, ...packFrames(n, 3) } } : {}),
+  };
 }
 
 function body(over: Record<string, unknown> = {}) {
@@ -205,8 +226,8 @@ describe("POST /analysis with a pose track (real Postgres)", () => {
   });
 
   it("drops only a bad opponent half, keeping the athlete track", async () => {
-    const t = wireTrack({ opp: true })!;
-    const r = await postSelf({ poseTrack: { ...t, opp: { ...t.opp, d: "###" } } });
+    const t = wireTrack({ opp: true });
+    const r = await postSelf({ poseTrack: { ...t, opp: { ...t.opp!, d: "###" } } });
     expect(r.status).toBe(200);
     expect(r.json.analysis.poseTrack.d.length).toBeGreaterThan(0);
     expect(r.json.analysis.poseTrack.opp).toBeUndefined();
