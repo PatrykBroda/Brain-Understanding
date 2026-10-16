@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
 import {
+  OPPONENT_COLOR,
+  OPPONENT_HEX,
+  YOU_COLOR,
+  YOU_HEX,
   makePosePoints,
   sampleNormalisedInto,
   sampleTrack,
@@ -305,6 +309,9 @@ export function AthleteVsOpponent({ analysis }: { analysis: VideoAnalysis }) {
     return buildSessionLanes(athleteTrack, oppTrack, {
       current: `You · ${data.baseline.kind} ${dateLabel(data.baseline.createdAt)}`,
       previous: `${analysis.opponentName || "Opponent"}`,
+    }, {
+      current: { color: YOU_COLOR, swatch: YOU_HEX },
+      previous: { color: OPPONENT_COLOR, swatch: OPPONENT_HEX },
     });
   }, [oppTrack, athleteTrack, data, analysis.opponentName]);
   if (!built) return null;

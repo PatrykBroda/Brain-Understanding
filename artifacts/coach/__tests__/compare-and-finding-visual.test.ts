@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buildBestWorstLanes, buildSessionLanes, specFor } from "../src/lib/pose-compare";
+import { buildBestWorstLanes, buildSameClipLanes, buildSessionLanes, specFor } from "../src/lib/pose-compare";
 import { buildFindingVisual } from "../src/lib/finding-visual";
-import { decodePoseTrack, encodePoseTrack } from "../src/lib/pose-track";
+import { OPPONENT_HEX, YOU_HEX, decodePoseTrack, encodePoseTrack } from "../src/lib/pose-track";
 import type { AnalysisFinding, AnalysisKeyframe, ReplayMoment } from "../src/lib/api";
 import { frames } from "./pose-fixtures";
 
@@ -139,5 +139,36 @@ describe("buildFindingVisual (annotated finding frames)", () => {
     expect(v).not.toBeNull();
     expect(v.arrow).toBeNull();
     expect(v.lookbackSec).toBeNull();
+  });
+});
+
+// Blue = you, red = the opponent, everywhere. A lane that means something else (best vs worst
+// rep, this vs last session) must not be drawn in a blue or a red a user could read as that.
+describe("comparison lane colours never collide with you(blue)/opponent(red)", () => {
+  const hue = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number];
+    const max = Math.max(r, g, b);
+    const d = max - Math.min(r, g, b);
+    if (d === 0) return 0;
+    const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return (h * 60 + 360) % 360;
+  };
+  const isBlueOrRed = (hex: string) => {
+    const h = hue(hex);
+    return h >= 190 && h <= 260 ? true : h <= 20 || h >= 340;
+  };
+  const t = track(60, (i) => ({ cx: 0.3 + (i % 10) * 0.02, handsUp: i < 30 ? 0.6 : -0.4 }));
+
+  it("best-vs-worst and session lanes avoid blue and red", () => {
+    const bw = buildBestWorstLanes([moment("best_decision", 4), moment("worst_habit", 11)], t)!;
+    const sess = buildSessionLanes(t, t, { current: "a", previous: "b" })!;
+    for (const lane of [...bw.lanes, ...sess.lanes]) expect(isBlueOrRed(lane.swatch), lane.label).toBe(false);
+  });
+
+  it("the same-clip comparison is exactly blue (you) and red (opponent)", () => {
+    const lanes = buildSameClipLanes(t, t)!.lanes;
+    expect(lanes[0]!.swatch).toBe(YOU_HEX);
+    expect(lanes[1]!.swatch).toBe(OPPONENT_HEX);
+    expect(isBlueOrRed(YOU_HEX) && isBlueOrRed(OPPONENT_HEX)).toBe(true); // the helper does detect them
   });
 });

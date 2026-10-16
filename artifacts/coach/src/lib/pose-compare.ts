@@ -15,7 +15,10 @@ import type { ReplayMoment } from "./api";
 // Pure builders for the Phase 4 comparison lanes (the components just play them).
 
 const GOLD = "rgba(214,160,90,0.95)";
-const STEEL = "rgba(122,184,217,0.95)";
+// Blue and red are reserved for "you" and "the opponent" (YOU_COLOR / OPPONENT_COLOR), so
+// no other comparison lane may use a blue or a red - violet and amber stand in for them.
+const VIOLET = "rgba(183,148,246,0.95)";
+const AMBER = "rgba(251,191,36,0.95)";
 
 export function fmtSec(t: number): string {
   return `${Math.max(0, t).toFixed(1)}s`;
@@ -61,7 +64,7 @@ export function buildBestWorstLanes(
     duration,
     lanes: [
       { label: `Best decision · ${fmtSec(best.timestamp)}`, color: "rgba(52,211,153,0.95)", swatch: "#34d399", frames: wb, spec },
-      { label: `Worst habit · ${fmtSec(worst.timestamp)}`, color: "rgba(248,113,113,0.95)", swatch: "#f87171", frames: ww, spec },
+      { label: `Worst habit · ${fmtSec(worst.timestamp)}`, color: AMBER, swatch: "#fbbf24", frames: ww, spec },
     ],
   };
 }
@@ -89,8 +92,8 @@ export function buildSessionLanes(
       },
       {
         label: labels.previous,
-        color: colors?.previous.color ?? STEEL,
-        swatch: colors?.previous.swatch ?? "#7ab8d9",
+        color: colors?.previous.color ?? VIOLET,
+        swatch: colors?.previous.swatch ?? "#b794f6",
         frames: previous.frames,
         spec: sb,
       },
