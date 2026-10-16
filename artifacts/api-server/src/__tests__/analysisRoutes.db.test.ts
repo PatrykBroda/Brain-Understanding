@@ -314,3 +314,51 @@ describe("PATCH /analysis/:id/notes (real Postgres)", () => {
     expect(got.json.analysis.keyframeNotes?.["0"]).toBe("my note");
   });
 });
+
+describe("deleting an athlete removes their analyses and pose tracks (real Postgres)", () => {
+  it("cascades from the fighter row, leaving other users' analyses alone", async () => {
+    const gone = crypto.randomUUID();
+    await db.insert(usersTable).values({ id: gone, email: `gone-${EMAIL}`, hashedPassword: "x" });
+    const [f] = await db
+      .insert(fightersTable)
+      .values({
+        userId: gone,
+        name: "Leaver",
+        dateOfBirth: "1990-01-01",
+        age: 36,
+        art: "boxing",
+        primarySport: "boxing",
+        level: "amateur",
+        trainingFrequency: "3-4",
+      } as typeof fightersTable.$inferInsert)
+      .returning();
+    const [row] = await db
+      .insert(videoAnalysesTable)
+      .values({
+        fighterId: f!.id,
+        subject: "self",
+        kind: "sparring",
+        focus: "",
+        nervousSystemLoad: "low",
+        fragmentationRisk: "low",
+        sessionScore: 50,
+        styleProfile: "x",
+        aiComment: "",
+        summary: "x",
+        findings: [],
+        scores: [],
+        styleParallels: [],
+        detectedEvents: [],
+        metrics: { framesAnalysed: 0, poseFrames: 0, durationSec: 0, loadBasis: "", signals: [] },
+        keyframes: [],
+        poseTrack: wireTrack({ opp: true }),
+        durationSec: 0,
+      } as typeof videoAnalysesTable.$inferInsert)
+      .returning({ id: videoAnalysesTable.id });
+    const mine = createdIds[0]!;
+    await db.delete(fightersTable).where(eq(fightersTable.id, f!.id));
+    await db.delete(usersTable).where(eq(usersTable.id, gone));
+    const left = await db.select({ id: videoAnalysesTable.id }).from(videoAnalysesTable).where(inArray(videoAnalysesTable.id, [row!.id, mine]));
+    expect(left.map((r) => r.id)).toEqual([mine]);
+  });
+});
