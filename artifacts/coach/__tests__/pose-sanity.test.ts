@@ -1,0 +1,93 @@
+import { describe, expect, it } from "vitest";
+import { scrubInsaneSkeletons, skeletonSane, trackReliability } from "../src/lib/pose-sanity";
+import { figure, frames } from "./pose-fixtures";
+
+const W = 1280;
+const H = 720;
+
+describe("skeletonSane", () => {
+  it("accepts a normal figure, standing or side-on", () => {
+    expect(skeletonSane(figure(), W, H)).toBe(true);
+    expect(skeletonSane(figure({ stance: 0.4, lean: 0.3 }), W, H)).toBe(true);
+  });
+
+  it("rejects a bow-tie torso (shoulders/hips twisted so the sides cross)", () => {
+    const lm = figure();
+    const a = lm[23]!;
+    lm[23] = lm[24]!;
+    lm[24] = a; // hips swapped under the shoulders
+    expect(skeletonSane(lm, W, H)).toBe(false);
+  });
+
+  it("rejects a limb far longer than any real bone (a joint thrown across the frame)", () => {
+    const lm = figure();
+    lm[15] = { x: 0.02, y: 0.95, z: 0, visibility: 0.9 }; // left wrist at the far corner
+    expect(skeletonSane(lm, W, H)).toBe(false);
+  });
+
+  it("rejects a collapsed (near-zero) torso", () => {
+    const lm = figure();
+    for (const i of [11, 12, 23, 24]) lm[i] = { x: 0.5, y: 0.5, z: 0, visibility: 0.9 };
+    expect(skeletonSane(lm, W, H)).toBe(false);
+  });
+
+  it("does not judge what it cannot see: no visible torso = left to the tracker's own quality gate", () => {
+    const lm = figure();
+    lm[23] = { ...lm[23]!, visibility: 0.1 };
+    expect(skeletonSane(lm, W, H)).toBe(true);
+  });
+});
+
+describe("scrubInsaneSkeletons", () => {
+  it("turns only the impossible frames into 'no lock' and counts them", () => {
+    const f = frames(10, () => ({}));
+    const bad = f[3]!.landmarks!;
+    bad[15] = { x: 0.01, y: 0.99, z: 0, visibility: 0.9 };
+    f[6] = { timestamp: f[6]!.timestamp, landmarks: null }; // already no lock: not judged
+    const r = scrubInsaneSkeletons(f, W, H);
+    expect(r.judged).toBe(9);
+    expect(r.dropped).toBe(1);
+    expect(r.frames[3]!.landmarks).toBeNull();
+    expect(r.frames[2]!.landmarks).not.toBeNull();
+    expect(r.frames[3]!.timestamp).toBe(f[3]!.timestamp);
+    expect(f[3]!.landmarks).not.toBeNull(); // input untouched
+  });
+});
+
+describe("trackReliability", () => {
+  const rel = (fs: ReturnType<typeof frames>) => trackReliability(scrubInsaneSkeletons(fs, W, H).frames, W, H, scrubInsaneSkeletons(fs, W, H));
+
+  it("calls a steady, mostly-found track good", () => {
+    const r = rel(frames(40, (i) => ({ cx: 0.4 + (i % 8) * 0.01 })));
+    expect(r.level).toBe("good");
+    expect(r.reasons).toEqual([]);
+  });
+
+  it("is low when the athlete is found in only a small part of the clip", () => {
+    const r = rel(frames(40, (i) => (i < 6 ? {} : null)));
+    expect(r.level).toBe("low");
+    expect(r.reasons.join(" ")).toMatch(/small part/);
+  });
+
+  it("is low when the body outline keeps jumping (close-up / overlap)", () => {
+    const r = rel(frames(40, (i) => ({ scale: i % 2 ? 1 : 0.55 })));
+    expect(r.level).toBe("low");
+    expect(r.reasons.join(" ")).toMatch(/jumping/);
+  });
+
+  it("is low when many skeletons were impossible", () => {
+    const fs = frames(40, () => ({}));
+    for (let i = 0; i < 40; i += 2) fs[i]!.landmarks![15] = { x: 0.01, y: 0.99, z: 0, visibility: 0.9 };
+    const scrub = scrubInsaneSkeletons(fs, W, H);
+    const r = trackReliability(scrub.frames, W, H, scrub);
+    expect(r.level).toBe("low");
+    expect(r.reasons.join(" ")).toMatch(/impossible/);
+  });
+
+  it("one-off glitches in an otherwise good clip do not fail it", () => {
+    const fs = frames(40, (i) => ({ cx: 0.4 + (i % 8) * 0.01 }));
+    fs[10]!.landmarks![15] = { x: 0.01, y: 0.99, z: 0, visibility: 0.9 };
+    const scrub = scrubInsaneSkeletons(fs, W, H);
+    expect(trackReliability(scrub.frames, W, H, scrub).level).toBe("good");
+  });
+});

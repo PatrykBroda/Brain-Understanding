@@ -547,6 +547,7 @@ export function FootageTimeline({
 
 export function FootageBlock({
   videoUrl,
+  trackNote = null,
   track,
   opponent = null,
   events,
@@ -557,6 +558,8 @@ export function FootageBlock({
   videoStyle,
 }: {
   videoUrl: string | null;
+  /** Why there is no skeleton for this (fresh) clip, when the tracker was not reliable. */
+  trackNote?: string | null;
   track: DecodedTrack | null;
   opponent?: DecodedTrack | null;
   events: DetectedEvent[];
@@ -592,6 +595,14 @@ export function FootageBlock({
       ) : track ? (
         <GhostPlayer track={track} opponent={opponent} playback={playback} duration={duration} />
       ) : null}
+      {videoUrl && !track && trackNote && (
+        <p
+          className="font-mono text-[9px] leading-relaxed tracking-wide text-amber-300/90 border border-amber-300/30 bg-amber-300/5 px-3 py-2"
+          data-testid="track-note"
+        >
+          {trackNote}
+        </p>
+      )}
       {videoUrl && track && (
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <SkeletonToggle on={skeletonOn} onChange={setSkeletonOn} />

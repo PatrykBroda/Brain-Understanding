@@ -51,26 +51,32 @@ export function PersonPicker({
   data,
   onPick,
   onCancel,
+  mode = "athlete",
 }: {
   data: PersonPickerData;
   onPick: (index: 0 | 1) => void;
   onCancel: () => void;
+  /** "scout" = an Opponent Scout upload: pick whose movement is read (not "you"). */
+  mode?: "athlete" | "scout";
 }) {
   const vbW = data.aspect * 100;
+  const scout = mode === "scout";
+  const title = scout ? "Who are you scouting?" : "Which one is you?";
   return (
     <div
       className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4 px-4 py-6 overflow-y-auto"
       role="dialog"
       aria-modal="true"
-      aria-label="Which one is you?"
+      aria-label={title}
       data-testid="person-picker"
     >
       <div className="text-center space-y-1.5 max-w-sm">
         <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground">Two people in this clip</div>
-        <div className="font-mono text-lg uppercase tracking-[0.25em] text-foreground">Which one is you?</div>
+        <div className="font-mono text-lg uppercase tracking-[0.25em] text-foreground">{title}</div>
         <p className="font-mono text-[10px] tracking-wide text-muted-foreground/80 leading-relaxed">
-          Tap yourself, or use the buttons. Your read is scored on you only; the other fighter is tracked as your
-          opponent.
+          {scout
+            ? "Tap the fighter to scout, or use the buttons. Only their movement is read; the other person is ignored."
+            : "Tap yourself, or use the buttons. Your read is scored on you only; the other fighter is tracked as your opponent."}
         </p>
       </div>
 
@@ -94,7 +100,7 @@ export function PersonPicker({
               key={i}
               type="button"
               onClick={() => onPick(i as 0 | 1)}
-              aria-label={`${NAMES[i]} is me`}
+              aria-label={scout ? `Scout ${NAMES[i]}` : `${NAMES[i]} is me`}
               data-testid={`pick-skeleton-${NAMES[i]!.toLowerCase()}`}
               className="absolute"
               style={{
@@ -128,7 +134,7 @@ export function PersonPicker({
             className="flex-1 py-3 font-mono text-[11px] uppercase tracking-[0.25em] border text-foreground active:scale-[0.98] transition-transform"
             style={{ borderColor: COLORS[i], background: `${COLORS[i]}22` }}
           >
-            {NAMES[i]} is me
+            {scout ? `Scout ${NAMES[i]}` : `${NAMES[i]} is me`}
           </button>
         ))}
       </div>
