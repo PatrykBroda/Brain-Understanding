@@ -363,8 +363,9 @@ function metricsText(args: {
   prevScores: AnalysisScore[] | null;
   keyframes: AnalysisKeyframe[];
   leadSide?: "left" | "right" | null;
+  opponentTracked?: boolean;
 }): string {
-  const { kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes, leadSide } =
+  const { kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes, leadSide, opponentTracked } =
     args;
   const sig = metrics.signals.map((s) => `- ${s.label}: ${s.value} — ${s.detail}`);
   const sc = scores.map((s) => `- ${s.label}: ${s.value}/100 — ${s.basis}`);
@@ -374,6 +375,11 @@ function metricsText(args: {
     focus ? `athlete asked to focus on: ${focus}` : `no specific focus requested`,
     `duration analysed: ${metrics.durationSec.toFixed(1)}s`,
     `frames sampled: ${metrics.framesAnalysed}, frames with a clear pose lock: ${metrics.poseFrames}`,
+    ...(opponentTracked
+      ? [
+          `two fighters in this clip: the athlete chose which one is them and the opponent was tracked too. Every number and signal here describes the ATHLETE only (drawn blue in the footage; the opponent is red). Never attribute the opponent's movement to the athlete, and do not draw conclusions about the opponent from these numbers.`,
+        ]
+      : []),
     ``,
     `# FIXED numbers (DO NOT OVERRIDE, DO NOT EMIT)`,
     `nervous-system load: ${load.toUpperCase()}`,
@@ -651,8 +657,9 @@ export async function generateAnalysis(args: {
   metrics: AnalysisMetrics;
   keyframes: AnalysisKeyframe[];
   leadSide?: "left" | "right" | null;
+  opponentTracked?: boolean;
 }): Promise<AnalysisNarrative> {
-  const { fighter, facts, kind, focus, load, fragmentationRisk, sessionScore, scores, prevScores, metrics, keyframes, leadSide } =
+  const { fighter, facts, kind, focus, load, fragmentationRisk, sessionScore, scores, prevScores, metrics, keyframes, leadSide, opponentTracked } =
     args;
 
   const dynamic =
@@ -660,7 +667,7 @@ export async function generateAnalysis(args: {
     "\n\n" +
     ANALYSIS_INSTRUCTIONS +
     "\n\n" +
-    metricsText({ kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes, leadSide });
+    metricsText({ kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes, leadSide, opponentTracked });
 
   const content: Anthropic.ContentBlockParam[] = [];
   for (const kf of keyframes.slice(0, 4)) {
