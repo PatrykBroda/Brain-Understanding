@@ -2,7 +2,7 @@ import { FilesetResolver, PoseLandmarker, type NormalizedLandmark } from "@media
 
 import { SKELETON_CONNECTIONS } from "./pose-track";
 import { selectFighters, type RawPoseFrame } from "./pose-people";
-import { playbackRateFor, smoothCost } from "./sampling-rate";
+import { frameTimestamp, playbackRateFor, smoothCost, timelineBase, warmupTimestamp } from "./sampling-rate";
 
 const MP_VERSION = "0.10.35";
 const WASM_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/wasm`;
@@ -453,12 +453,13 @@ export async function extractPoseFrames(
     }
   };
 
+  const tsBase = timelineBase(_lastTs);
   // Warm up: the first inference initialises the graph and can take seconds. Playback has been
   // running since the file-picker gesture (through the model loads and this warm-up), so do it
   // first and then rewind to the top - otherwise the opening seconds of a clip (all of a short
   // one) pass by unsampled.
   try {
-    _lastTs = Math.max(_lastTs + 1, Math.round(video.currentTime * 1000));
+    _lastTs = warmupTimestamp(tsBase);
     landmarker.detectForVideo(video, _lastTs);
     if (second && cctx) {
       cctx.drawImage(video, 0, 0, sw, sh);
@@ -484,8 +485,8 @@ export async function extractPoseFrames(
     // Only spend a second inference per frame while the sampler is keeping up with the
     // video; on a slow device the extra pass would starve the sampling itself.
     const keepingUp = mediaTime - nextSampleTime <= interval * 0.5;
-    // VIDEO running mode needs a strictly increasing timestamp in ms.
-    _lastTs = Math.max(_lastTs + 1, Math.round(mediaTime * 1000));
+    // VIDEO running mode needs a strictly increasing timestamp in ms (and uses the gaps for smoothing).
+    _lastTs = frameTimestamp(_lastTs, tsBase, mediaTime);
     let poses: Landmark[][] = [];
     try {
       const result = landmarker.detectForVideo(video, _lastTs);
