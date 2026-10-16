@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scrubInsaneSkeletons, skeletonSane, trackReliability } from "../src/lib/pose-sanity";
+import { maskOffFrame, scrubInsaneSkeletons, skeletonSane, trackReliability } from "../src/lib/pose-sanity";
 import { figure, frames } from "./pose-fixtures";
 
 const W = 1280;
@@ -89,5 +89,32 @@ describe("trackReliability", () => {
     fs[10]!.landmarks![15] = { x: 0.01, y: 0.99, z: 0, visibility: 0.9 };
     const scrub = scrubInsaneSkeletons(fs, W, H);
     expect(trackReliability(scrub.frames, W, H, scrub).level).toBe("good");
+  });
+});
+
+describe("maskOffFrame", () => {
+  it("hides joints placed outside the picture and leaves the rest untouched", () => {
+    const lm = figure();
+    lm[28] = { ...lm[28]!, y: 1.2 }; // right ankle below the frame
+    lm[16] = { ...lm[16]!, x: -0.1 }; // right wrist off the left edge
+    const out = maskOffFrame(lm);
+    expect(out[28]!.visibility).toBe(0);
+    expect(out[16]!.visibility).toBe(0);
+    expect(out[15]).toBe(lm[15]); // untouched joints are the same objects
+    expect(lm[28]!.visibility).toBeGreaterThan(0); // input not mutated
+  });
+
+  it("returns the very same array when nothing is off-frame", () => {
+    const lm = figure();
+    expect(maskOffFrame(lm)).toBe(lm);
+  });
+
+  it("is applied by the scrub, so an athlete cut off by the edge keeps a body without guessed legs", () => {
+    const f = frames(4, () => ({}));
+    f[1]!.landmarks![27] = { ...f[1]!.landmarks![27]!, y: 1.15 };
+    const r = scrubInsaneSkeletons(f, W, H);
+    expect(r.dropped).toBe(0);
+    expect(r.frames[1]!.landmarks![27]!.visibility).toBe(0);
+    expect(r.frames[0]!.landmarks).toBe(f[0]!.landmarks);
   });
 });
