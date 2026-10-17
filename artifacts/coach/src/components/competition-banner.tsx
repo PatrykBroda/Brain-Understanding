@@ -9,8 +9,8 @@ const TIER_STYLE: Record<
   { fg: string; border: string; glow: string; pulse: boolean }
 > = {
   base: {
-    fg: "hsl(39 49% 36%)",
-    border: "hsla(39,49%,36%,0.30)",
+    fg: "hsl(39 50% 56%)",
+    border: "hsla(39,50%,56%,0.30)",
     glow: "none",
     pulse: false,
   },
@@ -54,53 +54,38 @@ export function CompetitionBanner() {
     <Link
       href="/competition"
       aria-label="Competition mode details"
-      className="block outline-none focus-visible:ring-1 focus-visible:ring-[hsl(var(--red-accent))]"
+      className="block rounded-[1.5rem] outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--red-accent))]"
     >
       <div
-        className={`relative overflow-hidden border-y px-4 py-2.5 ${style.pulse ? "comp-pulse" : ""}`}
+        className={`glass relative overflow-hidden px-5 py-3.5 ${style.pulse ? "comp-pulse" : ""}`}
         style={{
-          background:
-            "linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.0) 100%)",
           borderColor: style.border,
-          boxShadow: style.glow,
+          boxShadow: `0 18px 40px -18px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,244,224,0.09)${style.glow !== "none" ? ", " + style.glow : ""}`,
         }}
       >
-        <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
+        <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <div
-              className="font-mono text-[9px] uppercase tracking-[0.4em] opacity-80"
-              style={{ color: style.fg }}
-            >
+            <div className="eyebrow" style={{ color: style.fg }}>
               {pressure.tierLabel}
             </div>
-            <div className="font-sans uppercase tracking-[0.06em] text-foreground/90 text-[12px] truncate mt-0.5">
+            <div className="mt-1 truncate font-display text-[1.25rem] leading-tight text-[#f1ede6]">
               {c.eventName}
             </div>
           </div>
-          <div className="flex items-baseline gap-2 flex-none">
+          <div className="flex flex-none items-baseline gap-4">
             {daysToWeighIn !== null && daysToWeighIn <= daysToEvent && (
               <div className="text-right">
-                <span
-                  className="font-sans font-light tabular-nums text-[15px]"
-                  style={{ color: style.fg }}
-                >
+                <span className="numeral numeral-m !text-[1.5rem]" style={{ color: style.fg }}>
                   {daysToWeighIn}
                 </span>
-                <span className="font-mono text-[8px] uppercase tracking-[0.3em] text-foreground/55 ml-1">
-                  weigh-in
-                </span>
+                <span className="eyebrow ml-1.5 !text-[10px]">weigh-in</span>
               </div>
             )}
             <div className="text-right">
-              <span
-                className="font-sans font-light tabular-nums text-[22px] leading-none"
-                style={{ color: style.fg }}
-              >
+              <span className="numeral numeral-m !text-[2.2rem]" style={{ color: style.fg }}>
                 {daysToEvent}
               </span>
-              <span className="font-mono text-[8px] uppercase tracking-[0.3em] text-foreground/55 ml-1">
-                {dayWord}
-              </span>
+              <span className="eyebrow ml-1.5 !text-[10px]">{dayWord}</span>
             </div>
           </div>
         </div>
@@ -111,6 +96,7 @@ export function CompetitionBanner() {
           50% { opacity: 0.82; }
         }
         .comp-pulse { animation: comp-pulse 2.4s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) { .comp-pulse { animation: none; } }
       `}</style>
     </Link>
   );

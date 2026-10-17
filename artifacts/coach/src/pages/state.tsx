@@ -71,25 +71,18 @@ export default function StatePage() {
   return (
     <div
       className="relative grid h-[100dvh] text-foreground overflow-hidden"
-      style={{
-        gridTemplateRows: "auto minmax(0,1fr) auto auto",
-        background: "#000",
-      }}
+      style={{ gridTemplateRows: "auto minmax(0,1fr) auto auto" }}
     >
-      {/* ─── Ambient environment — pure OLED black. No photo here by request:
-          the hub is just the orb, the state and readiness on true black.
-          (The uploaded hero still drives the Home-tab + Profile surfaces.) */}
-
-      {/* Page-wide vignette — anchored on the orb, eases off so it doesn't eat the CTA */}
+      {/* ─── Ambient environment — bronze glow behind the orb, crimson low-left.
+          The body already carries the graphite gradient; these add local depth. */}
+      <div aria-hidden className="glow-orb z-0 left-1/2 top-[14%] h-[26rem] w-[26rem] -translate-x-1/2 opacity-70" />
       <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 95% 55% at 50% 38%, transparent 40%, rgba(0,0,0,0.55) 95%)",
-        }}
+        aria-hidden
+        className="glow-orb z-0 bottom-[-10rem] left-[-8rem] h-[22rem] w-[22rem]"
+        style={{ background: "radial-gradient(circle, rgba(191,29,29,0.20), transparent 70%)" }}
       />
 
-      {/* Ultra-fine grain — barely perceptible, kills banding on the OLED black */}
+      {/* Ultra-fine grain — barely perceptible, kills banding on the dark gradients */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.04] mix-blend-overlay z-0"
         aria-hidden
@@ -104,39 +97,40 @@ export default function StatePage() {
       <header className="relative z-10 flex items-center justify-between px-6 pt-[max(1.1rem,env(safe-area-inset-top))] pb-3">
         <div>
           <FrameWordmark size={30} />
-          <div className="font-mono text-[10px] tracking-[0.5em] text-foreground/55 mt-2 font-light">
-            STATE CALIBRATION SYSTEM
-          </div>
+          <div className="eyebrow mt-2.5">State calibration system</div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <FramePlusPill />
           <Link
             href="/profile"
             aria-label="Open profile"
-            className="w-10 h-10 rounded-full border border-white/[0.06] flex items-center justify-center text-foreground/40 hover:border-primary/40 hover:text-primary/90 outline-none focus-visible:ring-1 focus-visible:ring-primary/60 transition-all duration-500"
+            className="icon-round text-foreground/80 outline-none transition-colors hover:text-[hsl(var(--primary-light))]"
           >
-            <Shield className="w-[15px] h-[15px]" strokeWidth={1.2} />
+            <Shield className="w-[17px] h-[17px]" strokeWidth={1.4} />
           </Link>
         </div>
       </header>
 
       <main className="relative z-10 min-h-0 grid place-items-center overflow-hidden px-2">
-        <div className="frame-fade-in h-full w-full grid place-items-center">
-          <CosmicOrb
-            state={frameState.orb}
-            className="w-full max-w-[560px] max-h-full h-auto"
-          />
+        {/* Container-sized so the orb is always a whole, uncropped square; the soft
+            radial mask melts the canvas edge into the glow field behind it. */}
+        <div
+          className="frame-fade-in h-full w-full grid place-items-center [container-type:size]"
+          style={{
+            WebkitMaskImage: "radial-gradient(closest-side, #000 86%, transparent 100%)",
+            maskImage: "radial-gradient(closest-side, #000 86%, transparent 100%)",
+          }}
+        >
+          <CosmicOrb state={frameState.orb} className="w-[min(100cqw,100cqh,560px)]" />
         </div>
       </main>
 
-      <section className="relative z-10 flex flex-col items-center text-center px-6 gap-5 pb-3">
-        <div className="space-y-3">
-          <div className="frame-state-caption-top font-mono text-[10px] uppercase tracking-[0.55em] text-foreground/65 font-light">
-            State
-          </div>
+      <section className="relative z-10 flex flex-col items-center text-center px-6 gap-4 pb-4">
+        <div className="space-y-2">
+          <div className="frame-state-caption-top eyebrow eyebrow-gold">State</div>
           <div
             key={frameState.label}
-            className="frame-state-label font-sans font-extralight uppercase text-[clamp(1.7rem,7vw,2.4rem)] tracking-[0.4em] leading-none"
+            className="frame-state-label font-display text-[clamp(2.6rem,11vw,3.6rem)] leading-none"
             style={{
               color: labelColor,
               textShadow: labelGlow,
@@ -146,7 +140,7 @@ export default function StatePage() {
           >
             {frameState.label}
           </div>
-          <div className="frame-state-caption-bottom font-mono text-[10px] uppercase tracking-[0.45em] text-foreground/65 font-light pt-2">
+          <div className="frame-state-caption-bottom font-display text-[1.15rem] leading-snug text-foreground/80 pt-1">
             {STATE_CUE[frameState.label]}
           </div>
         </div>
@@ -157,65 +151,37 @@ export default function StatePage() {
             No data, no number — never "calibrating". */}
         <Link
           href={readiness != null && checkinScore != null ? "/home" : "/analyse"}
-          className="group frame-readiness-in flex items-center gap-3 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg px-3 py-1"
+          className="group frame-readiness-in glass block w-full max-w-sm px-5 py-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light))]"
           aria-label={readiness != null ? "View readiness detail" : "Analyse a session"}
         >
-          <span className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 font-light">
-            Fight readiness
-          </span>
-          <span aria-hidden className="w-px h-3 bg-white/10" />
-          {readiness != null ? (
-            <span className="flex items-baseline gap-1.5">
-              <span className="font-sans font-light text-[19px] tabular-nums leading-none text-primary/90">
-                {readiness}
+          <div className="flex min-h-[44px] items-center justify-between gap-4">
+            <span className="eyebrow">Fight readiness</span>
+            {readiness != null ? (
+              <span className="flex items-baseline gap-2">
+                <span className="numeral numeral-m !text-[2.2rem] !text-[hsl(var(--primary-pale))]">{readiness}</span>
+                <span className="text-xs text-muted-foreground">/ 100 · {readinessSource}</span>
               </span>
-              <span className="font-mono text-[9px] uppercase tracking-widest text-foreground/40">
-                / 100 · {readinessSource}
+            ) : (
+              <span className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors group-hover:text-[hsl(var(--primary-light))]">
+                Analyse a session
+                <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.5} />
               </span>
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/50 group-hover:text-primary/80 transition-colors">
-              Analyse a session
-              <ChevronRight className="w-3 h-3" strokeWidth={1.5} />
-            </span>
+            )}
+          </div>
+          {readiness != null && (
+            <div className="bar-thin mt-1" aria-hidden>
+              <span style={{ width: `${Math.max(0, Math.min(100, readiness))}%` }} />
+            </div>
           )}
         </Link>
 
-        <div className="w-full max-w-[10rem] flex items-center gap-3 px-1" aria-hidden>
-          <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, hsla(39,49%,36%,0.18))" }} />
-          <div className="w-1 h-1 rounded-full" style={{ background: "hsla(39,49%,36%,0.22)" }} />
-          <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, hsla(39,49%,36%,0.18))" }} />
-        </div>
-
-        <div className="w-full max-w-sm">
-          <Link
-            href="/chat"
-            aria-label={hasSession ? "Continue session" : "Enter the frame"}
-            className="group block w-full rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-          >
-            <div
-              className="relative w-full h-[58px] rounded-2xl flex items-center justify-center transition-all duration-500"
-              style={{
-                background:
-                  "linear-gradient(180deg, hsla(39,49%,36%, 0.05) 0%, hsla(39,49%,36%, 0.015) 100%)",
-                border: "1px solid hsla(39,49%,36%, 0.38)",
-                boxShadow:
-                  "0 10px 50px -12px hsla(39,49%,36%, 0.32), inset 0 1px 0 hsla(39,49%,36%, 0.14)",
-              }}
-            >
-              <span className="font-sans text-[13px] uppercase tracking-[0.5em] font-light text-primary group-hover:tracking-[0.55em] transition-all duration-500">
-                Continue
-              </span>
-              <div
-                className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                style={{
-                  boxShadow:
-                    "0 0 0 1px hsla(39,49%,36%, 0.55), 0 14px 60px -8px hsla(39,49%,36%, 0.5)",
-                }}
-              />
-            </div>
-          </Link>
-        </div>
+        <Link
+          href="/chat"
+          aria-label={hasSession ? "Continue session" : "Enter the frame"}
+          className="btn-bronze w-full max-w-sm outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-pale))]"
+        >
+          Continue
+        </Link>
       </section>
 
       <div className="relative z-10">
@@ -240,11 +206,11 @@ export default function StatePage() {
         }
 
         @keyframes frame-state-in {
-          from { opacity: 0; letter-spacing: 0.18em; }
-          to   { opacity: 1; letter-spacing: 0.4em; }
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: none; }
         }
         .frame-state-label {
-          animation: frame-state-in 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) 0.35s both;
+          animation: frame-state-in 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
         }
 
         .frame-state-caption-bottom {

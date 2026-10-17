@@ -81,51 +81,52 @@ function FramePlusModal({
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-[#050505]/75 backdrop-blur-md sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-label="Upgrade to FRAME+"
       onClick={onClose}
     >
       <div
-        className="frame-plus-breath w-full max-w-md rounded-t-2xl border bg-[hsl(0,0%,5%)] p-7 pb-9 sm:rounded-2xl sm:p-8"
+        className="frame-plus-breath glass glass-gold relative w-full max-w-md overflow-hidden rounded-b-none rounded-t-[2rem] p-7 pb-9 sm:rounded-[2rem] sm:p-8"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4">
-          <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary">
+        <div aria-hidden className="glow-orb -right-16 -top-20 h-56 w-56" />
+        <div className="relative flex items-start justify-between gap-4">
+          <div className="eyebrow eyebrow-gold pt-3">
             FRAME+
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="-mr-1 -mt-1 rounded p-1 text-foreground/40 transition-colors hover:text-foreground"
+            className="icon-round -mr-1 -mt-1 text-foreground/80 transition-colors hover:text-foreground"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" strokeWidth={1.5} />
           </button>
         </div>
 
         {reason !== "" && (
-          <p className="mt-6 text-xs tracking-wide text-muted-foreground">
+          <p className="relative mt-6 text-xs tracking-wide text-muted-foreground">
             {reason}
           </p>
         )}
 
         <h2
-          className={`${reason !== "" ? "mt-3" : "mt-8"} max-w-[15ch] text-2xl font-light leading-snug tracking-wide text-foreground/95`}
+          className={`${reason !== "" ? "mt-3" : "mt-8"} display-title relative max-w-[16ch]`}
         >
           {IDENTITY}
         </h2>
 
-        <ul className="mt-8 space-y-3">
+        <ul className="relative mt-8 space-y-3">
           {IDENTITY_LINES.map((line) => (
             <li
               key={line}
-              className="flex items-center gap-3 text-[15px] font-light tracking-wide text-foreground/85"
+              className="flex items-center gap-3 text-[15px] font-light tracking-wide text-foreground/90"
             >
               <span
                 aria-hidden
-                className="h-px w-5 shrink-0 bg-primary/70"
+                className="h-px w-5 shrink-0 bg-[hsl(var(--primary-light))]"
               />
               {line}
             </li>
@@ -133,11 +134,11 @@ function FramePlusModal({
         </ul>
 
         {isFramePlus ? (
-          <div className="mt-9 border-t border-white/[0.06] pt-5 font-mono text-[11px] uppercase tracking-[0.25em] text-primary">
+          <div className="eyebrow eyebrow-gold relative mt-9 border-t border-white/10 pt-5">
             FRAME+ active — you're covered
           </div>
         ) : (
-          <div className="mt-9">
+          <div className="relative mt-9">
             <p className="text-sm font-light leading-relaxed tracking-wide text-foreground/70">
               FRAME+ is unlocked in the FRAME iOS app. Open the app on your
               iPhone and subscribe — your FRAME+ access then carries across to
@@ -146,7 +147,7 @@ function FramePlusModal({
             <button
               type="button"
               onClick={onClose}
-              className="mt-6 w-full py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-foreground/80"
+              className="btn-glass mt-6 w-full"
             >
               Got it
             </button>
@@ -167,7 +168,7 @@ export function FramePlusPill() {
   if (isLoading || !isFramePlus) return null;
 
   return (
-    <span className="border border-primary/40 bg-primary/10 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.25em] text-primary">
+    <span className="chip whitespace-nowrap !border-primary/40 !bg-primary/10 !px-3 !py-1 !text-[10px]">
       FRAME+ active
     </span>
   );

@@ -40,48 +40,47 @@ export default function SignInPage() {
 
   return (
     <AuthLayout>
-      <div className="w-full max-w-[400px] bg-[hsl(0,0%,6%)] border border-white/[0.06] rounded-2xl overflow-hidden">
-        <div className="px-8 pt-8 pb-6">
-          <div className="mb-6 text-center">
-            <div className="font-mono text-[15px] uppercase tracking-[0.18em] text-foreground/95 font-light">
-              Sign in to FRAME
-            </div>
-            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/55 mt-1.5">
-              Welcome back
-            </div>
+      <div className="glass w-full max-w-[420px] overflow-hidden">
+        <div aria-hidden className="glow-orb -right-20 -top-24 h-52 w-52 opacity-70" />
+        <div className="relative px-7 pt-9 pb-7">
+          <div className="mb-8 text-center">
+            <h1 className="display-heading !text-[2.1rem]">Sign in to FRAME</h1>
+            <div className="eyebrow eyebrow-gold mt-3">Welcome back</div>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/70">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="signin-email" className="eyebrow pl-1">
                 Email
               </label>
               <input
+                id="signin-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="bg-[hsl(0,0%,9%)] border border-white/[0.08] text-foreground placeholder:text-foreground/30 px-3 py-2.5 rounded-md focus:border-primary/40 focus:outline-none transition-colors"
+                className="field-glass"
               />
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/70">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="signin-password" className="eyebrow pl-1">
                 Password
               </label>
               <input
+                id="signin-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="bg-[hsl(0,0%,9%)] border border-white/[0.08] text-foreground placeholder:text-foreground/30 px-3 py-2.5 rounded-md focus:border-primary/40 focus:outline-none transition-colors"
+                className="field-glass"
               />
             </div>
 
             {error && (
-              <p className="font-mono text-[11px] tracking-wide text-[hsl(0,72%,62%)]">
+              <p role="alert" className="text-sm text-[#E0564E]">
                 {error}
               </p>
             )}
@@ -89,19 +88,19 @@ export default function SignInPage() {
             <button
               type="submit"
               disabled={loading || !email || !password}
-              className="bg-primary text-black font-mono uppercase tracking-[0.25em] text-[11px] py-3 rounded-md hover:bg-primary/90 transition-colors shadow-[0_8px_30px_-10px_hsla(39,49%,36%,0.4)] disabled:opacity-50"
+              className="btn-bronze mt-1 w-full"
             >
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
         </div>
 
-        <div className="px-8 py-4 border-t border-white/[0.06] text-center">
-          <span className="font-mono text-[11px] text-foreground/55">
+        <div className="relative border-t border-white/10 px-7 py-2 text-center">
+          <span className="text-sm text-muted-foreground">
             No account?{" "}
             <a
               href={`${basePath}/sign-up`}
-              className="text-primary hover:text-primary/80 transition-colors"
+              className="inline-flex min-h-[44px] items-center font-medium text-[hsl(var(--primary-light))] transition-colors hover:text-[hsl(var(--primary-pale))]"
             >
               Create one
             </a>

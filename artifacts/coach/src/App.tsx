@@ -26,6 +26,39 @@ import { AiConsentModal } from "@/components/ai-consent-modal";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+const GATE_BTN = "btn-glass w-full max-w-[16rem] disabled:opacity-50";
+
+function GateShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="frame-ambient relative flex h-[100dvh] flex-col items-center justify-center gap-5 overflow-hidden px-6 text-center">
+      {children}
+    </div>
+  );
+}
+
+function BootScreen({ label }: { label: string }) {
+  return (
+    <GateShell>
+      <div aria-hidden className="glow-orb h-64 w-64 opacity-60" />
+      <span className="eyebrow eyebrow-gold relative">{label}</span>
+      <div className="frame-loader-track relative" role="status" aria-label="Loading">
+        <div className="frame-loader-bar" />
+      </div>
+    </GateShell>
+  );
+}
+
+function GateError({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <GateShell>
+      <div className="glass glass-red frame-rise flex w-full max-w-sm flex-col items-center gap-4 p-8">
+        <div className="eyebrow !text-[#E0564E]">{title}</div>
+        {children}
+      </div>
+    </GateShell>
+  );
+}
+
 function ConsentGate({ children }: { children: React.ReactNode }) {
   const { data, isLoading, isError, error, refetch, isFetching } = useAiConsent();
   const setConsent = useSetAiConsent();
@@ -39,12 +72,7 @@ function ConsentGate({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex h-[100dvh] flex-col items-center justify-center gap-4 bg-background text-muted-foreground font-mono text-[10px] uppercase tracking-[0.3em]">
-        <span>Checking permissions</span>
-        <div className="frame-loader-track" role="status" aria-label="Loading">
-          <div className="frame-loader-bar" />
-        </div>
-      </div>
+      <BootScreen label="Checking permissions" />
     );
   }
 
@@ -52,11 +80,8 @@ function ConsentGate({ children }: { children: React.ReactNode }) {
     const isAuth = error instanceof ApiError && error.kind === "auth";
     if (isAuth) {
       return (
-        <div className="flex h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive">
-            Session not verified
-          </div>
-          <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+        <GateError title="Session not verified">
+          <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
             The backend answered, but your sign-in couldn't be confirmed. Sign in
             again to continue.
           </p>
@@ -66,30 +91,27 @@ function ConsentGate({ children }: { children: React.ReactNode }) {
               signOut();
               setLocation(`${basePath}/sign-in`);
             }}
-            className="border-y border-foreground/40 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/90 transition-colors hover:border-foreground/80"
+            className={GATE_BTN}
           >
             Sign in
           </button>
-        </div>
+        </GateError>
       );
     }
     return (
-      <div className="flex h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive">
-          Connection lost
-        </div>
-        <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+      <GateError title="Connection lost">
+        <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
           The system couldn't reach the backend to check permissions.
         </p>
         <button
           type="button"
           onClick={() => refetch()}
           disabled={isFetching}
-          className="border-y border-foreground/40 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/90 transition-colors hover:border-foreground/80 disabled:opacity-50"
+          className={GATE_BTN}
         >
           {isFetching ? "Reconnecting" : "Retry"}
         </button>
-      </div>
+      </GateError>
     );
   }
 
@@ -133,7 +155,7 @@ function ConsentGate({ children }: { children: React.ReactNode }) {
           }}
         />
         {(deleteError || acceptError) && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] bg-destructive/90 text-destructive-foreground px-4 py-2 text-xs font-mono tracking-wide rounded-md shadow-lg">
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] bg-destructive/90 text-destructive-foreground px-5 py-3 text-xs tracking-wide rounded-full shadow-lg">
             {deleteError || acceptError}
           </div>
         )}
@@ -168,12 +190,7 @@ function Gate({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
   if (isLoading) {
     return (
-      <div className="flex h-[100dvh] flex-col items-center justify-center gap-4 bg-background text-muted-foreground font-mono text-[10px] uppercase tracking-[0.3em]">
-        <span>Booting system</span>
-        <div className="frame-loader-track" role="status" aria-label="Loading">
-          <div className="frame-loader-bar" />
-        </div>
-      </div>
+      <BootScreen label="Booting system" />
     );
   }
   if (isError) {
@@ -183,11 +200,8 @@ function Gate({ children }: { children: React.ReactNode }) {
     const isAuth = error instanceof ApiError && error.kind === "auth";
     if (isAuth) {
       return (
-        <div className="flex h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive">
-            Session not verified
-          </div>
-          <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+        <GateError title="Session not verified">
+          <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
             The backend answered, but your sign-in couldn't be confirmed. Sign in
             again to continue.
           </p>
@@ -197,7 +211,7 @@ function Gate({ children }: { children: React.ReactNode }) {
               signOut();
               setLocation(`${basePath}/sign-in`);
             }}
-            className="border-y border-foreground/40 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/90 transition-colors hover:border-foreground/80"
+            className={GATE_BTN}
           >
             Sign in
           </button>
@@ -205,30 +219,27 @@ function Gate({ children }: { children: React.ReactNode }) {
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/70 transition-colors hover:text-foreground/80 disabled:opacity-50"
+            className="min-h-[44px] text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
           >
             {isFetching ? "Retrying" : "Retry"}
           </button>
-        </div>
+        </GateError>
       );
     }
     return (
-      <div className="flex h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive">
-          Connection lost
-        </div>
-        <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+      <GateError title="Connection lost">
+        <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
           The system couldn't reach the backend. It may still be coming online — try again in a moment.
         </p>
         <button
           type="button"
           onClick={() => refetch()}
           disabled={isFetching}
-          className="border-y border-foreground/40 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/90 transition-colors hover:border-foreground/80 disabled:opacity-50"
+          className={GATE_BTN}
         >
           {isFetching ? "Reconnecting" : "Retry"}
         </button>
-      </div>
+      </GateError>
     );
   }
   if (!data?.fighter) return <OnboardingPage />;

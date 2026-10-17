@@ -1,3 +1,4 @@
+import { softCaseLines } from "@/lib/soft-case";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useFighter } from "@/hooks/use-fighter";
@@ -36,33 +37,21 @@ export default function SplashPage() {
 
   return (
     <div
-      className={`relative grid h-[100dvh] text-foreground overflow-hidden transition-opacity duration-[400ms] ${
+      className={`frame-ambient relative grid h-[100dvh] text-foreground overflow-hidden transition-opacity duration-[400ms] ${
         leaving ? "opacity-0" : "opacity-100"
       }`}
-      style={{
-        gridTemplateRows: "auto minmax(0,1fr) auto",
-        background: "#000",
-      }}
+      style={{ gridTemplateRows: "auto minmax(0,1fr) auto" }}
     >
-      {/* Overhead spotlight — anchored above hero, dies quickly */}
+      {/* Bronze + crimson glow fields give the screen depth */}
+      <div aria-hidden className="glow-orb z-0 left-1/2 top-[8%] h-[26rem] w-[26rem] -translate-x-1/2" />
       <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 45% at 50% 8%, rgba(255,250,240,0.05) 0%, transparent 60%)",
-        }}
-      />
-      {/* Heavy edge vignette */}
-      <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 110% 80% at 50% 50%, transparent 35%, rgba(0,0,0,0.7) 90%, #000 100%)",
-        }}
+        aria-hidden
+        className="glow-orb z-0 bottom-[-9rem] right-[-6rem] h-[22rem] w-[22rem]"
+        style={{ background: "radial-gradient(circle, rgba(191,29,29,0.22), transparent 70%)" }}
       />
       {/* Film grain */}
       <svg
-        className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.07] mix-blend-overlay z-0"
+        className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.05] mix-blend-overlay z-0"
         aria-hidden
       >
         <filter id="frame-grain-splash">
@@ -72,37 +61,25 @@ export default function SplashPage() {
         <rect width="100%" height="100%" filter="url(#frame-grain-splash)" />
       </svg>
 
-      {/* Top status bar — TUNING FRAME · CALLSIGN */}
-      <header className="relative z-10 flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
-        <div className="flex items-center gap-2">
-          <span
-            className="w-1 h-1 rounded-full"
-            style={{ background: "hsla(39,49%,36%, 0.85)" }}
-            aria-hidden
-          />
-          <span className="font-mono text-[10px] tracking-[0.32em] text-foreground/55 font-light uppercase">
-            Tuning Frame
-          </span>
-        </div>
+      {/* Top status bar */}
+      <header className="relative z-10 flex items-center justify-between px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
+        <span className="chip !text-[10px] !text-muted-foreground">
+          <span className="mr-2 h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary-light))]" aria-hidden />
+          Tuning Frame
+        </span>
         <span
-          className="font-mono text-[10px] tracking-[0.32em] text-primary/85 font-light uppercase"
+          className="chip !border-primary/30 !bg-primary/10 !text-[10px]" 
           title={frameState.source}
         >
           {fighter?.name?.split(" ")[0]?.toUpperCase() ?? "KILO"}
         </span>
       </header>
 
-      {/* Hero — stacked, condensed, oversized */}
+      {/* Hero — elegant italic serif lines */}
       <main className="relative z-10 min-h-0 grid place-items-center px-6">
         <div className="frame-splash-hero text-center max-w-2xl">
-          <h1
-            className="font-light uppercase text-foreground/95 leading-[1.18] tracking-[0.06em]"
-            style={{
-              fontFamily: "'Oswald', 'Inter', sans-serif",
-              fontSize: "clamp(2.2rem, 9vw, 3.8rem)",
-            }}
-          >
-            {HERO_LINES.map((line, i) => (
+          <h1 className="font-display leading-[1.08] text-[#f1ede6]" style={{ fontSize: "clamp(2.5rem, 10vw, 4.6rem)" }}>
+            {softCaseLines(HERO_LINES).map((line, i) => (
               <span
                 key={line}
                 className="block frame-splash-line"
@@ -114,56 +91,25 @@ export default function SplashPage() {
           </h1>
 
           <div
-            className="flex items-end justify-center gap-2 mt-10 frame-splash-line"
-            style={{ animationDelay: "0.5s" }}
-            role="status"
-            aria-label="Loading"
-          >
-            <span className="w-1 h-1 rounded-full bg-foreground/40 frame-splash-dot" />
-            <span
-              className="w-1 h-1 rounded-full bg-foreground/40 frame-splash-dot"
-              style={{ animationDelay: "0.18s" }}
-            />
-            <span
-              className="w-1 h-1 rounded-full bg-foreground/40 frame-splash-dot"
-              style={{ animationDelay: "0.36s" }}
-            />
-          </div>
+            className="mx-auto mt-10 h-px w-24 frame-splash-line"
+            style={{ animationDelay: "0.5s", background: "linear-gradient(90deg, transparent, rgba(199,161,90,0.7), transparent)" }}
+            role="status" aria-label="Loading"
+          />
         </div>
       </main>
 
-      {/* Wordmark + SKIP — minimal, cinematic */}
-      <section className="relative z-10 flex flex-col items-center text-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] gap-5">
+      {/* Wordmark + SKIP */}
+      <section className="relative z-10 flex flex-col items-center text-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] gap-4">
         <div>
-          <div
-            className="font-extralight uppercase text-foreground/95 leading-none"
-            style={{
-              fontFamily: "'Oswald', 'Inter', sans-serif",
-              fontSize: "clamp(1.8rem, 8vw, 2.4rem)",
-              letterSpacing: "0.42em",
-              paddingLeft: "0.42em",
-            }}
-          >
-            Frame
-          </div>
-          <div
-            className="font-mono font-light uppercase mt-2"
-            style={{
-              fontSize: "10px",
-              letterSpacing: "0.6em",
-              paddingLeft: "0.6em",
-              color: "hsla(0, 70%, 55%, 0.78)",
-            }}
-          >
-            MMA AI
-          </div>
+          <div className="font-display text-[clamp(2.2rem,9vw,2.9rem)] leading-none text-[#f1ede6]">Frame</div>
+          <div className="eyebrow mt-2 !text-[#E0564E]">MMA AI</div>
         </div>
 
         <button
           type="button"
           onClick={exit}
           aria-label="Skip intro and enter"
-          className="font-mono text-[10px] uppercase tracking-[0.55em] font-light text-foreground/55 hover:text-foreground/95 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:rounded-sm px-3 py-2 cursor-pointer"
+          className="btn-glass !min-h-[48px] !px-8 cursor-pointer disabled:opacity-40"
         >
           Skip
         </button>

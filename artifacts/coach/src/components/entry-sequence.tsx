@@ -1,3 +1,4 @@
+import { softCaseLines } from "@/lib/soft-case";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 interface EntrySequenceProps {
@@ -81,33 +82,21 @@ export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
 
   return (
     <div
-      className={`fixed inset-0 z-50 grid text-foreground overflow-hidden transition-opacity duration-[420ms] ease-out ${
+      className={`frame-ambient fixed inset-0 z-50 grid text-foreground overflow-hidden transition-opacity duration-[420ms] ease-out ${
         closing ? "opacity-0 pointer-events-none" : "opacity-100"
       }`}
-      style={{
-        gridTemplateRows: "auto minmax(0,1fr) auto",
-        background: "#000",
-      }}
+      style={{ gridTemplateRows: "auto minmax(0,1fr) auto" }}
     >
-      {/* overhead spotlight */}
+      {/* Bronze + crimson glow fields give the screen depth */}
+      <div aria-hidden className="glow-orb z-0 left-1/2 top-[8%] h-[26rem] w-[26rem] -translate-x-1/2" />
       <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 45% at 50% 8%, rgba(255,250,240,0.05) 0%, transparent 60%)",
-        }}
-      />
-      {/* heavy edge vignette */}
-      <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 110% 80% at 50% 50%, transparent 35%, rgba(0,0,0,0.7) 90%, #000 100%)",
-        }}
+        aria-hidden
+        className="glow-orb z-0 bottom-[-9rem] right-[-6rem] h-[22rem] w-[22rem]"
+        style={{ background: "radial-gradient(circle, rgba(191,29,29,0.22), transparent 70%)" }}
       />
       {/* film grain */}
       <svg
-        className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.07] mix-blend-overlay z-0"
+        className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.05] mix-blend-overlay z-0"
         aria-hidden
       >
         <filter id="frame-grain-entry">
@@ -117,34 +106,24 @@ export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
         <rect width="100%" height="100%" filter="url(#frame-grain-entry)" />
       </svg>
 
-      {/* TUNING FRAME · CALLSIGN */}
-      <header className="relative z-10 flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
-        <div className="flex items-center gap-2">
-          <span
-            className="w-1 h-1 rounded-full"
-            style={{ background: "hsla(39,49%,36%, 0.85)" }}
-            aria-hidden
-          />
-          <span className="font-mono text-[10px] tracking-[0.32em] text-foreground/55 font-light uppercase">
-            Tuning Frame
-          </span>
-        </div>
-        <span className="font-mono text-[10px] tracking-[0.32em] text-primary/85 font-light uppercase">
+      {/* Top status bar */}
+      <header className="relative z-10 flex items-center justify-between px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
+        <span className="chip !text-[10px] !text-muted-foreground">
+          <span className="mr-2 h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary-light))]" aria-hidden />
+          Tuning Frame
+        </span>
+        <span
+          className="chip !border-primary/30 !bg-primary/10 !text-[10px]"
+        >
           {callsign}
         </span>
       </header>
 
-      {/* hero — stacked, condensed, oversized */}
+      {/* Hero — elegant italic serif lines */}
       <main className="relative z-10 min-h-0 grid place-items-center px-6">
         <div className="frame-entry-hero text-center max-w-2xl">
-          <h1
-            className="font-light uppercase text-foreground/95 leading-[1.18] tracking-[0.06em]"
-            style={{
-              fontFamily: "'Oswald', 'Inter', sans-serif",
-              fontSize: "clamp(2.2rem, 9vw, 3.8rem)",
-            }}
-          >
-            {hero.map((line, i) => (
+          <h1 className="font-display leading-[1.08] text-[#f1ede6]" style={{ fontSize: "clamp(2.5rem, 10vw, 4.6rem)" }}>
+            {softCaseLines(hero).map((line, i) => (
               <span
                 key={`${line}-${i}`}
                 className="block frame-entry-line"
@@ -156,42 +135,18 @@ export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
           </h1>
 
           <div
-            className="flex items-center justify-center gap-2 mt-10 frame-entry-line"
-            style={{ animationDelay: "0.5s" }}
+            className="mx-auto mt-10 h-px w-24 frame-entry-line"
+            style={{ animationDelay: "0.5s", background: "linear-gradient(90deg, transparent, rgba(199,161,90,0.7), transparent)" }}
             aria-hidden
-          >
-            <span className="w-1 h-1 rounded-full bg-foreground/30" />
-            <span className="w-1 h-1 rounded-full bg-foreground/30" />
-            <span className="w-1 h-1 rounded-full bg-foreground/30" />
-          </div>
+          />
         </div>
       </main>
 
-      {/* FRAME / MMA AI wordmark + SKIP */}
-      <section className="relative z-10 flex flex-col items-center text-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] gap-5">
+      {/* Wordmark + SKIP */}
+      <section className="relative z-10 flex flex-col items-center text-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] gap-4">
         <div>
-          <div
-            className="font-extralight uppercase text-foreground/95 leading-none"
-            style={{
-              fontFamily: "'Oswald', 'Inter', sans-serif",
-              fontSize: "clamp(1.8rem, 8vw, 2.4rem)",
-              letterSpacing: "0.42em",
-              paddingLeft: "0.42em",
-            }}
-          >
-            Frame
-          </div>
-          <div
-            className="font-mono font-light uppercase mt-2"
-            style={{
-              fontSize: "10px",
-              letterSpacing: "0.6em",
-              paddingLeft: "0.6em",
-              color: "hsla(0, 70%, 55%, 0.78)",
-            }}
-          >
-            MMA AI
-          </div>
+          <div className="font-display text-[clamp(2.2rem,9vw,2.9rem)] leading-none text-[#f1ede6]">Frame</div>
+          <div className="eyebrow mt-2 !text-[#E0564E]">MMA AI</div>
         </div>
 
         <button
@@ -199,7 +154,7 @@ export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
           onClick={() => close(true)}
           disabled={closing}
           aria-label="Skip intro and enter"
-          className="font-mono text-[10px] uppercase tracking-[0.55em] font-light text-foreground/55 hover:text-foreground/95 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:rounded-sm px-3 py-2 cursor-pointer disabled:opacity-40"
+          className="btn-glass !min-h-[48px] !px-8 cursor-pointer disabled:opacity-40"
         >
           Skip
         </button>

@@ -21,16 +21,14 @@ function Row({
   title?: string;
 }) {
   return (
-    <div className="px-4 py-3 flex items-start justify-between gap-4" title={title}>
-      <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/70 pt-0.5 flex-none w-28">
-        {label}
-      </div>
+    <div className="px-5 py-4 flex items-start justify-between gap-4" title={title}>
+      <div className="eyebrow pt-1.5 flex-none w-28">{label}</div>
       <div className="min-w-0 text-right">
-        <div className="font-mono text-[12px] uppercase tracking-[0.12em] text-foreground/95 truncate">
+        <div className="font-display text-[1.3rem] leading-tight text-[#f1ede6] truncate">
           {value}
         </div>
         {sub && (
-          <div className="font-mono text-[9px] tracking-wide text-muted-foreground/55 mt-1 normal-case leading-snug">
+          <div className="text-xs text-muted-foreground mt-1 leading-snug">
             {sub}
           </div>
         )}
@@ -66,20 +64,13 @@ export function AthleteStatePanel({
     : { value: "None scheduled", sub: undefined as string | undefined };
 
   return (
-    <div
-      className="profile-id-card"
-      style={{ border: "1px solid hsla(0,0%,100%,0.08)" }}
-    >
-      <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
-        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
-          Athlete state
-        </div>
-        <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/55">
-          Real signal only
-        </div>
+    <div className="glass overflow-hidden">
+      <div className="flex items-center justify-between px-5 pt-5 pb-1">
+        <div className="eyebrow eyebrow-gold">Athlete state</div>
+        <span className="chip !px-2.5 !py-1 !text-[10px] !text-muted-foreground">Real signal only</span>
       </div>
 
-      <div className="divide-y" style={{ borderColor: "hsla(0,0%,100%,0.05)" }}>
+      <div className="divide-y divide-white/10">
         <Row
           label="State"
           value={state.label}

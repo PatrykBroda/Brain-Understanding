@@ -22,12 +22,12 @@ function Stat({ label, value }: { label: string; value: string }) {
   const set = value.trim() !== "";
   return (
     <div className="px-3 py-2.5">
-      <div className="font-mono text-[8px] uppercase tracking-[0.4em] text-muted-foreground/45 mb-1">
+      <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground mb-1">
         {label}
       </div>
       <div
         className={`font-mono text-[13px] tracking-wide ${
-          set ? "text-foreground/90" : "text-muted-foreground/30"
+          set ? "text-foreground/90" : "text-muted-foreground"
         }`}
       >
         {set ? value : "—"}
@@ -42,15 +42,15 @@ function AttrBar({ label, value }: { label: string; value: number }) {
   return (
     <div>
       <div className="flex items-baseline justify-between mb-1">
-        <span className="font-mono text-[8px] uppercase tracking-[0.3em] text-muted-foreground/55 truncate">
+        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground truncate">
           {label}
         </span>
         <span className="font-mono text-[10px] tabular-nums text-foreground/75">{pct}</span>
       </div>
-      <div className="h-[3px] bg-white/[0.07]">
+      <div className="h-[3px] rounded-full overflow-hidden bg-white/10">
         <div
           className="h-full transition-[width] duration-700"
-          style={{ width: `${pct}%`, background: "hsl(39,49%,36%)" }}
+          style={{ width: `${pct}%`, background: "linear-gradient(90deg, #8a6a2f, #e6d2a3)" }}
         />
       </div>
     </div>
@@ -60,7 +60,7 @@ function AttrBar({ label, value }: { label: string; value: number }) {
 // ─── Section header ──────────────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-primary/75">
+    <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary/75">
       {children}
     </div>
   );
@@ -115,7 +115,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
   const attrScores = (latest?.scores ?? []).slice(0, 4);
 
   return (
-    <div className="border border-white/[0.08] overflow-hidden">
+    <div className="glass overflow-hidden">
       {/* ─── HERO BAND ─────────────────────────────────────────────── */}
       <div className="relative overflow-hidden" style={{ minHeight: 176 }}>
         {/* Background image (faded) or fallback gradient */}
@@ -138,7 +138,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
               className="w-full h-full"
               style={{
                 background:
-                  "radial-gradient(120% 90% at 80% 0%, hsla(39,49%,36%,0.16), transparent 60%), hsla(0,0%,0%,0.4)",
+                  "radial-gradient(120% 90% at 80% 0%, rgba(199,161,90,0.26), transparent 60%), rgba(5,5,5,0.4)",
               }}
             />
           )}
@@ -146,7 +146,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(180deg, hsla(0,0%,4%,0.35) 0%, hsla(0,0%,4%,0.55) 55%, hsl(0,0%,4%) 100%)",
+                "linear-gradient(180deg, rgba(5,5,5,0.3) 0%, rgba(5,5,5,0.5) 55%, rgba(16,14,12,0.95) 100%)",
             }}
           />
         </div>
@@ -159,7 +159,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
               onClick={() => removeHero.mutate()}
               disabled={busy}
               aria-label="Remove hero image"
-              className="w-7 h-7 flex items-center justify-center border border-white/15 bg-black/40 text-muted-foreground/80 hover:text-foreground hover:border-white/30 transition-colors disabled:opacity-40"
+              className="icon-round bg-[#050505]/40 text-muted-foreground hover:text-foreground hover:border-white/30 transition-colors disabled:opacity-40"
             >
               <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
             </button>
@@ -169,7 +169,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
             onClick={() => fileRef.current?.click()}
             disabled={busy}
             aria-label={hasHero ? "Change hero image" : "Add hero image"}
-            className="w-7 h-7 flex items-center justify-center border border-white/15 bg-black/40 text-muted-foreground/80 hover:text-primary hover:border-primary/40 transition-colors disabled:opacity-40"
+            className="icon-round bg-[#050505]/40 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors disabled:opacity-40"
           >
             {busy ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.5} />
@@ -188,37 +188,37 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
 
         {/* Overlaid identity */}
         <div className="relative z-[1] flex flex-col justify-end h-full min-h-[176px] px-4 pt-8 pb-4">
-          <div className="font-mono text-[8px] uppercase tracking-[0.55em] text-muted-foreground/60 mb-1.5">
+          <div className="font-mono text-[10px] uppercase tracking-[0.55em] text-muted-foreground mb-1.5">
             Athlete
           </div>
-          <div className="font-mono text-3xl uppercase tracking-[0.1em] text-foreground leading-none truncate">
+          <div className="font-display text-4xl text-[#f1ede6] leading-none truncate">
             {fighter.name}
           </div>
           {fighter.spiritAnimal && (
             <div
               className="font-mono text-[10px] uppercase tracking-[0.4em] mt-2"
-              style={{ color: "hsl(39,49%,36%)" }}
+              style={{ color: "hsl(39,50%,56%)" }}
             >
               {fighter.spiritAnimal}
             </div>
           )}
-          <div className="font-mono text-[11px] text-muted-foreground/70 mt-2">
+          <div className="font-mono text-[11px] text-muted-foreground mt-2">
             hello, {firstName.toLowerCase()}
           </div>
         </div>
       </div>
 
       {uploadError && (
-        <div className="px-4 py-2 font-mono text-[10px] text-destructive border-t border-white/[0.06]">
+        <div className="px-4 py-2 font-mono text-[10px] text-destructive border-t border-white/10">
           {uploadError}
         </div>
       )}
 
       {/* ─── FIGHT READINESS ───────────────────────────────────────── */}
-      <div className="px-4 py-4 border-t border-white/[0.06]">
+      <div className="px-4 py-4 border-t border-white/10">
         <div className="flex items-center justify-between mb-3">
           <SectionLabel>Fight readiness</SectionLabel>
-          <span className="font-mono text-[8px] uppercase tracking-[0.3em] text-muted-foreground/45">
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
             {latest ? "Last session" : "Locked"}
           </span>
         </div>
@@ -226,15 +226,15 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
         {latest ? (
           <>
             <div className="flex items-end gap-4 mb-4">
-              <div className="font-mono text-5xl tabular-nums text-foreground leading-none">
+              <div className="numeral numeral-l leading-none">
                 {Math.round(latest.sessionScore ?? 0)}
-                <span className="text-lg text-muted-foreground/50">/100</span>
+                <span className="text-lg text-muted-foreground">/100</span>
               </div>
               <div className="pb-1 min-w-0">
                 <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/80 truncate">
                   {latest.styleProfile}
                 </div>
-                <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/45 mt-1">
+                <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
                   {new Date(latest.createdAt).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
@@ -249,25 +249,25 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
                 ))}
               </div>
             )}
-            <p className="font-mono text-[9px] text-muted-foreground/45 leading-relaxed mt-3">
+            <p className="font-mono text-[10px] text-muted-foreground leading-relaxed mt-3">
               Measured from your most recent analysed session. Analyse another to update it.
             </p>
           </>
         ) : (
           <Link
             href="/analyse"
-            className="flex items-center justify-between border border-white/[0.1] hover:border-primary/40 px-4 py-4 group transition-colors"
+            className="flex items-center justify-between rounded-2xl border border-white/10 hover:border-primary/40 px-4 py-4 group transition-colors"
           >
             <div>
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/80 group-hover:text-primary transition-colors">
                 Analyse a session to unlock
               </div>
-              <p className="font-mono text-[9px] text-muted-foreground/50 leading-relaxed mt-1.5 max-w-[15rem]">
+              <p className="font-mono text-[10px] text-muted-foreground leading-relaxed mt-1.5 max-w-[15rem]">
                 FRAME reads readiness from real footage — no session, no number. Nothing is estimated.
               </p>
             </div>
             <ChevronRight
-              className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors flex-none"
+              className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-none"
               strokeWidth={1.5}
             />
           </Link>
@@ -276,25 +276,25 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
 
       {/* ─── STATS GRID ────────────────────────────────────────────── */}
       <div
-        className="grid grid-cols-3 border-t border-white/[0.06]"
+        className="grid grid-cols-3 border-t border-white/10"
         style={{ borderColor: "hsla(0,0%,100%,0.06)" }}
       >
-        <div className="border-r border-b border-white/[0.05]">
+        <div className="border-r border-b border-white/10">
           <Stat
             label="Discipline"
             value={fighter.primarySport ? sportLabel(fighter.primarySport) : fighter.art}
           />
         </div>
-        <div className="border-r border-b border-white/[0.05]">
+        <div className="border-r border-b border-white/10">
           <Stat label="Record" value={fighter.record} />
         </div>
-        <div className="border-b border-white/[0.05]">
+        <div className="border-b border-white/10">
           <Stat label="Weight class" value={fighter.weightClass} />
         </div>
-        <div className="border-r border-white/[0.05]">
+        <div className="border-r border-white/10">
           <Stat label="Stance" value={fighter.stance} />
         </div>
-        <div className="border-r border-white/[0.05]">
+        <div className="border-r border-white/10">
           <Stat label="Height" value={fighter.heightCm != null ? `${fighter.heightCm} cm` : ""} />
         </div>
         <div>
@@ -304,11 +304,11 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
 
       {/* ─── CAMP ──────────────────────────────────────────────────── */}
       {(fighter.gym.trim() !== "" || fighter.headCoach.trim() !== "") && (
-        <div className="px-4 py-3.5 border-t border-white/[0.06]">
+        <div className="px-4 py-3.5 border-t border-white/10">
           <SectionLabel>Camp</SectionLabel>
           <div className="grid grid-cols-2 gap-4 mt-2.5">
             <div>
-              <div className="font-mono text-[8px] uppercase tracking-[0.4em] text-muted-foreground/45 mb-1">
+              <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground mb-1">
                 Team
               </div>
               <div className="font-mono text-[12px] text-foreground/90">
@@ -316,7 +316,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
               </div>
             </div>
             <div>
-              <div className="font-mono text-[8px] uppercase tracking-[0.4em] text-muted-foreground/45 mb-1">
+              <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground mb-1">
                 Head coach
               </div>
               <div className="font-mono text-[12px] text-foreground/90">
@@ -338,10 +338,10 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
           }}
         >
           <div className="flex items-center justify-between mb-2.5">
-            <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-red-400/85">
+            <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-[#E0564E]">
               Competition context
             </div>
-            <span className="font-mono text-[8px] uppercase tracking-[0.25em] text-red-400/60">
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#E0564E]">
               {pressure.tierLabel}
             </span>
           </div>
@@ -351,7 +351,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
                 {pressure.competition.eventName}
               </div>
               {pressure.competition.targetWeight.trim() !== "" && (
-                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50 mt-1">
+                <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
                   Target {pressure.competition.targetWeight}
                   {pressure.competition.currentWeight.trim() !== ""
                     ? ` · now ${pressure.competition.currentWeight}`
@@ -360,10 +360,10 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
               )}
             </div>
             <div className="text-right flex-none">
-              <div className="font-mono text-2xl tabular-nums text-red-400/90 leading-none">
+              <div className="font-mono text-2xl tabular-nums text-[#E0564E] leading-none">
                 {Math.max(0, pressure.daysToEvent)}
               </div>
-              <div className="font-mono text-[8px] uppercase tracking-[0.3em] text-muted-foreground/50 mt-1">
+              <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground mt-1">
                 days out
               </div>
             </div>
@@ -374,12 +374,12 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
       {/* ─── WEEKLY MISSION ────────────────────────────────────────── */}
       <Link
         href="/camp"
-        className="block px-4 py-3.5 border-t border-white/[0.06] hover:bg-white/[0.02] group transition-colors"
+        className="block px-4 py-3.5 border-t border-white/10 hover:bg-white/[0.02] group transition-colors"
       >
         <div className="flex items-center justify-between mb-2">
           <SectionLabel>Weekly mission</SectionLabel>
           <ChevronRight
-            className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-primary transition-colors"
+            className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors"
             strokeWidth={1.5}
           />
         </div>
@@ -388,39 +388,39 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
             <div className="font-mono text-[12px] text-foreground/85 leading-snug">
               {plan.items[0].title}
             </div>
-            <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45 mt-1.5">
+            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1.5">
               {completions.length}/{plan.items.length} complete
             </div>
           </>
         ) : (
-          <div className="font-mono text-[11px] text-muted-foreground/55 leading-relaxed">
+          <div className="font-mono text-[11px] text-muted-foreground leading-relaxed">
             No active mission yet. Open the planner to generate this week's focus.
           </div>
         )}
       </Link>
 
       {/* ─── ACTIONS ───────────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 border-t border-white/[0.06]">
+      <div className="grid grid-cols-3 border-t border-white/10">
         <Link
           href="/chat"
-          className="flex flex-col items-center gap-1.5 py-3.5 border-r border-white/[0.05] text-muted-foreground/70 hover:text-primary hover:bg-white/[0.02] transition-colors"
+          className="flex flex-col items-center gap-1.5 py-3.5 border-r border-white/10 text-muted-foreground hover:text-primary hover:bg-white/[0.02] transition-colors"
         >
           <Target className="w-4 h-4" strokeWidth={1.5} />
-          <span className="font-mono text-[8px] uppercase tracking-[0.25em]">Calibrate</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.25em]">Calibrate</span>
         </Link>
         <Link
           href="/analyse"
-          className="flex flex-col items-center gap-1.5 py-3.5 border-r border-white/[0.05] text-muted-foreground/70 hover:text-primary hover:bg-white/[0.02] transition-colors"
+          className="flex flex-col items-center gap-1.5 py-3.5 border-r border-white/10 text-muted-foreground hover:text-primary hover:bg-white/[0.02] transition-colors"
         >
           <ClipboardList className="w-4 h-4" strokeWidth={1.5} />
-          <span className="font-mono text-[8px] uppercase tracking-[0.25em]">Log session</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.25em]">Log session</span>
         </Link>
         <Link
           href="/chat"
-          className="flex flex-col items-center gap-1.5 py-3.5 text-muted-foreground/70 hover:text-primary hover:bg-white/[0.02] transition-colors"
+          className="flex flex-col items-center gap-1.5 py-3.5 text-muted-foreground hover:text-primary hover:bg-white/[0.02] transition-colors"
         >
           <MessageSquare className="w-4 h-4" strokeWidth={1.5} />
-          <span className="font-mono text-[8px] uppercase tracking-[0.25em]">Talk to FRAME</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.25em]">Talk to FRAME</span>
         </Link>
       </div>
     </div>

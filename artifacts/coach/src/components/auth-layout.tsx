@@ -10,59 +10,52 @@ const GRAIN_URI = `url("data:image/svg+xml,${encodeURIComponent(
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="relative grid h-[100dvh] text-foreground overflow-hidden"
-      style={{
-        gridTemplateRows: "auto minmax(0,1fr) auto",
-        background: "#000",
-      }}
+      className="frame-ambient relative grid h-[100dvh] text-foreground overflow-hidden"
+      style={{ gridTemplateRows: "auto minmax(0,1fr) auto" }}
     >
-      {/* Full-bleed black & white combat photo */}
+      {/* Combat photo, pushed back into the graphite: monochrome, luminosity-blended
+          so it reads as texture and depth rather than a flat picture. */}
       <img
         src={loginHero}
         alt=""
         aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover object-[center_28%] pointer-events-none select-none z-0"
-        style={{ filter: "grayscale(1) contrast(1.08)" }}
+        className="absolute inset-0 h-full w-full object-cover object-[center_28%] pointer-events-none select-none z-0 mix-blend-luminosity"
+        style={{ filter: "grayscale(1) contrast(1.05)", opacity: 0.3 }}
       />
-      {/* Dark wash so the auth card and copy stay legible (~70% at the core, heavier at the edges) */}
+      {/* Graphite wash: dark at the edges and floor, open at the core so the card glows */}
       <div
         className="absolute inset-0 pointer-events-none z-0"
         style={{
           background:
-            "linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0.72)), radial-gradient(ellipse 95% 60% at 50% 40%, transparent 30%, rgba(0,0,0,0.55) 100%)",
+            "linear-gradient(180deg, rgba(5,5,5,0.55) 0%, rgba(5,5,5,0.35) 40%, rgba(5,5,5,0.92) 100%), radial-gradient(ellipse 95% 60% at 50% 40%, transparent 30%, rgba(5,5,5,0.6) 100%)",
         }}
       />
       {/* Film grain */}
       <div
         className="absolute inset-0 pointer-events-none z-0 mix-blend-overlay"
-        style={{ backgroundImage: GRAIN_URI, backgroundSize: "160px 160px", opacity: 0.16 }}
+        style={{ backgroundImage: GRAIN_URI, backgroundSize: "160px 160px", opacity: 0.12 }}
       />
-      {/* Faint amber signal, kept from the original treatment */}
+      {/* Bronze + crimson glow fields */}
+      <div aria-hidden className="glow-orb z-0 -top-24 right-[-6rem] h-[22rem] w-[22rem]" />
       <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 90% 60% at 50% 30%, hsla(39,49%,36%,0.05) 0%, transparent 55%)",
-        }}
+        aria-hidden
+        className="glow-orb z-0 bottom-[-8rem] left-[-7rem] h-[20rem] w-[20rem]"
+        style={{ background: "radial-gradient(circle, rgba(191,29,29,0.30), transparent 70%)" }}
       />
 
-      <header className="relative z-10 flex items-center justify-between px-6 pt-[max(1.1rem,env(safe-area-inset-top))] pb-3">
+      <header className="relative z-10 grid grid-cols-[44px_1fr_44px] items-center px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
         <Link
           href="/"
-          className="text-foreground/55 hover:text-foreground/90 transition-colors -ml-1"
+          className="icon-round text-foreground/85 transition-colors hover:text-foreground"
           aria-label="Back"
         >
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
         </Link>
         <div className="text-center">
-          <div className="font-sans font-extralight text-[14px] tracking-[0.55em] text-foreground/95 leading-none">
-            FRAME
-          </div>
-          <div className="font-mono text-[9px] tracking-[0.5em] text-foreground/45 mt-1.5 font-light">
-            MMA · CALIBRATION SYSTEM
-          </div>
+          <div className="font-display text-[1.7rem] leading-none text-[#f1ede6]">Frame</div>
+          <div className="eyebrow mt-1.5 !text-[10px]">MMA · Calibration system</div>
         </div>
-        <div className="w-5" />
+        <div />
       </header>
 
       <main className="relative z-10 min-h-0 grid place-items-center overflow-y-auto px-5 py-4">
@@ -70,18 +63,21 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </main>
 
       <footer className="relative z-10 px-6 pb-[max(1.6rem,env(safe-area-inset-bottom))] pt-2">
-        <p className="mx-auto max-w-sm text-center font-mono text-[9px] leading-relaxed uppercase tracking-[0.3em] text-foreground/40">
+        <p className="mx-auto max-w-sm text-center text-[11px] leading-relaxed text-muted-foreground">
           Sign in with your FRAME email and password.
         </p>
       </footer>
 
       <style>{`
         @keyframes frame-auth-in {
-          from { opacity: 0; transform: translateY(8px); }
+          from { opacity: 0; transform: translateY(14px); }
           to   { opacity: 1; transform: translateY(0); }
         }
         .frame-auth-in {
-          animation: frame-auth-in 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+          animation: frame-auth-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .frame-auth-in { animation: none; }
         }
       `}</style>
     </div>

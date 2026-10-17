@@ -31,8 +31,8 @@ export function AiConsentModal({
     <div
       className={
         mandatory
-          ? "fixed inset-0 z-[100] flex items-start sm:items-center justify-center bg-background p-0 sm:p-4"
-          : "fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 p-0 backdrop-blur-sm sm:p-4"
+          ? "frame-ambient fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-0 sm:p-4"
+          : "fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-[#050505]/80 p-0 backdrop-blur-md sm:p-4"
       }
       role="dialog"
       aria-modal="true"
@@ -42,52 +42,52 @@ export function AiConsentModal({
       <div
         className={
           mandatory
-            ? "w-full max-w-lg overflow-y-auto bg-background p-6 max-h-[100dvh] sm:max-h-[calc(100dvh-2rem)] sm:border sm:border-border sm:p-8"
-            : "w-full max-w-lg overflow-y-auto border border-border bg-background p-6 shadow-2xl max-h-[90dvh] sm:max-h-[calc(100dvh-2rem)] sm:p-8"
+            ? "glass w-full max-w-lg overflow-y-auto rounded-none p-6 max-h-[100dvh] sm:max-h-[calc(100dvh-2rem)] sm:rounded-[2rem] sm:p-8"
+            : "glass w-full max-w-lg overflow-y-auto rounded-b-none rounded-t-[2rem] p-6 max-h-[90dvh] sm:max-h-[calc(100dvh-2rem)] sm:rounded-[2rem] sm:p-8"
         }
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-primary">
+        <div className="eyebrow eyebrow-gold">
           Your data · your choice
         </div>
         <h2
           id="ai-consent-title"
-          className="mt-2 text-2xl font-light uppercase tracking-[0.12em] text-foreground"
+          className="display-heading mt-2 !text-[2rem]"
         >
           AI coaching permission
         </h2>
-        <p className="mt-5 text-sm leading-relaxed text-foreground/75">
+        <p className="mt-5 text-sm leading-relaxed text-foreground/80">
           FRAME uses {formatProviderList(disclosure.providers)} for AI features.
           The exact categories below come from the FRAME server disclosure.
           Nothing is sent to these providers before you agree.
         </p>
 
-        <h3 className="mt-7 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+        <h3 className="eyebrow mt-7">
           What may be sent
         </h3>
         <ul className="mt-3 space-y-2">
           {disclosure.sharedData.map((item) => (
-            <li key={item} className="flex gap-2 text-sm leading-relaxed text-foreground/70">
-              <span className="text-primary" aria-hidden>•</span>
+            <li key={item} className="flex gap-2 text-sm leading-relaxed text-foreground/80">
+              <span className="text-[hsl(var(--primary-light))]" aria-hidden>•</span>
               <span>{item}</span>
             </li>
           ))}
         </ul>
 
-        <h3 className="mt-7 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+        <h3 className="eyebrow mt-7">
           What is not sent
         </h3>
         <ul className="mt-3 space-y-2">
           {disclosure.notShared.map((item) => (
-            <li key={item} className="flex gap-2 text-sm leading-relaxed text-foreground/70">
-              <span className="text-primary" aria-hidden>•</span>
+            <li key={item} className="flex gap-2 text-sm leading-relaxed text-foreground/80">
+              <span className="text-[hsl(var(--primary-light))]" aria-hidden>•</span>
               <span>{item}</span>
             </li>
           ))}
         </ul>
 
         {disclosure.purpose ? (
-          <p className="mt-5 text-xs leading-relaxed text-foreground/60">{disclosure.purpose}</p>
+          <p className="mt-5 text-xs leading-relaxed text-muted-foreground">{disclosure.purpose}</p>
         ) : null}
 
         {mandatory ? (
@@ -105,12 +105,12 @@ export function AiConsentModal({
           </p>
         )}
 
-        <div className="mt-5 flex flex-col gap-2">
+        <div className="mt-3 flex flex-col">
           <a
             href="/api/privacy"
             target="_blank"
             rel="noreferrer"
-            className="inline-block font-mono text-[10px] uppercase tracking-[0.2em] text-primary hover:underline"
+            className="inline-flex min-h-[44px] items-center text-[11px] font-medium uppercase tracking-[0.16em] text-[hsl(var(--primary-light))] hover:underline"
           >
             Read the privacy policy
           </a>
@@ -118,7 +118,7 @@ export function AiConsentModal({
             href="/api/terms"
             target="_blank"
             rel="noreferrer"
-            className="inline-block font-mono text-[10px] uppercase tracking-[0.2em] text-primary hover:underline"
+            className="inline-flex min-h-[44px] items-center text-[11px] font-medium uppercase tracking-[0.16em] text-[hsl(var(--primary-light))] hover:underline"
           >
             Read the terms of service
           </a>
@@ -130,7 +130,7 @@ export function AiConsentModal({
             checked={checked}
             onChange={(event) => setChecked(event.target.checked)}
             disabled={busy}
-            className="mt-0.5 accent-[hsl(var(--primary))]"
+            className="mt-1 h-5 w-5 accent-[hsl(var(--primary))]"
           />
           <span>
             I understand and agree to the sending of my data to{" "}
@@ -142,7 +142,7 @@ export function AiConsentModal({
           type="button"
           onClick={onAccept}
           disabled={busy || !checked}
-          className="mt-6 w-full border border-primary bg-primary/90 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-primary-foreground transition-colors hover:bg-primary disabled:cursor-wait disabled:opacity-50"
+          className="btn-bronze mt-6 w-full disabled:cursor-wait"
         >
           {busy ? "Saving permission…" : "Agree & Continue"}
         </button>
@@ -154,22 +154,22 @@ export function AiConsentModal({
                 type="button"
                 onClick={onSignOut}
                 disabled={busy}
-                className="w-full px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                className="min-h-[44px] w-full px-4 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
               >
                 Sign out
               </button>
             )}
             {onDeleteAccount && (
               confirmDelete ? (
-                <div className="mt-4 flex flex-col gap-2 border border-destructive/40 bg-destructive/5 p-4">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-destructive mb-2 text-center">
+                <div className="mt-4 flex flex-col gap-2 rounded-3xl border border-[#E0564E]/40 bg-destructive/10 p-4">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#E0564E] mb-2 text-center">
                     Permanently delete account?
                   </p>
                   <button
                     type="button"
                     onClick={onDeleteAccount}
                     disabled={busy}
-                    className="w-full bg-destructive px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:cursor-wait disabled:opacity-50"
+                    className="min-h-[48px] w-full rounded-full bg-destructive px-4 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:cursor-wait disabled:opacity-50"
                   >
                     {busy ? "Deleting…" : "Yes, delete"}
                   </button>
@@ -177,7 +177,7 @@ export function AiConsentModal({
                     type="button"
                     onClick={() => setConfirmDelete(false)}
                     disabled={busy}
-                    className="w-full px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                    className="min-h-[44px] w-full px-4 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -187,7 +187,7 @@ export function AiConsentModal({
                   type="button"
                   onClick={() => setConfirmDelete(true)}
                   disabled={busy}
-                  className="w-full px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-destructive/70 transition-colors hover:text-destructive disabled:opacity-50"
+                  className="min-h-[44px] w-full px-4 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-[#E0564E] transition-colors hover:text-[#f0786f] disabled:opacity-50"
                 >
                   Delete account
                 </button>
@@ -200,7 +200,7 @@ export function AiConsentModal({
               type="button"
               onClick={onDecline}
               disabled={busy}
-              className="mt-2 w-full px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+              className="mt-2 min-h-[44px] w-full px-4 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
             >
               {signup ? "Go back" : "Not now"}
             </button>

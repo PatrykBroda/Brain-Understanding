@@ -16,6 +16,7 @@ import { useMemory } from "@/hooks/use-memory";
 import { primaryFocus } from "@/lib/primary-focus";
 import { heroFileUrl, api, type DailyCheckin } from "@/lib/api";
 import { AuthedImage } from "@/components/authed-image";
+import { ArcGauge, Sparkline } from "@/components/frame-ui";
 import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -23,15 +24,13 @@ const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(mi
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 // Categorical read of a REAL composite — interpretation, not fabrication.
+const READINESS_BANDS = ["Depleted", "Guarded", "Trainable", "Primed"] as const;
+
 function bandFor(score: number): string {
   if (score >= 80) return "Primed";
   if (score >= 65) return "Trainable";
   if (score >= 45) return "Guarded";
   return "Depleted";
-}
-
-function MetaDivider() {
-  return <span aria-hidden className="text-foreground/25 px-2">·</span>;
 }
 
 const METRIC_LABELS: { key: "sleep" | "energy" | "soreness" | "stress"; label: string; hint: string }[] = [
@@ -95,22 +94,17 @@ function CheckinForm({
   };
 
   return (
-    <div className="mt-5 rounded-2xl border border-white/[0.07] bg-white/[0.015] p-5 space-y-5">
-      <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/50 leading-relaxed">
+    <div className="glass glass-flat space-y-6 p-5 sm:p-6">
+      <p className="text-sm leading-relaxed text-muted-foreground">
         Rate how you actually feel. 100 = fully recovered.
       </p>
       {METRIC_LABELS.map(({ key, label, hint }) => (
         <div key={key}>
-          <div className="flex items-baseline justify-between mb-1.5">
-            <label
-              htmlFor={`checkin-${key}`}
-              className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/70"
-            >
+          <div className="flex items-baseline justify-between">
+            <label htmlFor={`checkin-${key}`} className="eyebrow !text-foreground/80">
               {label}
             </label>
-            <span className="font-sans font-light text-[15px] tabular-nums text-primary/90">
-              {values[key]}
-            </span>
+            <span className="numeral numeral-m !text-[1.6rem]">{values[key]}</span>
           </div>
           <input
             id={`checkin-${key}`}
@@ -120,23 +114,17 @@ function CheckinForm({
             step={1}
             value={values[key]}
             onChange={(e) => setValues((v) => ({ ...v, [key]: Number(e.target.value) }))}
-            className="w-full accent-[hsl(39,49%,36%)]"
+            className="frame-range"
             aria-describedby={`checkin-${key}-hint`}
           />
-          <div
-            id={`checkin-${key}-hint`}
-            className="font-mono text-[9px] uppercase tracking-[0.2em] text-foreground/30 mt-1"
-          >
+          <div id={`checkin-${key}-hint`} className="text-xs text-muted-foreground">
             {hint}
           </div>
         </div>
       ))}
       <div>
-        <label
-          htmlFor="checkin-hr"
-          className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/70 block mb-1.5"
-        >
-          Resting HR <span className="text-foreground/35 tracking-[0.2em]">(optional, bpm)</span>
+        <label htmlFor="checkin-hr" className="eyebrow mb-2 block !text-foreground/80">
+          Resting HR <span className="normal-case tracking-normal text-muted-foreground">(optional, bpm)</span>
         </label>
         <input
           id="checkin-hr"
@@ -147,23 +135,22 @@ function CheckinForm({
           value={hr}
           onChange={(e) => setHr(e.target.value)}
           placeholder="—"
-          className="w-24 bg-[hsl(0,0%,7%)] border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-foreground placeholder:text-foreground/25 focus:border-primary/40 focus:outline-none tabular-nums"
+          className="field-glass !w-32 tabular-nums"
         />
       </div>
-      {err && <p className="font-mono text-[10px] text-destructive">{err}</p>}
-      <div className="flex items-center gap-4 pt-1">
-        <button
-          type="button"
-          onClick={submit}
-          disabled={save.isPending}
-          className="px-5 py-2.5 rounded-xl border border-primary/40 font-mono text-[10px] uppercase tracking-[0.35em] text-primary hover:border-primary/70 transition-colors duration-300 disabled:opacity-40"
-        >
+      {err && (
+        <p role="alert" className="text-sm text-[#E0564E]">
+          {err}
+        </p>
+      )}
+      <div className="flex items-center gap-3 pt-1">
+        <button type="button" onClick={submit} disabled={save.isPending} className="btn-bronze">
           {save.isPending ? "Saving" : existing ? "Update" : "Log check-in"}
         </button>
         <button
           type="button"
           onClick={onDone}
-          className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40 hover:text-foreground/70 transition-colors"
+          className="min-h-[44px] px-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
         >
           Cancel
         </button>
@@ -183,10 +170,8 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
   if (points.length < 2) {
     return (
       <div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55">
-          Readiness trend
-        </div>
-        <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/35 leading-relaxed">
+        <div className="eyebrow eyebrow-gold">Readiness trend</div>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           {points.length === 0
             ? "No check-ins in the last 30 days — log one to start the trend."
             : "One check-in logged — the trend starts at two."}
@@ -206,28 +191,19 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-4">
-        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55">
-          Readiness trend
-        </div>
-        <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/35">
+        <div className="eyebrow eyebrow-gold">Readiness trend</div>
+        <div className="text-xs tabular-nums text-muted-foreground">
           {points.length} days · {delta === 0 ? "level" : delta > 0 ? `+${delta}` : `${delta}`}
         </div>
       </div>
       <div
-        className="mt-4 flex items-end gap-[3px] h-14"
+        className="mt-4"
         role="img"
         aria-label={`Readiness composites over the last ${points.length} logged days, from ${first.score} to ${last.score}`}
       >
-        {points.map((p) => (
-          <div
-            key={p.date}
-            title={`${p.date}: ${p.score}`}
-            className={`flex-1 rounded-t-[1px] ${p.date === last.date ? "bg-primary/80" : "bg-foreground/25"}`}
-            style={{ height: `${Math.max(6, p.score)}%` }}
-          />
-        ))}
+        <Sparkline data={points.map((p) => p.score)} width={420} height={84} tone={delta < 0 ? "red" : "gold"} />
       </div>
-      <div className="mt-2 flex justify-between font-mono text-[8px] uppercase tracking-[0.25em] text-foreground/30" aria-hidden>
+      <div className="mt-2 flex justify-between text-[11px] tabular-nums text-muted-foreground" aria-hidden>
         <span>{shortDay(first.date)}</span>
         <span>{shortDay(last.date)}</span>
       </div>
@@ -357,345 +333,330 @@ export default function DashboardPage() {
       ].filter((p): p is string => !!p)
     : [];
 
+  const delay = (ms: number) => ({ animationDelay: `${ms}ms` });
+
   return (
-    <div className="flex flex-col h-[100dvh] text-foreground" style={{ background: "#000" }}>
+    <div className="flex flex-col h-[100dvh] text-foreground">
       <main className="flex-1 min-h-0 overflow-y-auto">
-        {/* ─── Hero — the athlete's own uploaded image, cinematic crop ───── */}
-        <section className="relative">
-          <div
-            ref={heroBoxRef}
-            className="relative h-[46vh] min-h-[300px] max-h-[430px] overflow-hidden"
-            style={adjusting ? { touchAction: "none", cursor: "grab", userSelect: "none" } : undefined}
-            onPointerDown={onHeroPointerDown}
-            onPointerMove={onHeroPointerMove}
-            onPointerUp={onHeroPointerUp}
-            onPointerCancel={onHeroPointerUp}
-          >
-            {heroSrc ? (
-              <AuthedImage
-                src={heroSrc}
-                alt=""
-                aria-hidden
-                className="absolute inset-0 w-full h-full object-cover"
-                style={{
-                  filter: "saturate(0.85) contrast(1.05)",
-                  objectPosition: `${framing.posX}% ${framing.posY}%`,
-                  transform: `scale(${framing.zoom / 100})`,
-                  transformOrigin: `${framing.posX}% ${framing.posY}%`,
-                  // Dimmed like the profile card — dark contrast is the default;
-                  // lifted while adjusting so the athlete can see what they frame.
-                  opacity: adjusting ? 0.85 : 0.45,
-                }}
-                draggable={false}
-              />
-            ) : (
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "radial-gradient(ellipse 90% 70% at 50% 30%, hsl(0,0%,9%) 0%, #000 80%)",
-                }}
-              />
-            )}
-            {/* Legibility washes — profile-card dark contrast */}
+        <div className="mx-auto w-full max-w-5xl px-3 pb-10 sm:px-5">
+          {/* ─── Hero — the athlete's own uploaded image, cinematic crop ───── */}
+          <section className="frame-rise pt-[max(0.75rem,env(safe-area-inset-top))]">
             <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: adjusting
-                  ? "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.05) 30%, rgba(0,0,0,0.05) 70%, rgba(0,0,0,0.6) 100%)"
-                  : "linear-gradient(180deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.42) 34%, rgba(0,0,0,0.55) 62%, rgba(0,0,0,0.97) 100%)",
-              }}
-            />
+              ref={heroBoxRef}
+              className={`relative overflow-hidden rounded-[2rem] border border-white/10 shadow-[0_24px_60px_-28px_rgba(0,0,0,0.9)] ${
+                hasHero ? "h-[42vh] min-h-[290px] max-h-[420px]" : "h-[270px]"
+              }`}
+              style={adjusting ? { touchAction: "none", cursor: "grab", userSelect: "none" } : undefined}
+              onPointerDown={onHeroPointerDown}
+              onPointerMove={onHeroPointerMove}
+              onPointerUp={onHeroPointerUp}
+              onPointerCancel={onHeroPointerUp}
+            >
+              {heroSrc ? (
+                <AuthedImage
+                  src={heroSrc}
+                  alt=""
+                  aria-hidden
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{
+                    filter: "saturate(0.85) contrast(1.05)",
+                    objectPosition: `${framing.posX}% ${framing.posY}%`,
+                    transform: `scale(${framing.zoom / 100})`,
+                    transformOrigin: `${framing.posX}% ${framing.posY}%`,
+                    // Dimmed like the profile card — dark contrast is the default;
+                    // lifted while adjusting so the athlete can see what they frame.
+                    opacity: adjusting ? 0.85 : 0.5,
+                  }}
+                  draggable={false}
+                />
+              ) : (
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      "radial-gradient(70% 90% at 88% 0%, rgba(199,161,90,0.30), transparent 70%), radial-gradient(60% 80% at 0% 100%, rgba(191,29,29,0.20), transparent 70%), linear-gradient(160deg, #17130e 0%, #0a0908 70%)",
+                  }}
+                />
+              )}
+              {/* Legibility washes — graphite, not flat black */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: adjusting
+                    ? "linear-gradient(180deg, rgba(5,5,5,0.45) 0%, rgba(5,5,5,0.05) 30%, rgba(5,5,5,0.05) 70%, rgba(5,5,5,0.6) 100%)"
+                    : "linear-gradient(180deg, rgba(5,5,5,0.55) 0%, rgba(5,5,5,0.15) 38%, rgba(5,5,5,0.55) 70%, rgba(5,5,5,0.92) 100%)",
+                }}
+              />
 
-            {/* Header over hero */}
-            <header className="absolute top-0 inset-x-0 flex items-center justify-between px-6 pt-[max(1.1rem,env(safe-area-inset-top))]">
-              <FrameWordmark size={30} />
-              <div className="flex items-center gap-2.5">
-                <FramePlusPill />
-                {hasHero && !adjusting && (
-                  <button
-                    type="button"
-                    onClick={startAdjust}
-                    aria-label="Adjust hero image framing"
-                    className="w-8 h-8 flex items-center justify-center border border-white/15 bg-black/40 text-foreground/60 hover:text-primary hover:border-primary/40 transition-colors"
-                  >
-                    <Move className="w-3.5 h-3.5" strokeWidth={1.5} />
-                  </button>
-                )}
+              {/* Header over hero */}
+              <header className="absolute top-0 inset-x-0 flex items-center justify-between px-5 pt-5">
+                <FrameWordmark size={30} />
+                <div className="flex items-center gap-2.5">
+                  <FramePlusPill />
+                  {hasHero && !adjusting && (
+                    <button
+                      type="button"
+                      onClick={startAdjust}
+                      aria-label="Adjust hero image framing"
+                      className="icon-round bg-[#050505]/40 text-foreground/80 transition-colors hover:text-[hsl(var(--primary-light))]"
+                    >
+                      <Move className="w-4 h-4" strokeWidth={1.5} />
+                    </button>
+                  )}
+                </div>
+              </header>
+
+              {/* Framing controls (adjust mode) */}
+              {adjusting && (
+                <div className="absolute bottom-0 inset-x-0 p-3">
+                  <div className="glass space-y-3 p-4">
+                    <p className="eyebrow !text-foreground/80">Drag to reposition</p>
+                    <div className="flex items-center gap-3">
+                      <span className="eyebrow w-12">Zoom</span>
+                      <input
+                        type="range"
+                        min={100}
+                        max={250}
+                        step={1}
+                        value={framing.zoom}
+                        onChange={(e) => setDraft((d) => ({ ...d, zoom: Number(e.target.value) }))}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onPointerMove={(e) => e.stopPropagation()}
+                        className="frame-range flex-1"
+                        aria-label="Hero image zoom"
+                      />
+                      <span className="w-12 text-right text-[13px] tabular-nums text-foreground/90">
+                        {framing.zoom}%
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={saveFraming}
+                        disabled={updateFighter.isPending}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className="btn-bronze !min-h-[44px] !px-6"
+                      >
+                        {updateFighter.isPending ? "Saving" : "Save framing"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAdjusting(false)}
+                        disabled={updateFighter.isPending}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className="min-h-[44px] px-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Identity overlay */}
+              {!adjusting && (
+                <div className="absolute bottom-0 inset-x-0 px-6 pb-6">
+                  <div className="eyebrow eyebrow-gold mb-2">Athlete</div>
+                  <h1 className="font-display text-[clamp(2.8rem,11vw,4.8rem)] leading-[0.98] text-[#f1ede6]">
+                    {fighter?.name ?? "—"}
+                  </h1>
+                  {metaParts.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {metaParts.map((p) => (
+                        <span key={p} className="chip">
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <div className="frame-rise mt-3" style={delay(60)}>
+            <CompetitionBanner />
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-2 lg:items-stretch">
+            <div className="contents lg:flex lg:flex-col lg:gap-4">
+            {/* ─── Fight readiness — real composite or an honest prompt ──────── */}
+            <section className="glass glass-gold frame-rise flex flex-col overflow-hidden p-6 lg:flex-1" style={delay(120)}>
+              <div aria-hidden className="glow-orb -right-24 -top-24 h-64 w-64 opacity-60" />
+              <div className="relative flex items-baseline justify-between gap-3">
+                <h2 className="eyebrow eyebrow-gold">Fight readiness</h2>
+                {provenance && <span className="text-xs text-muted-foreground">{provenance}</span>}
               </div>
-            </header>
 
-            {/* Framing controls (adjust mode) */}
-            {adjusting && (
-              <div className="absolute bottom-0 inset-x-0 px-6 pb-5 space-y-4">
-                <p className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/70">
-                  Drag to reposition
-                </p>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/60 w-12">
-                    Zoom
-                  </span>
-                  <input
-                    type="range"
-                    min={100}
-                    max={250}
-                    step={1}
-                    value={framing.zoom}
-                    onChange={(e) => setDraft((d) => ({ ...d, zoom: Number(e.target.value) }))}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onPointerMove={(e) => e.stopPropagation()}
-                    className="flex-1 accent-[hsl(39,49%,36%)]"
-                    aria-label="Hero image zoom"
+              <div className="relative flex flex-1 flex-col items-center justify-center pt-4 pb-1">
+                {readiness != null ? (
+                  <>
+                  <ArcGauge
+                    value={readiness}
+                    size={290}
+                    label={bandFor(readiness)}
+                    tone={readiness < 45 ? "red" : "gold"}
                   />
-                  <span className="font-sans font-light text-[13px] tabular-nums text-foreground/80 w-12 text-right">
-                    {framing.zoom}%
-                  </span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={saveFraming}
-                    disabled={updateFighter.isPending}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    className="px-5 py-2 rounded-none border border-primary/40 font-mono text-[10px] uppercase tracking-[0.35em] text-primary hover:border-primary/70 transition-colors disabled:opacity-40 bg-black/50"
-                  >
-                    {updateFighter.isPending ? "Saving" : "Save framing"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAdjusting(false)}
-                    disabled={updateFighter.isPending}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/50 hover:text-foreground/80 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Identity overlay */}
-            {!adjusting && (
-              <div className="absolute bottom-0 inset-x-0 px-6 pb-5">
-                <div className="font-mono text-[9px] uppercase tracking-[0.55em] text-foreground/55 mb-2">
-                  Athlete
-                </div>
-                <h1 className="font-sans font-extralight uppercase text-[clamp(2.6rem,11vw,4rem)] tracking-[0.12em] leading-none text-foreground/95">
-                  {fighter?.name ?? "—"}
-                </h1>
-                {metaParts.length > 0 && (
-                  <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/60 mt-3">
-                    {metaParts.map((p, i) => (
-                      <span key={p}>
-                        {i > 0 && <MetaDivider />}
-                        {p}
+                  <div className="mt-4 flex flex-wrap justify-center gap-1.5" aria-hidden>
+                    {READINESS_BANDS.map((band) => (
+                      <span
+                        key={band}
+                        className={`chip !px-2.5 !py-1 !text-[10px] ${
+                          band === bandFor(readiness)
+                            ? "!border-primary/50 !bg-primary/20 !text-[hsl(var(--primary-pale))]"
+                            : "!text-muted-foreground"
+                        }`}
+                      >
+                        {band}
                       </span>
                     ))}
                   </div>
+                  </>
+                ) : (
+                  <>
+                    <ArcGauge value={0} size={290} display="—" label="No data" />
+                    <p className="mt-2 max-w-[16rem] text-center text-sm leading-relaxed text-muted-foreground">
+                      No real data yet. Log a check-in or analyse a session.
+                    </p>
+                  </>
                 )}
               </div>
-            )}
-          </div>
-        </section>
+            </section>
 
-        <div className="px-0">
-          <CompetitionBanner />
-        </div>
-
-        {/* ─── Today's focus — the one insight, coach's voice ────────────── */}
-        {hasFocus && focus && (
-          <section className="px-6 pt-7">
-            <div className="border-b border-white/[0.07] pb-2">
-              <h2 className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/60">
-                Today's focus
-              </h2>
-            </div>
-            <Link
-              href="/chat"
-              className="block pt-4 group outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg"
-              title={focus.source}
-            >
-              <div className="flex items-baseline justify-between gap-4">
-                <p className="font-sans font-light text-[1.15rem] text-foreground/95 leading-snug">
-                  {focus.label}
-                </p>
-                <ChevronRight
-                  className="flex-none w-4 h-4 text-foreground/30 group-hover:text-primary transition-colors translate-y-0.5"
-                  strokeWidth={1.5}
-                />
-              </div>
-              <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/35 mt-2">
-                {focus.source}
-              </div>
-            </Link>
-          </section>
-        )}
-
-        {/* ─── Fight readiness — real composite or an honest prompt ──────── */}
-        <section className="px-6 pt-7 pb-2">
-          <div className="flex items-center justify-between border-b border-white/[0.07] pb-2">
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/60">
-              Fight readiness
-            </h2>
-            {provenance && (
-              <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/35">
-                {provenance}
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-0 items-start pt-5">
-            <div>
-              {readiness != null ? (
-                <>
-                  <div className="font-sans font-extralight text-[clamp(4.6rem,20vw,7rem)] leading-[0.9] tabular-nums text-foreground/95">
-                    {readiness}
-                  </div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.5em] text-primary/90 mt-3">
-                    {bandFor(readiness)}
-                  </div>
-                </>
+            {/* Readiness trend — advanced readiness insight (FRAME+). Built ONLY
+                from real logged check-ins; free tier sees a locked teaser. */}
+            <section className="glass frame-rise order-4 p-6 lg:order-none" style={delay(300)}>
+              {isFramePlus ? (
+                <ReadinessTrend checkins={historyCheckins} />
               ) : (
-                <>
-                  <div className="font-sans font-extralight text-[clamp(4.6rem,20vw,7rem)] leading-[0.9] text-foreground/25" aria-hidden>
-                    —
-                  </div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/45 mt-3 max-w-[180px] leading-relaxed">
-                    No real data yet. Log a check-in or analyse a session.
-                  </div>
-                </>
+                <button
+                  type="button"
+                  onClick={() => openUpgrade("fight_readiness")}
+                  className="group flex min-h-[44px] w-full items-center justify-between gap-4 text-left"
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="icon-round">
+                      <Lock className="h-4 w-4 text-foreground/80" strokeWidth={1.5} />
+                    </span>
+                    <span className="eyebrow !text-foreground/80 transition-colors group-hover:!text-foreground">
+                      Readiness trend
+                    </span>
+                  </span>
+                  <span className="chip !border-primary/40 !bg-primary/10">FRAME+</span>
+                </button>
               )}
+            </section>
             </div>
+
+            <div className="contents lg:flex lg:flex-col lg:gap-4">
+            {/* ─── Today's focus — the one insight, coach's voice ────────────── */}
+            {hasFocus && focus && (
+              <Link
+                href="/chat"
+                className="glass frame-rise group block p-6 outline-none transition-colors hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light))]"
+                style={delay(180)}
+                title={focus.source}
+              >
+                <h2 className="eyebrow eyebrow-gold">Today's focus</h2>
+                <div className="mt-3 flex items-center justify-between gap-4">
+                  <p className="display-heading !text-[1.65rem]">{focus.label}</p>
+                  <span className="icon-round flex-none transition-colors group-hover:text-[hsl(var(--primary-light))]">
+                    <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
+                  </span>
+                </div>
+                <div className="mt-3 text-xs text-muted-foreground">{focus.source}</div>
+              </Link>
+            )}
 
             {/* Breakdown — athlete-entered values only */}
-            <div className="pt-1">
-              <div className="space-y-2.5">
-                {METRIC_LABELS.map(({ key, label }) => (
-                  <div key={key} className="flex items-baseline justify-between gap-4">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55">
-                      {label}
-                    </span>
-                    <span className="font-sans font-light text-[15px] tabular-nums text-foreground/90">
-                      {checkin ? (
-                        INVERTED_METRICS[key] ? 100 - checkin[key] : checkin[key]
-                      ) : (
-                        <span className="text-foreground/25">—</span>
-                      )}
-                    </span>
-                  </div>
-                ))}
-                <div className="flex items-baseline justify-between gap-4">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55">
-                    Cardio HR
-                  </span>
-                  <span className="font-sans font-light text-[15px] tabular-nums text-foreground/90">
+            <section className="glass frame-rise p-6" style={delay(240)}>
+              <div className="grid grid-cols-2 gap-x-7 gap-y-6">
+                {METRIC_LABELS.map(({ key, label }) => {
+                  const v = checkin ? (INVERTED_METRICS[key] ? 100 - checkin[key] : checkin[key]) : null;
+                  return (
+                    <div key={key}>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="eyebrow">{label}</span>
+                        <span className="numeral numeral-m !text-[1.7rem]">
+                          {v ?? <span className="text-muted-foreground">—</span>}
+                        </span>
+                      </div>
+                      <div className={`bar-thin mt-3 ${INVERTED_METRICS[key] ? "bar-thin-red" : ""}`} aria-hidden>
+                        <span style={{ width: `${v ?? 0}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="col-span-2 flex items-baseline justify-between gap-2 border-t border-white/10 pt-5">
+                  <span className="eyebrow">Cardio HR</span>
+                  <span className="numeral numeral-m !text-[1.7rem]">
                     {checkin?.restingHr != null ? (
                       <>
                         {checkin.restingHr}
-                        <span className="font-mono text-[9px] text-foreground/40 ml-1">bpm</span>
+                        <span className="ml-1.5 text-xs font-normal tracking-normal text-muted-foreground">bpm</span>
                       </>
                     ) : (
-                      <span className="text-foreground/25">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </span>
                 </div>
               </div>
 
               {!editing && (
-                <button
-                  type="button"
-                  onClick={() => setEditing(true)}
-                  className="mt-5 inline-flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.35em] text-primary/80 hover:text-primary transition-colors"
-                >
+                <button type="button" onClick={() => setEditing(true)} className="btn-glass mt-6 w-full">
                   {checkin ? (
                     <>
-                      <Pencil className="w-3 h-3" strokeWidth={1.5} />
+                      <Pencil className="w-3.5 h-3.5" strokeWidth={1.5} />
                       Edit today's check-in
                     </>
                   ) : (
                     <>
                       Log today's check-in
-                      <ChevronRight className="w-3 h-3" strokeWidth={1.5} />
+                      <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.5} />
                     </>
                   )}
                 </button>
               )}
-            </div>
-          </div>
+            </section>
 
-          {editing && <CheckinForm existing={checkin} onDone={() => setEditing(false)} />}
-
-          {/* Readiness trend — advanced readiness insight (FRAME+). Built ONLY
-              from real logged check-ins; free tier sees a locked teaser. */}
-          <div className="mt-7 border-t border-white/[0.05] pt-5">
-            {isFramePlus ? (
-              <ReadinessTrend checkins={historyCheckins} />
-            ) : (
-              <button
-                type="button"
-                onClick={() => openUpgrade("fight_readiness")}
-                className="w-full flex items-center justify-between gap-4 py-1 text-left group"
-              >
-                <span className="flex items-center gap-3">
-                  <Lock className="w-3.5 h-3.5 text-foreground/35" strokeWidth={1.5} />
-                  <span className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55 group-hover:text-foreground/80 transition-colors">
-                    Readiness trend
-                  </span>
-                </span>
-                <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary/70 group-hover:text-primary transition-colors">
-                  FRAME+
-                </span>
-              </button>
-            )}
-          </div>
-        </section>
-
-        {/* ─── Competition context — real camp or a quiet empty state ────── */}
-        <section className="px-6 pt-8 pb-10">
-          <div className="border-b border-white/[0.07] pb-2">
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/60">
-              Competition context
-            </h2>
-          </div>
-          {competition && pressure ? (
-            <Link
-              href="/camp"
-              className="block pt-5 group outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg"
-            >
-              <div className="flex items-baseline justify-between gap-4">
-                <div>
-                  <div className="font-sans font-light text-[17px] text-foreground/95 tracking-wide">
-                    {competition.eventName}
-                  </div>
-                  <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/45 mt-1.5">
-                    {pressure.phase}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-sans font-extralight text-[34px] tabular-nums leading-none text-primary/90">
-                    {pressure.daysToEvent}
-                  </div>
-                  <div className="font-mono text-[8px] uppercase tracking-[0.3em] text-foreground/40 mt-1">
-                    Days out
-                  </div>
-                </div>
+            {editing && (
+              <div className="order-3 lg:order-none">
+                <CheckinForm existing={checkin} onDone={() => setEditing(false)} />
               </div>
-            </Link>
-          ) : (
-            <div className="pt-5 flex items-baseline justify-between gap-4">
-              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/35 leading-relaxed">
-                No active camp.
-              </p>
-              <Link
-                href="/camp"
-                className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.35em] text-primary/80 hover:text-primary transition-colors"
-              >
-                Set a camp
-                <ChevronRight className="w-3 h-3" strokeWidth={1.5} />
-              </Link>
+            )}
+
+            {/* ─── Competition context — real camp or a quiet empty state ────── */}
+            <section className="glass frame-rise order-5 p-6 lg:order-none" style={delay(360)}>
+              <h2 className="eyebrow eyebrow-gold">Competition context</h2>
+              {competition && pressure ? (
+                <Link
+                  href="/camp"
+                  className="group mt-4 flex items-center justify-between gap-4 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light))]"
+                >
+                  <div className="min-w-0">
+                    <div className="display-heading !text-[1.5rem] truncate">{competition.eventName}</div>
+                    <div className="eyebrow mt-2">{pressure.phase}</div>
+                  </div>
+                  <div className="flex-none text-right">
+                    <div className="numeral numeral-l !text-[3rem] !text-[hsl(var(--primary-pale))]">
+                      {pressure.daysToEvent}
+                    </div>
+                    <div className="eyebrow mt-1">Days out</div>
+                  </div>
+                </Link>
+              ) : (
+                <div className="mt-4 flex items-center justify-between gap-4">
+                  <p className="text-sm text-muted-foreground">No active camp.</p>
+                  <Link href="/camp" className="btn-glass !min-h-[44px] !px-5">
+                    Set a camp
+                    <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  </Link>
+                </div>
+              )}
+            </section>
             </div>
-          )}
-        </section>
+          </div>
+        </div>
       </main>
 
       <BottomNav />
