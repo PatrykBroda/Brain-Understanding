@@ -1,9 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
-@import "@fontsource-variable/outfit/index.css";
-@import "@fontsource-variable/unbounded/index.css";
-@import "@fontsource/barlow-condensed/700.css";
-@import "@fontsource/barlow-condensed/700-italic.css";
-@import "@fontsource/barlow-condensed/600-italic.css";
+@import "@fontsource-variable/inter-tight/index.css";
 
 @layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
@@ -112,58 +107,56 @@
   --input: 180 5% 85%;
   --ring: 39 49% 36%;
 
-  --app-font-sans: 'Outfit Variable', 'Outfit', system-ui, sans-serif;
-  --app-font-display: 'Unbounded Variable', 'Unbounded', 'Outfit Variable', system-ui, sans-serif;
-  /* sporty punch face (UFC / Nike energy) - condensed bold, sparingly */
-  --app-font-punch: 'Barlow Condensed', 'Arial Narrow', 'Outfit Variable', sans-serif;
-  /* labels were Space Mono; now Outfit so the small uppercase labels read refined. */
-  --app-font-mono: 'Outfit Variable', 'Outfit', system-ui, sans-serif;
-  --radius: 1.25rem;
+  --app-font-sans: 'Inter Tight Variable', 'Inter Tight', system-ui, -apple-system, sans-serif;
+  --app-font-display: var(--app-font-sans);
+  --app-font-punch: var(--app-font-sans);
+  --app-font-mono: var(--app-font-sans);
+  --radius: 1rem;
 }
 
 /* DARK MODE PRIMARY — pure black foundation, no blue-grey tint */
 .dark, :root {
   color-scheme: dark;
-  --background: 0 0% 2%;     /* #050505 — brand black; depth is layered on top by the body glow fields */
-  --foreground: 0 0% 88%;    /* #e0e0e0 */
+  --background: 220 15% 3.7%;      /* #08090B */
+  --foreground: 60 12% 95%;        /* #F4F4F1 */
 
-  --border: 36 20% 90% / 0.10; /* 1px light edge on glass */
+  --border: 0 0% 100% / 0.08;      /* fine white border */
 
-  --card: 30 14% 6%;         /* graphite1 #100e0c — lifted surface */
-  --card-foreground: 0 0% 88%;
-  --card-border: 36 20% 90% / 0.10;
+  --card: 216 12% 7.6%;            /* surface #111316 */
+  --card-foreground: 60 12% 95%;
+  --card-border: 0 0% 100% / 0.08;
 
-  --popover: 30 14% 7%;
-  --popover-foreground: 0 0% 88%;
-  --popover-border: 36 20% 90% / 0.12;
+  --popover: 213 12% 13.9%;        /* overlay #1F2328 */
+  --popover-foreground: 60 12% 95%;
+  --popover-border: 0 0% 100% / 0.12;
 
-  --primary: 39 49% 36%;     /* champions gold — restrained, earned */
-  --primary-h: 39;
-  --primary-foreground: 0 0% 2%;
+  --primary: 40 32% 59.6%;         /* muted gold #B9A477 */
+  --primary-h: 40;
+  --primary-foreground: 220 12% 4.9%; /* #0B0C0E on gold */
 
-  --secondary: 30 12% 9%;    /* graphite2 */
-  --secondary-foreground: 0 0% 68%;
+  --secondary: 214 12% 11.2%;      /* raised #191C20 */
+  --secondary-foreground: 60 12% 95%;
 
-  --muted: 30 10% 8%;
-  --muted-foreground: 36 4% 56%; /* #8f8b84 - AA (5.9:1) on the dark surfaces */
+  --muted: 216 12% 7.6%;
+  --muted-foreground: 216 5% 66%;  /* #A4A8AE secondary text */
 
-  --accent: 39 49% 36%;
-  --accent-foreground: 0 0% 2%;
+  --accent: 214 12% 11.2%;
+  --accent-foreground: 60 12% 95%;
 
-  --destructive: 0 74% 43%;  /* crimson — #BF1D1D — pressure / warnings */
-  --destructive-foreground: 0 0% 92%;
+  --destructive: 4 60% 47%;        /* #C0392F */
+  --destructive-foreground: 60 12% 95%;
 
-  --red-accent: 0 74% 52%;   /* brighter crimson for danger states */
-  --red-accent-foreground: 0 0% 100%;
+  --red-accent: 4 72% 62%;         /* #E5645A */
+  --red-accent-foreground: 220 12% 4.9%;
 
-  --input: 36 20% 90% / 0.12;
-  --ring: 39 49% 36%;
+  --input: 0 0% 100% / 0.12;
+  --ring: 40 32% 59.6%;
 
-  --primary-light: 39 50% 56%;   /* #C7A15A text-safe gold */
-  --primary-pale: 41 55% 77%;    /* #E6D2A3 */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.7);
-  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.7), 0 1px 2px -1px rgb(0 0 0 / 0.7);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.7), 0 2px 4px -2px rgb(0 0 0 / 0.7);
+  --primary-light: 40 32% 59.6%;   /* gold, text-safe on dark (7.6:1) */
+  --primary-pale: 44 36% 73.5%;    /* #D4C7A3 */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
 }
 
 @layer base {
@@ -173,7 +166,6 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    font-feature-settings: 'tnum' 1;
   }
 }
 
@@ -239,24 +231,9 @@
   }
 }
 
-/* Analyse — soft red danger glow when fragmentation/load reads high */
+/* Analyse — static soft red tint when fragmentation/load reads high (no pulsing) */
 .frame-danger-glow {
-  background: radial-gradient(
-    120% 80% at 50% 100%,
-    rgba(196, 56, 46, 0.12) 0%,
-    transparent 55%
-  );
-  animation: frame-danger-pulse 4s ease-in-out infinite;
-}
-
-@keyframes frame-danger-pulse {
-  0%,
-  100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 1;
-  }
+  background: radial-gradient(120% 80% at 50% 100%, rgba(229, 100, 90, 0.08) 0%, transparent 55%);
 }
 
 /* Boot loader — thin track with a gold segment sweeping across */
@@ -296,283 +273,350 @@
   }
 }
 
-/* Mic button — soft pulse while actively listening */
+/* Mic button — listening is shown by a static ring (no pulsing) */
 .frame-mic-live {
-  animation: frame-mic-pulse 1.4s ease-in-out infinite;
+  box-shadow: 0 0 0 2px rgba(185, 164, 119, 0.55);
 }
 
-@keyframes frame-mic-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.45;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .frame-mic-live {
-    animation: none;
-  }
-}
-
-/* FRAME+ upgrade card — slow, low-amplitude ambient border "breath" (~9s),
-   echoing the home orb so the upsell reads as a living tier, not a panel. */
+/* FRAME+ upgrade card — static gold hairline (no breathing) */
 .frame-plus-breath {
-  animation: frame-plus-breath 9s ease-in-out infinite;
-}
-
-@keyframes frame-plus-breath {
-  0%,
-  100% {
-    border-color: hsl(var(--primary) / 0.16);
-    box-shadow:
-      0 0 0 1px hsl(var(--primary) / 0.04),
-      0 0 34px -14px hsl(var(--primary) / 0.16);
-  }
-  50% {
-    border-color: hsl(var(--primary) / 0.44);
-    box-shadow:
-      0 0 0 1px hsl(var(--primary) / 0.12),
-      0 0 46px -8px hsl(var(--primary) / 0.34);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .frame-plus-breath {
-    animation: none;
-    border-color: hsl(var(--primary) / 0.32);
-  }
+  border-color: rgba(185, 164, 119, 0.28);
 }
 
 
 /* ==========================================================================
-   FRAME design system — "Smoked Bronze" (mirrors artifacts/frame-mobile/constants/theme.ts)
-   Dark only. Depth = layered graphite + frosted glass + low-opacity bronze/crimson
-   glow fields + oversized thin numerals. No new hues.
+   FRAME design system v3 — "Dark Chrome" (client written direction)
+   Mirrors artifacts/frame-mobile/constants/theme.ts.
+
+   Neutral black canvas (#08090B) · surface #111316 · raised #191C20 · overlay #1F2328
+   text #F4F4F1 · secondary #A4A8AE · muted gold #B9A477 (small proportion only)
+   borders = white at 6–12%. Depth = brightness steps + fine border + faint
+   top-edge highlight. Blur/translucency ONLY for nav + overlays.
+   One family (Inter Tight 400/500/600). Radii: cards 16–20, controls 12–14,
+   pills ONLY for chips / filters / compact status. 4px spacing grid.
+   Motion: 150–220ms control feedback, 250–350ms panels. Opacity/transform only.
    ========================================================================== */
 
-/* Ambient glow fields. The body already carries the default; use these on a
-   full-bleed wrapper when a screen wants a different tone. */
-.frame-ambient {
-  background:
-    radial-gradient(90% 46% at 85% -4%, rgba(199, 161, 90, 0.20), transparent 70%),
-    radial-gradient(85% 42% at -8% 104%, rgba(138, 106, 47, 0.18), transparent 70%),
-    linear-gradient(180deg, #0d0b09 0%, #070605 55%, #050505 100%);
-}
-.frame-ambient-red {
-  background:
-    radial-gradient(90% 46% at 85% -4%, rgba(199, 161, 90, 0.16), transparent 70%),
-    radial-gradient(85% 42% at -8% 104%, rgba(191, 29, 29, 0.20), transparent 70%),
-    linear-gradient(180deg, #0d0b09 0%, #070605 55%, #050505 100%);
-}
-body {
-  background-color: #050505;
-  background-image:
-    radial-gradient(90% 46% at 85% -4%, rgba(199, 161, 90, 0.16), transparent 70%),
-    radial-gradient(85% 42% at -8% 104%, rgba(138, 106, 47, 0.14), transparent 70%),
-    linear-gradient(180deg, #0d0b09 0%, #070605 55%, #050505 100%);
-  background-attachment: fixed;
+:root {
+  /* tokens (plain CSS vars for use in inline styles / arbitrary values) */
+  --f-bg: #08090b;
+  --f-surface: #111316;
+  --f-raised: #191c20;
+  --f-overlay: #1f2328;
+  --f-text: #f4f4f1;
+  --f-text-2: #a4a8ae;
+  --f-text-3: #8a8f96;
+  --f-gold: #b9a477;
+  --f-gold-pressed: #a8946a;
+  --f-gold-pale: #d4c7a3;
+  --f-on-gold: #0b0c0e;
+  --f-border: rgba(255, 255, 255, 0.08);
+  --f-border-strong: rgba(255, 255, 255, 0.12);
+  --f-hairline: rgba(255, 255, 255, 0.06);
+  --f-highlight: rgba(255, 255, 255, 0.07);
+  --f-red-text: #e5645a;
+  --f-ok: #8fb89a;
+  --f-r-card: 18px;
+  --f-r-card-lg: 20px;
+  --f-r-control: 14px;
+  --f-r-control-sm: 12px;
+  --f-ease: cubic-bezier(0.2, 0, 0, 1);
+  --f-dur-fast: 180ms;
+  --f-dur-base: 220ms;
+  --f-dur-panel: 320ms;
 }
 
-/* Frosted glass card: translucent graphite + diagonal sheen + 1px light edge,
-   brighter top edge, big radius, deep soft shadow. */
+body {
+  background-color: var(--f-bg);
+  background-image: none;
+}
+
+/* ---- Atmospheric light: a separate decorative layer ------------------------
+   Oversized, asymmetric, low-opacity radial gradients with broad falloff:
+   black → smoky silver, black → muted champagne. ONE focal point per screen.
+   Absolutely positioned, pointer-events none, no layout effect. Never put one
+   behind long reading text. No blur filter (pure gradient = cheap). */
+.atmo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.atmo::before {
+  content: "";
+  position: absolute;
+  width: 140%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  pointer-events: none;
+}
+/* silver, top-right (default) */
+.atmo-silver::before {
+  right: -55%;
+  top: -75%;
+  background: radial-gradient(closest-side, rgba(201, 205, 210, 0.15), rgba(108, 113, 120, 0.06) 48%, transparent 100%);
+}
+.atmo-silver-left::before {
+  left: -60%;
+  top: -75%;
+  background: radial-gradient(closest-side, rgba(201, 205, 210, 0.14), rgba(108, 113, 120, 0.055) 48%, transparent 100%);
+}
+/* champagne, centred behind a focal visual */
+.atmo-champagne::before {
+  left: 50%;
+  top: 6%;
+  width: 150%;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, rgba(205, 187, 142, 0.16), rgba(138, 122, 82, 0.06) 50%, transparent 100%);
+}
+.atmo-champagne-tr::before {
+  right: -55%;
+  top: -70%;
+  background: radial-gradient(closest-side, rgba(205, 187, 142, 0.15), rgba(138, 122, 82, 0.055) 50%, transparent 100%);
+}
+.atmo-silver-bottom::before {
+  left: -40%;
+  bottom: -85%;
+  background: radial-gradient(closest-side, rgba(201, 205, 210, 0.12), rgba(108, 113, 120, 0.05) 48%, transparent 100%);
+}
+/* legacy aliases from earlier iterations */
+.glow-orb {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+  filter: none;
+  background: radial-gradient(closest-side, rgba(201, 205, 210, 0.12), rgba(108, 113, 120, 0.04) 55%, transparent 100%);
+}
+.frame-ambient,
+.frame-ambient-red {
+  background: var(--f-bg);
+}
+
+/* ---- Surfaces -------------------------------------------------------------- */
+/* Standard content card: SOLID, readable, no blur. */
 .glass {
   position: relative;
-  border-radius: 1.5rem;
-  border: 1px solid rgba(255, 244, 224, 0.085);
-  background:
-    linear-gradient(135deg, rgba(255, 246, 232, 0.085), rgba(255, 246, 232, 0.02)),
-    rgba(16, 14, 12, 0.56);
-  -webkit-backdrop-filter: blur(28px) saturate(1.2);
-  backdrop-filter: blur(28px) saturate(1.2);
-  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 244, 224, 0.09);
+  border-radius: var(--f-r-card);
+  border: 1px solid var(--f-border);
+  background: linear-gradient(180deg, #15181b 0%, var(--f-surface) 60%);
+  box-shadow: inset 0 1px 0 var(--f-highlight), 0 8px 20px -14px rgba(0, 0, 0, 0.7);
+}
+.glass-raised {
+  background: linear-gradient(180deg, #1e2226 0%, var(--f-raised) 60%);
+  border-color: var(--f-border-strong);
 }
 .glass-gold {
-  border-color: rgba(199, 161, 90, 0.28);
-  background:
-    linear-gradient(135deg, rgba(138, 106, 47, 0.30), rgba(138, 106, 47, 0.04)),
-    rgba(16, 14, 12, 0.72);
+  border-color: rgba(185, 164, 119, 0.28);
+  background: linear-gradient(180deg, rgba(185, 164, 119, 0.09), rgba(185, 164, 119, 0.015) 70%), var(--f-surface);
 }
 .glass-red {
-  border-color: rgba(224, 86, 78, 0.30);
-  background:
-    linear-gradient(135deg, rgba(191, 29, 29, 0.26), rgba(191, 29, 29, 0.04)),
-    rgba(16, 14, 12, 0.72);
+  border-color: rgba(229, 100, 90, 0.3);
+  background: linear-gradient(180deg, rgba(229, 100, 90, 0.09), rgba(229, 100, 90, 0.015) 70%), var(--f-surface);
 }
-.glass-flat { border-radius: 1.25rem; box-shadow: none; }
+.glass-flat {
+  border-radius: 16px;
+  box-shadow: none;
+}
+.glass-table {
+  border-radius: var(--f-r-card);
+  overflow: hidden;
+}
+/* photo-led section: solid dark, no blur (photo gets its own scrim) */
+.glass-photo {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--f-r-card-lg);
+  border: 1px solid var(--f-border);
+  background: var(--f-surface);
+  box-shadow: inset 0 1px 0 var(--f-highlight);
+}
+/* card over video/photo on auth screens: the one allowed translucent card (it is an overlay) */
+.glass-clear {
+  background: rgba(8, 9, 11, 0.78);
+  border-color: var(--f-border-strong);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+/* Overlays: menus, sheets, popovers, modals, bottom nav */
+.overlay-surface {
+  background: rgba(25, 28, 32, 0.92);
+  border: 1px solid var(--f-border-strong);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 24px 48px -16px rgba(0, 0, 0, 0.7);
+}
+.hairline {
+  border-color: var(--f-hairline) !important;
+}
+.row-hair {
+  border-bottom: 1px solid var(--f-hairline);
+}
+.row-hair:last-child {
+  border-bottom: 0;
+}
 
-/* Type roles */
-.font-display { font-family: var(--app-font-display); font-style: normal; font-weight: 250; letter-spacing: -0.02em; }
-/* Punch: condensed bold italic caps, for the odd Nike/UFC headline. Sparingly. */
-.font-punch, .punch { font-family: var(--app-font-punch); font-style: italic; font-weight: 700; text-transform: uppercase; letter-spacing: 0.01em; line-height: 0.95; }
-.display-title { font-family: var(--app-font-display); font-style: normal; font-weight: 200; font-size: 2rem; line-height: 1.12; letter-spacing: -0.03em; color: #f4f0e9; }
-.display-heading { font-family: var(--app-font-display); font-style: normal; font-weight: 250; font-size: 1.45rem; line-height: 1.18; letter-spacing: -0.03em; color: #f4f0e9; }
-.numeral { font-family: var(--app-font-sans); font-weight: 100; letter-spacing: -0.045em; line-height: 0.95; color: #f1ede6; font-variant-numeric: tabular-nums; }
-.numeral-hero { font-size: 5.5rem; }
-.numeral-l { font-size: 3.5rem; }
-.numeral-m { font-size: 2.1rem; font-weight: 200; letter-spacing: -0.03em; }
-.eyebrow { font-family: var(--app-font-sans); font-weight: 400; font-size: 0.6875rem; letter-spacing: 0.22em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
-.eyebrow-gold { color: hsl(var(--primary-light)); }
+/* ---- Type roles ------------------------------------------------------------ */
+.font-display {
+  font-family: var(--app-font-display);
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+/* Headline (hero 32–40). Replaces the v2 condensed italic caps. */
+.font-punch,
+.punch {
+  font-family: var(--app-font-display);
+  font-style: normal;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+.punch-xl { font-size: clamp(2.25rem, 10vw, 2.5rem); }
+.punch-l { font-size: clamp(2rem, 8.5vw, 2.25rem); }
+.punch-m { font-size: 1.5rem; }
+.display-title { font-family: var(--app-font-display); font-style: normal; font-weight: 600; font-size: 1.75rem; line-height: 1.15; letter-spacing: -0.03em; color: var(--f-text); }
+.display-heading { font-family: var(--app-font-display); font-style: normal; font-weight: 600; font-size: 1.25rem; line-height: 1.25; letter-spacing: -0.02em; color: var(--f-text); }
+.section-title { font-family: var(--app-font-display); font-style: normal; font-weight: 600; font-size: 1.125rem; line-height: 1.3; color: var(--f-text); letter-spacing: -0.015em; }
+.section-rule { height: 1px; background: var(--f-hairline); }
+.numeral { font-family: var(--app-font-sans); font-weight: 600; letter-spacing: -0.03em; line-height: 1; color: var(--f-text); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.numeral-hero { font-size: 3.5rem; letter-spacing: -0.04em; }
+.numeral-l { font-size: 2.5rem; }
+.numeral-m { font-size: 1.75rem; }
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+/* short UPPERCASE category label (<= 2 words) — use sparingly */
+.eyebrow { font-family: var(--app-font-sans); font-weight: 500; font-size: 0.75rem; line-height: 1rem; letter-spacing: 0.08em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+.eyebrow-gold { color: var(--f-gold); }
+/* sentence-case supporting label (12–14px) */
+.label { font-family: var(--app-font-sans); font-weight: 500; font-size: 0.8125rem; line-height: 1.125rem; color: var(--f-text-2); }
+.wordmark { font-family: var(--app-font-display); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3em; color: var(--f-text); line-height: 1; padding-left: 0.3em; }
 
-/* Pill tabs / chips */
+/* ---- Chips / filters / status (pill shape is correct here) ------------------ */
 .pill {
   display: inline-flex; align-items: center; justify-content: center;
-  min-height: 44px; padding: 0 1.25rem; border-radius: 999px;
-  border: 1px solid rgba(255, 244, 224, 0.07);
-  background: rgba(255, 246, 232, 0.045);
-  color: #a8a49d; font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.02em;
-  transition: background-color 160ms, border-color 160ms, color 160ms;
+  min-height: 44px; padding: 0 1.125rem; border-radius: 999px;
+  border: 1px solid var(--f-border);
+  background: var(--f-surface);
+  color: var(--f-text-2); font-size: 0.875rem; font-weight: 500;
+  transition: background-color var(--f-dur-fast) var(--f-ease), border-color var(--f-dur-fast) var(--f-ease), color var(--f-dur-fast) var(--f-ease);
 }
+.pill:hover { background: var(--f-raised); }
 .pill[aria-selected='true'], .pill[data-active='true'] {
-  background: rgba(138, 106, 47, 0.14); border-color: rgba(199, 161, 90, 0.28); color: #e6d2a3;
+  background: var(--f-raised); border-color: rgba(185, 164, 119, 0.28); color: var(--f-text);
 }
+.chip {
+  display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.25rem 0.625rem; border-radius: 999px;
+  border: 1px solid var(--f-border); background: var(--f-raised);
+  color: var(--f-text-2); font-size: 0.75rem; line-height: 1rem; font-weight: 500;
+}
+.chip-gold { color: var(--f-gold); border-color: rgba(185, 164, 119, 0.28); background: rgba(185, 164, 119, 0.1); }
+.chip-red { color: var(--f-red-text); border-color: rgba(229, 100, 90, 0.3); background: rgba(229, 100, 90, 0.1); }
+.chip-ok { color: var(--f-ok); border-color: rgba(143, 184, 154, 0.28); background: rgba(143, 184, 154, 0.1); }
 
-/* Primary bronze pill button + glass button + round icon button */
-.btn-bronze {
+/* ---- Buttons: radius 14, 52px; primary / secondary / quiet / pressed / disabled / loading ----- */
+.btn-bronze, .btn-primary {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-  min-height: 52px; padding: 0 1.75rem; border-radius: 999px;
-  background: linear-gradient(135deg, #b38f4b, #8a6a2f); color: #0a0806;
-  font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase;
-  box-shadow: 0 10px 28px -10px rgba(138, 106, 47, 0.75), inset 0 1px 0 rgba(255, 240, 200, 0.35);
-  transition: transform 160ms, filter 160ms;
+  min-height: 52px; padding: 0 1.5rem; border-radius: var(--f-r-control);
+  background: var(--f-gold); color: var(--f-on-gold);
+  font-size: 1rem; font-weight: 600; letter-spacing: -0.005em;
+  transition: background-color var(--f-dur-fast) var(--f-ease), transform var(--f-dur-fast) var(--f-ease), opacity var(--f-dur-fast) var(--f-ease);
 }
-.btn-bronze:hover { filter: brightness(1.08); }
-.btn-bronze:active { transform: scale(0.98); }
-.btn-bronze:disabled { opacity: 0.45; }
-.btn-glass {
+.btn-bronze:hover:not(:disabled), .btn-primary:hover:not(:disabled) { background: #c4b084; }
+.btn-bronze:active:not(:disabled), .btn-primary:active:not(:disabled) { background: var(--f-gold-pressed); transform: scale(0.985); }
+.btn-bronze:disabled, .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-glass, .btn-secondary {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-  min-height: 52px; padding: 0 1.75rem; border-radius: 999px;
-  background: rgba(255, 246, 232, 0.075); border: 1px solid rgba(255, 244, 224, 0.10); color: #e0e0e0;
-  font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase;
+  min-height: 52px; padding: 0 1.5rem; border-radius: var(--f-r-control);
+  background: var(--f-raised); border: 1px solid var(--f-border-strong); color: var(--f-text);
+  font-size: 1rem; font-weight: 600; letter-spacing: -0.005em;
+  transition: background-color var(--f-dur-fast) var(--f-ease), transform var(--f-dur-fast) var(--f-ease), opacity var(--f-dur-fast) var(--f-ease);
 }
+.btn-glass:hover:not(:disabled), .btn-secondary:hover:not(:disabled) { background: var(--f-overlay); }
+.btn-glass:active:not(:disabled), .btn-secondary:active:not(:disabled) { transform: scale(0.985); }
+.btn-glass:disabled, .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+/* compact secondary (44px tap height) */
+.btn-quiet {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 44px; padding: 0 1rem; border-radius: var(--f-r-control-sm);
+  border: 1px solid var(--f-border-strong);
+  background: transparent; color: var(--f-text);
+  font-family: var(--app-font-sans); font-weight: 500; font-size: 0.875rem;
+  transition: background-color var(--f-dur-fast) var(--f-ease), border-color var(--f-dur-fast) var(--f-ease), color var(--f-dur-fast) var(--f-ease), transform var(--f-dur-fast) var(--f-ease);
+}
+.btn-quiet:hover:not(:disabled) { background: var(--f-raised); }
+.btn-quiet:active:not(:disabled) { transform: scale(0.985); }
+.btn-quiet:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-quiet-gold { border-color: rgba(185, 164, 119, 0.32); background: rgba(185, 164, 119, 0.1); color: var(--f-gold-pale); }
+.btn-quiet-red { border-color: rgba(229, 100, 90, 0.34); background: rgba(229, 100, 90, 0.1); color: var(--f-red-text); }
+.btn-quiet-sm { min-height: 36px; padding: 0 0.75rem; position: relative; font-size: 0.8125rem; }
+.btn-quiet-sm::after { content: ""; position: absolute; inset: -4px 0; } /* keeps the hit area >= 44px */
+/* loading: add data-loading="true" (and disabled) — label hidden, spinner shown */
+[data-loading='true'] { position: relative; color: transparent !important; pointer-events: none; }
+[data-loading='true']::after {
+  content: ""; position: absolute; width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid rgba(244, 244, 241, 0.25); border-top-color: var(--f-text);
+  animation: frame-spin 700ms linear infinite;
+}
+.btn-bronze[data-loading='true']::after, .btn-primary[data-loading='true']::after { border-color: rgba(11, 12, 14, 0.25); border-top-color: var(--f-on-gold); }
+@keyframes frame-spin { to { transform: rotate(360deg); } }
 .icon-round {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 44px; height: 44px; border-radius: 999px;
-  background: rgba(255, 246, 232, 0.075); border: 1px solid rgba(255, 244, 224, 0.10); color: #e0e0e0;
+  width: 44px; height: 44px; border-radius: var(--f-r-control);
+  background: var(--f-raised); border: 1px solid var(--f-border); color: var(--f-text);
+  transition: background-color var(--f-dur-fast) var(--f-ease), transform var(--f-dur-fast) var(--f-ease);
 }
-.icon-round-solid { background: #b38f4b; color: #050505; border-color: transparent; box-shadow: 0 0 22px rgba(138, 106, 47, 0.55); }
+.icon-round:hover { background: var(--f-overlay); }
+.icon-round:active { transform: scale(0.97); }
+.icon-round-solid { background: var(--f-gold); color: var(--f-on-gold); border-color: transparent; }
+.icon-round-solid:hover { background: #c4b084; }
 
-/* Glass field */
+/* ---- Inputs -------------------------------------------------------------- */
 .field-glass {
-  min-height: 54px; width: 100%; padding: 0 1.25rem; border-radius: 1.125rem;
-  background: rgba(255, 246, 232, 0.045); border: 1px solid rgba(255, 244, 224, 0.10);
-  color: #f1ede6; font-size: 1rem; outline: none;
+  min-height: 52px; width: 100%; padding: 0 1rem; border-radius: var(--f-r-control);
+  background: var(--f-surface); border: 1px solid var(--f-border-strong);
+  color: var(--f-text); font-size: 1rem; outline: none;
+  transition: border-color var(--f-dur-fast) var(--f-ease), background-color var(--f-dur-fast) var(--f-ease);
 }
-.field-glass:focus { border-color: rgba(199, 161, 90, 0.28); background: rgba(255, 246, 232, 0.075); }
+.field-glass::placeholder { color: var(--f-text-3); }
+.field-glass:focus { border-color: rgba(185, 164, 119, 0.5); background: var(--f-raised); }
+.field-glass:disabled { opacity: 0.5; }
+.field-glass[aria-invalid='true'] { border-color: rgba(229, 100, 90, 0.5); }
 
-/* One orchestrated entrance — add `frame-rise` to the hero and stagger siblings
-   with style={{ animationDelay: '70ms' }}. Disabled for reduced motion. */
-@keyframes frame-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-.frame-rise { animation: frame-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* ---- Motion --------------------------------------------------------------- */
+/* one short entrance: opacity + 8px translate, 320ms; stagger siblings with animation-delay 40ms steps */
+@keyframes frame-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.frame-rise { animation: frame-rise var(--f-dur-panel) var(--f-ease) both; }
 @media (prefers-reduced-motion: reduce) {
   .frame-rise { animation: none; }
 }
 
-/* Keyboard focus ring on the bronze */
-:focus-visible { outline: 2px solid hsl(var(--primary-light)); outline-offset: 2px; }
+/* keyboard focus */
+:focus-visible { outline: 2px solid var(--f-gold); outline-offset: 2px; }
 
-/* ==========================================================================
-   Shell / home / state / auth area
-   ========================================================================== */
-.frame-range {
-  -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer;
-}
-.frame-range::-webkit-slider-runnable-track { height: 3px; border-radius: 999px; background: rgba(255, 244, 224, 0.14); }
-.frame-range::-moz-range-track { height: 3px; border-radius: 999px; background: rgba(255, 244, 224, 0.14); }
-.frame-range::-webkit-slider-thumb {
-  -webkit-appearance: none; appearance: none; width: 20px; height: 20px; margin-top: -8.5px; border-radius: 999px;
-  background: #e6d2a3; border: 4px solid #8a6a2f; box-shadow: 0 0 18px rgba(199, 161, 90, 0.55);
-}
-.frame-range::-moz-range-thumb {
-  width: 12px; height: 12px; border-radius: 999px; background: #e6d2a3; border: 4px solid #8a6a2f; box-shadow: 0 0 18px rgba(199, 161, 90, 0.55);
-}
-.chip {
-  display: inline-flex; align-items: center; padding: 0.3rem 0.8rem; border-radius: 999px;
-  border: 1px solid rgba(255, 244, 224, 0.12); background: rgba(5, 5, 5, 0.35);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  color: #e6d2a3; font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase;
-}
-.bar-thin { height: 3px; border-radius: 999px; background: rgba(255, 244, 224, 0.10); overflow: hidden; }
-.bar-thin > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #8a6a2f, #e6d2a3); }
-.bar-thin-red > span { background: linear-gradient(90deg, #bf1d1d, #e0564e); }
-.glow-orb {
-  position: absolute; border-radius: 999px; pointer-events: none; filter: blur(70px);
-  background: radial-gradient(circle, rgba(199, 161, 90, 0.42), transparent 70%);
-}
-
-/* ---- Analyse / camp / profile / chat / history / onboarding (Smoked Bronze) ---- */
-.btn-quiet {
-  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-  min-height: 44px; padding: 0 1.25rem; border-radius: 999px;
-  border: 1px solid rgba(255, 244, 224, 0.12);
-  background: rgba(255, 246, 232, 0.05);
-  color: #d8d4cc; font-family: var(--app-font-sans); font-weight: 500; font-size: 0.6875rem;
-  letter-spacing: 0.14em; text-transform: uppercase;
-  transition: background-color 160ms, border-color 160ms, color 160ms, transform 160ms;
-}
-.btn-quiet:hover:not(:disabled) { background: rgba(255, 246, 232, 0.09); border-color: rgba(199, 161, 90, 0.35); color: #f1ede6; }
-.btn-quiet:active:not(:disabled) { transform: scale(0.98); }
-.btn-quiet:disabled { opacity: 0.45; }
-.btn-quiet-gold { border-color: rgba(199, 161, 90, 0.32); background: rgba(138, 106, 47, 0.14); color: #e6d2a3; }
-.btn-quiet-red { border-color: rgba(224, 86, 78, 0.36); background: rgba(191, 29, 29, 0.14); color: #f0a49d; }
-.btn-quiet-sm { min-height: 36px; padding: 0 0.9rem; }
-/* tap area stays >=44px on small chips via a pseudo hit-box */
-.btn-quiet-sm::after { content: ""; position: absolute; inset: -4px 0; }
-.btn-quiet-sm { position: relative; }
+/* ---- Small shared parts --------------------------------------------------- */
+.frame-range { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer; }
+.frame-range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); }
+.frame-range::-moz-range-track { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); }
+.frame-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; margin-top: -8px; border-radius: 999px; background: var(--f-text); border: 3px solid var(--f-surface); }
+.frame-range::-moz-range-thumb { width: 14px; height: 14px; border-radius: 999px; background: var(--f-text); border: 3px solid var(--f-surface); }
+.bar-thin { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.bar-thin > span { display: block; height: 100%; border-radius: 2px; background: var(--f-gold); transition: width var(--f-dur-panel) var(--f-ease); }
+.bar-thin-red > span { background: var(--f-red-text); }
 
 /* upload drop zone */
 .dropzone {
-  position: relative; overflow: hidden; border-radius: 1.75rem;
-  border: 1px dashed rgba(199, 161, 90, 0.34);
-  background:
-    radial-gradient(70% 90% at 50% 0%, rgba(138, 106, 47, 0.20), transparent 70%),
-    linear-gradient(160deg, rgba(255, 246, 232, 0.06), rgba(255, 246, 232, 0.015)),
-    rgba(16, 14, 12, 0.7);
-  box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 244, 224, 0.08);
-  transition: border-color 200ms, background-color 200ms;
+  position: relative; overflow: hidden; border-radius: var(--f-r-card-lg);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  background: linear-gradient(180deg, #15181b, var(--f-surface));
+  box-shadow: inset 0 1px 0 var(--f-highlight);
+  transition: border-color var(--f-dur-base) var(--f-ease), background-color var(--f-dur-base) var(--f-ease);
 }
-.dropzone:hover:not(:disabled) { border-color: rgba(230, 210, 163, 0.6); }
+.dropzone:hover:not(:disabled) { border-color: rgba(185, 164, 119, 0.5); }
 .dropzone .dz-icon {
-  width: 64px; height: 64px; border-radius: 999px; display: grid; place-items: center;
-  background: rgba(138, 106, 47, 0.18); border: 1px solid rgba(199, 161, 90, 0.3); color: #e6d2a3;
-  box-shadow: 0 0 36px rgba(138, 106, 47, 0.35);
+  width: 56px; height: 56px; border-radius: var(--f-r-control); display: grid; place-items: center;
+  background: var(--f-raised); border: 1px solid var(--f-border-strong); color: var(--f-gold-pale);
 }
 
-/* hairline table / list rows inside glass */
-.glass-table { border-radius: 1.25rem; overflow: hidden; }
-.row-hair { border-bottom: 1px solid rgba(255, 244, 224, 0.07); }
-.row-hair:last-child { border-bottom: 0; }
-
-/* a short serif section title with a hairline rule */
-.section-title { font-family: var(--app-font-display); font-style: normal; font-weight: 250; font-size: 1.1rem; line-height: 1.2; color: #f4f0e9; letter-spacing: -0.02em; }
-.section-rule { height: 1px; background: linear-gradient(90deg, rgba(199, 161, 90, 0.4), rgba(255, 244, 224, 0.06) 60%, transparent); }
-
-/* recharts, glass tooltip */
-.recharts-default-tooltip { border-radius: 14px !important; border: 1px solid rgba(255, 244, 224, 0.12) !important; background: rgba(16, 14, 12, 0.88) !important; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 12px 30px -10px #000; }
-
-
-/* ==========================================================================
-   v2 "UFC / Nike energy": thin hi-tech wide display, condensed punch,
-   imagery-led surfaces, hairline glass.
-   ========================================================================== */
-.wordmark { font-family: var(--app-font-display); font-weight: 200; text-transform: uppercase; letter-spacing: 0.34em; color: #f4f0e9; line-height: 1; padding-left: 0.34em; }
-.punch-xl { font-size: clamp(3.2rem, 17vw, 6.4rem); }
-.punch-l { font-size: clamp(2.2rem, 11vw, 3.4rem); }
-.punch-m { font-size: 1.6rem; }
-/* image-led section: glass that lets the photo through */
-.glass-photo {
-  position: relative; overflow: hidden; border-radius: 1.5rem;
-  border: 1px solid rgba(255, 244, 224, 0.08);
-  background: rgba(12, 10, 8, 0.5);
-  -webkit-backdrop-filter: blur(24px) saturate(1.2); backdrop-filter: blur(24px) saturate(1.2);
-  box-shadow: 0 22px 50px -24px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 244, 224, 0.07);
-}
-.hairline { border-color: rgba(255, 244, 224, 0.07) !important; }
-/* glass that lets video/photo through: lighter fill, heavier blur, hairline edge */
-.glass-clear {
-  background: linear-gradient(135deg, rgba(255, 246, 232, 0.06), rgba(255, 246, 232, 0.01)), rgba(10, 8, 6, 0.42);
-  -webkit-backdrop-filter: blur(26px) saturate(1.25); backdrop-filter: blur(26px) saturate(1.25);
-  border-color: rgba(255, 244, 224, 0.12);
-}
+/* recharts tooltip: solid overlay, no blur */
+.recharts-default-tooltip { border-radius: 12px !important; border: 1px solid var(--f-border-strong) !important; background: var(--f-overlay) !important; box-shadow: 0 12px 30px -10px #000; }
