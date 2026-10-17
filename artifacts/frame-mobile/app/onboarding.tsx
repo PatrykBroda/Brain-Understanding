@@ -38,11 +38,11 @@ import {
   FadeIn,
   Field,
   Label,
-  PhotoBackdrop,
+  AuthPanel,
   Punch,
   Screen,
+  VideoBackdrop,
   haptic,
-  media,
 } from "@/components/ui";
 import { fonts, MIN_TAP, palette, radius, SCREEN_PAD, space } from "@/constants/theme";
 
@@ -260,15 +260,15 @@ export default function OnboardingScreen() {
 
   return (
     <Screen light={null}>
+      <VideoBackdrop />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView
           contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Monochrome training-environment band with a reserved text zone */}
+          {/* Brand + positioning line over the looping video (full-screen backdrop, dark scrim) */}
           <View style={[styles.band, step === 0 ? styles.bandTall : styles.bandShort, { paddingTop: insets.top + 16 }]}>
-            <PhotoBackdrop source={media.gym} opacity={0.75} position="center 30%" />
             <View style={styles.bandInner}>
               <EntryBrand compact />
               {step === 0 ? (
@@ -281,6 +281,7 @@ export default function OnboardingScreen() {
           </View>
 
           <FadeIn index={0} key={step} style={styles.cardWrap}>
+            <AuthPanel>
             <ProgressBar step={step} />
             <Display size="title" style={styles.heading}>
               {STEP_HEADINGS[step]}
@@ -416,6 +417,7 @@ export default function OnboardingScreen() {
                 <Button title="Finish setup" onPress={handleSubmit} loading={loading} style={styles.nextBtn} />
               )}
             </View>
+            </AuthPanel>
           </FadeIn>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -424,14 +426,14 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  band: { overflow: "hidden", backgroundColor: palette.bg, paddingHorizontal: SCREEN_PAD + 2 },
-  bandTall: { minHeight: 300 },
+  band: { overflow: "hidden", paddingHorizontal: SCREEN_PAD + 2 },
+  bandTall: { minHeight: 240 },
   bandShort: { minHeight: 120 },
   bandInner: { flex: 1, paddingBottom: space.lg },
   headline: { fontSize: 32, lineHeight: 36, letterSpacing: -1 },
   sub: { marginTop: space.sm, fontSize: 16, lineHeight: 22 },
-  cardWrap: { width: "100%", maxWidth: 480, alignSelf: "center", paddingHorizontal: SCREEN_PAD + 2, paddingTop: space.lg },
-  heading: { marginTop: space.xl, marginBottom: space.xl },
+  cardWrap: { width: "100%", maxWidth: 480, alignSelf: "center", paddingHorizontal: SCREEN_PAD + 2, paddingTop: space.md },
+  heading: { marginTop: space.lg, marginBottom: space.xl },
   section: { width: "100%" },
   label: { marginBottom: 12 },
   dobRow: { flexDirection: "row", gap: 10 },

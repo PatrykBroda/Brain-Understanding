@@ -84,7 +84,7 @@ export function EntrySequence({
 
   return (
     <Animated.View style={[s.root, fadeStyle]}>
-      <VideoBackdrop dim={0.2} />
+      <VideoBackdrop />
       <Atmosphere focus="topLeft" tone="silver" intensity={0.8} />
 
       <View style={[s.header, { paddingTop: insets.top + 16 }]}>

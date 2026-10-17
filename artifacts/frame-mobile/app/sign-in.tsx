@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EntryBrand } from "@/components/EntryBrand";
-import { Body, Button, Display, FadeIn, Field, GlassCard, Punch, Screen, VideoBackdrop } from "@/components/ui";
+import { Body, Button, Display, FadeIn, AuthPanel, Field, Punch, Screen, VideoBackdrop } from "@/components/ui";
 import { fonts, palette, SCREEN_PAD, space } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { apiPost } from "@/lib/api";
@@ -14,7 +14,7 @@ import { getAuthErrorMessage } from "@/lib/authErrors";
  * Entry screen. Two states of one screen so returning users are never more than
  * one tap from their account: the welcome (headline, sub-line, "Get started"
  * primary + "Sign in" ghost) and the sign-in form. Monochrome loop behind a
- * dark scrim that reserves the lower band for text and controls.
+ * dark scrim; the form sits on a dark translucent panel so it reads over any frame.
  */
 export default function SignInScreen() {
   const { signIn, sessionRestoreError } = useAuth();
@@ -85,7 +85,7 @@ export default function SignInScreen() {
             </FadeIn>
           ) : (
             <FadeIn index={1} style={styles.band}>
-              <GlassCard raised padding={space.xl}>
+              <AuthPanel>
                 <Display size="title" style={styles.formTitle}>
                   Welcome back
                 </Display>
@@ -120,7 +120,7 @@ export default function SignInScreen() {
                     style={{ marginTop: space.sm }}
                   />
                 </View>
-              </GlassCard>
+              </AuthPanel>
               <View style={styles.formLinks}>
                 <Button title="Back" variant="ghost" onPress={() => setShowForm(false)} />
                 <Button title="Create account" variant="ghost" onPress={() => router.push("/sign-up")} />

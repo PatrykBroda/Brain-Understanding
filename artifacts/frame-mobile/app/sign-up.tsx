@@ -22,7 +22,7 @@ import { getAuthErrorMessage } from "@/lib/authErrors";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 import { EntryBrand } from "@/components/EntryBrand";
-import { Button, Display, FadeIn, Field, GlassCard, Screen, VideoBackdrop } from "@/components/ui";
+import { Button, Display, FadeIn, AuthPanel, Field, Screen, VideoBackdrop } from "@/components/ui";
 import { fonts, MIN_TAP, palette, SCREEN_PAD, space } from "@/constants/theme";
 
 export default function SignUpScreen() {
@@ -80,7 +80,7 @@ export default function SignUpScreen() {
 
   return (
     <Screen light={null}>
-      <VideoBackdrop dim={0.35} />
+      <VideoBackdrop />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView
           contentContainerStyle={[styles.inner, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}
@@ -92,7 +92,7 @@ export default function SignUpScreen() {
           </FadeIn>
 
           <FadeIn index={1} style={styles.cardWrap}>
-            <GlassCard raised padding={space.xl}>
+            <AuthPanel>
               <Display size="title">Create your account</Display>
               <Text style={styles.sub}>AI coaching for fighters and athletes.</Text>
               <View style={styles.form}>
@@ -151,7 +151,7 @@ export default function SignUpScreen() {
 
                 <Button title="Create account" onPress={handleSignUp} loading={loading} disabled={submitDisabled} />
               </View>
-            </GlassCard>
+            </AuthPanel>
             <Button
               title="Have an account? Sign in"
               variant="ghost"
