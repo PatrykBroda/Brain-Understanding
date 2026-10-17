@@ -18,6 +18,7 @@ import {
 import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
+import { scheduleModelRefreshAfterChat } from "@/lib/modelRefresh";
 import { Feather } from "@expo/vector-icons";
 import {
   ApiError,
@@ -466,6 +467,8 @@ export default function ChatScreen() {
           }
           if (chunk.done) {
             sawDone = true;
+            // The memory extractor runs after the reply; refresh the model once it has written.
+            scheduleModelRefreshAfterChat(qc);
             return;
           }
           if (chunk.content) {

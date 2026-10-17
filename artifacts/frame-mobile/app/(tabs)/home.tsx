@@ -409,7 +409,7 @@ export default function HomeScreen() {
         Array.isArray(r?.facts) ? r.facts : [],
       ),
     enabled: !!isSignedIn,
-    staleTime: 60_000,
+    staleTime: 0,
   });
   const facts = useMemo(
     () => (Array.isArray(factsQuery.data) ? factsQuery.data : []),

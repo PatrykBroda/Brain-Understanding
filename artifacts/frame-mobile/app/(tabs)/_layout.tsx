@@ -1,14 +1,16 @@
 import { BlurView } from "expo-blur";
 import { Redirect, Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import React, { useEffect } from "react";
+import { AppState, Platform, StyleSheet, View } from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useFighter } from "@/context/FighterContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { fonts, gradients, palette } from "@/constants/theme";
 import { haptic } from "@/components/ui/haptics";
+import { refreshModel } from "@/lib/modelRefresh";
 
 /** One icon family (Feather, 1.75 stroke feel at 22pt). Active tab = off-white + a short gold bar above. */
 function TabIcon({ name, color, focused }: { name: React.ComponentProps<typeof Feather>["name"]; color: string; focused: boolean }) {
@@ -31,6 +33,17 @@ function TabIcon({ name, color, focused }: { name: React.ComponentProps<typeof F
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const { fighter, isLoading, error } = useFighter();
+  const qc = useQueryClient();
+
+  // Tabs stay mounted, so a cached model never refetches by itself. Refresh it
+  // whenever a tab comes into focus and whenever the app returns to the
+  // foreground (the coach/analysis may have updated it meanwhile).
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") refreshModel(qc);
+    });
+    return () => sub.remove();
+  }, [qc]);
 
   // Guard: if we entered tabs on a cached profile and the server has since
   // confirmed there is no fighter, route to onboarding instead of leaving the
@@ -44,7 +57,10 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      screenListeners={{ tabPress: () => haptic.select() }}
+      screenListeners={{
+        tabPress: () => haptic.select(),
+        focus: () => refreshModel(qc),
+      }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: palette.textHi,

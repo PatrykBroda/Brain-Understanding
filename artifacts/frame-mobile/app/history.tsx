@@ -8,55 +8,11 @@ import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/lib/api";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { CATEGORY_LABELS, type ModelFact } from "@/lib/athleteModel";
+import { bucketByDay } from "@/lib/factHistory";
 import { Body, Button, Display, EmptyState, FadeIn, GlassCard, IconButton, Label, Screen } from "@/components/ui";
 import { FactConfidence } from "@/components/FactConfidence";
 import { fonts, MIN_TAP, palette, SCREEN_PAD } from "@/constants/theme";
 
-
-type DayBucket = { key: string; label: string; facts: ModelFact[] };
-
-/**
- * Chronological counterpart to the profile "FULL MODEL" section, which groups
- * observations by category. History buckets the same active observations by the
- * day FRAME first recorded them, newest day first — a timeline of when the model
- * learned each thing. FRAME+ gated, same as the full model breakdown.
- */
-function bucketByDay(facts: ModelFact[]): DayBucket[] {
-  const now = new Date();
-  const startOfDay = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const today = startOfDay(now);
-  const oneDay = 24 * 60 * 60 * 1000;
-
-  const byKey = new Map<string, { ts: number; label: string; facts: ModelFact[] }>();
-
-  for (const f of facts) {
-    const raw = f.createdAt ?? f.updatedAt;
-    const d = raw ? new Date(raw) : null;
-    const valid = d && !Number.isNaN(d.getTime()) ? d : null;
-    const dayTs = valid ? startOfDay(valid) : 0;
-    const key = valid ? String(dayTs) : "undated";
-
-    let label: string;
-    if (!valid) {
-      label = "Undated";
-    } else if (dayTs === today) {
-      label = "Today";
-    } else if (dayTs === today - oneDay) {
-      label = "Yesterday";
-    } else {
-      label = valid.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    }
-
-    const bucket = byKey.get(key);
-    if (bucket) bucket.facts.push(f);
-    else byKey.set(key, { ts: valid ? dayTs : -1, label, facts: [f] });
-  }
-
-  return Array.from(byKey.entries())
-    .sort((a, b) => b[1].ts - a[1].ts)
-    .map(([key, v]) => ({ key, label: v.label, facts: v.facts }));
-}
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -81,7 +37,7 @@ export default function HistoryScreen() {
         return Array.isArray(f) ? f : [];
       }),
     enabled: !!isSignedIn,
-    staleTime: 30_000,
+    staleTime: 0,
   });
 
   const activeFacts = useMemo(
@@ -98,7 +54,7 @@ export default function HistoryScreen() {
           <View style={{ flex: 1 }}>
             <Display size="title">History</Display>
             <Body small style={{ marginTop: 2 }}>
-              When FRAME learned each observation, newest first.
+              When FRAME last saw each observation, newest first.
             </Body>
           </View>
         </View>

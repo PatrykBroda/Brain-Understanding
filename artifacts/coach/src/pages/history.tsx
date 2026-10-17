@@ -7,6 +7,7 @@ import { useAnalyses } from "@/hooks/use-analysis";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useFramePlus } from "@/components/frame-plus-modal";
 import type { AthleteFact, FactCategory, AnalysisListItem } from "@/lib/api";
+import { factLastSeen } from "@/lib/fact-seen";
 
 // Local, self-owned label map — human-readable names for each fact category.
 const CATEGORY_LABELS: Record<FactCategory, string> = {
@@ -104,14 +105,14 @@ export default function HistoryPage() {
     };
 
     for (const a of analyses) bucketFor(a.createdAt).analyses.push(a);
-    for (const f of facts) bucketFor(f.createdAt).facts.push(f);
+    for (const f of facts) bucketFor(factLastSeen(f)).facts.push(f);
 
     const arr = [...map.values()].sort(
       (a, b) => b.date.getTime() - a.date.getTime(),
     );
     for (const day of arr) {
       day.analyses.sort((x, y) => (x.createdAt < y.createdAt ? 1 : -1));
-      day.facts.sort((x, y) => (x.createdAt < y.createdAt ? 1 : -1));
+      day.facts.sort((x, y) => (factLastSeen(x) < factLastSeen(y) ? 1 : -1));
     }
     return arr;
   }, [facts, analyses]);

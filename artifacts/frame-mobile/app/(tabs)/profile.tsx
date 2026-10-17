@@ -51,6 +51,7 @@ import {
   computeAthleteModel,
   confidenceCopy,
   deriveFrameState,
+  factSeenLabel,
   formatHeartbeat,
   getArchetype,
   leadClause,
@@ -376,7 +377,7 @@ export default function ProfileScreen() {
         return Array.isArray(f) ? f : [];
       }),
     enabled: !!isSignedIn,
-    staleTime: 30_000,
+    staleTime: 0,
   });
 
   const facts: ModelFact[] = Array.isArray(rawFacts) ? rawFacts : [];
@@ -728,7 +729,10 @@ export default function ProfileScreen() {
                       <View key={f.id} style={[s.factItem, s.rowRule]}>
                         <Text style={s.factText}>{sentence(f.topic || f.content)}</Text>
                         <View style={s.factMeta}>
-                          {(f.evidenceCount ?? 1) > 1 && <Text style={s.factEvidence}>×{f.evidenceCount}</Text>}
+                          <Text style={s.factEvidence}>
+                            {(f.evidenceCount ?? 1) > 1 ? `×${f.evidenceCount} · ` : ""}
+                            {factSeenLabel(f)}
+                          </Text>
                           <FactConfidence value={f.confidence} />
                         </View>
                       </View>

@@ -154,7 +154,7 @@ export default function StateScreen() {
         return Array.isArray(f) ? f : [];
       }),
     enabled: !!isSignedIn,
-    staleTime: 60_000,
+    staleTime: 0,
   });
 
   const facts: Fact[] = useMemo(() => (Array.isArray(factsQuery.data) ? factsQuery.data : []), [factsQuery.data]);
