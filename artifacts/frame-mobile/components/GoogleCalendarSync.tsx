@@ -1,14 +1,9 @@
 import React, { useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { Feather } from "@expo/vector-icons";
-import { fonts, palette, radius } from "@/constants/theme";
+import { Button, GlassCard } from "@/components/ui";
+import { fonts, MIN_TAP, palette, radius } from "@/constants/theme";
 import { SESSION_TYPES, type SessionType } from "@/lib/competition";
 import {
   localTimeZone,
@@ -36,18 +31,6 @@ function nextType(t: SessionType): SessionType {
   const i = SESSION_TYPES.indexOf(t);
   return SESSION_TYPES[(i + 1) % SESSION_TYPES.length];
 }
-
-// Smoked Bronze colour roles (previously the themed useColors() palette).
-const c = {
-  border: palette.glassEdge,
-  card: palette.graphite1,
-  mutedForeground: palette.textMid,
-  primary: palette.goldLight,
-  primaryForeground: "#0B0C0E",
-  foreground: palette.textHi,
-  secondaryForeground: palette.text,
-  destructive: palette.redLight,
-};
 
 type Draft = GoogleImportItem & { selected: boolean; sessionType: SessionType };
 
@@ -140,9 +123,12 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
 
   if (statusQ.isLoading || !status) {
     return (
-      <View style={[styles.card, { borderColor: c.border, backgroundColor: c.card }]}>
-        <ActivityIndicator color={c.mutedForeground} />
-      </View>
+      <GlassCard padding={20} style={styles.wrap}>
+        <View style={styles.loadingRow} accessibilityLabel="Loading Google Calendar status">
+          <ActivityIndicator color={palette.textMid} />
+          <Text style={styles.sub}>Checking Google Calendar</Text>
+        </View>
+      </GlassCard>
     );
   }
 
@@ -151,192 +137,137 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
   }
 
   return (
-    <View style={[styles.card, { borderColor: c.border, backgroundColor: c.card }]}>
-      <View style={styles.headerRow}>
-        <Feather name="calendar" size={15} color={c.primary} />
-        <Text style={[styles.title, { color: c.foreground }]}>Google Calendar</Text>
-      </View>
+    <GlassCard padding={20} style={styles.wrap}>
+      <View style={styles.col}>
+        <View style={styles.headerRow}>
+          <Feather name="calendar" size={18} color={palette.textMid} />
+          <Text style={styles.title}>Google Calendar</Text>
+        </View>
 
-      {status.connected ? (
-        <>
-          <Text style={[styles.sub, { color: c.mutedForeground }]}>
-            {status.googleEmail ? `Linked as ${status.googleEmail}` : "Linked"}
-            {status.lastSyncedAt
-              ? ` · last synced ${new Date(status.lastSyncedAt).toLocaleDateString()}`
-              : ""}
-          </Text>
+        {status.connected ? (
+          <>
+            <Text style={styles.sub}>
+              {status.googleEmail ? `Linked as ${status.googleEmail}` : "Linked"}
+              {status.lastSyncedAt ? ` · last synced ${new Date(status.lastSyncedAt).toLocaleDateString()}` : ""}
+            </Text>
 
-          <View style={styles.btnRow}>
-            <Pressable
-              onPress={runPreview}
-              disabled={previewMut.isPending}
-              style={[styles.btn, { borderColor: c.primary }]}
-            >
-              {previewMut.isPending ? (
-                <ActivityIndicator size="small" color={c.primary} />
-              ) : (
-                <>
-                  <Feather name="refresh-cw" size={13} color={c.primary} />
-                  <Text style={[styles.btnText, { color: c.primary }]}>Sync</Text>
-                </>
-              )}
-            </Pressable>
-            <Pressable
-              onPress={disconnect}
-              disabled={disconnectMut.isPending}
-              style={[styles.btn, { borderColor: c.border }]}
-            >
-              <Text style={[styles.btnText, { color: c.mutedForeground }]}>
-                Disconnect
-              </Text>
-            </Pressable>
-          </View>
-
-          {drafts && (
-            <View style={styles.previewWrap}>
-              {drafts.length === 0 ? (
-                <Text style={[styles.sub, { color: c.mutedForeground }]}>
-                  No new calendar events found in this camp window.
-                </Text>
-              ) : (
-                <>
-                  <Text style={[styles.previewHead, { color: c.mutedForeground }]}>
-                    {drafts.filter((d) => d.selected).length} of {drafts.length} to import
-                  </Text>
-                  {drafts.map((d, idx) => (
-                    <View
-                      key={d.externalEventId}
-                      style={[styles.eventRow, { borderColor: c.border }]}
-                    >
-                      <Pressable
-                        onPress={() =>
-                          setDrafts((prev) =>
-                            prev
-                              ? prev.map((p, i) =>
-                                  i === idx ? { ...p, selected: !p.selected } : p
-                                )
-                              : prev
-                          )
-                        }
-                        style={[
-                          styles.checkbox,
-                          {
-                            borderColor: d.selected ? c.primary : c.border,
-                            backgroundColor: d.selected ? c.primary : "transparent",
-                          },
-                        ]}
-                      >
-                        {d.selected && (
-                          <Feather name="check" size={12} color={c.primaryForeground} />
-                        )}
-                      </Pressable>
-                      <View style={styles.eventBody}>
-                        <Text style={[styles.eventTitle, { color: c.foreground }]} numberOfLines={1}>
-                          {d.title}
-                        </Text>
-                        <Text style={[styles.eventMeta, { color: c.mutedForeground }]}>
-                          {d.sessionDate}
-                          {d.startTime ? ` · ${d.startTime}` : ""}
-                          {d.durationMin ? ` · ${d.durationMin}m` : ""}
-                        </Text>
-                      </View>
-                      <Pressable
-                        onPress={() =>
-                          setDrafts((prev) =>
-                            prev
-                              ? prev.map((p, i) =>
-                                  i === idx
-                                    ? { ...p, sessionType: nextType(p.sessionType) }
-                                    : p
-                                )
-                              : prev
-                          )
-                        }
-                        style={[styles.typeChip, { borderColor: c.border }]}
-                      >
-                        <Text style={[styles.typeText, { color: c.secondaryForeground }]}>
-                          {TYPE_LABEL[d.sessionType]}
-                        </Text>
-                        <Feather name="chevron-right" size={11} color={c.mutedForeground} />
-                      </Pressable>
-                    </View>
-                  ))}
-                </>
-              )}
-
-              <Pressable
-                onPress={() => setPushManual((v) => !v)}
-                style={styles.toggleRow}
-              >
-                <View
-                  style={[
-                    styles.checkbox,
-                    {
-                      borderColor: pushManual ? c.primary : c.border,
-                      backgroundColor: pushManual ? c.primary : "transparent",
-                    },
-                  ]}
-                >
-                  {pushManual && (
-                    <Feather name="check" size={12} color={c.primaryForeground} />
-                  )}
-                </View>
-                <Text style={[styles.toggleText, { color: c.secondaryForeground }]}>
-                  Also push my manual sessions to Google
-                </Text>
-              </Pressable>
-
-              <View style={styles.btnRow}>
-                <Pressable
-                  onPress={apply}
-                  disabled={applyMut.isPending}
-                  style={[styles.btn, styles.btnSolid, { backgroundColor: c.primary }]}
-                >
-                  {applyMut.isPending ? (
-                    <ActivityIndicator size="small" color={c.primaryForeground} />
-                  ) : (
-                    <Text style={[styles.btnText, { color: c.primaryForeground }]}>
-                      Apply
-                    </Text>
-                  )}
-                </Pressable>
-                <Pressable
-                  onPress={() => setDrafts(null)}
-                  style={[styles.btn, { borderColor: c.border }]}
-                >
-                  <Text style={[styles.btnText, { color: c.mutedForeground }]}>Cancel</Text>
-                </Pressable>
-              </View>
+            <View style={styles.btnRow}>
+              <Button
+                title="Sync"
+                variant="secondary"
+                onPress={runPreview}
+                loading={previewMut.isPending}
+                style={styles.flex1}
+              />
+              <Button
+                title="Disconnect"
+                variant="ghost"
+                onPress={disconnect}
+                disabled={disconnectMut.isPending}
+                style={styles.flex1}
+              />
             </View>
-          )}
-        </>
-      ) : (
-        <>
-          <Text style={[styles.sub, { color: c.mutedForeground }]}>
-            Link your Google Calendar to import training events and push camp sessions
-            both ways.
-          </Text>
-          <Pressable
-            onPress={connect}
-            disabled={linking || startMut.isPending}
-            style={[styles.btn, styles.btnSolid, { backgroundColor: c.primary }]}
-          >
-            {linking || startMut.isPending ? (
-              <ActivityIndicator size="small" color={c.primaryForeground} />
-            ) : (
-              <>
-                <Feather name="link" size={13} color={c.primaryForeground} />
-                <Text style={[styles.btnText, { color: c.primaryForeground }]}>
-                  Connect Google Calendar
-                </Text>
-              </>
-            )}
-          </Pressable>
-        </>
-      )}
 
-      {err && <Text style={[styles.err, { color: c.destructive }]}>{err}</Text>}
-    </View>
+            {drafts && (
+              <View style={styles.previewWrap}>
+                {drafts.length === 0 ? (
+                  <Text style={styles.sub}>No new calendar events found in this camp window.</Text>
+                ) : (
+                  <>
+                    <Text style={styles.previewHead}>
+                      {drafts.filter((d) => d.selected).length} of {drafts.length} to import
+                    </Text>
+                    <View style={styles.eventList}>
+                      {drafts.map((d, idx) => (
+                        <View key={d.externalEventId} style={[styles.eventRow, idx > 0 && styles.rule]}>
+                          <Pressable
+                            onPress={() =>
+                              setDrafts((prev) =>
+                                prev ? prev.map((p, i) => (i === idx ? { ...p, selected: !p.selected } : p)) : prev,
+                              )
+                            }
+                            style={styles.checkHit}
+                            accessibilityRole="checkbox"
+                            accessibilityLabel={`Import ${d.title}`}
+                            accessibilityState={{ checked: d.selected }}
+                          >
+                            <View style={[styles.checkbox, d.selected && styles.checkboxOn]}>
+                              {d.selected && <Feather name="check" size={14} color={palette.onGold} />}
+                            </View>
+                          </Pressable>
+                          <View style={styles.eventBody}>
+                            <Text style={styles.eventTitle} numberOfLines={1}>
+                              {d.title}
+                            </Text>
+                            <Text style={styles.eventMeta}>
+                              {d.sessionDate}
+                              {d.startTime ? ` · ${d.startTime}` : ""}
+                              {d.durationMin ? ` · ${d.durationMin}m` : ""}
+                            </Text>
+                          </View>
+                          <Pressable
+                            onPress={() =>
+                              setDrafts((prev) =>
+                                prev
+                                  ? prev.map((p, i) => (i === idx ? { ...p, sessionType: nextType(p.sessionType) } : p))
+                                  : prev,
+                              )
+                            }
+                            style={styles.typeChip}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Session type ${TYPE_LABEL[d.sessionType]}, tap to change`}
+                          >
+                            <Text style={styles.typeText}>{TYPE_LABEL[d.sessionType]}</Text>
+                            <Feather name="chevron-right" size={12} color={palette.textMid} />
+                          </Pressable>
+                        </View>
+                      ))}
+                    </View>
+                  </>
+                )}
+
+                <Pressable
+                  onPress={() => setPushManual((v) => !v)}
+                  style={styles.toggleRow}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: pushManual }}
+                >
+                  <View style={styles.checkHit}>
+                    <View style={[styles.checkbox, pushManual && styles.checkboxOn]}>
+                      {pushManual && <Feather name="check" size={14} color={palette.onGold} />}
+                    </View>
+                  </View>
+                  <Text style={styles.toggleText}>Also push my manual sessions to Google</Text>
+                </Pressable>
+
+                <View style={styles.btnRow}>
+                  <Button title="Cancel" variant="secondary" onPress={() => setDrafts(null)} style={styles.flex1} />
+                  <Button title="Apply" onPress={apply} loading={applyMut.isPending} style={styles.flex1} />
+                </View>
+              </View>
+            )}
+          </>
+        ) : (
+          <>
+            <Text style={styles.sub}>
+              Link your Google Calendar to import training events and push camp sessions both ways.
+            </Text>
+            <Button
+              title="Connect Google Calendar"
+              variant="secondary"
+              onPress={connect}
+              loading={linking || startMut.isPending}
+            />
+          </>
+        )}
+
+        {err && (
+          <Text style={styles.err} accessibilityRole="alert">
+            {err}
+          </Text>
+        )}
+      </View>
+    </GlassCard>
   );
 }
 
@@ -345,64 +276,46 @@ function needsReconnect(msg: string): boolean {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: 20,
-    marginHorizontal: 16,
-    marginBottom: 14,
-    gap: 12,
-  },
+  wrap: { marginBottom: 16 },
+  col: { gap: 12 },
+  loadingRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  title: { fontFamily: fonts.displayThin, fontSize: 15, lineHeight: 19 },
-  sub: { fontFamily: fonts.text, fontSize: 13, lineHeight: 19 },
-  btnRow: { flexDirection: "row", gap: 8, marginTop: 2 },
-  btn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    borderWidth: 1,
-    minHeight: 46,
-    borderRadius: radius.pill,
-    paddingHorizontal: 18,
-    flex: 1,
-  },
-  btnSolid: { borderWidth: 0 },
-  btnText: { fontFamily: fonts.textMedium, fontSize: 13, letterSpacing: 0.4 },
-  previewWrap: { gap: 8, marginTop: 4 },
-  previewHead: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.4, textTransform: "uppercase" },
-  eventRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    backgroundColor: palette.glass,
-    padding: 12,
-  },
+  title: { fontFamily: fonts.semi, fontSize: 17, lineHeight: 22, color: palette.textHi },
+  sub: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: palette.textMid },
+  btnRow: { flexDirection: "row", gap: 8 },
+  flex1: { flex: 1 },
+  previewWrap: { gap: 12, marginTop: 4 },
+  previewHead: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid, fontVariant: ["tabular-nums"] },
+  eventList: { borderRadius: radius.md, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.bg, overflow: "hidden" },
+  rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.borderStrong },
+  eventRow: { flexDirection: "row", alignItems: "center", gap: 4, paddingRight: 8, minHeight: MIN_TAP + 8 },
+  checkHit: { width: MIN_TAP, height: MIN_TAP, alignItems: "center", justifyContent: "center" },
   checkbox: {
     width: 24,
     height: 24,
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 1.5,
+    borderColor: palette.borderStrong,
     alignItems: "center",
     justifyContent: "center",
   },
-  eventBody: { flex: 1, gap: 2 },
-  eventTitle: { fontFamily: fonts.textMedium, fontSize: 13.5 },
-  eventMeta: { fontFamily: fonts.text, fontSize: 12 },
+  checkboxOn: { backgroundColor: palette.gold, borderColor: palette.gold },
+  eventBody: { flex: 1, gap: 2, paddingVertical: 8 },
+  eventTitle: { fontFamily: fonts.medium, fontSize: 15, color: palette.textHi },
+  eventMeta: { fontFamily: fonts.regular, fontSize: 13, color: palette.textMid, fontVariant: ["tabular-nums"] },
   typeChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
     borderWidth: 1,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
     borderRadius: radius.pill,
-    minHeight: 36,
+    minHeight: MIN_TAP,
     paddingHorizontal: 12,
   },
-  typeText: { fontFamily: fonts.textMedium, fontSize: 12 },
-  toggleRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 },
-  toggleText: { fontFamily: fonts.text, fontSize: 13, flex: 1 },
-  err: { fontFamily: fonts.text, fontSize: 13, marginTop: 2 },
+  typeText: { fontFamily: fonts.medium, fontSize: 13, color: palette.textHi },
+  toggleRow: { flexDirection: "row", alignItems: "center", minHeight: MIN_TAP },
+  toggleText: { fontFamily: fonts.regular, fontSize: 14, color: palette.textHi, flex: 1 },
+  err: { fontFamily: fonts.regular, fontSize: 14, color: palette.redText },
 });

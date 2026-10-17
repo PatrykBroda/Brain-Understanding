@@ -40,6 +40,7 @@ import type { AiConsentStatus } from "@/lib/aiConsent";
 import { primaryFocus } from "@/lib/primaryFocus";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
+import { FactConfidence } from "@/components/FactConfidence";
 import { ProfileEditModal } from "@/components/ProfileEditModal";
 import { isBjjSport, LEGACY_SPORTS, SPORTS } from "@/lib/fighterOptions";
 import { useEntitlement, useSyncBilling } from "@/hooks/useEntitlement";
@@ -71,20 +72,6 @@ function sentence(s: string | null | undefined): string {
 function sportLabel(key: string | null | undefined): string {
   if (!key) return "—";
   return [...SPORTS, ...LEGACY_SPORTS].find((o) => o.key === key)?.label ?? sentence(key.replace(/_/g, " "));
-}
-
-// ─── Confidence: thin bar + text label (fact 1–5) ─────────────────────────────
-function FactConfidence({ value }: { value: number }) {
-  const v = Math.max(0, Math.min(5, value));
-  const word = v >= 4 ? "High" : v === 3 ? "Medium" : "Low";
-  return (
-    <View style={cd.wrap} accessible accessibilityLabel={`Confidence ${word}, ${v} of 5`}>
-      <View style={cd.track}>
-        <View style={[cd.fill, { width: `${(v / 5) * 100}%` }]} />
-      </View>
-      <Text style={cd.word}>{word}</Text>
-    </View>
-  );
 }
 
 // ─── Card with a sentence-case section title ──────────────────────────────────
@@ -848,13 +835,6 @@ export default function ProfileScreen() {
     </Screen>
   );
 }
-
-const cd = StyleSheet.create({
-  wrap: { flexDirection: "row", alignItems: "center", gap: 8 },
-  track: { width: 44, height: 4, borderRadius: 2, backgroundColor: palette.borderStrong, overflow: "hidden" },
-  fill: { height: 4, borderRadius: 2, backgroundColor: palette.gold },
-  word: { fontFamily: fonts.medium, fontSize: 12, color: palette.textMid, width: 48 },
-});
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "transparent" },

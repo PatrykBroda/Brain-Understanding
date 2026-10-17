@@ -1,14 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
@@ -16,24 +8,10 @@ import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/lib/api";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { CATEGORY_LABELS, type ModelFact } from "@/lib/athleteModel";
-import { Display, Eyebrow, FadeIn, GlassCard, IconButton, Screen, media } from "@/components/ui";
-import { fonts, palette } from "@/constants/theme";
+import { Body, Button, Display, EmptyState, FadeIn, GlassCard, IconButton, Label, Screen } from "@/components/ui";
+import { FactConfidence } from "@/components/FactConfidence";
+import { fonts, MIN_TAP, palette, SCREEN_PAD } from "@/constants/theme";
 
-
-// ─── Confidence pips (fact 1–5) — mirrors profile.tsx FactConfidence ──────────
-function FactConfidence({ value }: { value: number }) {
-  const v = Math.max(0, Math.min(5, value));
-  return (
-    <View style={cd.wrap}>
-      <View style={cd.row}>
-        {[1, 2, 3, 4, 5].map((i) => (
-          <View key={i} style={[cd.pip, i <= v ? cd.active : cd.inactive]} />
-        ))}
-      </View>
-      <Text style={cd.count}>{v}/5</Text>
-    </View>
-  );
-}
 
 type DayBucket = { key: string; label: string; facts: ModelFact[] };
 
@@ -61,15 +39,13 @@ function bucketByDay(facts: ModelFact[]): DayBucket[] {
 
     let label: string;
     if (!valid) {
-      label = "UNDATED";
+      label = "Undated";
     } else if (dayTs === today) {
-      label = "TODAY";
+      label = "Today";
     } else if (dayTs === today - oneDay) {
-      label = "YESTERDAY";
+      label = "Yesterday";
     } else {
-      label = valid
-        .toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-        .toUpperCase();
+      label = valid.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     }
 
     const bucket = byKey.get(key);
@@ -95,6 +71,8 @@ export default function HistoryScreen() {
   const {
     data: rawFacts,
     isLoading,
+    isError,
+    refetch,
   } = useQuery<ModelFact[]>({
     queryKey: ["memory"],
     queryFn: () =>
@@ -113,86 +91,83 @@ export default function HistoryScreen() {
   const buckets = useMemo(() => bucketByDay(activeFacts), [activeFacts]);
 
   return (
-    <Screen photo={media.stillA}>
+    <Screen light={null}>
       <View style={[s.root, { paddingTop: topPad }]}>
         <View style={s.header}>
           <IconButton icon="arrow-left" label="Back" onPress={() => router.back()} />
           <View style={{ flex: 1 }}>
-            <Eyebrow style={{ color: palette.goldLight }}>FULL MODEL</Eyebrow>
-            <Display size="heading" style={{ marginTop: 2 }}>
-              OBSERVATION HISTORY
-            </Display>
+            <Display size="title">History</Display>
+            <Body small style={{ marginTop: 2 }}>
+              When FRAME learned each observation, newest first.
+            </Body>
           </View>
         </View>
 
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: bottomPad, paddingTop: 8 }}
+          contentContainerStyle={{ paddingHorizontal: SCREEN_PAD, paddingBottom: bottomPad, paddingTop: 8 }}
           showsVerticalScrollIndicator={false}
         >
           {!isFramePlus ? (
             <FadeIn index={0}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => router.push("/paywall")}
-              >
-                <GlassCard tone="gold" radius={28} padding={24}>
+              <GlassCard padding={24}>
+                <View style={s.lockCol}>
                   <View style={s.lockDisc}>
-                    <Feather name="lock" size={16} color={palette.goldPale} />
+                    <Feather name="lock" size={18} color={palette.textMid} />
                   </View>
+                  <Text style={s.lockTitle}>Full timeline is part of FRAME+</Text>
                   <Text style={s.bodyCopy}>
                     {activeFacts.length === 0
                       ? "FRAME records durable observations as you train and talk. The full timeline is a FRAME+ feature."
                       : `FRAME holds ${activeFacts.length} recorded observation${activeFacts.length === 1 ? "" : "s"} on you. The full timeline is a FRAME+ feature.`}
                   </Text>
-                  <Text style={s.unlockLink}>UNLOCK FRAME+ →</Text>
-                </GlassCard>
-              </Pressable>
+                  <Button title="Unlock FRAME+" onPress={() => router.push("/paywall")} style={{ alignSelf: "stretch", marginTop: 8 }} />
+                </View>
+              </GlassCard>
             </FadeIn>
           ) : isLoading ? (
-            <View style={s.loadingWrap}>
-              <ActivityIndicator color={palette.goldLight} size="small" />
-            </View>
+            <EmptyState kind="loading" title="Loading history" />
+          ) : isError && !rawFacts ? (
+            <EmptyState
+              kind="error"
+              title="Couldn't load history"
+              body="Check your connection and try again."
+              actionLabel="Retry"
+              onAction={() => void refetch()}
+            />
           ) : activeFacts.length === 0 ? (
             <FadeIn index={0}>
-              <GlassCard radius={28} padding={24}>
-                <Text style={s.bodyCopy}>
-                  No observations yet. As you talk to the coach, FRAME records durable observations and
-                  they'll appear here, newest first.
-                </Text>
-              </GlassCard>
+              <EmptyState
+                kind="empty"
+                icon="clock"
+                title="No observations yet"
+                body="As you talk to the coach, FRAME records durable observations and they will appear here, newest first."
+                actionLabel="Talk to your coach"
+                onAction={() => router.push("/(tabs)/chat")}
+              />
             </FadeIn>
           ) : (
             <FadeIn index={0}>
-              <View style={{ gap: 28 }}>
+              <View style={{ gap: 24 }}>
                 {buckets.map((bucket) => (
-                  <View key={bucket.key}>
+                  <View key={bucket.key} style={{ gap: 8 }}>
                     <View style={s.dayHeadRow}>
-                      <Text style={s.dayHeadLabel}>{bucket.label}</Text>
-                      <View style={s.dayHeadLine} />
+                      <Label>{bucket.label}</Label>
                       <Text style={s.dayHeadCount}>{bucket.facts.length}</Text>
                     </View>
-                    <View style={{ gap: 10 }}>
-                      {bucket.facts.map((f) => (
-                        <GlassCard key={f.id} radius={20} padding={16}>
-                          <View style={s.factItem}>
-                            <View style={{ flex: 1 }}>
-                              <Text style={s.factCat}>
-                                {(CATEGORY_LABELS[f.category] ?? f.category).toUpperCase()}
-                              </Text>
-                              <Text style={s.factText} numberOfLines={3}>
-                                {f.topic || f.content}
-                              </Text>
-                            </View>
-                            <View style={s.factMeta}>
-                              {(f.evidenceCount ?? 1) > 1 && (
-                                <Text style={s.factEvidence}>×{f.evidenceCount}</Text>
-                              )}
-                              <FactConfidence value={f.confidence} />
-                            </View>
+                    <GlassCard padding={0}>
+                      {bucket.facts.map((f, i) => (
+                        <View key={f.id} style={[s.factItem, i > 0 && s.rule]}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={s.factCat}>{CATEGORY_LABELS[f.category] ?? f.category}</Text>
+                            <Text style={s.factText}>{f.topic || f.content}</Text>
                           </View>
-                        </GlassCard>
+                          <View style={s.factMeta}>
+                            {(f.evidenceCount ?? 1) > 1 && <Text style={s.factEvidence}>×{f.evidenceCount}</Text>}
+                            <FactConfidence value={f.confidence} />
+                          </View>
+                        </View>
                       ))}
-                    </View>
+                    </GlassCard>
                   </View>
                 ))}
               </View>
@@ -206,79 +181,26 @@ export default function HistoryScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    paddingTop: 8,
-  },
+  header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: SCREEN_PAD, paddingBottom: 16, paddingTop: 8 },
+  rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.borderStrong },
+  lockCol: { alignItems: "center", gap: 10 },
   lockDisc: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: MIN_TAP,
+    height: MIN_TAP,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: palette.goldWash,
+    backgroundColor: palette.raised,
     borderWidth: 1,
-    borderColor: palette.goldHair,
-    marginBottom: 14,
+    borderColor: palette.border,
   },
-  bodyCopy: {
-    fontFamily: fonts.text,
-    fontSize: 14,
-    lineHeight: 22,
-    color: palette.textMid,
-  },
-  unlockLink: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.6,
-    color: palette.goldLight,
-    marginTop: 16,
-  },
-
-  loadingWrap: { paddingVertical: 48, alignItems: "center" },
-
-  dayHeadRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
-  dayHeadLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.6,
-    color: palette.goldLight,
-  },
-  dayHeadLine: { flex: 1, height: 1, backgroundColor: palette.goldHair },
-  dayHeadCount: { fontFamily: fonts.numeral, fontSize: 16, color: palette.textMid },
-
-  factItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  factCat: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.4,
-    color: palette.goldLight,
-    marginBottom: 4,
-  },
-  factText: {
-    fontFamily: fonts.text,
-    fontSize: 14,
-    lineHeight: 20,
-    color: palette.text,
-  },
-  factMeta: { flexDirection: "row", alignItems: "center", gap: 10 },
-  factEvidence: { fontFamily: fonts.numeral, fontSize: 14, color: palette.goldLight },
-});
-
-const cd = StyleSheet.create({
-  wrap: { alignItems: "flex-end", gap: 4 },
-  row: { flexDirection: "row", gap: 3 },
-  pip: { width: 5, height: 5, borderRadius: 3 },
-  active: { backgroundColor: palette.goldLight },
-  inactive: { backgroundColor: palette.glassStrong },
-  count: { fontFamily: fonts.numeral, fontSize: 12, color: palette.textLow },
+  lockTitle: { fontFamily: fonts.semi, fontSize: 17, color: palette.textHi, textAlign: "center" },
+  bodyCopy: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: palette.textMid, textAlign: "center" },
+  dayHeadRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  dayHeadCount: { fontFamily: fonts.medium, fontSize: 13, color: palette.textLow, fontVariant: ["tabular-nums"] },
+  factItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, paddingHorizontal: 20, paddingVertical: 14 },
+  factCat: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid, marginBottom: 2 },
+  factText: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 21, color: palette.textHi },
+  factMeta: { alignItems: "flex-end", gap: 6 },
+  factEvidence: { fontFamily: fonts.medium, fontSize: 12, color: palette.textMid, fontVariant: ["tabular-nums"] },
 });

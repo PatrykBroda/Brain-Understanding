@@ -1,9 +1,7 @@
 import { useAuth } from "@/context/AuthContext";
-import * as Haptics from "expo-haptics";
 import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Linking,
   Platform,
   Pressable,
@@ -11,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -40,41 +37,52 @@ import {
 } from "@/hooks/useCompetition";
 import { GoogleCalendarSync } from "@/components/GoogleCalendarSync";
 import { useIsFramePlus } from "@/hooks/useEntitlement";
-import { LinearGradient } from "expo-linear-gradient";
-import { ArcGauge, IconButton, Screen, media } from "@/components/ui";
-import { fonts, gradients, palette, radius } from "@/constants/theme";
+import {
+  Button,
+  Display,
+  EmptyState,
+  Field,
+  GlassCard,
+  IconButton,
+  Label,
+  Numeral,
+  PillTabs,
+  Screen,
+  Status,
+  haptic,
+} from "@/components/ui";
+import { fonts, MIN_TAP, palette, radius, SCREEN_PAD, type as T } from "@/constants/theme";
 
-const TIER_ACCENT: Record<PressureTier, string> = {
-  base: palette.goldLight,
-  build: palette.goldLight,
-  sharpen: palette.redLight,
-  peak: palette.redLight,
-  fight_week: palette.redLight,
-};
-
-/** Pressure window the countdown dial sweeps over: the last 12 weeks before the event. */
+/** Pressure window the countdown bar sweeps over: the last 12 weeks before the event. */
 const DIAL_WINDOW_DAYS = 84;
 
 const SESSION_TYPE_LABELS: Record<SessionType, string> = {
-  sparring: "SPARRING",
-  wrestling: "WRESTLING",
+  sparring: "Sparring",
+  wrestling: "Wrestling",
   bjj: "BJJ",
-  striking: "STRIKING",
-  conditioning: "CONDITIONING",
-  recovery: "RECOVERY",
-  mobility: "MOBILITY",
+  striking: "Striking",
+  conditioning: "Conditioning",
+  recovery: "Recovery",
+  mobility: "Mobility",
 };
 
-// Local YYYY-MM-DD -> readable label without timezone drift.
+const todayYmd = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+// Local YYYY-MM-DD -> readable label without timezone drift ("Today" / "Tomorrow" when it applies).
 function fmtDayLabel(ymd: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(ymd);
   if (!m) return ymd;
   const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  return d.toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  const base = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  const now = new Date();
+  const t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const diff = Math.round((d.getTime() - t0) / 86400000);
+  if (diff === 0) return `Today, ${base}`;
+  if (diff === 1) return `Tomorrow, ${base}`;
+  return base;
 }
 
 // ISO timestamp -> "Fri, Sep 11, 2026" (read in UTC to avoid tz drift), so the
@@ -113,84 +121,41 @@ export default function CampScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   return (
-    <Screen photo={media.stillB}>
-    <View style={[shell.root, { paddingTop: topPad }]}>
-      <View style={shell.header}>
-        <IconButton
-          icon="chevron-left"
-          label="Back to home"
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-            router.push("/(tabs)/home");
-          }}
-        />
-
-        <View style={shell.brand}>
-          <Image
-            source={require("../../assets/images/frame-logo.png")}
-            style={shell.logo}
-            resizeMode="contain"
+    <Screen light="silver" focus="topRight">
+      <View style={[shell.root, { paddingTop: topPad }]}>
+        <View style={shell.header}>
+          <IconButton
+            icon="chevron-left"
+            label="Back to home"
+            onPress={() => router.push("/(tabs)/home")}
           />
-          <View>
-            <Text style={shell.title}>CAMP</Text>
-            <Text style={shell.subtitle}>FIGHT CAMP</Text>
-          </View>
-        </View>
-
-        <View style={shell.headerRight}>
+          <Display size="title" style={shell.title}>
+            Camp
+          </Display>
           <FramePlusPill />
         </View>
-      </View>
 
-      <CampView />
-    </View>
+        <CampView />
+      </View>
     </Screen>
   );
 }
 
-// Top-right entitlement pill, mirroring the web header's FramePlusPill.
+// Top-right entitlement chip, mirroring the web header's FramePlusPill.
 function FramePlusPill() {
   const isPlus = useIsFramePlus();
-  if (isPlus) {
-    return (
-      <View style={shell.plusPill}>
-        <Text style={shell.plusPillText}>FRAME+</Text>
-      </View>
-    );
-  }
+  if (isPlus) return <Status label="FRAME+" tone="gold" />;
   return (
     <Pressable
-      style={shell.plusPill}
+      hitSlop={10}
+      accessibilityRole="button"
+      accessibilityLabel="Upgrade to FRAME+"
       onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        haptic.select();
         router.push("/paywall");
       }}
     >
-      <Text style={shell.plusPillText}>FRAME+</Text>
-    </Pressable>
-  );
-}
-
-// Schedule / Weekly-mission switch, positioned below the dashboard + review to
-// match the web ViewTab (grid-cols-2, accent border when active).
-function ViewTab({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      style={[camp.viewTab, active && camp.viewTabActive]}
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-        onPress();
-      }}
-    >
-      <Text style={[camp.viewTabText, active && camp.viewTabTextActive]}>{label}</Text>
+      <Status label="FRAME+" tone="gold" />
     </Pressable>
   );
 }
@@ -205,7 +170,7 @@ function CampView() {
   const bottomPad = Platform.OS === "web" ? 34 : 0;
   const [view, setView] = useState<"schedule" | "mission">("schedule");
 
-  const { data, isLoading, refetch, isRefetching } = useActiveCompetition();
+  const { data, isLoading, isError, refetch, isRefetching } = useActiveCompetition();
   const competition = data?.competition ?? null;
   const pressure = data?.pressure ?? null;
   const weightCut = data?.weightCut ?? null;
@@ -277,11 +242,12 @@ function CampView() {
   const createCampMut = useMutation({
     mutationFn: () => competitionApi.create(buildCampInput()),
     onSuccess: () => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      haptic.success();
       qc.invalidateQueries({ queryKey: ["competition"] });
       resetCampForm();
     },
     onError: (e: unknown) => {
+      haptic.error();
       setCampError(e instanceof Error ? e.message : "Could not create camp");
     },
   });
@@ -289,7 +255,7 @@ function CampView() {
   const updateCampMut = useMutation({
     mutationFn: (id: number) => competitionApi.update(id, buildCampInput()),
     onSuccess: () => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      haptic.success();
       qc.invalidateQueries({ queryKey: ["competition"] });
       resetCampForm();
     },
@@ -301,7 +267,7 @@ function CampView() {
   const cancelCampMut = useMutation({
     mutationFn: (id: number) => competitionApi.cancel(id),
     onSuccess: () => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      haptic.press();
       qc.invalidateQueries({ queryKey: ["competition"] });
       resetCampForm();
     },
@@ -310,7 +276,7 @@ function CampView() {
   const campSaving = createCampMut.isPending || updateCampMut.isPending;
 
   function beginEditCamp(c: Competition) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    haptic.select();
     setEditingCampId(c.id);
     setEventName(c.eventName ?? "");
     setDiscipline(c.discipline ?? "");
@@ -366,7 +332,7 @@ function CampView() {
   }
 
   function beginEditSession(s: TrainingSession) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    haptic.select();
     setEditingSessionId(s.id);
     setSType(s.sessionType);
     setSDate(s.sessionDate.slice(0, 10));
@@ -413,7 +379,7 @@ function CampView() {
         { id: editingSessionId, input },
         {
           onSuccess: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+            haptic.success();
             resetSessionForm();
           },
           onError: (e: unknown) =>
@@ -425,7 +391,7 @@ function CampView() {
         { campId: competition.id, input },
         {
           onSuccess: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+            haptic.success();
             resetSessionForm();
           },
           onError: (e: unknown) =>
@@ -437,13 +403,13 @@ function CampView() {
 
   function toggleSession(s: TrainingSession) {
     if (s.source === "google_calendar") return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    haptic.select();
     updateSessionMut.mutate({ id: s.id, input: { completed: !s.completed } });
   }
 
   function removeSession(s: TrainingSession) {
     if (s.source === "google_calendar") return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    haptic.press();
     deleteSessionMut.mutate(s.id);
   }
 
@@ -487,38 +453,40 @@ function CampView() {
     />
   ) : null;
 
+  // The one thing to do next: first unfinished session from today on.
+  const today = todayYmd();
+  const nextSession =
+    sessions.find((x) => !x.completed && x.sessionDate.slice(0, 10) >= today) ?? null;
+
   return (
     <ScrollView
       style={camp.scroll}
       contentContainerStyle={[camp.inner, { paddingBottom: insets.bottom + bottomPad + 120 }]}
       keyboardShouldPersistTaps="handled"
-      refreshControl={
-        <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={palette.goldLight} />
-      }
+      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={palette.textMid} />}
     >
       {isLoading ? (
-        <ActivityIndicator color={palette.goldLight} style={{ marginTop: 40 }} />
+        <EmptyState kind="loading" title="Loading your camp" />
+      ) : isError && !data ? (
+        <EmptyState
+          kind="error"
+          title="Couldn't load your camp"
+          body="Check your connection and try again."
+          actionLabel="Retry"
+          onAction={() => void refetch()}
+        />
       ) : !competition ? (
         <>
-          <View style={camp.emptyCard}>
-            <Text style={camp.emptyTitle}>No camp yet</Text>
-            <Text style={camp.emptyBody}>
-              Set your fight or comp and FRAME builds the camp around it — countdown, phase, weight
-              cut, and the sessions that carry you to the mat.
-            </Text>
-            {!showCampForm && (
-              <Pressable
-                style={({ pressed }) => [camp.cta, pressed && camp.ctaPressed]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                  setShowCampForm(true);
-                }}
-              >
-                <Feather name="plus" size={16} color={palette.goldLight} />
-                <Text style={camp.ctaText}>CREATE YOUR CAMP</Text>
-              </Pressable>
-            )}
-          </View>
+          {!showCampForm && (
+            <EmptyState
+              kind="empty"
+              icon="calendar"
+              title="No camp yet"
+              body="Set your fight or comp and FRAME builds the camp around it: countdown, phase, weight cut, and the sessions that carry you to the mat."
+              actionLabel="Create your camp"
+              onAction={() => setShowCampForm(true)}
+            />
+          )}
           {campFormNode}
         </>
       ) : (
@@ -532,49 +500,47 @@ function CampView() {
             phase={pressure?.phase ?? ""}
             daysToWeighIn={pressure?.daysToWeighIn ?? null}
             weightCut={weightCut}
+            nextSession={nextSession}
             onEdit={() => beginEditCamp(competition)}
             onCancel={() => cancelCampMut.mutate(competition.id)}
             cancelling={cancelCampMut.isPending}
           />
 
-          {/* Camp review — cross-analysis intelligence over this camp's footage.
+          {/* Camp review: cross-analysis intelligence over this camp's footage.
               Server returns review:null for free tier, so null == FRAME+-gated. */}
-          {!showCampForm &&
-            (review ? <CampReviewSection review={review} /> : <CampReviewLocked />)}
+          {!showCampForm && (review ? <CampReviewSection review={review} /> : <CampReviewLocked />)}
 
-          {/* Schedule / Weekly-mission switch sits below the dashboard + review,
-              matching the web layout. Hidden while the camp edit form is open. */}
+          {/* Schedule / Weekly-mission switch. Hidden while the camp edit form is open. */}
           {!showCampForm && (
             <>
-              <View style={camp.viewTabRow}>
-                <ViewTab
-                  label="SCHEDULE"
-                  active={view === "schedule"}
-                  onPress={() => setView("schedule")}
-                />
-                <ViewTab
-                  label="WEEKLY MISSION"
-                  active={view === "mission"}
-                  onPress={() => setView("mission")}
+              <View style={camp.tabsRow}>
+                <PillTabs
+                  tabs={[
+                    { key: "schedule", label: "Schedule" },
+                    { key: "mission", label: "Weekly mission" },
+                  ]}
+                  value={view}
+                  onChange={setView}
                 />
               </View>
 
               {view === "schedule" ? (
                 <>
-                  {/* Session schedule */}
                   <View style={camp.sectionHead}>
-                    <Text style={camp.sectionTitle}>SESSION SCHEDULE</Text>
+                    <Display size="heading">Session schedule</Display>
                     {!showSessionForm && (
                       <Pressable
                         onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                          haptic.select();
                           setShowSessionForm(true);
                         }}
-                        hitSlop={8}
-                        style={camp.addBtn}
+                        hitSlop={6}
+                        style={({ pressed }) => [camp.addBtn, pressed && { backgroundColor: palette.raised }]}
+                        accessibilityRole="button"
+                        accessibilityLabel="Add session"
                       >
-                        <Feather name="plus" size={14} color={palette.goldLight} />
-                        <Text style={camp.addBtnText}>ADD</Text>
+                        <Feather name="plus" size={16} color={palette.goldPale} />
+                        <Text style={camp.addBtnText}>Add</Text>
                       </Pressable>
                     )}
                   </View>
@@ -604,23 +570,31 @@ function CampView() {
                   )}
 
                   {sessions.length === 0 && !showSessionForm ? (
-                    <Text style={camp.noSessions}>
-                      No sessions yet. Add the sessions that make up this camp.
-                    </Text>
+                    <EmptyState
+                      kind="empty"
+                      icon="list"
+                      title="No sessions yet"
+                      body="Add the sessions that make up this camp."
+                      actionLabel="Add session"
+                      onAction={() => setShowSessionForm(true)}
+                    />
                   ) : (
                     groups.map((g) => (
                       <View key={g.date} style={camp.dayGroup}>
-                        <Text style={camp.dayLabel}>{fmtDayLabel(g.date)}</Text>
-                        {g.items.map((s) => (
-                          <SessionRow
-                            key={s.id}
-                            session={s}
-                            onToggle={() => toggleSession(s)}
-                            onEdit={() => beginEditSession(s)}
-                            onDelete={() => removeSession(s)}
-                            disabled={updateSessionMut.isPending || deleteSessionMut.isPending}
-                          />
-                        ))}
+                        <Label style={camp.dayLabel}>{fmtDayLabel(g.date)}</Label>
+                        <GlassCard padding={0}>
+                          {g.items.map((s, i) => (
+                            <SessionRow
+                              key={s.id}
+                              session={s}
+                              first={i === 0}
+                              onToggle={() => toggleSession(s)}
+                              onEdit={() => beginEditSession(s)}
+                              onDelete={() => removeSession(s)}
+                              disabled={updateSessionMut.isPending || deleteSessionMut.isPending}
+                            />
+                          ))}
+                        </GlassCard>
                       </View>
                     ))
                   )}
@@ -649,108 +623,107 @@ function CampReviewSection({ review }: { review: CampReview }) {
   const { totalAnalyses, countsByKind, biggestImprovement, mostPersistentLeak } = review;
 
   return (
-    <View style={rev.section}>
-      <View style={rev.head}>
-        <Text style={rev.headLabel}>CAMP REVIEW</Text>
-        <Text style={rev.headCount}>
-          {totalAnalyses === 1 ? "1 ANALYSIS" : `${totalAnalyses} ANALYSES`}
-        </Text>
+    <View style={camp.block}>
+      <View style={camp.sectionHead}>
+        <Display size="heading">Camp review</Display>
+        <Status label={totalAnalyses === 1 ? "1 analysis" : `${totalAnalyses} analyses`} />
       </View>
-
-      {totalAnalyses === 0 ? (
-        <View style={rev.body}>
+      <GlassCard padding={0}>
+        {totalAnalyses === 0 ? (
           <Text style={rev.emptyText}>
-            No session analysis is attached to this camp yet. Camp review
-            trends will appear when supported analysis records are available.
+            No session analysis is attached to this camp yet. Camp review trends will appear when
+            supported analysis records are available.
           </Text>
-        </View>
-      ) : (
-        <>
-          {/* Session mix — a real count per kind */}
-          <View style={rev.mixRow}>
-            {countsByKind.map((c) => (
-              <View key={c.kind} style={rev.mixItem}>
-                <Text style={rev.mixCount}>{c.count}</Text>
-                <Text style={rev.mixLabel}>{c.label.toUpperCase()}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Biggest real improvement — two recorded endpoints + dates */}
-          <View style={rev.block}>
-            <Text style={rev.blockLabel}>BIGGEST IMPROVEMENT</Text>
-            {biggestImprovement ? (
-              <View style={{ marginTop: 8 }}>
-                <View style={rev.impTop}>
-                  <Text style={rev.impName}>{biggestImprovement.label.toUpperCase()}</Text>
-                  <Text style={rev.impDelta}>+{biggestImprovement.delta}</Text>
+        ) : (
+          <>
+            {/* Session mix: a real count per kind */}
+            <View style={rev.mixRow}>
+              {countsByKind.map((c) => (
+                <View key={c.kind} style={rev.mixItem}>
+                  <Text style={rev.mixCount}>{c.count}</Text>
+                  <Text style={rev.mixLabel}>{c.label}</Text>
                 </View>
-                <Text style={rev.impValues}>
-                  {biggestImprovement.from} → {biggestImprovement.to}
-                </Text>
-                <Text style={rev.impDates}>
-                  {fmtDayLabel(biggestImprovement.fromAt)} → {fmtDayLabel(biggestImprovement.toAt)}
-                </Text>
-              </View>
-            ) : (
-              <Text style={rev.blockEmpty}>
-                {totalAnalyses < 2
-                  ? "One session in — log a second analysis and the trend appears here."
-                  : "No attribute rose between your first and latest session this camp. Held or dipped — no gain to claim yet."}
-              </Text>
-            )}
-          </View>
+              ))}
+            </View>
 
-          {/* Most persistent real leak — a real recurrence count */}
-          <View style={[rev.block, rev.blockLast]}>
-            <Text style={rev.blockLabel}>MOST PERSISTENT LEAK</Text>
-            {mostPersistentLeak ? (
-              <View style={{ marginTop: 8 }}>
-                <Text style={rev.leakLabel}>{mostPersistentLeak.label}</Text>
-                <Text style={rev.leakMeta}>
-                  FLAGGED IN {mostPersistentLeak.sessions} OF {mostPersistentLeak.total} SESSIONS
+            {/* Biggest real improvement: two recorded endpoints + dates */}
+            <View style={[rev.block, rev.rule]}>
+              <Text style={rev.blockLabel}>Biggest improvement</Text>
+              {biggestImprovement ? (
+                <View style={{ marginTop: 6 }}>
+                  <View style={rev.impTop}>
+                    <Text style={rev.impName}>{biggestImprovement.label}</Text>
+                    <Text style={rev.impDelta}>+{biggestImprovement.delta}</Text>
+                  </View>
+                  <Text style={rev.impValues}>
+                    {biggestImprovement.from} → {biggestImprovement.to}
+                  </Text>
+                  <Text style={rev.impDates}>
+                    {fmtDayLabel(biggestImprovement.fromAt)} → {fmtDayLabel(biggestImprovement.toAt)}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={rev.blockEmpty}>
+                  {totalAnalyses < 2
+                    ? "One session in. Log a second analysis and the trend appears here."
+                    : "No attribute rose between your first and latest session this camp. Held or dipped, no gain to claim yet."}
                 </Text>
-              </View>
-            ) : (
-              <Text style={rev.blockEmpty}>
-                {totalAnalyses < 2
-                  ? "A leak has to recur across sessions to count. One session in, nothing to call persistent."
-                  : "No single leak has recurred across your sessions this camp."}
-              </Text>
-            )}
-          </View>
-        </>
-      )}
+              )}
+            </View>
+
+            {/* Most persistent real leak: a real recurrence count */}
+            <View style={[rev.block, rev.rule]}>
+              <Text style={rev.blockLabel}>Most persistent leak</Text>
+              {mostPersistentLeak ? (
+                <View style={{ marginTop: 6 }}>
+                  <Text style={rev.leakLabel}>{mostPersistentLeak.label}</Text>
+                  <Text style={rev.leakMeta}>
+                    Flagged in {mostPersistentLeak.sessions} of {mostPersistentLeak.total} sessions
+                  </Text>
+                </View>
+              ) : (
+                <Text style={rev.blockEmpty}>
+                  {totalAnalyses < 2
+                    ? "A leak has to recur across sessions to count. One session in, nothing to call persistent."
+                    : "No single leak has recurred across your sessions this camp."}
+                </Text>
+              )}
+            </View>
+          </>
+        )}
+      </GlassCard>
     </View>
   );
 }
 
 // Free tier: the review reads across every analysis in the camp, which is a
-// FRAME+ capability. Honest teaser — no fabricated preview numbers.
+// FRAME+ capability. Honest teaser: no fabricated preview numbers.
 function CampReviewLocked() {
   return (
-    <Pressable
-      style={rev.section}
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-        router.push("/paywall");
-      }}
-    >
-      <View style={rev.head}>
-        <Text style={rev.headLabel}>CAMP REVIEW</Text>
-        <View style={rev.lockPill}>
-          <Feather name="lock" size={10} color={palette.goldLight} />
-          <Text style={rev.lockPillText}>FRAME+</Text>
-        </View>
+    <View style={camp.block}>
+      <View style={camp.sectionHead}>
+        <Display size="heading">Camp review</Display>
+        <Status label="FRAME+" tone="gold" />
       </View>
-      <View style={rev.body}>
-        <Text style={rev.emptyText}>
-          Camp review reads across every analysis in this camp to surface your biggest real gain and
-          the leak that keeps recurring — grounded in your recorded sessions, never invented. Part
-          of FRAME+.
-        </Text>
-      </View>
-    </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Camp review is part of FRAME+. Upgrade"
+        onPress={() => {
+          haptic.select();
+          router.push("/paywall");
+        }}
+      >
+        <GlassCard padding={0}>
+          <View style={rev.lockRow}>
+            <Feather name="lock" size={16} color={palette.textLow} style={{ marginTop: 2 }} />
+            <Text style={rev.lockText}>
+              Camp review reads across every analysis in this camp to surface your biggest real gain and
+              the leak that keeps recurring, grounded in your recorded sessions, never invented.
+            </Text>
+          </View>
+        </GlassCard>
+      </Pressable>
+    </View>
   );
 }
 
@@ -773,6 +746,7 @@ function Dashboard({
   phase,
   daysToWeighIn,
   weightCut,
+  nextSession,
   onEdit,
   onCancel,
   cancelling,
@@ -784,11 +758,13 @@ function Dashboard({
   phase: string;
   daysToWeighIn: number | null;
   weightCut: WeightCut | null;
+  nextSession: TrainingSession | null;
   onEdit: () => void;
   onCancel: () => void;
   cancelling: boolean;
 }) {
-  const accent = TIER_ACCENT[tier] ?? palette.goldLight;
+  // Closing phases carry a red chip WITH the written phase label.
+  const closing = tier === "sharpen" || tier === "peak" || tier === "fight_week";
 
   const fightLine = [
     competition.opponent,
@@ -808,86 +784,85 @@ function Dashboard({
       : weightCut.status
     : null;
 
+  const progress = days != null ? Math.max(0, Math.min(1, (DIAL_WINDOW_DAYS - Math.max(0, days)) / DIAL_WINDOW_DAYS)) : 0;
+
   return (
     <View>
-      {/* Centered countdown card, mirroring the web CampDashboard */}
-      <View style={[camp.dashCard, { borderColor: `${accent}55` }]}>
-        <LinearGradient
-          colors={gradients.card}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        />
-        <View style={camp.dashCardTop}>
-          <Text style={[camp.phaseLabel, { color: accent }]}>
-            {phase ? phase.toUpperCase() : "CAMP"}
-          </Text>
-          <Pressable style={camp.editInline} onPress={onEdit} hitSlop={6}>
-            <Feather name="edit-2" size={11} color={palette.textMid} />
-            <Text style={camp.editInlineText}>EDIT</Text>
+      {/* The focal point: days until the event */}
+      <GlassCard raised padding={20}>
+        <View style={camp.heroTop}>
+          <Status label={tierLabel || phase || "Camp"} tone={closing ? "red" : "gold"} />
+          <Pressable
+            style={({ pressed }) => [camp.editInline, pressed && { opacity: 0.7 }]}
+            onPress={onEdit}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Edit camp"
+          >
+            <Feather name="edit-2" size={14} color={palette.textMid} />
+            <Text style={camp.editInlineText}>Edit</Text>
           </Pressable>
         </View>
 
+        <Display size="heading" style={camp.eventName} numberOfLines={2}>
+          {competition.eventName}
+        </Display>
+
         {days != null ? (
           <>
-            <View style={camp.dial}>
-              <ArcGauge
-                value={Math.max(0, DIAL_WINDOW_DAYS - Math.max(0, days))}
-                max={DIAL_WINDOW_DAYS}
-                size={210}
-                tone={accent === palette.redLight ? "red" : "gold"}
-                display={String(days <= 0 ? 0 : days)}
-              />
+            <View style={camp.countRow} accessible accessibilityLabel={`${days <= 0 ? 0 : days} ${days === 1 ? "day" : "days"} to go`}>
+              <Numeral size="hero">{days <= 0 ? 0 : days}</Numeral>
+              <Text style={camp.countUnit}>{days === 1 ? "day to go" : "days to go"}</Text>
             </View>
-            <Text style={camp.countdownUnit}>
-              {days === 1 ? "DAY UNTIL" : "DAYS UNTIL"} {competition.eventName.toUpperCase()}
-            </Text>
-            {tierLabel ? (
-              <Text style={camp.countdownTier}>{tierLabel.toUpperCase()}</Text>
-            ) : null}
+            <View style={camp.progressTrack}>
+              <View style={[camp.progressFill, { width: `${progress * 100}%` }, closing && { backgroundColor: palette.redText }]} />
+            </View>
             {daysToWeighIn != null ? (
               <Text style={camp.weighInLine}>
-                WEIGH-IN:{" "}
-                {daysToWeighIn <= 0
-                  ? "NOW"
-                  : `${daysToWeighIn} ${daysToWeighIn === 1 ? "DAY" : "DAYS"}`}
+                Weigh-in {daysToWeighIn <= 0 ? "now" : `in ${daysToWeighIn} ${daysToWeighIn === 1 ? "day" : "days"}`}
               </Text>
             ) : null}
           </>
-        ) : (
-          <Text style={camp.dashEventFallback}>{competition.eventName}</Text>
-        )}
-      </View>
+        ) : null}
+
+        {nextSession ? (
+          <View style={camp.nextRow}>
+            <Text style={camp.nextLabel}>Next session</Text>
+            <Text style={camp.nextValue}>
+              {SESSION_TYPE_LABELS[nextSession.sessionType]}
+              {nextSession.startTime ? ` · ${nextSession.startTime}` : ""}
+            </Text>
+            <Text style={camp.nextSub}>{fmtDayLabel(nextSession.sessionDate.slice(0, 10))}</Text>
+          </View>
+        ) : null}
+      </GlassCard>
 
       {/* Detail rows */}
-      <View style={camp.rowList}>
-        <Row label="EVENT DATE" value={formatDay(competition.eventDate)} />
-        {competition.weighInDate ? (
-          <Row label="WEIGH-IN DATE" value={formatDay(competition.weighInDate)} />
-        ) : null}
-        {competition.discipline?.trim() ? (
-          <Row label="DISCIPLINE" value={competition.discipline} />
-        ) : null}
-        {fightLine ? <Row label="FIGHT" value={fightLine} /> : null}
-        {weightCutValue ? <Row label="WEIGHT CUT" value={weightCutValue} /> : null}
-        {competition.notes?.trim() ? <Row label="NOTES" value={competition.notes} /> : null}
+      <View style={camp.block}>
+        <GlassCard padding={0}>
+          <Row first label="Event date" value={formatDay(competition.eventDate)} />
+          {competition.weighInDate ? <Row label="Weigh-in date" value={formatDay(competition.weighInDate)} /> : null}
+          {competition.discipline?.trim() ? <Row label="Discipline" value={competition.discipline} /> : null}
+          {fightLine ? <Row label="Fight" value={fightLine} /> : null}
+          {weightCutValue ? <Row label="Weight cut" value={weightCutValue} /> : null}
+          {competition.notes?.trim() ? <Row label="Notes" value={competition.notes} /> : null}
+        </GlassCard>
       </View>
 
-      <Pressable
-        style={({ pressed }) => [camp.endCampBtn, pressed && camp.endCampBtnPressed]}
+      <Button
+        title="End camp"
+        variant="danger"
         onPress={onCancel}
-        disabled={cancelling}
-      >
-        <Text style={camp.endCampText}>{cancelling ? "ENDING…" : "END CAMP"}</Text>
-      </Pressable>
+        loading={cancelling}
+        style={camp.endCampBtn}
+      />
     </View>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, first }: { label: string; value: string; first?: boolean }) {
   return (
-    <View style={camp.row}>
+    <View style={[camp.row, !first && camp.rule]}>
       <Text style={camp.rowLabel}>{label}</Text>
       <Text style={camp.rowValue}>{value}</Text>
     </View>
@@ -896,12 +871,14 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function SessionRow({
   session,
+  first,
   onToggle,
   onEdit,
   onDelete,
   disabled,
 }: {
   session: TrainingSession;
+  first: boolean;
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -917,22 +894,24 @@ function SessionRow({
     .join(" · ");
 
   return (
-    <View style={[camp.sRow, session.completed && camp.sRowDone]}>
+    <View style={[camp.sRow, !first && camp.rule]}>
       <Pressable
-        style={[camp.sCheck, session.completed && camp.sCheckDone, imported && camp.sCheckLocked]}
+        style={camp.sCheckHit}
         onPress={onToggle}
         disabled={disabled || imported}
-        hitSlop={10}
         accessibilityRole="checkbox"
+        accessibilityLabel={`${SESSION_TYPE_LABELS[session.sessionType]} session`}
         accessibilityState={{ checked: !!session.completed, disabled: disabled || imported }}
       >
-        {session.completed && <Feather name="check" size={13} color="#08090B" />}
+        <View style={[camp.sCheck, session.completed && camp.sCheckDone, imported && camp.sCheckLocked]}>
+          {session.completed && <Feather name="check" size={14} color={palette.onGold} />}
+        </View>
       </Pressable>
 
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingVertical: 12, opacity: session.completed ? 0.6 : 1 }}>
         <View style={camp.sTopRow}>
           <Text style={camp.sType}>{SESSION_TYPE_LABELS[session.sessionType]}</Text>
-          {imported && <Text style={camp.importedTag}>IMPORTED</Text>}
+          {imported && <Status label="Imported" />}
         </View>
         {detail ? <Text style={camp.sDetail}>{detail}</Text> : null}
         {session.objective ? <Text style={camp.sObjective}>{session.objective}</Text> : null}
@@ -940,14 +919,33 @@ function SessionRow({
 
       {!imported && (
         <View style={camp.sActions}>
-          <Pressable onPress={onEdit} disabled={disabled} style={camp.iconTap} accessibilityLabel="Edit session">
-            <Feather name="edit-2" size={14} color={palette.textMid} />
+          <Pressable onPress={onEdit} disabled={disabled} style={camp.iconTap} accessibilityRole="button" accessibilityLabel="Edit session">
+            <Feather name="edit-2" size={16} color={palette.textMid} />
           </Pressable>
-          <Pressable onPress={onDelete} disabled={disabled} style={camp.iconTap} accessibilityLabel="Delete session">
-            <Feather name="trash-2" size={14} color={palette.redLight} />
+          <Pressable onPress={onDelete} disabled={disabled} style={camp.iconTap} accessibilityRole="button" accessibilityLabel="Delete session">
+            <Feather name="trash-2" size={16} color={palette.redText} />
           </Pressable>
         </View>
       )}
+    </View>
+  );
+}
+
+function FormActions({
+  saving,
+  onCancel,
+  onSubmit,
+  submitLabel,
+}: {
+  saving: boolean;
+  onCancel: () => void;
+  onSubmit: () => void;
+  submitLabel: string;
+}) {
+  return (
+    <View style={camp.formActions}>
+      <Button title="Cancel" variant="secondary" onPress={onCancel} style={{ flex: 1 }} />
+      <Button title={submitLabel} onPress={onSubmit} loading={saving} style={{ flex: 1.4 }} />
     </View>
   );
 }
@@ -972,105 +970,65 @@ function SessionForm(props: {
   onSubmit: () => void;
 }) {
   return (
-    <View style={camp.form}>
-      <Text style={camp.formTitle}>{props.editing ? "EDIT SESSION" : "NEW SESSION"}</Text>
+    <View style={camp.block}>
+      <GlassCard padding={20}>
+        <View style={camp.formCol}>
+          <Display size="heading">{props.editing ? "Edit session" : "New session"}</Display>
 
-      <Field label="SESSION TYPE">
-        <View style={camp.chips}>
-          {SESSION_TYPES.map((t) => (
-            <Pressable
-              key={t}
-              style={[camp.chip, props.sType === t && camp.chipActive]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                props.setSType(t);
-              }}
-            >
-              <Text style={[camp.chipText, props.sType === t && camp.chipTextActive]}>
-                {SESSION_TYPE_LABELS[t]}
-              </Text>
-            </Pressable>
-          ))}
+          <View style={{ gap: 8 }}>
+            <Label>Session type</Label>
+            <View style={camp.chips}>
+              {SESSION_TYPES.map((t) => (
+                <Pressable
+                  key={t}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: props.sType === t }}
+                  style={[camp.chip, props.sType === t && camp.chipActive]}
+                  onPress={() => {
+                    if (props.sType !== t) haptic.select();
+                    props.setSType(t);
+                  }}
+                >
+                  <Text style={[camp.chipText, props.sType === t && camp.chipTextActive]}>
+                    {SESSION_TYPE_LABELS[t]}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          <Field label="Date (YYYY-MM-DD)" value={props.sDate} onChangeText={props.setSDate} placeholder="2026-07-01" autoCapitalize="none" />
+
+          <View style={camp.row2}>
+            <View style={camp.col}>
+              <Field label="Time (HH:MM)" value={props.sTime} onChangeText={props.setSTime} placeholder="18:00" autoCapitalize="none" />
+            </View>
+            <View style={camp.col}>
+              <Field label="Duration (min)" value={props.sDuration} onChangeText={props.setSDuration} placeholder="60" keyboardType="number-pad" />
+            </View>
+          </View>
+
+          <Field label="Coach (optional)" value={props.sCoach} onChangeText={props.setSCoach} placeholder="Name" />
+
+          <Field
+            label="Objective (optional)"
+            style={camp.inputMultiline}
+            value={props.sObjective}
+            onChangeText={props.setSObjective}
+            placeholder="What this session is for"
+            multiline
+          />
+
+          {props.error ? <Text style={camp.error}>{props.error}</Text> : null}
+
+          <FormActions
+            saving={props.saving}
+            onCancel={props.onCancel}
+            onSubmit={props.onSubmit}
+            submitLabel={props.editing ? "Update" : "Add session"}
+          />
         </View>
-      </Field>
-
-      <Field label="DATE (YYYY-MM-DD)">
-        <TextInput
-          style={camp.input}
-          value={props.sDate}
-          onChangeText={props.setSDate}
-          placeholder="2026-07-01"
-          placeholderTextColor={palette.textLow}
-          autoCapitalize="none"
-        />
-      </Field>
-
-      <View style={camp.row2}>
-        <View style={camp.col}>
-          <Field label="TIME (HH:MM)">
-            <TextInput
-              style={camp.input}
-              value={props.sTime}
-              onChangeText={props.setSTime}
-              placeholder="18:00"
-              placeholderTextColor={palette.textLow}
-              autoCapitalize="none"
-            />
-          </Field>
-        </View>
-        <View style={camp.col}>
-          <Field label="DURATION (MIN)">
-            <TextInput
-              style={camp.input}
-              value={props.sDuration}
-              onChangeText={props.setSDuration}
-              placeholder="60"
-              placeholderTextColor={palette.textLow}
-              keyboardType="number-pad"
-            />
-          </Field>
-        </View>
-      </View>
-
-      <Field label="COACH (OPTIONAL)">
-        <TextInput
-          style={camp.input}
-          value={props.sCoach}
-          onChangeText={props.setSCoach}
-          placeholder="Name"
-          placeholderTextColor={palette.textLow}
-        />
-      </Field>
-
-      <Field label="OBJECTIVE (OPTIONAL)">
-        <TextInput
-          style={[camp.input, camp.inputMultiline]}
-          value={props.sObjective}
-          onChangeText={props.setSObjective}
-          placeholder="What this session is for"
-          placeholderTextColor={palette.textLow}
-          multiline
-        />
-      </Field>
-
-      {props.error ? <Text style={camp.error}>{props.error}</Text> : null}
-
-      <View style={camp.formActions}>
-        <Pressable style={camp.cancelBtn} onPress={props.onCancel}>
-          <Text style={camp.cancelText}>CANCEL</Text>
-        </Pressable>
-        <Pressable
-          style={[camp.submitBtn, props.saving && { opacity: 0.6 }]}
-          onPress={props.onSubmit}
-          disabled={props.saving}
-        >
-          {props.saving ? (
-            <ActivityIndicator size="small" color="#08090B" />
-          ) : (
-            <Text style={camp.submitText}>{props.editing ? "UPDATE" : "ADD SESSION"}</Text>
-          )}
-        </Pressable>
-      </View>
+      </GlassCard>
     </View>
   );
 }
@@ -1107,175 +1065,64 @@ function CampForm(props: {
   onSubmit: () => void;
 }) {
   return (
-    <View style={camp.form}>
-      <Text style={camp.formTitle}>{props.editing ? "EDIT CAMP" : "NEW CAMP"}</Text>
+    <View style={camp.block}>
+      <GlassCard padding={20}>
+        <View style={camp.formCol}>
+          <Display size="heading">{props.editing ? "Edit camp" : "New camp"}</Display>
 
-      <Field label="EVENT NAME">
-        <TextInput
-          style={camp.input}
-          value={props.eventName}
-          onChangeText={props.setEventName}
-          placeholder="Regional Open"
-          placeholderTextColor={palette.textLow}
-        />
-      </Field>
+          <Field label="Event name" value={props.eventName} onChangeText={props.setEventName} placeholder="Regional Open" />
+          <Field label="Discipline" value={props.discipline} onChangeText={props.setDiscipline} placeholder="BJJ / MMA / Muay Thai" />
+          <Field label="Event date (YYYY-MM-DD)" value={props.eventDate} onChangeText={props.setEventDate} placeholder="2026-07-01" autoCapitalize="none" />
+          <Field label="Weigh-in date (optional)" value={props.weighInDate} onChangeText={props.setWeighInDate} placeholder="2026-06-30" autoCapitalize="none" />
 
-      <Field label="DISCIPLINE">
-        <TextInput
-          style={camp.input}
-          value={props.discipline}
-          onChangeText={props.setDiscipline}
-          placeholder="BJJ / MMA / Muay Thai"
-          placeholderTextColor={palette.textLow}
-        />
-      </Field>
+          <View style={camp.row2}>
+            <View style={camp.col}>
+              <Field label="Opponent" value={props.opponent} onChangeText={props.setOpponent} placeholder="Name" />
+            </View>
+            <View style={camp.col}>
+              <Field label="Promotion" value={props.promotion} onChangeText={props.setPromotion} placeholder="Org" />
+            </View>
+          </View>
 
-      <Field label="EVENT DATE (YYYY-MM-DD)">
-        <TextInput
-          style={camp.input}
-          value={props.eventDate}
-          onChangeText={props.setEventDate}
-          placeholder="2026-07-01"
-          placeholderTextColor={palette.textLow}
-          autoCapitalize="none"
-        />
-      </Field>
+          <View style={camp.row2}>
+            <View style={camp.col}>
+              <Field label="Weight class" value={props.weightClass} onChangeText={props.setWeightClass} placeholder="Lightweight" />
+            </View>
+            <View style={camp.col}>
+              <Field label="Rounds" value={props.rounds} onChangeText={props.setRounds} placeholder="3" keyboardType="number-pad" />
+            </View>
+          </View>
 
-      <Field label="WEIGH-IN DATE (OPTIONAL)">
-        <TextInput
-          style={camp.input}
-          value={props.weighInDate}
-          onChangeText={props.setWeighInDate}
-          placeholder="2026-06-30"
-          placeholderTextColor={palette.textLow}
-          autoCapitalize="none"
-        />
-      </Field>
+          <Field label="Location (optional)" value={props.location} onChangeText={props.setLocation} placeholder="City / venue" />
 
-      <View style={camp.row2}>
-        <View style={camp.col}>
-          <Field label="OPPONENT">
-            <TextInput
-              style={camp.input}
-              value={props.opponent}
-              onChangeText={props.setOpponent}
-              placeholder="Name"
-              placeholderTextColor={palette.textLow}
-            />
-          </Field>
+          <View style={camp.row2}>
+            <View style={camp.col}>
+              <Field label="Current weight" value={props.currentWeight} onChangeText={props.setCurrentWeight} placeholder="78kg" />
+            </View>
+            <View style={camp.col}>
+              <Field label="Target weight" value={props.targetWeight} onChangeText={props.setTargetWeight} placeholder="74kg" />
+            </View>
+          </View>
+
+          <Field
+            label="Notes (optional)"
+            style={camp.inputMultiline}
+            value={props.notes}
+            onChangeText={props.setNotes}
+            placeholder="Anything FRAME should hold in mind"
+            multiline
+          />
+
+          {props.error ? <Text style={camp.error}>{props.error}</Text> : null}
+
+          <FormActions
+            saving={props.saving}
+            onCancel={props.onCancel}
+            onSubmit={props.onSubmit}
+            submitLabel={props.editing ? "Update camp" : "Create camp"}
+          />
         </View>
-        <View style={camp.col}>
-          <Field label="PROMOTION">
-            <TextInput
-              style={camp.input}
-              value={props.promotion}
-              onChangeText={props.setPromotion}
-              placeholder="Org"
-              placeholderTextColor={palette.textLow}
-            />
-          </Field>
-        </View>
-      </View>
-
-      <View style={camp.row2}>
-        <View style={camp.col}>
-          <Field label="WEIGHT CLASS">
-            <TextInput
-              style={camp.input}
-              value={props.weightClass}
-              onChangeText={props.setWeightClass}
-              placeholder="Lightweight"
-              placeholderTextColor={palette.textLow}
-            />
-          </Field>
-        </View>
-        <View style={camp.col}>
-          <Field label="ROUNDS">
-            <TextInput
-              style={camp.input}
-              value={props.rounds}
-              onChangeText={props.setRounds}
-              placeholder="3"
-              placeholderTextColor={palette.textLow}
-              keyboardType="number-pad"
-            />
-          </Field>
-        </View>
-      </View>
-
-      <Field label="LOCATION (OPTIONAL)">
-        <TextInput
-          style={camp.input}
-          value={props.location}
-          onChangeText={props.setLocation}
-          placeholder="City / venue"
-          placeholderTextColor={palette.textLow}
-        />
-      </Field>
-
-      <View style={camp.row2}>
-        <View style={camp.col}>
-          <Field label="CURRENT WEIGHT">
-            <TextInput
-              style={camp.input}
-              value={props.currentWeight}
-              onChangeText={props.setCurrentWeight}
-              placeholder="78kg"
-              placeholderTextColor={palette.textLow}
-            />
-          </Field>
-        </View>
-        <View style={camp.col}>
-          <Field label="TARGET WEIGHT">
-            <TextInput
-              style={camp.input}
-              value={props.targetWeight}
-              onChangeText={props.setTargetWeight}
-              placeholder="74kg"
-              placeholderTextColor={palette.textLow}
-            />
-          </Field>
-        </View>
-      </View>
-
-      <Field label="NOTES (OPTIONAL)">
-        <TextInput
-          style={[camp.input, camp.inputMultiline]}
-          value={props.notes}
-          onChangeText={props.setNotes}
-          placeholder="Anything FRAME should hold in mind"
-          placeholderTextColor={palette.textLow}
-          multiline
-        />
-      </Field>
-
-      {props.error ? <Text style={camp.error}>{props.error}</Text> : null}
-
-      <View style={camp.formActions}>
-        <Pressable style={camp.cancelBtn} onPress={props.onCancel}>
-          <Text style={camp.cancelText}>CANCEL</Text>
-        </Pressable>
-        <Pressable
-          style={[camp.submitBtn, props.saving && { opacity: 0.6 }]}
-          onPress={props.onSubmit}
-          disabled={props.saving}
-        >
-          {props.saving ? (
-            <ActivityIndicator size="small" color="#08090B" />
-          ) : (
-            <Text style={camp.submitText}>{props.editing ? "UPDATE CAMP" : "CREATE CAMP"}</Text>
-          )}
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View style={camp.field}>
-      <Text style={camp.fieldLabel}>{label}</Text>
-      {children}
+      </GlassCard>
     </View>
   );
 }
@@ -1301,11 +1148,11 @@ interface WeeklyPlan {
 }
 
 const SECTION_LABELS: Record<string, string> = {
-  primary_weakness: "PRIMARY WEAKNESS",
-  structural_objective: "STRUCTURAL OBJECTIVE",
-  daily_execution: "DAILY EXECUTION",
-  technical_drilling: "TECHNICAL DRILLING",
-  recovery_protocol: "RECOVERY PROTOCOL",
+  primary_weakness: "Primary weakness",
+  structural_objective: "Structural objective",
+  daily_execution: "Daily execution",
+  technical_drilling: "Technical drilling",
+  recovery_protocol: "Recovery protocol",
 };
 
 const SECTION_ORDER = [
@@ -1318,24 +1165,29 @@ const SECTION_ORDER = [
 
 function PlanItemRow({
   item,
+  first,
   onToggle,
   disabled,
 }: {
   item: PlanItem;
+  first: boolean;
   onToggle: (key: string, done: boolean) => void;
   disabled: boolean;
 }) {
   return (
     <Pressable
-      style={({ pressed }) => [pi.row, item.completed && pi.rowCompleted, pressed && pi.rowPressed]}
+      style={({ pressed }) => [pi.row, !first && camp.rule, pressed && pi.rowPressed]}
       onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        haptic.select();
         onToggle(item.key, !item.completed);
       }}
       disabled={disabled}
+      accessibilityRole="checkbox"
+      accessibilityLabel={item.content}
+      accessibilityState={{ checked: !!item.completed, disabled }}
     >
-      <View style={[pi.check, item.completed && pi.checkDone]}>
-        {item.completed && <Feather name="check" size={10} color="#08090B" />}
+      <View style={[camp.sCheck, item.completed && camp.sCheckDone]}>
+        {item.completed && <Feather name="check" size={14} color={palette.onGold} />}
       </View>
       <Text style={[pi.text, item.completed && pi.textDone]}>{item.content}</Text>
     </Pressable>
@@ -1406,7 +1258,7 @@ function MissionContent() {
     if (generationInFlightRef.current || generating || isLoading) return;
     generationInFlightRef.current = true;
     setGenerating(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic.press();
     try {
       const status = await apiGet<AiConsentStatus>("/ai-consent");
       setConsentStatus(status);
@@ -1478,88 +1330,68 @@ function MissionContent() {
         }}
         onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
       />
-      <View style={mission.wrap}>
-      <View style={mission.header}>
-        <Text style={mission.headerTitle}>WEEKLY MISSION</Text>
-        <Pressable
-          style={({ pressed }) => [mission.genBtn, pressed && { opacity: 0.8 }]}
-          onPress={handleGenerate}
-          disabled={generating || isLoading}
-        >
-          {generating ? (
-            <ActivityIndicator size="small" color={palette.goldLight} />
-          ) : (
-            <Feather name="refresh-cw" size={16} color={palette.goldLight} />
-          )}
-        </Pressable>
-      </View>
-
-      {isLoading && !plan && (
-        <View style={mission.loadingBlock}>
-          <ActivityIndicator color={palette.goldLight} />
-        </View>
-      )}
-
-      {!isLoading && !plan && (
-        <View style={mission.emptyBlock}>
-          <Text style={mission.emptyTitle}>NO MISSION SET</Text>
-          <Text style={mission.emptyText}>
-            Generate your weekly mission to get a structured plan built from your athlete model.
-          </Text>
-          <Pressable
-            style={({ pressed }) => [mission.generateBtn, pressed && { opacity: 0.8 }]}
+      <View style={camp.block}>
+        <View style={camp.sectionHead}>
+          <Display size="heading">Weekly mission</Display>
+          <IconButton
+            icon="refresh-cw"
+            label="Regenerate weekly mission"
             onPress={handleGenerate}
-            disabled={generating}
-          >
-            {generating ? (
-              <ActivityIndicator color="#08090B" />
-            ) : (
-              <Text style={mission.generateBtnText}>GENERATE MISSION</Text>
-            )}
-          </Pressable>
+            disabled={generating || isLoading}
+          />
         </View>
-      )}
 
-      {plan && (
-        <>
-          {plan.focusSummary && (
-            <View style={mission.focusCard}>
-              <Text style={mission.focusLabel}>MISSION FOCUS</Text>
-              <Text style={mission.focusText}>{plan.focusSummary}</Text>
-            </View>
-          )}
+        {isLoading && !plan && <EmptyState kind="loading" title="Loading your mission" />}
 
-          <View style={mission.progressRow}>
-            <View style={mission.progressBar}>
-              <View
-                style={[
-                  mission.progressFill,
-                  { width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` },
-                ]}
-              />
-            </View>
-            <Text style={mission.progressLabel}>
-              {completedCount}/{totalCount}
-            </Text>
-          </View>
+        {!isLoading && !plan && (
+          <EmptyState
+            kind="empty"
+            icon="target"
+            title="No mission set"
+            body="Generate your weekly mission to get a structured plan built from your athlete model."
+            actionLabel={generating ? "Generating…" : "Generate mission"}
+            onAction={generating ? undefined : handleGenerate}
+          />
+        )}
 
-          {Object.entries(sections).map(([sec, items]) => (
-            <View key={sec} style={mission.section}>
-              <Text style={mission.sectionLabel}>{SECTION_LABELS[sec] ?? sec.toUpperCase()}</Text>
-              <View style={mission.sectionItems}>
-                {items.map((item) => (
-                  <PlanItemRow
-                    key={item.key}
-                    item={item}
-                    onToggle={(key, done) => toggleMutation.mutate({ key, done })}
-                    disabled={toggleMutation.isPending}
-                  />
-                ))}
+        {plan && (
+          <View style={{ gap: 20 }}>
+            {plan.focusSummary ? (
+              <GlassCard raised padding={20}>
+                <Text style={mission.focusLabel}>Mission focus</Text>
+                <Text style={mission.focusText}>{plan.focusSummary}</Text>
+              </GlassCard>
+            ) : null}
+
+            <View style={mission.progressRow} accessible accessibilityLabel={`${completedCount} of ${totalCount} done`}>
+              <View style={mission.progressBar}>
+                <View
+                  style={[mission.progressFill, { width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }]}
+                />
               </View>
+              <Text style={mission.progressLabel}>
+                {completedCount} of {totalCount} done
+              </Text>
             </View>
-          ))}
-        </>
-      )}
+
+            {Object.entries(sections).map(([sec, items]) => (
+              <View key={sec} style={{ gap: 8 }}>
+                <Label>{SECTION_LABELS[sec] ?? sec}</Label>
+                <GlassCard padding={0}>
+                  {items.map((item, i) => (
+                    <PlanItemRow
+                      key={item.key}
+                      item={item}
+                      first={i === 0}
+                      onToggle={(key, done) => toggleMutation.mutate({ key, done })}
+                      disabled={toggleMutation.isPending}
+                    />
+                  ))}
+                </GlassCard>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     </>
   );
@@ -1570,818 +1402,119 @@ function MissionContent() {
 /* ------------------------------------------------------------------ */
 
 const shell = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
+  root: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingTop: 4,
-    paddingBottom: 14,
-  },
-  brand: {
-    flexDirection: "row",
-    alignItems: "center",
     gap: 12,
+    paddingHorizontal: SCREEN_PAD,
+    paddingTop: 4,
+    paddingBottom: 8,
   },
-  logo: {
-    width: 26,
-    height: 26,
-    opacity: 0.9,
-  },
-  title: {
-    fontFamily: fonts.displayThin,
-    fontSize: 20,
-    lineHeight: 25,
-    color: palette.textHi,
-  },
-  subtitle: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.8,
-    color: palette.textLow,
-    marginTop: 2,
-  },
-  headerRight: {
-    marginLeft: "auto",
-  },
-  plusPill: {
-    minHeight: 36,
-    justifyContent: "center",
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-    backgroundColor: palette.goldWash,
-    paddingHorizontal: 14,
-  },
-  plusPillText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.6,
-    color: palette.goldPale,
-  },
+  title: { flex: 1 },
 });
 
-const glassPanel = {
-  borderWidth: 1,
-  borderColor: palette.glassEdge,
-  backgroundColor: palette.graphite1,
-  borderRadius: radius.lg,
-  overflow: "hidden",
-} as const;
-
 const camp = StyleSheet.create({
-  scroll: {
-    flex: 1,
-  },
-  inner: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-  },
-  emptyCard: {
-    ...glassPanel,
-    borderRadius: radius.xl,
-    borderColor: palette.goldHair,
-    padding: 24,
-  },
-  emptyTitle: {
-    fontFamily: fonts.displayThin,
-    fontSize: 18,
-    lineHeight: 22,
-    color: palette.textHi,
-    marginBottom: 10,
-  },
-  emptyBody: {
-    fontFamily: fonts.text,
-    fontSize: 14,
-    color: palette.textMid,
-    lineHeight: 22,
-    marginBottom: 20,
-  },
-  cta: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    minHeight: 54,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-    backgroundColor: palette.goldWash,
-  },
-  ctaPressed: {
-    opacity: 0.8,
-    transform: [{ scale: 0.99 }],
-  },
-  ctaText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 13,
-    letterSpacing: 1.4,
-    color: palette.goldPale,
-  },
-  dashCard: {
-    ...glassPanel,
-    borderRadius: radius.xl,
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    alignItems: "center",
-  },
-  dashCardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  phaseLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.8,
-  },
-  editInline: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    minHeight: 44,
-    paddingHorizontal: 8,
-  },
-  editInlineText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.6,
-    color: palette.textMid,
-  },
-  dial: {
-    marginTop: 4,
-    alignItems: "center",
-  },
-  countdown: {
-    fontFamily: fonts.numeralXL,
-    fontSize: 72,
-    lineHeight: 78,
-    letterSpacing: -2,
-    marginTop: 14,
-  },
-  countdownUnit: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.8,
-    color: palette.textMid,
-    textAlign: "center",
-    marginTop: 8,
-  },
-  countdownTier: {
-    fontFamily: fonts.displayThin,
-    fontSize: 14,
-    color: palette.textHi,
-    textAlign: "center",
-    marginTop: 6,
-  },
-  weighInLine: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.6,
-    color: palette.textLow,
-    textAlign: "center",
-    marginTop: 12,
-  },
-  dashEventFallback: {
-    fontFamily: fonts.displayThin,
-    fontSize: 17,
-    color: palette.textHi,
-    marginTop: 14,
-  },
-  rowList: {
-    marginTop: 20,
-    gap: 12,
-    paddingHorizontal: 4,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.hairline,
-    paddingBottom: 12,
-  },
-  rowLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.6,
-    color: palette.textLow,
-  },
-  rowValue: {
-    fontFamily: fonts.text,
-    fontSize: 14,
-    color: palette.text,
-    textAlign: "right",
-    flexShrink: 1,
-    maxWidth: "62%",
-  },
-  endCampBtn: {
-    marginTop: 24,
-    width: "100%",
-    minHeight: 52,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
-    backgroundColor: palette.glass,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  endCampBtnPressed: {
-    borderColor: "rgba(229,100,90,0.5)",
-    backgroundColor: palette.redWash,
-  },
-  endCampText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.6,
-    color: palette.textMid,
-  },
-  viewTabRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 24,
-  },
-  viewTab: {
-    flex: 1,
-    minHeight: 46,
-    justifyContent: "center",
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: palette.hairline,
-    backgroundColor: palette.glass,
-    alignItems: "center",
-  },
-  viewTabActive: {
-    borderColor: palette.goldHair,
-    backgroundColor: palette.goldWash,
-  },
-  viewTabText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.6,
-    color: palette.textMid,
-  },
-  viewTabTextActive: {
-    color: palette.goldPale,
-  },
-  sectionHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 28,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.8,
-    color: palette.goldLight,
-  },
-  addBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    minHeight: 44,
-    paddingHorizontal: 8,
-  },
-  addBtnText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.6,
-    color: palette.goldLight,
-  },
-  noSessions: {
-    fontFamily: fonts.text,
-    fontSize: 13.5,
-    color: palette.textMid,
-    lineHeight: 21,
-  },
-  dayGroup: {
-    marginBottom: 18,
-  },
-  dayLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.6,
-    color: palette.textLow,
-    marginBottom: 8,
-  },
-  sRow: {
-    ...glassPanel,
-    borderRadius: radius.md,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 14,
-    padding: 14,
-    marginBottom: 10,
-  },
-  sRowDone: {
-    opacity: 0.6,
-  },
-  sCheck: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: palette.glassEdgeHi,
-    backgroundColor: palette.glass,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 1,
-  },
-  sCheckDone: {
-    backgroundColor: palette.goldSoft,
-    borderColor: palette.goldLight,
-  },
-  sCheckLocked: {
-    borderColor: palette.hairline,
-    backgroundColor: palette.graphite2,
-  },
-  sTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  sType: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.4,
-    color: palette.textHi,
-  },
-  importedTag: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.2,
-    color: palette.textMid,
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
-    borderRadius: radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    overflow: "hidden",
-  },
-  sDetail: {
-    fontFamily: fonts.text,
-    fontSize: 12.5,
-    color: palette.textLow,
-    marginTop: 4,
-  },
-  sObjective: {
-    fontFamily: fonts.text,
-    fontSize: 13.5,
-    color: palette.textMid,
-    marginTop: 4,
-    lineHeight: 19,
-  },
-  sActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 0,
-    marginTop: -10,
-    marginRight: -10,
-  },
-  iconTap: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  form: {
-    ...glassPanel,
-    borderRadius: radius.xl,
-    marginTop: 8,
-    marginBottom: 8,
-    padding: 22,
-  },
-  formTitle: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.8,
-    color: palette.goldLight,
-    marginBottom: 18,
-  },
-  field: {
-    marginBottom: 16,
-  },
-  fieldLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.6,
-    color: palette.goldLight,
-    marginBottom: 8,
-  },
-  input: {
-    minHeight: 52,
-    backgroundColor: palette.glass,
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
-    borderRadius: radius.md,
-    color: palette.textHi,
-    fontFamily: fonts.text,
-    fontSize: 15,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null),
-  },
-  inputMultiline: {
-    minHeight: 88,
-    textAlignVertical: "top",
-    paddingTop: 14,
-  },
-  chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
+  scroll: { flex: 1 },
+  inner: { paddingHorizontal: SCREEN_PAD, paddingTop: 12 },
+  block: { marginTop: 24 },
+  rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.borderStrong },
+  sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12, minHeight: MIN_TAP },
+  tabsRow: { marginTop: 28, marginBottom: 20 },
+
+  // hero
+  heroTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  editInline: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: MIN_TAP, paddingHorizontal: 8, marginRight: -8 },
+  editInlineText: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid },
+  eventName: { marginTop: 4 },
+  countRow: { flexDirection: "row", alignItems: "baseline", gap: 10, marginTop: 12 },
+  countUnit: { fontFamily: fonts.medium, fontSize: 16, color: palette.textMid },
+  progressTrack: { height: 4, borderRadius: 2, backgroundColor: palette.borderStrong, marginTop: 16, overflow: "hidden" },
+  progressFill: { height: 4, borderRadius: 2, backgroundColor: palette.gold },
+  weighInLine: { fontFamily: fonts.regular, fontSize: 14, color: palette.textMid, marginTop: 12, fontVariant: ["tabular-nums"] },
+  nextRow: { marginTop: 20, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.borderStrong, gap: 2 },
+  nextLabel: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid },
+  nextValue: { fontFamily: fonts.semi, fontSize: 17, lineHeight: 24, color: palette.textHi, fontVariant: ["tabular-nums"] },
+  nextSub: { fontFamily: fonts.regular, fontSize: 14, color: palette.textMid },
+
+  // detail rows
+  row: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 16, paddingHorizontal: 20, paddingVertical: 14 },
+  rowLabel: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid },
+  rowValue: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 21, color: palette.textHi, textAlign: "right", flexShrink: 1, maxWidth: "62%" },
+  endCampBtn: { marginTop: 24 },
+
+  // schedule
+  addBtn: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: MIN_TAP, paddingHorizontal: 12, borderRadius: radius.sm, marginRight: -8 },
+  addBtnText: { fontFamily: fonts.medium, fontSize: 15, color: palette.goldPale },
+  dayGroup: { marginTop: 16, gap: 8 },
+  dayLabel: { color: palette.textMid },
+  sRow: { flexDirection: "row", alignItems: "center", paddingRight: 4 },
+  sCheckHit: { width: MIN_TAP + 8, minHeight: MIN_TAP, alignItems: "center", justifyContent: "center" },
+  sCheck: { width: 24, height: 24, borderRadius: 8, borderWidth: 1.5, borderColor: palette.borderStrong, alignItems: "center", justifyContent: "center" },
+  sCheckDone: { backgroundColor: palette.gold, borderColor: palette.gold },
+  sCheckLocked: { opacity: 0.4 },
+  sTopRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  sType: { fontFamily: fonts.semi, fontSize: 16, lineHeight: 22, color: palette.textHi },
+  sDetail: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: palette.textMid, marginTop: 2, fontVariant: ["tabular-nums"] },
+  sObjective: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: palette.textHi, marginTop: 4 },
+  sActions: { flexDirection: "row" },
+  iconTap: { width: MIN_TAP, height: MIN_TAP, alignItems: "center", justifyContent: "center" },
+
+  // forms
+  formCol: { gap: 16 },
+  row2: { flexDirection: "row", gap: 12 },
+  col: { flex: 1 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
-    minHeight: 44,
+    minHeight: MIN_TAP,
     justifyContent: "center",
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: palette.hairline,
-    backgroundColor: palette.glass,
     paddingHorizontal: 16,
-  },
-  chipActive: {
-    borderColor: palette.goldHair,
-    backgroundColor: palette.goldWash,
-  },
-  chipText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.2,
-    color: palette.textMid,
-  },
-  chipTextActive: {
-    color: palette.goldPale,
-  },
-  row2: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  col: {
-    flex: 1,
-  },
-  error: {
-    fontFamily: fonts.text,
-    fontSize: 13,
-    color: palette.redLight,
-    marginBottom: 12,
-  },
-  formActions: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 6,
-  },
-  cancelBtn: {
-    flex: 1,
-    minHeight: 52,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: palette.glassEdge,
-    backgroundColor: palette.glassStrong,
-    alignItems: "center",
-    justifyContent: "center",
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
   },
-  cancelText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 13,
-    letterSpacing: 1.2,
-    color: palette.text,
-  },
-  submitBtn: {
-    flex: 1,
-    minHeight: 52,
-    borderRadius: radius.pill,
-    backgroundColor: "#B9A477",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  submitText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 13,
-    letterSpacing: 1.2,
-    color: "#0B0C0E",
-  },
+  chipActive: { backgroundColor: palette.raised, borderColor: palette.goldHair },
+  chipText: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid },
+  chipTextActive: { color: palette.textHi },
+  inputMultiline: { minHeight: 88, paddingTop: 14, paddingBottom: 14, textAlignVertical: "top" },
+  error: { fontFamily: fonts.regular, fontSize: 14, color: palette.redText },
+  formActions: { flexDirection: "row", gap: 12, marginTop: 4 },
 });
 
 const rev = StyleSheet.create({
-  section: {
-    ...glassPanel,
-    borderRadius: radius.xl,
-    marginTop: 18,
-  },
-  head: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.hairline,
-  },
-  headLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.8,
-    color: palette.goldLight,
-  },
-  headCount: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.6,
-    color: palette.textLow,
-  },
-  lockPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-    backgroundColor: palette.goldWash,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
-  lockPillText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.4,
-    color: palette.goldPale,
-  },
-  body: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  emptyText: {
-    fontFamily: fonts.text,
-    fontSize: 13.5,
-    color: palette.textMid,
-    lineHeight: 21,
-  },
-  mixRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    columnGap: 22,
-    rowGap: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.hairline,
-  },
-  mixItem: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 8,
-  },
-  mixCount: {
-    fontFamily: fonts.numeral,
-    fontSize: 24,
-    color: palette.textHi,
-  },
-  mixLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.4,
-    color: palette.textLow,
-  },
-  block: {
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.hairline,
-  },
-  blockLast: {
-    borderBottomWidth: 0,
-  },
-  blockLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.8,
-    color: palette.goldLight,
-  },
-  blockEmpty: {
-    fontFamily: fonts.text,
-    fontSize: 13,
-    color: palette.textMid,
-    lineHeight: 19,
-    marginTop: 8,
-  },
-  impTop: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 12,
-  },
-  impName: {
-    fontFamily: fonts.textMedium,
-    fontSize: 13,
-    letterSpacing: 1.2,
-    color: palette.textHi,
-  },
-  impDelta: {
-    fontFamily: fonts.numeral,
-    fontSize: 20,
-    color: palette.goldPale,
-  },
-  impValues: {
-    fontFamily: fonts.text,
-    fontSize: 12.5,
-    color: palette.textMid,
-    marginTop: 4,
-  },
-  impDates: {
-    fontFamily: fonts.text,
-    fontSize: 12,
-    color: palette.textLow,
-    marginTop: 4,
-  },
-  leakLabel: {
-    fontFamily: fonts.text,
-    fontSize: 14,
-    color: palette.text,
-    lineHeight: 21,
-  },
-  leakMeta: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.4,
-    color: palette.textLow,
-    marginTop: 6,
-  },
-});
-
-const pi = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 14,
-    minHeight: 48,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.hairline,
-  },
-  rowCompleted: {
-    opacity: 0.55,
-  },
-  rowPressed: {
-    backgroundColor: palette.glassStrong,
-  },
-  check: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: palette.glassEdgeHi,
-    backgroundColor: palette.glass,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 1,
-  },
-  checkDone: {
-    backgroundColor: palette.goldSoft,
-    borderColor: palette.goldLight,
-  },
-  text: {
-    flex: 1,
-    fontFamily: fonts.text,
-    fontSize: 14.5,
-    color: palette.text,
-    lineHeight: 21,
-  },
-  textDone: {
-    textDecorationLine: "line-through",
-    color: palette.textLow,
-  },
+  emptyText: { ...T.bodySm, color: palette.textMid, padding: 20 },
+  mixRow: { flexDirection: "row", flexWrap: "wrap", gap: 24, paddingHorizontal: 20, paddingVertical: 18 },
+  mixItem: { gap: 2 },
+  mixCount: { ...T.numeralM, color: palette.textHi },
+  mixLabel: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid },
+  block: { paddingHorizontal: 20, paddingVertical: 16 },
+  rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.borderStrong },
+  blockLabel: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid },
+  blockEmpty: { ...T.bodySm, color: palette.textMid, marginTop: 6 },
+  impTop: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
+  impName: { fontFamily: fonts.semi, fontSize: 17, color: palette.textHi, flexShrink: 1 },
+  impDelta: { ...T.numeralS, color: palette.gold },
+  impValues: { ...T.bodySm, color: palette.textHi, marginTop: 4, fontVariant: ["tabular-nums"] },
+  impDates: { ...T.caption, color: palette.textMid, marginTop: 2 },
+  leakLabel: { fontFamily: fonts.semi, fontSize: 17, color: palette.textHi },
+  leakMeta: { ...T.bodySm, color: palette.textMid, marginTop: 2, fontVariant: ["tabular-nums"] },
+  lockRow: { flexDirection: "row", gap: 12, padding: 20, minHeight: MIN_TAP },
+  lockText: { flex: 1, ...T.bodySm, color: palette.textMid },
 });
 
 const mission = StyleSheet.create({
-  wrap: {
-    marginTop: 8,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    marginBottom: 4,
-  },
-  headerTitle: {
-    fontFamily: fonts.displayThin,
-    fontSize: 18,
-    lineHeight: 22,
-    color: palette.textHi,
-  },
-  genBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: palette.glassStrong,
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
-  },
-  loadingBlock: {
-    paddingVertical: 60,
-    alignItems: "center",
-  },
-  emptyBlock: {
-    paddingVertical: 40,
-    alignItems: "center",
-    gap: 16,
-  },
-  emptyTitle: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 2,
-    color: palette.textLow,
-  },
-  emptyText: {
-    fontFamily: fonts.text,
-    fontSize: 14,
-    color: palette.textMid,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  generateBtn: {
-    minHeight: 52,
-    borderRadius: radius.pill,
-    backgroundColor: "#B9A477",
-    paddingHorizontal: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 8,
-  },
-  generateBtnText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 13,
-    letterSpacing: 1.4,
-    color: "#0B0C0E",
-  },
-  focusCard: {
-    ...glassPanel,
-    borderRadius: radius.lg,
-    borderColor: palette.goldHair,
-    backgroundColor: palette.graphite2,
-    padding: 20,
-    marginBottom: 18,
-  },
-  focusLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.8,
-    color: palette.goldLight,
-    marginBottom: 8,
-  },
-  focusText: {
-    fontFamily: fonts.text,
-    fontSize: 14.5,
-    color: palette.text,
-    lineHeight: 23,
-  },
-  progressRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    marginBottom: 22,
-  },
-  progressBar: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: palette.glassStrong,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: palette.goldLight,
-  },
-  progressLabel: {
-    fontFamily: fonts.numeral,
-    fontSize: 16,
-    color: palette.textMid,
-  },
-  section: {
-    marginBottom: 18,
-  },
-  sectionLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.8,
-    color: palette.goldLight,
-    marginBottom: 10,
-  },
-  sectionItems: {
-    ...glassPanel,
-    borderRadius: radius.lg,
-  },
+  focusLabel: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid, marginBottom: 6 },
+  focusText: { ...T.body, color: palette.textHi },
+  progressRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  progressBar: { flex: 1, height: 4, borderRadius: 2, backgroundColor: palette.borderStrong, overflow: "hidden" },
+  progressFill: { height: 4, borderRadius: 2, backgroundColor: palette.gold },
+  progressLabel: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid, fontVariant: ["tabular-nums"] },
+});
+
+const pi = StyleSheet.create({
+  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 20, paddingVertical: 14, minHeight: MIN_TAP + 8 },
+  rowPressed: { backgroundColor: palette.raised },
+  text: { flex: 1, fontFamily: fonts.regular, fontSize: 16, lineHeight: 22, color: palette.textHi },
+  textDone: { color: palette.textLow, textDecorationLine: "line-through" },
 });
