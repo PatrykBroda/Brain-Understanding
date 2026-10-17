@@ -6,7 +6,7 @@ import {
   type FactSource,
 } from "@workspace/db";
 import { isOntologyKey } from "@workspace/ontology";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 // ─── Evidence model ───────────────────────────────────────────────────────────
 // An observation's confidence is NEVER set by an AI. It is derived
@@ -56,6 +56,57 @@ export function evidenceCountOf(sources: FactSource[]): number {
   return Math.max(1, sources.filter((s) => !MARKER_TYPES.has(s.type)).length);
 }
 
+// ─── Freshness ───────────────────────────────────────────────────────────────
+// An observation is a claim about the athlete NOW. If nothing has re-seen it
+// for a long time it gets less certain, then stops being true enough to show.
+// This is computed from the evidence trail, never set by an AI, and the stored
+// confidence is never rewritten (so a fresh sighting snaps back to the derived
+// value and repeated reads can't compound a fade).
+//   - idle <= FADE_GRACE_DAYS: full confidence
+//   - then -1 per FADE_STEP_DAYS idle (floor 1)
+//   - idle >= RESOLVE_AFTER_DAYS: resolved ("not seen in N days") — only for
+//     the evidence-driven categories; goals, preferences, context, events and
+//     technical knowledge describe the athlete, not a trend, so they don't age out.
+export const FADE_GRACE_DAYS = 30;
+export const FADE_STEP_DAYS = 30;
+export const RESOLVE_AFTER_DAYS = 120;
+const AGING_CATEGORIES = new Set<string>(["weakness", "pattern", "strength"]);
+const DAY_MS = 86_400_000;
+
+/** When this observation was last seen/confirmed (latest evidence, confirmation or creation). */
+export function lastSeenAt(
+  fact: Pick<AthleteFact, "sources" | "source" | "createdAt" | "lastConfirmedAt">,
+): Date {
+  let latest = fact.lastConfirmedAt ? fact.lastConfirmedAt.getTime() : 0;
+  latest = Math.max(latest, fact.createdAt.getTime());
+  for (const s of factSources(fact)) {
+    const t = Date.parse(s.at);
+    if (!Number.isNaN(t) && t > latest) latest = t;
+  }
+  return new Date(latest);
+}
+
+export function idleDays(fact: Parameters<typeof lastSeenAt>[0], now = new Date()): number {
+  return Math.max(0, Math.floor((now.getTime() - lastSeenAt(fact).getTime()) / DAY_MS));
+}
+
+/** Confidence points lost to inactivity. Pure — unit-tested. */
+export function fadePoints(idle: number): number {
+  if (idle <= FADE_GRACE_DAYS) return 0;
+  return 1 + Math.floor((idle - FADE_GRACE_DAYS - 1) / FADE_STEP_DAYS);
+}
+
+export function isStale(fact: AthleteFact, now = new Date()): boolean {
+  return AGING_CATEGORIES.has(fact.category) && idleDays(fact, now) >= RESOLVE_AFTER_DAYS;
+}
+
+/** The fact as the athlete should see it today: confidence reduced by inactivity. */
+export function withFreshness(fact: AthleteFact, now = new Date()): AthleteFact {
+  if (!AGING_CATEGORIES.has(fact.category)) return fact;
+  const fade = fadePoints(idleDays(fact, now));
+  return fade === 0 ? fact : { ...fact, confidence: Math.max(1, fact.confidence - fade) };
+}
+
 function legacySourceString(input: SourceInput): string {
   return input.ref && input.ref.length > 0 ? input.ref : input.type;
 }
@@ -66,13 +117,36 @@ function sourceEntry(input: SourceInput, at = new Date()): FactSource {
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
-export async function getActiveFacts(fighterId: number): Promise<AthleteFact[]> {
-  return db
+/**
+ * The athlete's live model. Observations nobody has re-seen for
+ * RESOLVE_AFTER_DAYS are resolved here (so every consumer — the card, history,
+ * coach prompt, planner — agrees), and the rest carry freshness-adjusted
+ * confidence.
+ */
+export async function getActiveFacts(fighterId: number, now = new Date()): Promise<AthleteFact[]> {
+  const rows = await db
     .select()
     .from(athleteFactsTable)
     .where(and(eq(athleteFactsTable.fighterId, fighterId), eq(athleteFactsTable.status, "active")))
     .orderBy(desc(athleteFactsTable.updatedAt))
     .limit(200);
+  const stale = rows.filter((f) => isStale(f, now));
+  if (stale.length > 0) {
+    await db
+      .update(athleteFactsTable)
+      .set({
+        status: "resolved",
+        resolvedReason: `not seen again in ${RESOLVE_AFTER_DAYS}+ days`,
+      })
+      .where(
+        and(
+          eq(athleteFactsTable.fighterId, fighterId),
+          inArray(athleteFactsTable.id, stale.map((f) => f.id)),
+        ),
+      );
+  }
+  const staleIds = new Set(stale.map((f) => f.id));
+  return rows.filter((f) => !staleIds.has(f.id)).map((f) => withFreshness(f, now));
 }
 
 async function getActiveFact(fighterId: number, id: number): Promise<AthleteFact | null> {
@@ -87,7 +161,7 @@ async function getActiveFact(fighterId: number, id: number): Promise<AthleteFact
       ),
     )
     .limit(1);
-  return row ?? null;
+  return row ? withFreshness(row) : null;
 }
 
 /**

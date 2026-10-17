@@ -6,6 +6,7 @@ import { ONTOLOGY_KEYS } from "@workspace/ontology";
 import {
   addFact,
   confirmFact,
+  findActiveFactByTopic,
   getActiveFacts,
   resolveFact,
   supersedeFact,
@@ -111,6 +112,76 @@ function formatFacts(facts: AthleteFact[]): string {
     .join("\n");
 }
 
+type ToolBlock = { type: string; name?: string; input?: unknown };
+
+/**
+ * Apply the memory writer's tool calls. Split from the provider call so the
+ * write rules are testable without a model. Counts only changes that actually
+ * landed (a confirm/supersede/resolve on an unknown or already-closed id is a
+ * no-op, not an update), and an add_fact whose topic already exists as an
+ * active observation strengthens it instead of duplicating it.
+ */
+export async function applyMemoryToolCalls(
+  fighterId: number,
+  content: readonly ToolBlock[],
+  log: Logger,
+): Promise<{ added: number; confirmed: number; superseded: number; resolved: number }> {
+  const tally = { added: 0, confirmed: 0, superseded: 0, resolved: 0 };
+  for (const block of content) {
+    if (block.type !== "tool_use") continue;
+    const input = (block.input ?? {}) as Record<string, unknown>;
+    try {
+      if (block.name === "add_fact") {
+        const cat = input["category"];
+        if (typeof cat !== "string" || !(FACT_CATEGORIES as readonly string[]).includes(cat)) continue;
+        const topic = String(input["topic"] ?? "");
+        const text = String(input["content"] ?? "");
+        const existing = await findActiveFactByTopic(fighterId, topic, cat as FactCategory);
+        if (existing) {
+          const done = await confirmFact(fighterId, existing.id, { type: "chat" }, text);
+          if (done) tally.confirmed++;
+          continue;
+        }
+        await addFact(fighterId, {
+          category: cat as FactCategory,
+          topic,
+          content: text,
+          source: { type: "chat" },
+          subcategory: typeof input["subcategory"] === "string" ? input["subcategory"] : null,
+          athleteStated: input["athlete_stated"] === true,
+        });
+        tally.added++;
+      } else if (block.name === "confirm_fact") {
+        const refined = input["refined_content"];
+        const done = await confirmFact(
+          fighterId,
+          Number(input["id"]),
+          { type: "chat" },
+          typeof refined === "string" ? refined : undefined,
+        );
+        if (done) tally.confirmed++;
+        else log.warn({ id: input["id"] }, "confirm_fact for an unknown or inactive observation");
+      } else if (block.name === "supersede_fact") {
+        const done = await supersedeFact(fighterId, Number(input["id"]), {
+          content: String(input["replacement_content"] ?? ""),
+          reason: String(input["reason"] ?? ""),
+          source: { type: "chat" },
+        });
+        if (done) tally.superseded++;
+        else log.warn({ id: input["id"] }, "supersede_fact for an unknown or inactive observation");
+      } else if (block.name === "resolve_fact") {
+        if (await resolveFact(fighterId, Number(input["id"]), String(input["reason"] ?? ""))) tally.resolved++;
+      }
+    } catch (err) {
+      log.warn({ err, tool: block.name }, "memory tool call failed");
+    }
+  }
+  if (tally.added + tally.confirmed + tally.superseded + tally.resolved > 0) {
+    log.info(tally, "memory updated");
+  }
+  return tally;
+}
+
 export async function extractMemory(args: {
   fighter: Fighter;
   userText: string;
@@ -150,53 +221,7 @@ Update the model. Call tools only. No prose.`;
       messages: [{ role: "user", content: userMessage }],
     });
 
-    let added = 0;
-    let confirmed = 0;
-    let superseded = 0;
-    let resolved = 0;
-    for (const block of response.content) {
-      if (block.type !== "tool_use") continue;
-      const input = block.input as Record<string, unknown>;
-      try {
-        if (block.name === "add_fact") {
-          const cat = input["category"];
-          if (typeof cat !== "string" || !(FACT_CATEGORIES as readonly string[]).includes(cat)) continue;
-          await addFact(fighter.id, {
-            category: cat as FactCategory,
-            topic: String(input["topic"] ?? ""),
-            content: String(input["content"] ?? ""),
-            source: { type: "chat" },
-            subcategory: typeof input["subcategory"] === "string" ? input["subcategory"] : null,
-            athleteStated: input["athlete_stated"] === true,
-          });
-          added++;
-        } else if (block.name === "confirm_fact") {
-          const refined = input["refined_content"];
-          await confirmFact(
-            fighter.id,
-            Number(input["id"]),
-            { type: "chat" },
-            typeof refined === "string" ? refined : undefined,
-          );
-          confirmed++;
-        } else if (block.name === "supersede_fact") {
-          await supersedeFact(fighter.id, Number(input["id"]), {
-            content: String(input["replacement_content"] ?? ""),
-            reason: String(input["reason"] ?? ""),
-            source: { type: "chat" },
-          });
-          superseded++;
-        } else if (block.name === "resolve_fact") {
-          await resolveFact(fighter.id, Number(input["id"]), String(input["reason"] ?? ""));
-          resolved++;
-        }
-      } catch (err) {
-        log.warn({ err, tool: block.name }, "memory tool call failed");
-      }
-    }
-    if (added + confirmed + superseded + resolved > 0) {
-      log.info({ added, confirmed, superseded, resolved }, "memory updated");
-    }
+    await applyMemoryToolCalls(fighter.id, response.content, log);
   } catch (err) {
     log.error({ err }, "memory extraction failed");
   }
