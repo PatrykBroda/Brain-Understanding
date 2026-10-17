@@ -5,12 +5,16 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 export type LightFocus = "topRight" | "topLeft" | "top" | "center" | "bottom";
 export type LightTone = "silver" | "champagne";
 
-const FOCUS: Record<LightFocus, { cx: string; cy: string; rx: string; ry: string }> = {
-  topRight: { cx: "88%", cy: "-6%", rx: "120%", ry: "58%" },
-  topLeft: { cx: "6%", cy: "-8%", rx: "120%", ry: "56%" },
-  top: { cx: "50%", cy: "-10%", rx: "110%", ry: "52%" },
-  center: { cx: "50%", cy: "36%", rx: "100%", ry: "46%" },
-  bottom: { cx: "30%", cy: "108%", rx: "120%", ry: "50%" },
+// Fractions of the layer box. `r` is the horizontal radius; `sy` squashes the
+// vertical radius (ry = r * sy in box units) so the pool is broad and asymmetric.
+// objectBoundingBox + gradientTransform renders the same on iOS, Android and web
+// (web SVG has no rx/ry on radialGradient).
+const FOCUS: Record<LightFocus, { cx: number; cy: number; r: number; sy: number }> = {
+  topRight: { cx: 0.88, cy: -0.06, r: 1.2, sy: 0.48 },
+  topLeft: { cx: 0.06, cy: -0.08, r: 1.2, sy: 0.48 },
+  top: { cx: 0.5, cy: -0.1, r: 1.1, sy: 0.46 },
+  center: { cx: 0.5, cy: 0.36, r: 1.0, sy: 0.46 },
+  bottom: { cx: 0.3, cy: 1.08, r: 1.2, sy: 0.42 },
 };
 
 const TONE: Record<LightTone, { core: string; mid: string }> = {
@@ -49,7 +53,16 @@ export function Atmosphere({
       importantForAccessibility="no-hide-descendants"
     >
       <Defs>
-        <RadialGradient id={id} cx={f.cx} cy={f.cy} rx={f.rx} ry={f.ry} fx={f.cx} fy={f.cy}>
+        <RadialGradient
+          id={id}
+          gradientUnits="objectBoundingBox"
+          cx={f.cx}
+          cy={f.cy}
+          r={f.r}
+          fx={f.cx}
+          fy={f.cy}
+          gradientTransform={`translate(${f.cx} ${f.cy}) scale(1 ${f.sy}) translate(${-f.cx} ${-f.cy})`}
+        >
           <Stop offset="0" stopColor={t.core} stopOpacity={0.16 * intensity} />
           <Stop offset="0.45" stopColor={t.mid} stopOpacity={0.06 * intensity} />
           <Stop offset="1" stopColor={t.mid} stopOpacity={0} />

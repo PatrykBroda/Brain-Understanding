@@ -412,7 +412,7 @@ body {
 }
 .glass-red {
   border-color: rgba(229, 100, 90, 0.3);
-  background: linear-gradient(180deg, rgba(229, 100, 90, 0.09), rgba(229, 100, 90, 0.015) 70%), var(--f-surface);
+  background: linear-gradient(180deg, rgba(229, 100, 90, 0.05), rgba(229, 100, 90, 0.01) 70%), var(--f-surface);
 }
 .glass-flat {
   border-radius: 16px;
@@ -524,7 +524,7 @@ body {
 }
 .btn-bronze:hover:not(:disabled), .btn-primary:hover:not(:disabled) { background: #c4b084; }
 .btn-bronze:active:not(:disabled), .btn-primary:active:not(:disabled) { background: var(--f-gold-pressed); transform: scale(0.985); }
-.btn-bronze:disabled, .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-bronze:disabled:not([data-loading='true']), .btn-primary:disabled:not([data-loading='true']) { background: var(--f-raised); color: var(--f-text-3); box-shadow: inset 0 0 0 1px var(--f-hairline); cursor: not-allowed; }
 .btn-glass, .btn-secondary {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
   min-height: 52px; padding: 0 1.5rem; border-radius: var(--f-r-control);

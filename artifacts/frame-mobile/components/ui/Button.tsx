@@ -12,7 +12,7 @@ type Variant = "primary" | "secondary" | "ghost" | "danger" | "glass";
  * secondary raised surface + 1px border, off-white label
  * ghost     no fill, secondary text (tertiary actions)
  * danger    red wash + red text + red hairline
- * States: default · pressed (darker fill / 0.98 scale) · disabled (flat, 40%) · loading (spinner, locked).
+ * States: default · pressed (darker fill / 0.98 scale) · disabled (flat grey surface + muted label, never a dimmed gold) · loading (spinner, locked).
  * `glass` is the legacy name for secondary.
  */
 export function Button({
@@ -37,8 +37,9 @@ export function Button({
 }) {
   const off = disabled || loading;
   const v: Exclude<Variant, "glass"> = variant === "glass" ? "secondary" : variant;
+  const flat = !!disabled && !loading;
   const fg =
-    v === "primary" ? palette.onGold : v === "danger" ? palette.redText : v === "ghost" ? palette.textMid : palette.textHi;
+    flat ? palette.textLow : v === "primary" ? palette.onGold : v === "danger" ? palette.redText : v === "ghost" ? palette.textMid : palette.textHi;
   return (
     <Pressable
       accessibilityRole="button"
@@ -51,7 +52,7 @@ export function Button({
       }}
       style={({ pressed }) => [
         styles.base,
-        v === "primary" && { backgroundColor: pressed ? palette.goldPressed : palette.gold },
+        v === "primary" && !flat && { backgroundColor: pressed ? palette.goldPressed : palette.gold },
         v === "secondary" && {
           backgroundColor: pressed ? palette.overlay : palette.raised,
           borderWidth: 1,
@@ -59,7 +60,8 @@ export function Button({
         },
         v === "danger" && { backgroundColor: palette.redWash, borderWidth: 1, borderColor: palette.redHair },
         v === "ghost" && { backgroundColor: pressed ? palette.glass : "transparent" },
-        off && !loading && { opacity: 0.4 },
+        flat && v !== "ghost" && { backgroundColor: palette.raised, borderWidth: 1, borderColor: palette.hairline },
+        flat && { opacity: v === "ghost" ? 0.4 : 1 },
         pressed && { transform: [{ scale: 0.985 }] },
         style as ViewStyle,
       ]}

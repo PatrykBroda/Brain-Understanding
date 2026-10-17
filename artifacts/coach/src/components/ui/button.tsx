@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
  * FRAME buttons: rounded rectangles (12-14px), never pills.
  * default = primary (gold fill, dark foreground), secondary, outline, ghost,
  * destructive, link. States: hover, pressed (scale .985 + darker fill),
- * focus-visible ring, disabled (40%), loading (data-loading spinner via index.css).
+ * focus-visible ring, disabled (primary = flat grey surface + muted label; others 40%), loading (data-loading spinner via index.css).
  */
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[14px] text-[15px] font-semibold tracking-[-0.005em] transition-[background-color,border-color,color,transform,opacity] duration-[180ms] ease-out active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--f-bg)] disabled:pointer-events-none disabled:opacity-40 disabled:data-[loading=true]:opacity-100 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -16,7 +16,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "border border-transparent bg-[var(--f-gold)] text-[var(--f-on-gold)] hover:bg-[#c4b084] active:bg-[var(--f-gold-pressed)]",
+          "border border-transparent bg-[var(--f-gold)] text-[var(--f-on-gold)] hover:bg-[#c4b084] active:bg-[var(--f-gold-pressed)] disabled:opacity-100 disabled:border-[var(--f-hairline)] disabled:bg-[var(--f-raised)] disabled:text-[var(--f-text-3)] disabled:data-[loading=true]:border-transparent disabled:data-[loading=true]:bg-[var(--f-gold)] disabled:data-[loading=true]:text-transparent",
         destructive:
           "border border-[rgba(229,100,90,0.34)] bg-[rgba(229,100,90,0.12)] text-[var(--f-red-text)] hover:bg-[rgba(229,100,90,0.18)]",
         outline:

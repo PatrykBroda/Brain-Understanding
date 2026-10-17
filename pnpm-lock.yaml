@@ -275,15 +275,6 @@ importers:
       '@fontsource-variable/inter-tight':
         specifier: ^5.3.0
         version: 5.3.0
-      '@fontsource-variable/outfit':
-        specifier: ^5.3.0
-        version: 5.3.0
-      '@fontsource-variable/unbounded':
-        specifier: ^5.3.0
-        version: 5.3.0
-      '@fontsource/barlow-condensed':
-        specifier: ^5.3.0
-        version: 5.3.0
       '@react-three/drei':
         specifier: ^10.7.7
         version: 10.7.7(eca8cb10f250278447a215686bee68c3)
@@ -510,15 +501,9 @@ importers:
 
   artifacts/frame-mobile:
     dependencies:
-      '@expo-google-fonts/barlow-condensed':
-        specifier: ^0.4.1
-        version: 0.4.1
       '@expo-google-fonts/inter-tight':
         specifier: ^0.4.2
         version: 0.4.2
-      '@expo-google-fonts/unbounded':
-        specifier: ^0.4.1
-        version: 0.4.1
       '@react-three/drei':
         specifier: 10.7.7
         version: 10.7.7(eca8cb10f250278447a215686bee68c3)
@@ -544,15 +529,6 @@ importers:
       '@babel/core':
         specifier: ^7.25.2
         version: 7.29.0
-      '@expo-google-fonts/inter':
-        specifier: ^0.4.0
-        version: 0.4.2
-      '@expo-google-fonts/outfit':
-        specifier: ^0.4.3
-        version: 0.4.3
-      '@expo-google-fonts/space-mono':
-        specifier: ^0.4.2
-        version: 0.4.2
       '@expo/cli':
         specifier: 54.0.23
         version: 54.0.23(expo-router@6.0.24)(expo@54.0.36)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.1.0))(typescript@5.9.3)
@@ -1722,23 +1698,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@expo-google-fonts/barlow-condensed@0.4.1':
-    resolution: {integrity: sha512-9yuXU1MpI4Dw/8rR4pj2EXcT4/31H5+DrrT47auF8IzD9r7SZPRoNVq8clRq7zxOTh7v1gJk3pBhydDVf2x/dA==}
-
   '@expo-google-fonts/inter-tight@0.4.2':
     resolution: {integrity: sha512-/b4YLh8v145nMfrtw0FF2EB8eRhw/SVt/LdhzN1+Faz/uSFvZkF7EtxfipV8iacDSb1PUqyssHd0tZjlzhhf2g==}
-
-  '@expo-google-fonts/inter@0.4.2':
-    resolution: {integrity: sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ==}
-
-  '@expo-google-fonts/outfit@0.4.3':
-    resolution: {integrity: sha512-2uQmDVJencWLllxds6SG92E+SjxyZfvg7eZKZ5XLHggmm5AuUyQK7lzMAFOUzT6kheq2kJ7BAiubMdjKT32fJg==}
-
-  '@expo-google-fonts/space-mono@0.4.2':
-    resolution: {integrity: sha512-soYY/qcKcnY7xjIhuMAVzJYxSdJ3Z8TjrtFHOB5SK7/4MEMGpoaw+CAVyvXnA3fsO7J7waIW+/5Z0Y0i/CfSeg==}
-
-  '@expo-google-fonts/unbounded@0.4.1':
-    resolution: {integrity: sha512-L5wlbPo/TWCmkNwtxeurXxo8D8koCPzajYWIMBqVRmcW1riG48fiK2bOBwopVzL/ifWvuAUXYvcunIMcem/2Dg==}
 
   '@expo/cli@54.0.23':
     resolution: {integrity: sha512-km0h72SFfQCmVycH/JtPFTVy69w6Lx1cHNDmfLfQqgKFYeeHTjx7LVDP4POHCtNxFP2UeRazrygJhlh4zz498g==}
@@ -1935,15 +1896,6 @@ packages:
 
   '@fontsource-variable/inter-tight@5.3.0':
     resolution: {integrity: sha512-ZhZZ29sNZ15P1K+cUt13GeBRYON0akgmNiftshUeDLos7X7zGcRgPzt434879Xhq1QbwlW3M/apBMk7jWabwvA==}
-
-  '@fontsource-variable/outfit@5.3.0':
-    resolution: {integrity: sha512-fPb5XnYK0k7SbR++HEmm4+ZqDszmLKQ+sPRUr8oQ/KNC0vy6r6hazJFe8iYozv4cqlHbvJ/JECkJWrfDodUMVQ==}
-
-  '@fontsource-variable/unbounded@5.3.0':
-    resolution: {integrity: sha512-ea565Ncn4r7gPdBEHcmaF31V11hDfkL7b/JCklLobQbMfbu2ZZQrVWNgdeEFWFLqNh36yhieZWOgxdAnMTzrLg==}
-
-  '@fontsource/barlow-condensed@5.3.0':
-    resolution: {integrity: sha512-RA7MmIx0v3eQ6Gcf74qLVLOwLB0GpPOzx+eU9iG/AmCnSJGcIWYeU8y6CEMGZ210MGwGg5CZhzLkkvyZdTTk1g==}
 
   '@gerrit0/mini-shiki@3.23.0':
     resolution: {integrity: sha512-bEMORlG0cqdjVyCEuU0cDQbORWX+kYCeo0kV1lbxF5bt4r7SID2l9bqsxJEM0zndaxpOUT7riCyIVEuqq/Ynxg==}
@@ -8535,17 +8487,7 @@ snapshots:
   '@esbuild/linux-x64@0.27.3':
     optional: true
 
-  '@expo-google-fonts/barlow-condensed@0.4.1': {}
-
   '@expo-google-fonts/inter-tight@0.4.2': {}
-
-  '@expo-google-fonts/inter@0.4.2': {}
-
-  '@expo-google-fonts/outfit@0.4.3': {}
-
-  '@expo-google-fonts/space-mono@0.4.2': {}
-
-  '@expo-google-fonts/unbounded@0.4.1': {}
 
   '@expo/cli@54.0.23(expo-router@6.0.24)(expo@54.0.36)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.1.0))(typescript@5.9.3)':
     dependencies:
@@ -9066,12 +9008,6 @@ snapshots:
   '@floating-ui/utils@0.2.11': {}
 
   '@fontsource-variable/inter-tight@5.3.0': {}
-
-  '@fontsource-variable/outfit@5.3.0': {}
-
-  '@fontsource-variable/unbounded@5.3.0': {}
-
-  '@fontsource/barlow-condensed@5.3.0': {}
 
   '@gerrit0/mini-shiki@3.23.0':
     dependencies:

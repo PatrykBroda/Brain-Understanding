@@ -84,7 +84,7 @@ function SeriesChart({
             <YAxis
               width={Y_AXIS_WIDTH}
               domain={def.domain ?? ["auto", "auto"]}
-              tick={{ fontSize: 10, fill: "#8A8F96", fontFamily: "Outfit Variable, Outfit, system-ui, sans-serif" }}
+              tick={{ fontSize: 12, fill: "#8A8F96", fontFamily: "Inter Tight Variable, Inter Tight, system-ui, sans-serif" }}
               tickFormatter={(v: number) => (Math.abs(v) >= 10 ? v.toFixed(0) : v.toFixed(1))}
               axisLine={false}
               tickLine={false}

@@ -51,7 +51,7 @@ export const palette = {
   // ---- status (always paired with a label) ----
   red: "#C0392F",
   redText: "#E5645A", // 5.6:1 on surface
-  redWash: "rgba(229,100,90,0.10)",
+  redWash: "rgba(229,100,90,0.07)",
   redHair: "rgba(229,100,90,0.30)",
   ok: "#8FB89A",
   silver: "#C9CDD2",
@@ -83,7 +83,7 @@ export const gradients = {
   card: ["#15181B", "#111316"] as const,
   cardRaised: ["#1E2226", "#191C20"] as const,
   cardGold: ["rgba(185,164,119,0.10)", "rgba(185,164,119,0.02)"] as const,
-  cardRed: ["rgba(229,100,90,0.10)", "rgba(229,100,90,0.02)"] as const,
+  cardRed: ["rgba(229,100,90,0.05)", "rgba(229,100,90,0.01)"] as const,
   goldButton: ["#BDA87B", "#B9A477"] as const,
   goldSheen: ["rgba(212,199,163,0.5)", "rgba(185,164,119,0)"] as const,
   tabBar: ["rgba(17,19,22,0.88)", "rgba(8,9,11,0.96)"] as const,
