@@ -8,7 +8,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,13 +16,25 @@ import { Feather } from "@expo/vector-icons";
 import { toIso } from "@/lib/dateUtils";
 import { competitionApi, type Competition, type PressureTier } from "@/lib/competition";
 import { useActiveCompetition, useCompetitionList } from "@/hooks/useCompetition";
+import {
+  ArcGauge,
+  Button,
+  Display,
+  Eyebrow,
+  FadeIn,
+  Field,
+  GlassCard,
+  IconButton,
+  Screen,
+} from "@/components/ui";
+import { fonts, palette, radius } from "@/constants/theme";
 
 const TIER_ACCENT: Record<PressureTier, string> = {
-  base: "#8A6A2F",
-  build: "#8A6A2F",
-  sharpen: "#d2553f",
-  peak: "#e0604a",
-  fight_week: "#ff6a4d",
+  base: palette.goldLight,
+  build: palette.goldLight,
+  sharpen: palette.redLight,
+  peak: palette.redLight,
+  fight_week: palette.redLight,
 };
 
 function fmtDate(iso: string): string {
@@ -170,200 +181,188 @@ export default function CompetitionScreen() {
   const pastComps = competitions.filter((c) => c.status !== "active");
 
   return (
-    <View style={[styles.root, { paddingTop: topPad }]}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
-          <Feather name="chevron-left" size={22} color="#999" />
-        </Pressable>
-        <Text style={styles.headerTitle}>COMPETITION MODE</Text>
-        <View style={{ width: 22 }} />
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.inner,
-          { paddingBottom: insets.bottom + bottomPad + 40 },
-        ]}
-        keyboardShouldPersistTaps="handled"
-      >
-        {activeLoading ? (
-          <ActivityIndicator color="#8A6A2F" style={{ marginTop: 40 }} />
-        ) : pressure ? (
-          <ActiveCard
-            pressure={pressure}
-            onCancel={() => cancelMut.mutate(pressure.competition.id)}
-            onEdit={() => beginEdit(pressure.competition)}
-            cancelling={cancelMut.isPending}
-          />
-        ) : (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No competition scheduled</Text>
-            <Text style={styles.emptyBody}>
-              Schedule a fight or comp and FRAME ramps the standard it holds you to as the
-              date nears. Pressure lives in the standard, not in noise.
-            </Text>
+    <Screen>
+      <View style={[styles.root, { paddingTop: topPad }]}>
+        <View style={styles.header}>
+          <IconButton icon="chevron-left" label="Back" onPress={() => router.back()} />
+          <View style={{ flex: 1 }}>
+            <Eyebrow style={{ color: palette.goldLight }}>PRESSURE</Eyebrow>
+            <Display size="heading" style={{ marginTop: 2 }}>
+              COMPETITION MODE
+            </Display>
           </View>
-        )}
+        </View>
 
-        {!showForm && (
-          <Pressable
-            style={({ pressed }) => [styles.scheduleBtn, pressed && styles.scheduleBtnPressed]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowForm(true);
-            }}
-          >
-            <Feather name="plus" size={16} color="#8A6A2F" />
-            <Text style={styles.scheduleText}>SCHEDULE COMPETITION</Text>
-          </Pressable>
-        )}
-
-        {showForm && (
-          <View style={styles.form}>
-            <Text style={styles.formTitle}>
-              {editingId != null ? "EDIT COMPETITION" : "NEW COMPETITION"}
-            </Text>
-
-            <Field label="EVENT NAME">
-              <TextInput
-                style={styles.input}
-                value={eventName}
-                onChangeText={setEventName}
-                placeholder="Regional Open"
-                placeholderTextColor="#444"
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.inner,
+            { paddingBottom: insets.bottom + bottomPad + 40 },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <FadeIn index={0}>
+            {activeLoading ? (
+              <ActivityIndicator color={palette.goldLight} style={{ marginTop: 40 }} />
+            ) : pressure ? (
+              <ActiveCard
+                pressure={pressure}
+                onCancel={() => cancelMut.mutate(pressure.competition.id)}
+                onEdit={() => beginEdit(pressure.competition)}
+                cancelling={cancelMut.isPending}
               />
-            </Field>
+            ) : (
+              <GlassCard radius={28} padding={24}>
+                <Display size="sub" style={{ marginBottom: 10 }}>
+                  No competition scheduled
+                </Display>
+                <Text style={styles.emptyBody}>
+                  Schedule a fight or comp and FRAME ramps the standard it holds you to as the
+                  date nears. Pressure lives in the standard, not in noise.
+                </Text>
+              </GlassCard>
+            )}
+          </FadeIn>
 
-            <Field label="DISCIPLINE">
-              <TextInput
-                style={styles.input}
-                value={discipline}
-                onChangeText={setDiscipline}
-                placeholder="BJJ / MMA / Muay Thai"
-                placeholderTextColor="#444"
-              />
-            </Field>
+          {!showForm && (
+            <Pressable
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.scheduleBtn, pressed && styles.scheduleBtnPressed]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowForm(true);
+              }}
+            >
+              <Feather name="plus" size={16} color={palette.goldLight} />
+              <Text style={styles.scheduleText}>SCHEDULE COMPETITION</Text>
+            </Pressable>
+          )}
 
-            <Field label="EVENT DATE (YYYY-MM-DD)">
-              <TextInput
-                style={styles.input}
-                value={eventDate}
-                onChangeText={setEventDate}
-                placeholder="2026-07-01"
-                placeholderTextColor="#444"
-                autoCapitalize="none"
-              />
-            </Field>
+          {showForm && (
+            <View style={styles.formWrap}>
+              <GlassCard radius={28} padding={22}>
+                <Eyebrow style={styles.formTitle}>
+                  {editingId != null ? "EDIT COMPETITION" : "NEW COMPETITION"}
+                </Eyebrow>
 
-            <Field label="WEIGH-IN DATE (OPTIONAL)">
-              <TextInput
-                style={styles.input}
-                value={weighInDate}
-                onChangeText={setWeighInDate}
-                placeholder="2026-06-30"
-                placeholderTextColor="#444"
-                autoCapitalize="none"
-              />
-            </Field>
-
-            <View style={styles.row2}>
-              <View style={styles.col}>
-                <Field label="CURRENT WEIGHT">
-                  <TextInput
-                    style={styles.input}
-                    value={currentWeight}
-                    onChangeText={setCurrentWeight}
-                    placeholder="78kg"
-                    placeholderTextColor="#444"
+                <View style={styles.fields}>
+                  <Field
+                    label="EVENT NAME"
+                    value={eventName}
+                    onChangeText={setEventName}
+                    placeholder="Regional Open"
                   />
-                </Field>
-              </View>
-              <View style={styles.col}>
-                <Field label="TARGET WEIGHT">
-                  <TextInput
-                    style={styles.input}
-                    value={targetWeight}
-                    onChangeText={setTargetWeight}
-                    placeholder="74kg"
-                    placeholderTextColor="#444"
+
+                  <Field
+                    label="DISCIPLINE"
+                    value={discipline}
+                    onChangeText={setDiscipline}
+                    placeholder="BJJ / MMA / Muay Thai"
                   />
-                </Field>
-              </View>
-            </View>
 
-            <Field label="NOTES (OPTIONAL)">
-              <TextInput
-                style={[styles.input, styles.inputMultiline]}
-                value={notes}
-                onChangeText={setNotes}
-                placeholder="Anything FRAME should hold in mind"
-                placeholderTextColor="#444"
-                multiline
-              />
-            </Field>
+                  <Field
+                    label="EVENT DATE (YYYY-MM-DD)"
+                    value={eventDate}
+                    onChangeText={setEventDate}
+                    placeholder="2026-07-01"
+                    autoCapitalize="none"
+                  />
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+                  <Field
+                    label="WEIGH-IN DATE (OPTIONAL)"
+                    value={weighInDate}
+                    onChangeText={setWeighInDate}
+                    placeholder="2026-06-30"
+                    autoCapitalize="none"
+                  />
 
-            <View style={styles.formActions}>
-              <Pressable style={styles.cancelBtn} onPress={resetForm}>
-                <Text style={styles.cancelText}>CANCEL</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.submitBtn, saving && { opacity: 0.6 }]}
-                onPress={submit}
-                disabled={saving}
-              >
-                {saving ? (
-                  <ActivityIndicator size="small" color="#050505" />
-                ) : (
-                  <Text style={styles.submitText}>
-                    {editingId != null ? "UPDATE" : "SCHEDULE"}
+                  <View style={styles.row2}>
+                    <View style={styles.col}>
+                      <Field
+                        label="CURRENT WEIGHT"
+                        value={currentWeight}
+                        onChangeText={setCurrentWeight}
+                        placeholder="78kg"
+                      />
+                    </View>
+                    <View style={styles.col}>
+                      <Field
+                        label="TARGET WEIGHT"
+                        value={targetWeight}
+                        onChangeText={setTargetWeight}
+                        placeholder="74kg"
+                      />
+                    </View>
+                  </View>
+
+                  <Field
+                    label="NOTES (OPTIONAL)"
+                    style={styles.inputMultiline}
+                    value={notes}
+                    onChangeText={setNotes}
+                    placeholder="Anything FRAME should hold in mind"
+                    multiline
+                  />
+                </View>
+
+                {error ? (
+                  <Text style={styles.error} accessibilityRole="alert">
+                    {error}
                   </Text>
-                )}
-              </Pressable>
+                ) : null}
+
+                <View style={styles.formActions}>
+                  <Button
+                    title="CANCEL"
+                    variant="glass"
+                    onPress={resetForm}
+                    style={styles.actionBtn}
+                  />
+                  <Button
+                    title={editingId != null ? "UPDATE" : "SCHEDULE"}
+                    onPress={submit}
+                    loading={saving}
+                    style={styles.actionBtn}
+                  />
+                </View>
+              </GlassCard>
             </View>
-          </View>
-        )}
+          )}
 
-        {activeComps.length > 1 && (
-          <View style={styles.listSection}>
-            <Text style={styles.listHeader}>ALSO SCHEDULED</Text>
-            {activeComps
-              .filter((c) => c.id !== pressure?.competition.id)
-              .map((c) => (
-                <CompRow
-                  key={c.id}
-                  comp={c}
-                  onCancel={() => cancelMut.mutate(c.id)}
-                  onEdit={() => beginEdit(c)}
-                  cancelling={cancelMut.isPending}
-                />
+          {activeComps.length > 1 && (
+            <View style={styles.listSection}>
+              <Eyebrow style={styles.listHeader}>ALSO SCHEDULED</Eyebrow>
+              {activeComps
+                .filter((c) => c.id !== pressure?.competition.id)
+                .map((c) => (
+                  <CompRow
+                    key={c.id}
+                    comp={c}
+                    onCancel={() => cancelMut.mutate(c.id)}
+                    onEdit={() => beginEdit(c)}
+                    cancelling={cancelMut.isPending}
+                  />
+                ))}
+            </View>
+          )}
+
+          {pastComps.length > 0 && (
+            <View style={styles.listSection}>
+              <Eyebrow style={styles.listHeader}>PAST</Eyebrow>
+              {pastComps.map((c) => (
+                <CompRow key={c.id} comp={c} past />
               ))}
-          </View>
-        )}
-
-        {pastComps.length > 0 && (
-          <View style={styles.listSection}>
-            <Text style={styles.listHeader}>PAST</Text>
-            {pastComps.map((c) => (
-              <CompRow key={c.id} comp={c} past />
-            ))}
-          </View>
-        )}
-      </ScrollView>
-    </View>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </Screen>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {children}
-    </View>
-  );
-}
+/** Pressure window the dial sweeps over: the last 12 weeks before the event. */
+const DIAL_WINDOW_DAYS = 84;
 
 function ActiveCard({
   pressure,
@@ -377,20 +376,26 @@ function ActiveCard({
   cancelling: boolean;
 }) {
   if (!pressure) return null;
-  const accent = TIER_ACCENT[pressure.tier] ?? "#8A6A2F";
+  const accent = TIER_ACCENT[pressure.tier] ?? palette.goldLight;
+  const hot = accent === palette.redLight;
   const c = pressure.competition;
   const days = pressure.daysToEvent;
 
   return (
-    <View style={[styles.activeCard, { borderColor: accent }]}>
-      <View style={styles.activeTop}>
-        <Text style={[styles.tierLabel, { color: accent }]}>
-          {pressure.tierLabel.toUpperCase()}
-        </Text>
-        <Text style={[styles.daysBig, { color: accent }]}>
-          {days <= 0 ? "TODAY" : `${days}`}
-        </Text>
-        {days > 0 && <Text style={styles.daysUnit}>{days === 1 ? "DAY OUT" : "DAYS OUT"}</Text>}
+    <GlassCard tone={hot ? "red" : "gold"} radius={32} padding={24}>
+      <Text style={[styles.tierLabel, { color: accent }]}>
+        {pressure.tierLabel.toUpperCase()}
+      </Text>
+
+      <View style={styles.dial}>
+        <ArcGauge
+          value={Math.max(0, DIAL_WINDOW_DAYS - Math.max(0, days))}
+          max={DIAL_WINDOW_DAYS}
+          size={210}
+          tone={hot ? "red" : "gold"}
+          display={days <= 0 ? "TODAY" : `${days}`}
+          unit={days > 0 ? (days === 1 ? "DAY OUT" : "DAYS OUT") : undefined}
+        />
       </View>
 
       <Text style={styles.activeName}>{c.eventName}</Text>
@@ -416,17 +421,21 @@ function ActiveCard({
       {c.notes ? <Text style={styles.notes}>{c.notes}</Text> : null}
 
       <View style={styles.activeActions}>
-        <Pressable style={styles.editComp} onPress={onEdit} hitSlop={6}>
-          <Feather name="edit-2" size={11} color="#8A6A2F" />
-          <Text style={styles.editCompText}>EDIT</Text>
-        </Pressable>
-        <Pressable style={styles.cancelComp} onPress={onCancel} disabled={cancelling}>
-          <Text style={styles.cancelCompText}>
-            {cancelling ? "CANCELLING…" : "CANCEL COMPETITION"}
-          </Text>
-        </Pressable>
+        <Button
+          title="EDIT"
+          variant="glass"
+          onPress={onEdit}
+          style={styles.actionBtn}
+        />
+        <Button
+          title={cancelling ? "CANCELLING…" : "CANCEL COMPETITION"}
+          variant="danger"
+          onPress={onCancel}
+          disabled={cancelling}
+          style={styles.actionBtn}
+        />
       </View>
-    </View>
+    </GlassCard>
   );
 }
 
@@ -453,325 +462,149 @@ function CompRow({
   past?: boolean;
 }) {
   return (
-    <View style={styles.compRow}>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.compRowName, past && { color: "#666" }]}>{comp.eventName}</Text>
-        <Text style={styles.compRowDate}>{fmtDate(comp.eventDate)}</Text>
-      </View>
-      {!past ? (
-        <View style={styles.compRowActions}>
-          {onEdit ? (
-            <Pressable onPress={onEdit} hitSlop={8}>
-              <Feather name="edit-2" size={14} color="#777" />
-            </Pressable>
-          ) : null}
-          {onCancel ? (
-            <Pressable onPress={onCancel} disabled={cancelling} hitSlop={8}>
-              <Feather name="x" size={16} color="#666" />
-            </Pressable>
-          ) : null}
+    <View style={styles.compRowWrap}>
+      <GlassCard radius={22} padding={16}>
+        <View style={styles.compRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.compRowName, past && { color: palette.textMid }]}>
+              {comp.eventName}
+            </Text>
+            <Text style={styles.compRowDate}>{fmtDate(comp.eventDate)}</Text>
+          </View>
+          {!past ? (
+            <View style={styles.compRowActions}>
+              {onEdit ? <IconButton icon="edit-2" label="Edit competition" onPress={onEdit} /> : null}
+              {onCancel && !cancelling ? (
+                <IconButton icon="x" label="Cancel competition" onPress={onCancel} />
+              ) : null}
+            </View>
+          ) : (
+            <Text style={styles.compStatus}>{comp.status.toUpperCase()}</Text>
+          )}
         </View>
-      ) : (
-        <Text style={styles.compStatus}>{comp.status.toUpperCase()}</Text>
-      )}
+      </GlassCard>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#050505",
-  },
+  root: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#1a1a1a",
-  },
-  backBtn: {
-    width: 22,
-  },
-  headerTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 4,
-    color: "#e0e0e0",
-  },
-  scroll: {
-    flex: 1,
-  },
-  inner: {
+    gap: 16,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingVertical: 12,
   },
-  emptyCard: {
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    backgroundColor: "#0a0a0a",
-    padding: 20,
-  },
-  emptyTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 12,
-    letterSpacing: 2,
-    color: "#e0e0e0",
-    marginBottom: 10,
-  },
+  scroll: { flex: 1 },
+  inner: { paddingHorizontal: 20, paddingTop: 12 },
   emptyBody: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 14,
-    color: "#777",
-    lineHeight: 21,
-  },
-  activeCard: {
-    borderWidth: 1,
-    backgroundColor: "#0a0a0a",
-    padding: 20,
-  },
-  activeTop: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 10,
+    color: palette.textMid,
+    lineHeight: 22,
   },
   tierLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    flex: 1,
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    textAlign: "center",
   },
-  daysBig: {
-    fontFamily: "SpaceMono",
-    fontSize: 34,
-  },
-  daysUnit: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1.5,
-    color: "#666",
-  },
+  dial: { alignItems: "center", marginTop: 12, marginBottom: 4 },
   activeName: {
-    fontFamily: "Outfit",
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#e8e8e8",
-    marginTop: 12,
+    fontFamily: fonts.displayItalic,
+    fontSize: 28,
+    lineHeight: 32,
+    color: palette.textHi,
+    textAlign: "center",
+    marginTop: 8,
   },
   activeDiscipline: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#666",
-    marginTop: 4,
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.6,
+    textTransform: "uppercase",
+    color: palette.textMid,
+    textAlign: "center",
+    marginTop: 6,
   },
   metaGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 16,
+    marginTop: 22,
+    paddingTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: palette.hairline,
+  },
+  metaItem: { minWidth: "40%", flexGrow: 1, gap: 4 },
+  metaLabel: {
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.6,
+    color: palette.textLow,
+  },
+  metaValue: { fontFamily: fonts.text, fontSize: 14, color: palette.text },
+  notes: {
+    fontFamily: fonts.text,
+    fontSize: 13.5,
+    color: palette.textMid,
+    lineHeight: 21,
     marginTop: 18,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#1a1a1a",
+    borderTopColor: palette.hairline,
   },
-  metaItem: {
-    minWidth: "40%",
-    gap: 4,
-  },
-  metaLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#555",
-  },
-  metaValue: {
-    fontFamily: "Outfit",
-    fontSize: 13,
-    color: "#c0c0c0",
-  },
-  notes: {
-    fontFamily: "Outfit",
-    fontSize: 13,
-    color: "#888",
-    lineHeight: 20,
-    marginTop: 16,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: "#1a1a1a",
-  },
-  activeActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 20,
-    marginTop: 18,
-  },
-  editComp: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  editCompText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#8A6A2F",
-  },
-  cancelComp: {
-    alignSelf: "flex-start",
-  },
-  cancelCompText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#6a3a35",
-  },
-  compRowActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
+  activeActions: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 22 },
+  actionBtn: { flex: 1, minWidth: 140, paddingHorizontal: 16 },
+  compRowActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   scheduleBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 10,
+    minHeight: 54,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: "rgba(138,106,47,0.4)",
-    paddingVertical: 14,
-    marginTop: 16,
+    borderColor: palette.goldHair,
+    backgroundColor: palette.goldWash,
+    marginTop: 20,
   },
-  scheduleBtnPressed: {
-    borderColor: "#8A6A2F",
-    backgroundColor: "rgba(138,106,47,0.06)",
-  },
+  scheduleBtnPressed: { opacity: 0.8, transform: [{ scale: 0.99 }] },
   scheduleText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#8A6A2F",
-  },
-  form: {
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    backgroundColor: "#0a0a0a",
-    padding: 18,
-  },
-  formTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#8A6A2F",
-    marginBottom: 16,
-  },
-  field: {
-    marginBottom: 14,
-  },
-  fieldLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#555",
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: "#050505",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    color: "#e0e0e0",
-    fontFamily: "Outfit",
-    fontSize: 15,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  inputMultiline: {
-    minHeight: 64,
-    textAlignVertical: "top",
-  },
-  row2: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  col: {
-    flex: 1,
-  },
-  error: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.textMedium,
     fontSize: 13,
-    color: "#d2553f",
-    marginBottom: 12,
+    letterSpacing: 1.4,
+    color: palette.goldPale,
   },
-  formActions: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 4,
+  formWrap: { marginTop: 20 },
+  formTitle: { color: palette.goldLight, marginBottom: 18 },
+  fields: { gap: 16 },
+  inputMultiline: { minHeight: 88, textAlignVertical: "top", paddingTop: 16 },
+  row2: { flexDirection: "row", gap: 12 },
+  col: { flex: 1 },
+  error: {
+    fontFamily: fonts.text,
+    fontSize: 13,
+    color: palette.redLight,
+    marginTop: 14,
   },
-  cancelBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  cancelText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#666",
-  },
-  submitBtn: {
-    flex: 1,
-    backgroundColor: "#8A6A2F",
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  submitText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#050505",
-  },
-  listSection: {
-    marginTop: 28,
-  },
-  listHeader: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "#444",
-    marginBottom: 12,
-  },
+  formActions: { flexDirection: "row", gap: 12, marginTop: 22 },
+  listSection: { marginTop: 32 },
+  listHeader: { marginBottom: 12 },
+  compRowWrap: { marginBottom: 10 },
   compRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    backgroundColor: "#0a0a0a",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 8,
     gap: 12,
   },
-  compRowName: {
-    fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#c0c0c0",
-  },
-  compRowDate: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1,
-    color: "#555",
-    marginTop: 3,
-  },
+  compRowName: { fontFamily: fonts.textMedium, fontSize: 15, color: palette.text },
+  compRowDate: { fontFamily: fonts.text, fontSize: 12.5, color: palette.textLow, marginTop: 3 },
   compStatus: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 1.5,
-    color: "#555",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.4,
+    color: palette.textLow,
   },
 });

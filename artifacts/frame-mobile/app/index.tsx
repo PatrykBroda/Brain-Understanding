@@ -1,17 +1,14 @@
 import { Redirect } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { reportStartup } from "@/lib/crashReporter";
 import { BootLoader } from "@/components/BootLoader";
 import { INTRO_SEEN_KEY } from "@/app/splash";
+import { Button, Display, Eyebrow, GlassCard, Screen } from "@/components/ui";
+import { fonts, palette } from "@/constants/theme";
 
 function LoadingScreen({ label }: { label: string }) {
   return <BootLoader label={label} />;
@@ -62,19 +59,20 @@ export default function IndexScreen() {
 
   if (error) {
     return (
-      <View style={styles.loading}>
-        <Text style={styles.errorTitle}>CONNECTION LOST</Text>
-        <Text style={styles.errorBody}>
-          Could not reach the frame. Check your connection.
-        </Text>
-        <Pressable
-          onPress={refetch}
-          style={styles.retryBtn}
-          accessibilityRole="button"
-        >
-          <Text style={styles.retryText}>RETRY</Text>
-        </Pressable>
-      </View>
+      <Screen tone="red">
+        <View style={styles.loading}>
+          <GlassCard tone="red" radius={32} padding={28} style={styles.card}>
+            <Eyebrow style={styles.errorKicker}>CONNECTION LOST</Eyebrow>
+            <Display size="heading" style={styles.errorTitle}>
+              We can't reach your frame.
+            </Display>
+            <Text style={styles.errorBody}>
+              Could not reach the frame. Check your connection.
+            </Text>
+            <Button title="RETRY" onPress={refetch} />
+          </GlassCard>
+        </View>
+      </Screen>
     );
   }
 
@@ -95,41 +93,19 @@ export default function IndexScreen() {
 const styles = StyleSheet.create({
   loading: {
     flex: 1,
-    backgroundColor: "#050505",
     alignItems: "center",
     justifyContent: "center",
+    padding: 24,
   },
-  slowHint: {
-    marginTop: 16,
-    color: "#8A8A8A",
-    fontSize: 10,
-    letterSpacing: 3,
-    fontFamily: "SpaceMono_400Regular",
-  },
-  errorTitle: {
-    color: "#8A6A2F",
-    fontSize: 14,
-    letterSpacing: 3,
-    fontFamily: "SpaceMono_400Regular",
-  },
+  card: { width: "100%", maxWidth: 420 },
+  errorKicker: { color: palette.redLight, textAlign: "center" },
+  errorTitle: { textAlign: "center", marginTop: 8, marginBottom: 12 },
   errorBody: {
-    color: "#8A8A8A",
-    fontSize: 12,
-    marginTop: 8,
+    color: palette.textMid,
+    fontFamily: fonts.text,
+    fontSize: 14,
+    lineHeight: 21,
     textAlign: "center",
-    paddingHorizontal: 32,
-  },
-  retryBtn: {
-    marginTop: 20,
-    borderColor: "#8A6A2F",
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 28,
-  },
-  retryText: {
-    color: "#8A6A2F",
-    fontSize: 12,
-    letterSpacing: 2,
+    marginBottom: 28,
   },
 });

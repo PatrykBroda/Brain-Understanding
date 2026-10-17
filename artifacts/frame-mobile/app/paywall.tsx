@@ -31,6 +31,9 @@ import { apiUrl } from "@/lib/api";
 import { didVerifiedPriceChange, toShownPriceReport, verifyApplePrice, type VerifiedPackage } from "@/lib/applePrice";
 import { formatSubscriptionRenewal } from "@/lib/subscriptionDisclosure";
 import { reportCrash, reportPriceShown } from "@/lib/crashReporter";
+import { LinearGradient } from "expo-linear-gradient";
+import { Button, Display, Eyebrow, FadeIn, GlassCard, IconButton, Screen } from "@/components/ui";
+import { fonts, palette, radius, shadow } from "@/constants/theme";
 
 const FRAME_PLUS_PERKS = [
   "Unlimited coaching conversations",
@@ -180,277 +183,286 @@ export default function PaywallScreen() {
   }
 
   return (
-    <View style={[s.root, { paddingTop: insets.top + 8 }]}>
-      <Pressable style={s.closeBtn} onPress={close} hitSlop={12}>
-        <Feather name="x" size={20} color="#666" />
-      </Pressable>
-
-      <ScrollView
-        contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 24 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={s.kicker}>FRAME+</Text>
-        <Text style={s.title}>Train with the full system</Text>
-
-        <View style={s.perks}>
-          {FRAME_PLUS_PERKS.map((p) => (
-            <View key={p} style={s.perkRow}>
-              <Feather name="check" size={14} color="#8A6A2F" />
-              <Text style={s.perkText}>{p}</Text>
-            </View>
-          ))}
-          <Text style={s.periodServices}>
-            Every subscription period includes all FRAME+ services listed above.
-          </Text>
+    <Screen>
+      <View style={[s.root, { paddingTop: insets.top + 8 }]}>
+        <View style={s.closeRow}>
+          <IconButton icon="x" label="Close" onPress={close} />
         </View>
 
-        {loading ? (
-          <ActivityIndicator color="#8A6A2F" style={{ marginTop: 32 }} />
-        ) : !isPurchasesSupported() || Platform.OS !== "ios" ? (
-          <Text style={s.unavailable}>
-            Subscriptions are available in the iOS app.
-          </Text>
-        ) : loadError || packages.length === 0 ? (
-          <View style={s.unavailableWrap}>
-            <Text style={s.unavailable}>
-              Current App Store prices aren&apos;t available. Purchases are paused;
-              you can still restore an existing subscription.
-            </Text>
-            {__DEV__ && loadError ? (
-              <Text style={s.diagnostic}>{loadError}</Text>
-            ) : null}
-            <Pressable
-              style={({ pressed }) => [s.retryBtn, pressed && s.pressed]}
-              onPress={() => setLoadAttempt((attempt) => attempt + 1)}
-            >
-              <Text style={s.retryText}>TRY AGAIN</Text>
-            </Pressable>
-          </View>
-        ) : (
-          packages.map((pkg) => {
-            const busy = busyId === pkg.identifier;
-            const period = getSubscriptionPeriodLabel(pkg);
-            if (!period) return null;
-            return (
-              <Pressable
-                key={pkg.identifier}
-                style={({ pressed }) => [s.planBtn, pressed && s.pressed]}
-                disabled={!!busyId || restoring}
-                onPress={() => onBuy(pkg)}
-              >
-                <View style={s.planCopy}>
-                  <Text style={s.planTitle}>
-                    {getSubscriptionPlanLabel(pkg.product.title)}
-                  </Text>
-                   <Text style={s.planPrice}>
-                     {formatSubscriptionRenewal(pkg.applePrice.localizedPrice, period)}
-                   </Text>
-                  <Text style={s.planIncludes}>
-                     Nothing is charged until you confirm with Apple.
-                  </Text>
-                </View>
-                {busy ? (
-                  <View style={s.planAction}>
-                    <ActivityIndicator color="#050505" />
-                  </View>
-                ) : (
-                  <View style={s.planAction}>
-                    <Feather name="arrow-right" size={16} color="#050505" />
-                  </View>
-                )}
-              </Pressable>
-            );
-          })
-        )}
-
-        <Pressable
-          style={s.restoreBtn}
-          onPress={onRestore}
-          disabled={restoring || !!busyId}
+        <ScrollView
+          contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 24 }]}
+          showsVerticalScrollIndicator={false}
         >
-          {restoring ? (
-            <ActivityIndicator color="#666" />
-          ) : (
-            <Text style={s.restoreText}>RESTORE PURCHASES</Text>
-          )}
-        </Pressable>
+          <FadeIn index={0}>
+            <Eyebrow style={s.kicker}>FRAME+</Eyebrow>
+            <Display size="title" style={s.title}>
+              Train with the full system
+            </Display>
+          </FadeIn>
 
-        <Text style={s.legal}>
-          Subscriptions renew automatically unless cancelled at least 24 hours
-          before the end of the current period. Manage or cancel anytime in your
-          {Platform.OS === "ios" ? " App Store" : " store"} account settings.
-        </Text>
-        <View style={s.legalLinks}>
-          <Pressable
-            onPress={() => void Linking.openURL(apiUrl("/privacy"))}
-            accessibilityRole="link"
-            accessibilityLabel="Open Privacy Policy"
-            hitSlop={8}
-          >
-            <Text style={s.legalLink}>PRIVACY POLICY</Text>
-          </Pressable>
-          <Text style={s.legalDivider}>·</Text>
-          <Pressable
-            onPress={() => void Linking.openURL(apiUrl("/terms"))}
-            accessibilityRole="link"
-            accessibilityLabel="Open Terms of Use"
-            hitSlop={8}
-          >
-            <Text style={s.legalLink}>TERMS OF USE (EULA)</Text>
-          </Pressable>
-          {Platform.OS === "ios" ? (
-            <>
+          <FadeIn index={1}>
+            <GlassCard tone="gold" radius={28} padding={22} style={s.perksCard}>
+              <View style={s.perks}>
+                {FRAME_PLUS_PERKS.map((p) => (
+                  <View key={p} style={s.perkRow}>
+                    <View style={s.perkDot}>
+                      <Feather name="check" size={12} color={palette.goldPale} />
+                    </View>
+                    <Text style={s.perkText}>{p}</Text>
+                  </View>
+                ))}
+              </View>
+              <Text style={s.periodServices}>
+                Every subscription period includes all FRAME+ services listed above.
+              </Text>
+            </GlassCard>
+          </FadeIn>
+
+          <FadeIn index={2}>
+            {loading ? (
+              <ActivityIndicator color={palette.goldLight} style={{ marginTop: 32 }} />
+            ) : !isPurchasesSupported() || Platform.OS !== "ios" ? (
+              <Text style={s.unavailable}>
+                Subscriptions are available in the iOS app.
+              </Text>
+            ) : loadError || packages.length === 0 ? (
+              <View style={s.unavailableWrap}>
+                <Text style={s.unavailable}>
+                  Current App Store prices aren&apos;t available. Purchases are paused;
+                  you can still restore an existing subscription.
+                </Text>
+                {__DEV__ && loadError ? (
+                  <Text style={s.diagnostic}>{loadError}</Text>
+                ) : null}
+                <Button
+                  title="TRY AGAIN"
+                  variant="glass"
+                  style={{ marginTop: 16 }}
+                  onPress={() => setLoadAttempt((attempt) => attempt + 1)}
+                />
+              </View>
+            ) : (
+              <View style={s.plans}>
+                {packages.map((pkg) => {
+                  const busy = busyId === pkg.identifier;
+                  const period = getSubscriptionPeriodLabel(pkg);
+                  if (!period) return null;
+                  const off = !!busyId || restoring;
+                  return (
+                    <Pressable
+                      key={pkg.identifier}
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: off, busy }}
+                      style={({ pressed }) => [
+                        shadow.glow,
+                        s.planBtn,
+                        pressed && s.pressed,
+                        off && !busy && { opacity: 0.55 },
+                      ]}
+                      disabled={off}
+                      onPress={() => onBuy(pkg)}
+                    >
+                      <LinearGradient
+                        colors={["rgba(199,161,90,0.38)", "rgba(138,106,47,0.16)"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                      />
+                      <View style={s.planCopy}>
+                        <Text style={s.planTitle}>
+                          {getSubscriptionPlanLabel(pkg.product.title)}
+                        </Text>
+                        <Text style={s.planPrice}>
+                          {formatSubscriptionRenewal(pkg.applePrice.localizedPrice, period)}
+                        </Text>
+                        <Text style={s.planIncludes}>
+                          Nothing is charged until you confirm with Apple.
+                        </Text>
+                      </View>
+                      <View style={s.planAction}>
+                        {busy ? (
+                          <ActivityIndicator color="#050505" />
+                        ) : (
+                          <Feather name="arrow-right" size={18} color="#050505" />
+                        )}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+
+            <Button
+              title="RESTORE PURCHASES"
+              variant="glass"
+              style={s.restoreBtn}
+              onPress={onRestore}
+              loading={restoring}
+              disabled={!!busyId}
+            />
+
+            <Text style={s.legal}>
+              Subscriptions renew automatically unless cancelled at least 24 hours
+              before the end of the current period. Manage or cancel anytime in your
+              {Platform.OS === "ios" ? " App Store" : " store"} account settings.
+            </Text>
+            <View style={s.legalLinks}>
+              <Pressable
+                onPress={() => void Linking.openURL(apiUrl("/privacy"))}
+                accessibilityRole="link"
+                accessibilityLabel="Open Privacy Policy"
+                style={s.legalBtn}
+              >
+                <Text style={s.legalLink}>PRIVACY POLICY</Text>
+              </Pressable>
               <Text style={s.legalDivider}>·</Text>
               <Pressable
-                onPress={() =>
-                  void Linking.openURL("https://apps.apple.com/account/subscriptions")
-                }
+                onPress={() => void Linking.openURL(apiUrl("/terms"))}
                 accessibilityRole="link"
-                accessibilityLabel="Manage App Store subscriptions"
-                hitSlop={8}
+                accessibilityLabel="Open Terms of Use"
+                style={s.legalBtn}
               >
-                <Text style={s.legalLink}>MANAGE SUBSCRIPTION</Text>
+                <Text style={s.legalLink}>TERMS OF USE (EULA)</Text>
               </Pressable>
-            </>
-          ) : null}
-        </View>
-      </ScrollView>
-    </View>
+              {Platform.OS === "ios" ? (
+                <>
+                  <Text style={s.legalDivider}>·</Text>
+                  <Pressable
+                    onPress={() =>
+                      void Linking.openURL("https://apps.apple.com/account/subscriptions")
+                    }
+                    accessibilityRole="link"
+                    accessibilityLabel="Manage App Store subscriptions"
+                    style={s.legalBtn}
+                  >
+                    <Text style={s.legalLink}>MANAGE SUBSCRIPTION</Text>
+                  </Pressable>
+                </>
+              ) : null}
+            </View>
+          </FadeIn>
+        </ScrollView>
+      </View>
+    </Screen>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#050505", paddingHorizontal: 16 },
-  closeBtn: { alignSelf: "flex-end", padding: 8 },
-  content: { paddingTop: 12 },
-  kicker: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    color: "#8A6A2F",
-    letterSpacing: 4,
-    marginBottom: 8,
+  root: { flex: 1, paddingHorizontal: 20 },
+  closeRow: { alignItems: "flex-end" },
+  content: { paddingTop: 4 },
+  kicker: { color: palette.goldLight, marginBottom: 8 },
+  title: { marginBottom: 24 },
+  perksCard: { marginBottom: 28 },
+  perks: { gap: 14, marginBottom: 18 },
+  perkRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  perkDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: palette.goldWash,
+    borderWidth: 1,
+    borderColor: palette.goldHair,
   },
-  title: {
-    fontFamily: "Outfit_600SemiBold",
-    fontSize: 28,
-    color: "#e0e0e0",
-    lineHeight: 34,
-    marginBottom: 28,
-  },
-  perks: { gap: 12, marginBottom: 32 },
-  perkRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  perkText: { fontFamily: "Outfit", fontSize: 15, color: "#bbb" },
+  perkText: { flex: 1, fontFamily: fonts.text, fontSize: 15, color: palette.text },
   periodServices: {
-    fontFamily: "Outfit_600SemiBold",
+    fontFamily: fonts.textMedium,
     fontSize: 13,
-    color: "#d0d0d0",
+    color: palette.textMid,
     lineHeight: 19,
-    marginTop: 8,
   },
+  plans: { gap: 14 },
   planBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#8A6A2F",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    overflow: "hidden",
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: palette.goldHair,
+    backgroundColor: palette.graphite2,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
   },
-  planCopy: {
-    flex: 1,
-    flexShrink: 1,
-    minWidth: 0,
-  },
+  planCopy: { flex: 1, flexShrink: 1, minWidth: 0 },
   planAction: {
     flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 24,
-    minHeight: 44,
-    marginLeft: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#B38F4B",
+    marginLeft: 14,
   },
   planTitle: {
-    fontFamily: "Outfit_600SemiBold",
-    fontSize: 15,
-    color: "#050505",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.6,
+    textTransform: "uppercase",
+    color: palette.goldPale,
     flexShrink: 1,
   },
   planPrice: {
-    fontFamily: "SpaceMono",
-    fontSize: 12,
-    color: "#3a2a12",
-    lineHeight: 18,
-    marginTop: 2,
+    fontFamily: fonts.numeral,
+    fontSize: 20,
+    color: palette.textHi,
+    lineHeight: 27,
+    marginTop: 6,
     flexShrink: 1,
   },
   planIncludes: {
-    fontFamily: "Outfit",
-    fontSize: 11,
-    color: "#2d210f",
-    lineHeight: 15,
-    marginTop: 4,
+    fontFamily: fonts.text,
+    fontSize: 12,
+    color: palette.textMid,
+    lineHeight: 17,
+    marginTop: 6,
     flexShrink: 1,
   },
-  pressed: { opacity: 0.8 },
+  pressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
   unavailable: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 14,
-    color: "#666",
+    color: palette.textMid,
     textAlign: "center",
     marginTop: 24,
-    lineHeight: 20,
+    lineHeight: 21,
   },
   unavailableWrap: { alignItems: "center" },
   diagnostic: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    color: "#555",
+    fontFamily: fonts.text,
+    fontSize: 11,
+    color: palette.textLow,
     textAlign: "center",
-    lineHeight: 14,
+    lineHeight: 15,
     marginTop: 8,
   },
-  retryBtn: {
-    borderWidth: 1,
-    borderColor: "#252525",
-    paddingVertical: 11,
-    paddingHorizontal: 18,
-    marginTop: 16,
-  },
-  retryText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    color: "#888",
-    letterSpacing: 2,
-  },
-  restoreBtn: { alignItems: "center", paddingVertical: 18, marginTop: 8 },
-  restoreText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    color: "#666",
-    letterSpacing: 3,
-  },
+  restoreBtn: { marginTop: 20 },
   legal: {
-    fontFamily: "Outfit",
-    fontSize: 11,
-    color: "#444",
+    fontFamily: fonts.text,
+    fontSize: 11.5,
+    color: palette.textLow,
     textAlign: "center",
-    lineHeight: 16,
-    marginTop: 12,
+    lineHeight: 17,
+    marginTop: 20,
   },
   legalLinks: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
     alignItems: "center",
-    gap: 10,
-    marginTop: 16,
+    columnGap: 8,
+    marginTop: 8,
     paddingBottom: 8,
   },
+  legalBtn: { minHeight: 44, justifyContent: "center", paddingHorizontal: 4 },
   legalLink: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    color: "#8A6A2F",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    color: palette.goldLight,
     letterSpacing: 1.2,
     textDecorationLine: "underline",
   },
-  legalDivider: { color: "#444", fontSize: 12 },
+  legalDivider: { color: palette.textLow, fontSize: 12 },
 });

@@ -1,7 +1,6 @@
 import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -10,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,6 +21,8 @@ import { apiPost, apiUrl } from "@/lib/api";
 import { getAuthErrorMessage } from "@/lib/authErrors";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
+import { Button, Display, Eyebrow, FadeIn, Field, GlassCard, Screen } from "@/components/ui";
+import { fonts, palette, space } from "@/constants/theme";
 
 export default function SignUpScreen() {
   const { signIn } = useAuth();
@@ -74,121 +74,114 @@ export default function SignUpScreen() {
     }
   }
 
+  const submitDisabled = loading || !email || !password || !acceptedLegal || password.length < 8;
+
   return (
+    <Screen>
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        style={styles.root}
         contentContainerStyle={[
           styles.inner,
-          { paddingTop: insets.top + 60, paddingBottom: insets.bottom + 32 },
+          { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 32 },
         ]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <Image
-          source={require("../assets/images/frame-logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Image
-          source={require("../assets/images/frame-wordmark.png")}
-          style={styles.wordmarkImg}
-          resizeMode="contain"
-        />
-
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#666"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
+        <FadeIn index={0} style={styles.brand}>
+          <Image
+            source={require("../assets/images/frame-logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
           />
-          <Pressable
-            style={styles.legalRow}
-            onPress={() => setAcceptedLegal((value) => !value)}
-            accessibilityRole="checkbox"
-            accessibilityLabel="Accept the Terms of Service and Privacy Policy"
-            accessibilityState={{ checked: acceptedLegal }}
-          >
-            <View style={[styles.checkbox, acceptedLegal && styles.checkboxChecked]}>
-              <Text style={styles.checkmark}>{acceptedLegal ? "✓" : ""}</Text>
+          <Image
+            source={require("../assets/images/frame-wordmark.png")}
+            style={styles.wordmarkImg}
+            resizeMode="contain"
+          />
+        </FadeIn>
+
+        <FadeIn index={1} style={styles.cardWrap}>
+          <GlassCard radius={32} padding={space.xl} blur>
+            <Eyebrow style={{ color: palette.goldLight }}>New athlete</Eyebrow>
+            <Display size="heading" style={styles.heading}>
+              Build your frame.
+            </Display>
+            <View style={styles.form}>
+              <Field
+                label="Email"
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
+              />
+              <Field
+                label="Password"
+                placeholder="Password (min 8 characters)"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoComplete="new-password"
+              />
+              <Pressable
+                style={styles.legalRow}
+                onPress={() => setAcceptedLegal((value) => !value)}
+                accessibilityRole="checkbox"
+                accessibilityLabel="Accept the Terms of Service and Privacy Policy"
+                accessibilityState={{ checked: acceptedLegal }}
+              >
+                <View style={[styles.checkbox, acceptedLegal && styles.checkboxChecked]}>
+                  <Text style={styles.checkmark}>{acceptedLegal ? "✓" : ""}</Text>
+                </View>
+                <Text style={styles.legalCopy}>
+                  I accept the Terms of Service and Privacy Policy.
+                </Text>
+              </Pressable>
+              <View style={styles.policyLinks}>
+                <Pressable
+                  style={styles.policyBtn}
+                  onPress={() => void Linking.openURL(apiUrl("/terms"))}
+                >
+                  <Text style={styles.policyLink}>VIEW TERMS</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.policyBtn}
+                  onPress={() => void Linking.openURL(apiUrl("/privacy"))}
+                >
+                  <Text style={styles.policyLink}>VIEW PRIVACY & AI DATA USE</Text>
+                </Pressable>
+              </View>
+
+              {error ? (
+                <Text style={styles.errorText} accessibilityRole="alert">
+                  {error}
+                </Text>
+              ) : null}
+
+              <Button
+                title="CREATE ACCOUNT"
+                onPress={handleSignUp}
+                loading={loading}
+                disabled={submitDisabled}
+              />
             </View>
-            <Text style={styles.legalCopy}>
-              I accept the Terms of Service and Privacy Policy.
-            </Text>
-          </Pressable>
-          <View style={styles.policyLinks}>
-            <Pressable onPress={() => void Linking.openURL(apiUrl("/terms"))}>
-              <Text style={styles.policyLink}>VIEW TERMS</Text>
+          </GlassCard>
+        </FadeIn>
+
+        <FadeIn index={2}>
+          <Link href="/sign-in" asChild>
+            <Pressable style={styles.linkBtn} accessibilityRole="link">
+              <Text style={styles.linkText}>
+                Already in —{" "}
+                <Text style={styles.linkHighlight}>sign in</Text>
+              </Text>
             </Pressable>
-            <Pressable onPress={() => void Linking.openURL(apiUrl("/privacy"))}>
-              <Text style={styles.policyLink}>VIEW PRIVACY & AI DATA USE</Text>
-            </Pressable>
-          </View>
-          <TextInput
-            style={styles.input}
-            placeholder="Password (min 8 characters)"
-            placeholderTextColor="#666"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="new-password"
-          />
-
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.btn,
-              pressed && styles.btnPressed,
-              (loading ||
-                !email ||
-                !password ||
-                 !acceptedLegal ||
-                 password.length < 8) &&
-                styles.btnDisabled,
-            ]}
-            onPress={handleSignUp}
-            disabled={
-              loading ||
-              !email ||
-              !password ||
-               !acceptedLegal ||
-               password.length < 8
-            }
-            accessibilityRole="button"
-            accessibilityState={{
-              disabled:
-                loading ||
-                !email ||
-                !password ||
-                !acceptedLegal ||
-                password.length < 8,
-              busy: loading,
-            }}
-          >
-            {loading ? (
-              <ActivityIndicator color="#050505" />
-            ) : (
-              <Text style={styles.btnText}>CREATE ACCOUNT</Text>
-            )}
-          </Pressable>
-        </View>
-
-        <Link href="/sign-in" asChild>
-          <Pressable style={styles.linkBtn}>
-            <Text style={styles.linkText}>
-              Already in —{" "}
-              <Text style={styles.linkHighlight}>sign in</Text>
-            </Text>
-          </Pressable>
-        </Link>
+          </Link>
+        </FadeIn>
       </ScrollView>
       <AiConsentModal
         visible={showAiConsent}
@@ -204,119 +197,61 @@ export default function SignUpScreen() {
         onTerms={() => void Linking.openURL(apiUrl("/terms"))}
       />
     </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#050505",
-    paddingHorizontal: 32,
-  },
-  inner: {
-    alignItems: "center",
-  },
-  logo: {
-    width: 88,
-    height: 88,
-    marginBottom: 20,
-  },
-  wordmarkImg: {
-    width: 200,
-    height: 64,
-    marginBottom: 56,
-  },
-  form: {
-    width: "100%",
-    gap: 12,
-  },
-  input: {
-    backgroundColor: "#0a0a0a",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    color: "#e0e0e0",
-    fontFamily: "Outfit",
-    fontSize: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    height: 52,
-  },
+  inner: { alignItems: "center", paddingHorizontal: 24 },
+  brand: { alignItems: "center" },
+  logo: { width: 64, height: 64, marginBottom: 10 },
+  wordmarkImg: { width: 170, height: 52, marginBottom: 24 },
+  cardWrap: { width: "100%", maxWidth: 440 },
+  heading: { marginTop: 6, marginBottom: space.xl },
+  form: { gap: 16 },
   legalRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    marginTop: 4,
+    alignItems: "center",
+    gap: 12,
+    minHeight: 44,
   },
   checkbox: {
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#555",
+    borderColor: palette.glassEdgeHi,
+    backgroundColor: palette.glass,
     alignItems: "center",
     justifyContent: "center",
   },
   checkboxChecked: {
-    backgroundColor: "#8A6A2F",
-    borderColor: "#8A6A2F",
+    backgroundColor: palette.goldSoft,
+    borderColor: palette.goldLight,
   },
-  checkmark: {
-    color: "#050505",
-    fontSize: 14,
-    fontWeight: "700",
-  },
+  checkmark: { color: "#050505", fontSize: 14, fontWeight: "700" },
   legalCopy: {
     flex: 1,
-    color: "#aaa",
-    fontFamily: "Outfit",
+    color: palette.textMid,
+    fontFamily: fonts.text,
     fontSize: 13,
     lineHeight: 19,
   },
-  policyLinks: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-  },
+  policyLinks: { flexDirection: "row", flexWrap: "wrap", columnGap: 16 },
+  policyBtn: { minHeight: 44, justifyContent: "center" },
   policyLink: {
-    color: "#8A6A2F",
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1,
+    color: palette.goldLight,
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.4,
   },
   errorText: {
-    color: "#BF1D1D",
-    fontFamily: "Outfit",
+    color: palette.redLight,
+    fontFamily: fonts.text,
     fontSize: 13,
     textAlign: "center",
   },
-  btn: {
-    backgroundColor: "#8A6A2F",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 52,
-    marginTop: 8,
-  },
-  btnPressed: {
-    opacity: 0.85,
-  },
-  btnDisabled: {
-    opacity: 0.5,
-  },
-  btnText: {
-    fontFamily: "SpaceMono",
-    fontSize: 12,
-    letterSpacing: 3,
-    color: "#050505",
-  },
-  linkBtn: {
-    marginTop: 32,
-    paddingVertical: 8,
-  },
-  linkText: {
-    fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#666",
-  },
-  linkHighlight: {
-    color: "#8A6A2F",
-  },
+  linkBtn: { marginTop: 28, minHeight: 44, justifyContent: "center", paddingHorizontal: 12 },
+  linkText: { fontFamily: fonts.text, fontSize: 14, color: palette.textMid },
+  linkHighlight: { color: palette.goldLight, fontFamily: fonts.textMedium },
 });

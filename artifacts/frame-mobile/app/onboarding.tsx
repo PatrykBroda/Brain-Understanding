@@ -1,7 +1,8 @@
 import { Redirect, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
-  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -28,6 +29,18 @@ import {
   levelLabelForSport,
   levelsForSport,
 } from "@/lib/fighterOptions";
+import {
+  Body,
+  Button,
+  Display,
+  Eyebrow,
+  FadeIn,
+  Field,
+  GlassCard,
+  Numeral,
+  Screen,
+} from "@/components/ui";
+import { fonts, MIN_TAP, palette, radius, space } from "@/constants/theme";
 
 const FREQS = [
   { key: "1-2", label: "1-2x / week" },
@@ -37,25 +50,44 @@ const FREQS = [
 
 const TOTAL_STEPS = 5;
 
+const STEP_HEADINGS = [
+  "What do they call you?",
+  "When were you born?",
+  "Where do you compete?",
+  "How often do you train?",
+  "What are you here to build?",
+];
+
 function ProgressBar({ step }: { step: number }) {
   return (
-    <View style={pb.track}>
-      <View style={[pb.fill, { width: `${((step + 1) / TOTAL_STEPS) * 100}%` }]} />
+    <View
+      style={pb.wrap}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={`Step ${step + 1} of ${TOTAL_STEPS}`}
+    >
+      <View style={pb.numRow}>
+        <Numeral size="m" style={{ color: palette.goldPale }}>
+          {String(step + 1).padStart(2, "0")}
+        </Numeral>
+        <Text style={pb.of}>/ {String(TOTAL_STEPS).padStart(2, "0")}</Text>
+      </View>
+      <View style={pb.track}>
+        {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+          <View key={i} style={[pb.seg, i <= step && pb.segOn]} />
+        ))}
+      </View>
     </View>
   );
 }
 
 const pb = StyleSheet.create({
-  track: {
-    height: 2,
-    backgroundColor: "#1a1a1a",
-    width: "100%",
-    marginBottom: 40,
-  },
-  fill: {
-    height: 2,
-    backgroundColor: "#8A6A2F",
-  },
+  wrap: { width: "100%", marginBottom: space.xl, gap: 14 },
+  numRow: { flexDirection: "row", alignItems: "baseline", gap: 8 },
+  of: { fontFamily: fonts.numeral, fontSize: 15, color: palette.textLow, letterSpacing: 1 },
+  track: { flexDirection: "row", gap: 6 },
+  seg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: palette.glassStrong },
+  segOn: { backgroundColor: palette.goldLight },
 });
 
 function ChipSelector({
@@ -72,6 +104,8 @@ function ChipSelector({
       {options.map((o) => (
         <Pressable
           key={o.key}
+          accessibilityRole="button"
+          accessibilityState={{ selected: value === o.key }}
           style={[chip.item, value === o.key && chip.selected]}
           onPress={() => onSelect(o.key)}
         >
@@ -85,30 +119,19 @@ function ChipSelector({
 }
 
 const chip = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
+  row: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   item: {
+    minHeight: MIN_TAP,
+    justifyContent: "center",
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: "#1a1a1a",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderColor: palette.hairline,
+    backgroundColor: palette.glass,
+    paddingHorizontal: 20,
   },
-  selected: {
-    borderColor: "#8A6A2F",
-    backgroundColor: "rgba(138,106,47,0.1)",
-  },
-  text: {
-    fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#666",
-    letterSpacing: 0.5,
-  },
-  selectedText: {
-    color: "#8A6A2F",
-  },
+  selected: { borderColor: palette.goldHair, backgroundColor: palette.goldWash },
+  text: { fontFamily: fonts.textMedium, fontSize: 14, color: palette.textMid, letterSpacing: 0.3 },
+  selectedText: { color: palette.goldPale },
 });
 
 export default function OnboardingScreen() {
@@ -218,271 +241,224 @@ export default function OnboardingScreen() {
     }
   }
 
+  const nextDisabled = step === 0 && !name.trim();
+
   return (
-    <ScrollView
-      style={[styles.root, { paddingTop: insets.top + 24 }]}
-      contentContainerStyle={[styles.inner, { paddingBottom: insets.bottom + 32 }]}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text style={styles.header}>FRAME</Text>
-      <Text style={styles.sub}>LET'S SEE WHAT YOU BECOME UNDER PRESSURE</Text>
+    <Screen>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView
+          contentContainerStyle={[
+            styles.inner,
+            { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <FadeIn index={0} style={styles.top}>
+            <Eyebrow style={{ color: palette.goldLight }}>FRAME</Eyebrow>
+            <Body small style={{ color: palette.textLow, marginTop: 4 }}>
+              LET'S SEE WHAT YOU BECOME UNDER PRESSURE
+            </Body>
+          </FadeIn>
 
-      <ProgressBar step={step} />
+          <FadeIn index={1} style={styles.cardWrap}>
+            <ProgressBar step={step} />
+            <GlassCard radius={32} padding={space.xl} blur>
+              <Display size="heading" style={styles.heading}>
+                {STEP_HEADINGS[step]}
+              </Display>
 
-      {step === 0 && (
-        <View style={styles.section}>
-          <Text style={styles.label}>YOUR NAME</Text>
-          <TextInput
-            style={styles.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="What do they call you?"
-            placeholderTextColor="#444"
-            autoCapitalize="words"
-          />
-        </View>
-      )}
+              {step === 0 && (
+                <View style={styles.section}>
+                  <Field
+                    label="YOUR NAME"
+                    value={name}
+                    onChangeText={setName}
+                    placeholder="What do they call you?"
+                    autoCapitalize="words"
+                  />
+                </View>
+              )}
 
-      {step === 1 && (
-        <View style={styles.section}>
-          <Text style={styles.label}>DATE OF BIRTH</Text>
-          <Text style={styles.hint}>No hyphens needed</Text>
-          <View style={styles.dobRow}>
-            <View style={styles.dobField}>
-              <Text style={styles.dobLabel}>DAY</Text>
-              <TextInput
-                style={[styles.input, styles.dobInput, dobError ? styles.inputError : null]}
-                value={dob.day}
-                onChangeText={(value) => updateDobPart("day", value)}
-                placeholder="DD"
-                placeholderTextColor="#444"
-                keyboardType="number-pad"
-                maxLength={2}
-                textContentType="none"
-              />
+              {step === 1 && (
+                <View style={styles.section}>
+                  <Eyebrow style={styles.label}>DATE OF BIRTH</Eyebrow>
+                  <Text style={styles.hint}>No hyphens needed</Text>
+                  <View style={styles.dobRow}>
+                    <View style={styles.dobField}>
+                      <Field
+                        label="DAY"
+                        style={[styles.dobInput, dobError ? styles.inputError : null]}
+                        value={dob.day}
+                        onChangeText={(value) => updateDobPart("day", value)}
+                        placeholder="DD"
+                        keyboardType="number-pad"
+                        maxLength={2}
+                        textContentType="none"
+                      />
+                    </View>
+                    <View style={styles.dobField}>
+                      <Field
+                        label="MONTH"
+                        inputRef={monthInputRef}
+                        style={[styles.dobInput, dobError ? styles.inputError : null]}
+                        value={dob.month}
+                        onChangeText={(value) => updateDobPart("month", value)}
+                        placeholder="MM"
+                        keyboardType="number-pad"
+                        maxLength={2}
+                        textContentType="none"
+                      />
+                    </View>
+                    <View style={[styles.dobField, styles.yearField]}>
+                      <Field
+                        label="YEAR"
+                        inputRef={yearInputRef}
+                        style={[styles.dobInput, dobError ? styles.inputError : null]}
+                        value={dob.year}
+                        onChangeText={(value) => updateDobPart("year", value)}
+                        placeholder="YYYY"
+                        keyboardType="number-pad"
+                        maxLength={4}
+                        textContentType="none"
+                      />
+                    </View>
+                  </View>
+                  {age != null ? (
+                    <Text style={styles.ageConfirmation}>{age} YEARS OLD</Text>
+                  ) : null}
+                  {dobError ? (
+                    <Text style={styles.errorText} accessibilityRole="alert">
+                      {dobError}
+                    </Text>
+                  ) : null}
+                </View>
+              )}
+
+              {step === 2 && (
+                <View style={styles.section}>
+                  <Eyebrow style={styles.label}>PRIMARY SPORT</Eyebrow>
+                  <ChipSelector
+                    options={SPORTS}
+                    value={sport}
+                    onSelect={(nextSport) => {
+                      setSport(nextSport);
+                      setLevel(defaultLevelForSport(nextSport));
+                    }}
+                  />
+
+                  <Eyebrow style={[styles.label, { marginTop: 28 }]}>
+                    {levelLabelForSport(sport)}
+                  </Eyebrow>
+                  <ChipSelector
+                    options={levelsForSport(sport)}
+                    value={level}
+                    onSelect={setLevel}
+                  />
+                </View>
+              )}
+
+              {step === 3 && (
+                <View style={styles.section}>
+                  <Eyebrow style={styles.label}>TRAINING FREQUENCY</Eyebrow>
+                  <ChipSelector options={FREQS} value={freq} onSelect={setFreq} />
+                </View>
+              )}
+
+              {step === 4 && (
+                <View style={[styles.section, { gap: 20 }]}>
+                  <Field
+                    label="PRIMARY GOALS"
+                    style={styles.textarea}
+                    value={goals}
+                    onChangeText={setGoals}
+                    placeholder="What are you here to build?"
+                    multiline
+                    numberOfLines={3}
+                  />
+                  <Field
+                    label="KNOWN WEAKNESSES"
+                    style={styles.textarea}
+                    value={weaknesses}
+                    onChangeText={setWeaknesses}
+                    placeholder="What breaks first when pressure spikes?"
+                    multiline
+                    numberOfLines={3}
+                  />
+
+                  {error ? (
+                    <Text style={styles.errorText} accessibilityRole="alert">
+                      {error}
+                    </Text>
+                  ) : null}
+                </View>
+              )}
+            </GlassCard>
+
+            <View style={styles.nav}>
+              {step > 0 ? (
+                <Pressable
+                  onPress={back}
+                  style={styles.backBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Back"
+                >
+                  <Text style={styles.backText}>BACK</Text>
+                </Pressable>
+              ) : (
+                <View />
+              )}
+
+              {step < TOTAL_STEPS - 1 ? (
+                <Button
+                  title="NEXT"
+                  onPress={next}
+                  disabled={nextDisabled}
+                  style={styles.nextBtn}
+                />
+              ) : (
+                <Button
+                  title="READING YOU..."
+                  onPress={handleSubmit}
+                  loading={loading}
+                  style={styles.nextBtn}
+                />
+              )}
             </View>
-            <View style={styles.dobField}>
-              <Text style={styles.dobLabel}>MONTH</Text>
-              <TextInput
-                ref={monthInputRef}
-                style={[styles.input, styles.dobInput, dobError ? styles.inputError : null]}
-                value={dob.month}
-                onChangeText={(value) => updateDobPart("month", value)}
-                placeholder="MM"
-                placeholderTextColor="#444"
-                keyboardType="number-pad"
-                maxLength={2}
-                textContentType="none"
-              />
-            </View>
-            <View style={[styles.dobField, styles.yearField]}>
-              <Text style={styles.dobLabel}>YEAR</Text>
-              <TextInput
-                ref={yearInputRef}
-                style={[styles.input, styles.dobInput, dobError ? styles.inputError : null]}
-                value={dob.year}
-                onChangeText={(value) => updateDobPart("year", value)}
-                placeholder="YYYY"
-                placeholderTextColor="#444"
-                keyboardType="number-pad"
-                maxLength={4}
-                textContentType="none"
-              />
-            </View>
-          </View>
-          {age != null ? (
-            <Text style={styles.ageConfirmation}>{age} YEARS OLD</Text>
-          ) : null}
-          {dobError ? <Text style={styles.errorText}>{dobError}</Text> : null}
-        </View>
-      )}
-
-      {step === 2 && (
-        <View style={styles.section}>
-          <Text style={styles.label}>PRIMARY SPORT</Text>
-          <ChipSelector
-            options={SPORTS}
-            value={sport}
-            onSelect={(nextSport) => {
-              setSport(nextSport);
-              setLevel(defaultLevelForSport(nextSport));
-            }}
-          />
-
-          <Text style={[styles.label, { marginTop: 28 }]}>
-            {levelLabelForSport(sport)}
-          </Text>
-          <ChipSelector
-            options={levelsForSport(sport)}
-            value={level}
-            onSelect={setLevel}
-          />
-        </View>
-      )}
-
-      {step === 3 && (
-        <View style={styles.section}>
-          <Text style={styles.label}>TRAINING FREQUENCY</Text>
-          <ChipSelector options={FREQS} value={freq} onSelect={setFreq} />
-        </View>
-      )}
-
-      {step === 4 && (
-        <View style={styles.section}>
-          <Text style={styles.label}>PRIMARY GOALS</Text>
-          <TextInput
-            style={[styles.input, styles.textarea]}
-            value={goals}
-            onChangeText={setGoals}
-            placeholder="What are you here to build?"
-            placeholderTextColor="#444"
-            multiline
-            numberOfLines={3}
-          />
-
-          <Text style={[styles.label, { marginTop: 20 }]}>KNOWN WEAKNESSES</Text>
-          <TextInput
-            style={[styles.input, styles.textarea]}
-            value={weaknesses}
-            onChangeText={setWeaknesses}
-            placeholder="What breaks first when pressure spikes?"
-            placeholderTextColor="#444"
-            multiline
-            numberOfLines={3}
-          />
-
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        </View>
-      )}
-
-      <View style={styles.nav}>
-        {step > 0 ? (
-          <Pressable onPress={back} style={styles.backBtn}>
-            <Text style={styles.backText}>BACK</Text>
-          </Pressable>
-        ) : (
-          <View />
-        )}
-
-        {step < TOTAL_STEPS - 1 ? (
-          <Pressable
-            style={({ pressed }) => [styles.nextBtn, pressed && { opacity: 0.8 }]}
-            onPress={next}
-            disabled={
-              step === 0 && !name.trim()
-            }
-          >
-            <Text style={styles.nextText}>NEXT</Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            style={({ pressed }) => [styles.nextBtn, pressed && { opacity: 0.8 }]}
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#050505" />
-            ) : (
-              <Text style={styles.nextText}>READING YOU...</Text>
-            )}
-          </Pressable>
-        )}
-      </View>
-    </ScrollView>
+          </FadeIn>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#050505",
-    paddingHorizontal: 28,
-  },
-  inner: {
-    alignItems: "flex-start",
-  },
-  header: {
-    fontFamily: "SpaceMono",
-    fontSize: 20,
-    letterSpacing: 8,
-    color: "#e0e0e0",
-    marginBottom: 4,
-  },
-  sub: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#444",
-    marginBottom: 32,
-  },
-  section: {
-    width: "100%",
-    marginBottom: 16,
-  },
-  label: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#8A6A2F",
-    marginBottom: 12,
-  },
-  hint: {
-    fontFamily: "Outfit",
-    fontSize: 12,
-    color: "#444",
-    marginBottom: 8,
-  },
-  dobRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  dobField: {
-    flex: 1,
-  },
-  yearField: {
-    flex: 1.45,
-  },
-  dobLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 1.5,
-    color: "#666",
-    marginBottom: 6,
-  },
-  dobInput: {
-    textAlign: "center",
-    paddingHorizontal: 8,
-    fontSize: 18,
-  },
-  inputError: {
-    borderColor: "#BF1D1D",
-  },
+  inner: { alignItems: "center", paddingHorizontal: 24 },
+  top: { width: "100%", maxWidth: 440, marginBottom: space.xl },
+  cardWrap: { width: "100%", maxWidth: 440 },
+  heading: { marginBottom: space.xl },
+  section: { width: "100%" },
+  label: { color: palette.goldLight, marginBottom: 12 },
+  hint: { fontFamily: fonts.text, fontSize: 12.5, color: palette.textLow, marginBottom: 12 },
+  dobRow: { flexDirection: "row", gap: 10 },
+  dobField: { flex: 1 },
+  yearField: { flex: 1.45 },
+  dobInput: { textAlign: "center", paddingHorizontal: 8, fontSize: 18 },
+  inputError: { borderColor: "rgba(224,86,78,0.55)" },
   ageConfirmation: {
-    marginTop: 12,
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#8A6A2F",
+    marginTop: 14,
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.6,
+    color: palette.goldLight,
   },
-  input: {
-    backgroundColor: "#0a0a0a",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    color: "#e0e0e0",
-    fontFamily: "Outfit",
-    fontSize: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    width: "100%",
-  },
-  textarea: {
-    height: 90,
-    textAlignVertical: "top",
-    paddingTop: 14,
-  },
+  textarea: { minHeight: 96, textAlignVertical: "top", paddingTop: 16 },
   errorText: {
-    color: "#BF1D1D",
-    fontFamily: "Outfit",
+    color: palette.redLight,
+    fontFamily: fonts.text,
     fontSize: 13,
     marginTop: 8,
   },
@@ -491,29 +467,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     width: "100%",
-    marginTop: 32,
+    marginTop: space.xl,
   },
-  backBtn: {
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-  },
-  backText: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 3,
-    color: "#444",
-  },
-  nextBtn: {
-    backgroundColor: "#8A6A2F",
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    minWidth: 140,
-    alignItems: "center",
-  },
-  nextText: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 3,
-    color: "#050505",
-  },
+  backBtn: { minHeight: MIN_TAP, minWidth: MIN_TAP, justifyContent: "center", paddingHorizontal: 8 },
+  backText: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.6, color: palette.textMid },
+  nextBtn: { minWidth: 160 },
 });

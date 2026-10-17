@@ -1,20 +1,21 @@
 import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { apiPost } from "@/lib/api";
 import { getAuthErrorMessage } from "@/lib/authErrors";
+import { Button, Display, Eyebrow, FadeIn, Field, GlassCard, Screen } from "@/components/ui";
+import { fonts, palette, space } from "@/constants/theme";
 
 export default function SignInScreen() {
   const { signIn, sessionRestoreError } = useAuth();
@@ -45,140 +46,105 @@ export default function SignInScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.root, { paddingTop: insets.top + 60 }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <View style={styles.inner}>
-        <Image
-          source={require("../assets/images/frame-logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Image
-          source={require("../assets/images/frame-wordmark.png")}
-          style={styles.wordmarkImg}
-          resizeMode="contain"
-        />
+    <Screen>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView
+          contentContainerStyle={[
+            styles.inner,
+            { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 32 },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <FadeIn index={0} style={styles.brand}>
+            <Image
+              source={require("../assets/images/frame-logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <Image
+              source={require("../assets/images/frame-wordmark.png")}
+              style={styles.wordmarkImg}
+              resizeMode="contain"
+            />
+          </FadeIn>
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#666"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#666"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="password"
-          />
+          <FadeIn index={1} style={styles.cardWrap}>
+            <GlassCard radius={32} padding={space.xl} blur>
+              <Eyebrow style={{ color: palette.goldLight }}>Welcome back</Eyebrow>
+              <Display size="heading" style={styles.heading}>
+                Step back into your frame.
+              </Display>
+              <View style={styles.form}>
+                <Field
+                  label="Email"
+                  placeholder="Email"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoComplete="email"
+                />
+                <Field
+                  label="Password"
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  autoComplete="password"
+                />
 
-          {error || sessionRestoreError ? (
-            <Text style={styles.errorText}>{error ?? sessionRestoreError}</Text>
-          ) : null}
+                {error || sessionRestoreError ? (
+                  <Text style={styles.errorText} accessibilityRole="alert">
+                    {error ?? sessionRestoreError}
+                  </Text>
+                ) : null}
 
-          <Pressable
-            style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
-            onPress={handleSignIn}
-            disabled={loading || !email || !password}
-          >
-            {loading ? (
-              <ActivityIndicator color="#050505" />
-            ) : (
-              <Text style={styles.btnText}>ENTER</Text>
-            )}
-          </Pressable>
-        </View>
+                <Button
+                  title="ENTER"
+                  onPress={handleSignIn}
+                  loading={loading}
+                  disabled={!email || !password}
+                  style={{ marginTop: space.sm }}
+                />
+              </View>
+            </GlassCard>
+          </FadeIn>
 
-        <Link href="/sign-up" asChild>
-          <Pressable style={styles.linkBtn}>
-            <Text style={styles.linkText}>
-              No account —{" "}
-              <Text style={styles.linkHighlight}>create one</Text>
-            </Text>
-          </Pressable>
-        </Link>
-      </View>
-    </KeyboardAvoidingView>
+          <FadeIn index={2}>
+            <Link href="/sign-up" asChild>
+              <Pressable style={styles.linkBtn} accessibilityRole="link">
+                <Text style={styles.linkText}>
+                  No account —{" "}
+                  <Text style={styles.linkHighlight}>create one</Text>
+                </Text>
+              </Pressable>
+            </Link>
+          </FadeIn>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#050505",
-    paddingHorizontal: 32,
-  },
-  inner: {
-    flex: 1,
-    alignItems: "center",
-  },
-  logo: {
-    width: 88,
-    height: 88,
-    marginBottom: 20,
-  },
-  wordmarkImg: {
-    width: 200,
-    height: 64,
-    marginBottom: 56,
-  },
-  form: {
-    width: "100%",
-    gap: 12,
-  },
-  input: {
-    backgroundColor: "#0a0a0a",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    color: "#e0e0e0",
-    fontFamily: "Outfit",
-    fontSize: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    height: 52,
-  },
+  inner: { alignItems: "center", paddingHorizontal: 24 },
+  brand: { alignItems: "center" },
+  logo: { width: 72, height: 72, marginBottom: 12 },
+  wordmarkImg: { width: 180, height: 56, marginBottom: 32 },
+  cardWrap: { width: "100%", maxWidth: 440 },
+  heading: { marginTop: 6, marginBottom: space.xl },
+  form: { gap: 16 },
   errorText: {
-    color: "#BF1D1D",
-    fontFamily: "Outfit",
+    color: palette.redLight,
+    fontFamily: fonts.text,
     fontSize: 13,
     textAlign: "center",
   },
-  btn: {
-    backgroundColor: "#8A6A2F",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 52,
-    marginTop: 8,
-  },
-  btnPressed: {
-    opacity: 0.85,
-  },
-  btnText: {
-    fontFamily: "SpaceMono",
-    fontSize: 13,
-    letterSpacing: 4,
-    color: "#050505",
-  },
-  linkBtn: {
-    marginTop: 32,
-    paddingVertical: 8,
-  },
-  linkText: {
-    fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#666",
-  },
-  linkHighlight: {
-    color: "#8A6A2F",
-  },
+  linkBtn: { marginTop: 28, minHeight: 44, justifyContent: "center", paddingHorizontal: 12 },
+  linkText: { fontFamily: fonts.text, fontSize: 14, color: palette.textMid },
+  linkHighlight: { color: palette.goldLight, fontFamily: fonts.textMedium },
 });

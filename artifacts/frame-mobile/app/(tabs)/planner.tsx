@@ -40,14 +40,20 @@ import {
 } from "@/hooks/useCompetition";
 import { GoogleCalendarSync } from "@/components/GoogleCalendarSync";
 import { useIsFramePlus } from "@/hooks/useEntitlement";
+import { LinearGradient } from "expo-linear-gradient";
+import { ArcGauge, IconButton, Screen } from "@/components/ui";
+import { fonts, gradients, palette, radius } from "@/constants/theme";
 
 const TIER_ACCENT: Record<PressureTier, string> = {
-  base: "#8A6A2F",
-  build: "#8A6A2F",
-  sharpen: "#d2553f",
-  peak: "#e0604a",
-  fight_week: "#ff6a4d",
+  base: palette.goldLight,
+  build: palette.goldLight,
+  sharpen: palette.redLight,
+  peak: palette.redLight,
+  fight_week: palette.redLight,
 };
+
+/** Pressure window the countdown dial sweeps over: the last 12 weeks before the event. */
+const DIAL_WINDOW_DAYS = 84;
 
 const SESSION_TYPE_LABELS: Record<SessionType, string> = {
   sparring: "SPARRING",
@@ -107,18 +113,17 @@ export default function CampScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   return (
+    <Screen>
     <View style={[shell.root, { paddingTop: topPad }]}>
       <View style={shell.header}>
-        <Pressable
+        <IconButton
+          icon="chevron-left"
+          label="Back to home"
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
             router.push("/(tabs)/home");
           }}
-          hitSlop={12}
-          accessibilityLabel="Back to home"
-        >
-          <Feather name="chevron-left" size={22} color="#777" />
-        </Pressable>
+        />
 
         <View style={shell.brand}>
           <Image
@@ -139,6 +144,7 @@ export default function CampScreen() {
 
       <CampView />
     </View>
+    </Screen>
   );
 }
 
@@ -487,11 +493,11 @@ function CampView() {
       contentContainerStyle={[camp.inner, { paddingBottom: insets.bottom + bottomPad + 120 }]}
       keyboardShouldPersistTaps="handled"
       refreshControl={
-        <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#8A6A2F" />
+        <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={palette.goldLight} />
       }
     >
       {isLoading ? (
-        <ActivityIndicator color="#8A6A2F" style={{ marginTop: 40 }} />
+        <ActivityIndicator color={palette.goldLight} style={{ marginTop: 40 }} />
       ) : !competition ? (
         <>
           <View style={camp.emptyCard}>
@@ -508,7 +514,7 @@ function CampView() {
                   setShowCampForm(true);
                 }}
               >
-                <Feather name="plus" size={16} color="#8A6A2F" />
+                <Feather name="plus" size={16} color={palette.goldLight} />
                 <Text style={camp.ctaText}>CREATE YOUR CAMP</Text>
               </Pressable>
             )}
@@ -567,7 +573,7 @@ function CampView() {
                         hitSlop={8}
                         style={camp.addBtn}
                       >
-                        <Feather name="plus" size={14} color="#8A6A2F" />
+                        <Feather name="plus" size={14} color={palette.goldLight} />
                         <Text style={camp.addBtnText}>ADD</Text>
                       </Pressable>
                     )}
@@ -733,7 +739,7 @@ function CampReviewLocked() {
       <View style={rev.head}>
         <Text style={rev.headLabel}>CAMP REVIEW</Text>
         <View style={rev.lockPill}>
-          <Feather name="lock" size={10} color="#8A6A2F" />
+          <Feather name="lock" size={10} color={palette.goldLight} />
           <Text style={rev.lockPillText}>FRAME+</Text>
         </View>
       </View>
@@ -782,7 +788,7 @@ function Dashboard({
   onCancel: () => void;
   cancelling: boolean;
 }) {
-  const accent = TIER_ACCENT[tier] ?? "#8A6A2F";
+  const accent = TIER_ACCENT[tier] ?? palette.goldLight;
 
   const fightLine = [
     competition.opponent,
@@ -806,19 +812,34 @@ function Dashboard({
     <View>
       {/* Centered countdown card, mirroring the web CampDashboard */}
       <View style={[camp.dashCard, { borderColor: `${accent}55` }]}>
+        <LinearGradient
+          colors={gradients.card}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
         <View style={camp.dashCardTop}>
           <Text style={[camp.phaseLabel, { color: accent }]}>
             {phase ? phase.toUpperCase() : "CAMP"}
           </Text>
           <Pressable style={camp.editInline} onPress={onEdit} hitSlop={6}>
-            <Feather name="edit-2" size={11} color="#888" />
+            <Feather name="edit-2" size={11} color={palette.textMid} />
             <Text style={camp.editInlineText}>EDIT</Text>
           </Pressable>
         </View>
 
         {days != null ? (
           <>
-            <Text style={[camp.countdown, { color: accent }]}>{days <= 0 ? 0 : days}</Text>
+            <View style={camp.dial}>
+              <ArcGauge
+                value={Math.max(0, DIAL_WINDOW_DAYS - Math.max(0, days))}
+                max={DIAL_WINDOW_DAYS}
+                size={210}
+                tone={accent === palette.redLight ? "red" : "gold"}
+                display={String(days <= 0 ? 0 : days)}
+              />
+            </View>
             <Text style={camp.countdownUnit}>
               {days === 1 ? "DAY UNTIL" : "DAYS UNTIL"} {competition.eventName.toUpperCase()}
             </Text>
@@ -901,9 +922,11 @@ function SessionRow({
         style={[camp.sCheck, session.completed && camp.sCheckDone, imported && camp.sCheckLocked]}
         onPress={onToggle}
         disabled={disabled || imported}
-        hitSlop={8}
+        hitSlop={10}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: !!session.completed, disabled: disabled || imported }}
       >
-        {session.completed && <Feather name="check" size={11} color="#050505" />}
+        {session.completed && <Feather name="check" size={13} color="#050505" />}
       </Pressable>
 
       <View style={{ flex: 1 }}>
@@ -917,11 +940,11 @@ function SessionRow({
 
       {!imported && (
         <View style={camp.sActions}>
-          <Pressable onPress={onEdit} disabled={disabled} hitSlop={8}>
-            <Feather name="edit-2" size={14} color="#777" />
+          <Pressable onPress={onEdit} disabled={disabled} style={camp.iconTap} accessibilityLabel="Edit session">
+            <Feather name="edit-2" size={14} color={palette.textMid} />
           </Pressable>
-          <Pressable onPress={onDelete} disabled={disabled} hitSlop={8}>
-            <Feather name="trash-2" size={14} color="#6a3a35" />
+          <Pressable onPress={onDelete} disabled={disabled} style={camp.iconTap} accessibilityLabel="Delete session">
+            <Feather name="trash-2" size={14} color={palette.redLight} />
           </Pressable>
         </View>
       )}
@@ -977,7 +1000,7 @@ function SessionForm(props: {
           value={props.sDate}
           onChangeText={props.setSDate}
           placeholder="2026-07-01"
-          placeholderTextColor="#444"
+          placeholderTextColor={palette.textLow}
           autoCapitalize="none"
         />
       </Field>
@@ -990,7 +1013,7 @@ function SessionForm(props: {
               value={props.sTime}
               onChangeText={props.setSTime}
               placeholder="18:00"
-              placeholderTextColor="#444"
+              placeholderTextColor={palette.textLow}
               autoCapitalize="none"
             />
           </Field>
@@ -1002,7 +1025,7 @@ function SessionForm(props: {
               value={props.sDuration}
               onChangeText={props.setSDuration}
               placeholder="60"
-              placeholderTextColor="#444"
+              placeholderTextColor={palette.textLow}
               keyboardType="number-pad"
             />
           </Field>
@@ -1015,7 +1038,7 @@ function SessionForm(props: {
           value={props.sCoach}
           onChangeText={props.setSCoach}
           placeholder="Name"
-          placeholderTextColor="#444"
+          placeholderTextColor={palette.textLow}
         />
       </Field>
 
@@ -1025,7 +1048,7 @@ function SessionForm(props: {
           value={props.sObjective}
           onChangeText={props.setSObjective}
           placeholder="What this session is for"
-          placeholderTextColor="#444"
+          placeholderTextColor={palette.textLow}
           multiline
         />
       </Field>
@@ -1093,7 +1116,7 @@ function CampForm(props: {
           value={props.eventName}
           onChangeText={props.setEventName}
           placeholder="Regional Open"
-          placeholderTextColor="#444"
+          placeholderTextColor={palette.textLow}
         />
       </Field>
 
@@ -1103,7 +1126,7 @@ function CampForm(props: {
           value={props.discipline}
           onChangeText={props.setDiscipline}
           placeholder="BJJ / MMA / Muay Thai"
-          placeholderTextColor="#444"
+          placeholderTextColor={palette.textLow}
         />
       </Field>
 
@@ -1113,7 +1136,7 @@ function CampForm(props: {
           value={props.eventDate}
           onChangeText={props.setEventDate}
           placeholder="2026-07-01"
-          placeholderTextColor="#444"
+          placeholderTextColor={palette.textLow}
           autoCapitalize="none"
         />
       </Field>
@@ -1124,7 +1147,7 @@ function CampForm(props: {
           value={props.weighInDate}
           onChangeText={props.setWeighInDate}
           placeholder="2026-06-30"
-          placeholderTextColor="#444"
+          placeholderTextColor={palette.textLow}
           autoCapitalize="none"
         />
       </Field>
@@ -1137,7 +1160,7 @@ function CampForm(props: {
               value={props.opponent}
               onChangeText={props.setOpponent}
               placeholder="Name"
-              placeholderTextColor="#444"
+              placeholderTextColor={palette.textLow}
             />
           </Field>
         </View>
@@ -1148,7 +1171,7 @@ function CampForm(props: {
               value={props.promotion}
               onChangeText={props.setPromotion}
               placeholder="Org"
-              placeholderTextColor="#444"
+              placeholderTextColor={palette.textLow}
             />
           </Field>
         </View>
@@ -1162,7 +1185,7 @@ function CampForm(props: {
               value={props.weightClass}
               onChangeText={props.setWeightClass}
               placeholder="Lightweight"
-              placeholderTextColor="#444"
+              placeholderTextColor={palette.textLow}
             />
           </Field>
         </View>
@@ -1173,7 +1196,7 @@ function CampForm(props: {
               value={props.rounds}
               onChangeText={props.setRounds}
               placeholder="3"
-              placeholderTextColor="#444"
+              placeholderTextColor={palette.textLow}
               keyboardType="number-pad"
             />
           </Field>
@@ -1186,7 +1209,7 @@ function CampForm(props: {
           value={props.location}
           onChangeText={props.setLocation}
           placeholder="City / venue"
-          placeholderTextColor="#444"
+          placeholderTextColor={palette.textLow}
         />
       </Field>
 
@@ -1198,7 +1221,7 @@ function CampForm(props: {
               value={props.currentWeight}
               onChangeText={props.setCurrentWeight}
               placeholder="78kg"
-              placeholderTextColor="#444"
+              placeholderTextColor={palette.textLow}
             />
           </Field>
         </View>
@@ -1209,7 +1232,7 @@ function CampForm(props: {
               value={props.targetWeight}
               onChangeText={props.setTargetWeight}
               placeholder="74kg"
-              placeholderTextColor="#444"
+              placeholderTextColor={palette.textLow}
             />
           </Field>
         </View>
@@ -1221,7 +1244,7 @@ function CampForm(props: {
           value={props.notes}
           onChangeText={props.setNotes}
           placeholder="Anything FRAME should hold in mind"
-          placeholderTextColor="#444"
+          placeholderTextColor={palette.textLow}
           multiline
         />
       </Field>
@@ -1464,16 +1487,16 @@ function MissionContent() {
           disabled={generating || isLoading}
         >
           {generating ? (
-            <ActivityIndicator size="small" color="#8A6A2F" />
+            <ActivityIndicator size="small" color={palette.goldLight} />
           ) : (
-            <Feather name="refresh-cw" size={16} color="#8A6A2F" />
+            <Feather name="refresh-cw" size={16} color={palette.goldLight} />
           )}
         </Pressable>
       </View>
 
       {isLoading && !plan && (
         <View style={mission.loadingBlock}>
-          <ActivityIndicator color="#8A6A2F" />
+          <ActivityIndicator color={palette.goldLight} />
         </View>
       )}
 
@@ -1549,58 +1572,65 @@ function MissionContent() {
 const shell = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#050505",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
     paddingHorizontal: 20,
     paddingTop: 4,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
+    paddingBottom: 14,
   },
   brand: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
   },
   logo: {
-    width: 22,
-    height: 22,
-    opacity: 0.8,
+    width: 26,
+    height: 26,
+    opacity: 0.9,
   },
   title: {
-    fontFamily: "Outfit",
-    fontWeight: "200",
-    fontSize: 13,
-    letterSpacing: 5,
-    color: "rgba(224,224,224,0.95)",
+    fontFamily: fonts.displayItalic,
+    fontSize: 28,
+    lineHeight: 30,
+    color: palette.textHi,
   },
   subtitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 4,
-    color: "rgba(224,224,224,0.5)",
-    marginTop: 5,
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.8,
+    color: palette.textLow,
+    marginTop: 2,
   },
   headerRight: {
     marginLeft: "auto",
   },
   plusPill: {
+    minHeight: 36,
+    justifyContent: "center",
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: "rgba(138,106,47,0.4)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    borderColor: palette.goldHair,
+    backgroundColor: palette.goldWash,
+    paddingHorizontal: 14,
   },
   plusPillText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#8A6A2F",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.6,
+    color: palette.goldPale,
   },
 });
+
+const glassPanel = {
+  borderWidth: 1,
+  borderColor: palette.glassEdge,
+  backgroundColor: palette.graphite1,
+  borderRadius: radius.lg,
+  overflow: "hidden",
+} as const;
 
 const camp = StyleSheet.create({
   scroll: {
@@ -1608,50 +1638,52 @@ const camp = StyleSheet.create({
   },
   inner: {
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 12,
   },
   emptyCard: {
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    backgroundColor: "#0a0a0a",
-    padding: 20,
+    ...glassPanel,
+    borderRadius: radius.xl,
+    borderColor: palette.goldHair,
+    padding: 24,
   },
   emptyTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 12,
-    letterSpacing: 2,
-    color: "#e0e0e0",
+    fontFamily: fonts.displayItalic,
+    fontSize: 26,
+    lineHeight: 30,
+    color: palette.textHi,
     marginBottom: 10,
   },
   emptyBody: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 14,
-    color: "#777",
-    lineHeight: 21,
-    marginBottom: 18,
+    color: palette.textMid,
+    lineHeight: 22,
+    marginBottom: 20,
   },
   cta: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 10,
+    minHeight: 54,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: "rgba(138,106,47,0.4)",
-    paddingVertical: 14,
+    borderColor: palette.goldHair,
+    backgroundColor: palette.goldWash,
   },
   ctaPressed: {
-    borderColor: "#8A6A2F",
-    backgroundColor: "rgba(138,106,47,0.06)",
+    opacity: 0.8,
+    transform: [{ scale: 0.99 }],
   },
   ctaText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#8A6A2F",
+    fontFamily: fonts.textMedium,
+    fontSize: 13,
+    letterSpacing: 1.4,
+    color: palette.goldPale,
   },
   dashCard: {
-    borderWidth: 1,
-    backgroundColor: "#0a0a0a",
+    ...glassPanel,
+    borderRadius: radius.xl,
     paddingHorizontal: 20,
     paddingVertical: 24,
     alignItems: "center",
@@ -1663,62 +1695,68 @@ const camp = StyleSheet.create({
     width: "100%",
   },
   phaseLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3.5,
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.8,
   },
   editInline: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 8,
   },
   editInlineText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#888",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.6,
+    color: palette.textMid,
+  },
+  dial: {
+    marginTop: 4,
+    alignItems: "center",
   },
   countdown: {
-    fontFamily: "Outfit",
-    fontWeight: "200",
+    fontFamily: fonts.numeralXL,
     fontSize: 72,
     lineHeight: 78,
+    letterSpacing: -2,
     marginTop: 14,
   },
   countdownUnit: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "rgba(224,224,224,0.55)",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    color: palette.textMid,
     textAlign: "center",
     marginTop: 8,
   },
   countdownTier: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "rgba(224,224,224,0.4)",
+    fontFamily: fonts.displayItalic,
+    fontSize: 20,
+    color: palette.textHi,
     textAlign: "center",
-    marginTop: 8,
+    marginTop: 6,
   },
   weighInLine: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2.5,
-    color: "rgba(224,224,224,0.45)",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.6,
+    color: palette.textLow,
     textAlign: "center",
     marginTop: 12,
   },
   dashEventFallback: {
-    fontFamily: "Outfit",
-    fontSize: 15,
-    letterSpacing: 1,
-    color: "rgba(224,224,224,0.8)",
+    fontFamily: fonts.displayItalic,
+    fontSize: 24,
+    color: palette.textHi,
     marginTop: 14,
   },
   rowList: {
     marginTop: 20,
-    gap: 10,
+    gap: 12,
+    paddingHorizontal: 4,
   },
   row: {
     flexDirection: "row",
@@ -1726,19 +1764,19 @@ const camp = StyleSheet.create({
     justifyContent: "space-between",
     gap: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.05)",
-    paddingBottom: 10,
+    borderBottomColor: palette.hairline,
+    paddingBottom: 12,
   },
   rowLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "rgba(224,224,224,0.45)",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.6,
+    color: palette.textLow,
   },
   rowValue: {
-    fontFamily: "Outfit",
-    fontSize: 13,
-    color: "rgba(224,224,224,0.85)",
+    fontFamily: fonts.text,
+    fontSize: 14,
+    color: palette.text,
     textAlign: "right",
     flexShrink: 1,
     maxWidth: "62%",
@@ -1746,19 +1784,23 @@ const camp = StyleSheet.create({
   endCampBtn: {
     marginTop: 24,
     width: "100%",
+    minHeight: 52,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    paddingVertical: 14,
+    borderColor: palette.glassEdge,
+    backgroundColor: palette.glass,
     alignItems: "center",
+    justifyContent: "center",
   },
   endCampBtnPressed: {
-    borderColor: "rgba(210,85,63,0.5)",
+    borderColor: "rgba(224,86,78,0.5)",
+    backgroundColor: palette.redWash,
   },
   endCampText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3.5,
-    color: "rgba(224,224,224,0.6)",
+    fontFamily: fonts.textMedium,
+    fontSize: 12.5,
+    letterSpacing: 1.6,
+    color: palette.textMid,
   },
   viewTabRow: {
     flexDirection: "row",
@@ -1767,23 +1809,26 @@ const camp = StyleSheet.create({
   },
   viewTab: {
     flex: 1,
-    paddingVertical: 11,
+    minHeight: 46,
+    justifyContent: "center",
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: palette.hairline,
+    backgroundColor: palette.glass,
     alignItems: "center",
   },
   viewTabActive: {
-    borderColor: "rgba(138,106,47,0.5)",
-    backgroundColor: "rgba(138,106,47,0.06)",
+    borderColor: palette.goldHair,
+    backgroundColor: palette.goldWash,
   },
   viewTabText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2.5,
-    color: "rgba(255,255,255,0.5)",
+    fontFamily: fonts.textMedium,
+    fontSize: 12,
+    letterSpacing: 1.6,
+    color: palette.textMid,
   },
   viewTabTextActive: {
-    color: "#8A6A2F",
+    color: palette.goldPale,
   },
   sectionHead: {
     flexDirection: "row",
@@ -1793,67 +1838,71 @@ const camp = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "#8A6A2F",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    color: palette.goldLight,
   },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 8,
   },
   addBtnText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#8A6A2F",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.6,
+    color: palette.goldLight,
   },
   noSessions: {
-    fontFamily: "Outfit",
-    fontSize: 13,
-    color: "#555",
-    lineHeight: 20,
+    fontFamily: fonts.text,
+    fontSize: 13.5,
+    color: palette.textMid,
+    lineHeight: 21,
   },
   dayGroup: {
     marginBottom: 18,
   },
   dayLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#555",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.6,
+    color: palette.textLow,
     marginBottom: 8,
   },
   sRow: {
+    ...glassPanel,
+    borderRadius: radius.md,
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    backgroundColor: "#0a0a0a",
-    padding: 12,
-    marginBottom: 8,
+    gap: 14,
+    padding: 14,
+    marginBottom: 10,
   },
   sRowDone: {
-    opacity: 0.55,
+    opacity: 0.6,
   },
   sCheck: {
-    width: 18,
-    height: 18,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: palette.glassEdgeHi,
+    backgroundColor: palette.glass,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 1,
   },
   sCheckDone: {
-    backgroundColor: "#8A6A2F",
-    borderColor: "#8A6A2F",
+    backgroundColor: palette.goldSoft,
+    borderColor: palette.goldLight,
   },
   sCheckLocked: {
-    borderColor: "#222",
-    backgroundColor: "#111",
+    borderColor: palette.hairline,
+    backgroundColor: palette.graphite2,
   },
   sTopRow: {
     flexDirection: "row",
@@ -1861,79 +1910,90 @@ const camp = StyleSheet.create({
     gap: 8,
   },
   sType: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: "#d0d0d0",
+    fontFamily: fonts.textMedium,
+    fontSize: 12,
+    letterSpacing: 1.4,
+    color: palette.textHi,
   },
   importedTag: {
-    fontFamily: "SpaceMono",
-    fontSize: 7,
-    letterSpacing: 1.5,
-    color: "#666",
+    fontFamily: fonts.textMedium,
+    fontSize: 9.5,
+    letterSpacing: 1.2,
+    color: palette.textMid,
     borderWidth: 1,
-    borderColor: "#2a2a2a",
-    paddingHorizontal: 4,
-    paddingVertical: 1,
+    borderColor: palette.glassEdge,
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    overflow: "hidden",
   },
   sDetail: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1,
-    color: "#666",
+    fontFamily: fonts.text,
+    fontSize: 12.5,
+    color: palette.textLow,
     marginTop: 4,
   },
   sObjective: {
-    fontFamily: "Outfit",
-    fontSize: 13,
-    color: "#999",
+    fontFamily: fonts.text,
+    fontSize: 13.5,
+    color: palette.textMid,
     marginTop: 4,
-    lineHeight: 18,
+    lineHeight: 19,
   },
   sActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    paddingTop: 1,
+    gap: 0,
+    marginTop: -10,
+    marginRight: -10,
+  },
+  iconTap: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   form: {
+    ...glassPanel,
+    borderRadius: radius.xl,
     marginTop: 8,
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    backgroundColor: "#0a0a0a",
-    padding: 18,
+    padding: 22,
   },
   formTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#8A6A2F",
-    marginBottom: 16,
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    color: palette.goldLight,
+    marginBottom: 18,
   },
   field: {
-    marginBottom: 14,
+    marginBottom: 16,
   },
   fieldLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#555",
-    marginBottom: 6,
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.6,
+    color: palette.goldLight,
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: "#050505",
+    minHeight: 52,
+    backgroundColor: palette.glass,
     borderWidth: 1,
-    borderColor: "#1a1a1a",
-    color: "#e0e0e0",
-    fontFamily: "Outfit",
+    borderColor: palette.glassEdge,
+    borderRadius: radius.md,
+    color: palette.textHi,
+    fontFamily: fonts.text,
     fontSize: 15,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null),
   },
   inputMultiline: {
-    minHeight: 64,
+    minHeight: 88,
     textAlignVertical: "top",
+    paddingTop: 14,
   },
   chips: {
     flexDirection: "row",
@@ -1941,23 +2001,26 @@ const camp = StyleSheet.create({
     gap: 8,
   },
   chip: {
+    minHeight: 44,
+    justifyContent: "center",
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: "#1a1a1a",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    borderColor: palette.hairline,
+    backgroundColor: palette.glass,
+    paddingHorizontal: 16,
   },
   chipActive: {
-    borderColor: "#8A6A2F",
-    backgroundColor: "rgba(138,106,47,0.10)",
+    borderColor: palette.goldHair,
+    backgroundColor: palette.goldWash,
   },
   chipText: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 1.5,
-    color: "#666",
+    fontFamily: fonts.textMedium,
+    fontSize: 11.5,
+    letterSpacing: 1.2,
+    color: palette.textMid,
   },
   chipTextActive: {
-    color: "#8A6A2F",
+    color: palette.goldPale,
   },
   row2: {
     flexDirection: "row",
@@ -1967,185 +2030,189 @@ const camp = StyleSheet.create({
     flex: 1,
   },
   error: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 13,
-    color: "#d2553f",
+    color: palette.redLight,
     marginBottom: 12,
   },
   formActions: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 4,
+    marginTop: 6,
   },
   cancelBtn: {
     flex: 1,
+    minHeight: 52,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: "#1a1a1a",
-    paddingVertical: 12,
+    borderColor: palette.glassEdge,
+    backgroundColor: palette.glassStrong,
     alignItems: "center",
+    justifyContent: "center",
   },
   cancelText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#666",
+    fontFamily: fonts.textMedium,
+    fontSize: 13,
+    letterSpacing: 1.2,
+    color: palette.text,
   },
   submitBtn: {
     flex: 1,
-    backgroundColor: "#8A6A2F",
-    paddingVertical: 12,
+    minHeight: 52,
+    borderRadius: radius.pill,
+    backgroundColor: "#B38F4B",
     alignItems: "center",
     justifyContent: "center",
   },
   submitText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#050505",
+    fontFamily: fonts.textMedium,
+    fontSize: 13,
+    letterSpacing: 1.2,
+    color: "#0a0806",
   },
 });
 
 const rev = StyleSheet.create({
   section: {
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    backgroundColor: "#0a0a0a",
-    marginTop: 16,
+    ...glassPanel,
+    borderRadius: radius.xl,
+    marginTop: 18,
   },
   head: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#1a1a1a",
+    borderBottomColor: palette.hairline,
   },
   headLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 4,
-    color: "#b0b0b0",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    color: palette.goldLight,
   },
   headCount: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "#555",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.6,
+    color: palette.textLow,
   },
   lockPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 6,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: "rgba(138,106,47,0.4)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    borderColor: palette.goldHair,
+    backgroundColor: palette.goldWash,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
   lockPillText: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#8A6A2F",
+    fontFamily: fonts.textMedium,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    color: palette.goldPale,
   },
   body: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 20,
   },
   emptyText: {
-    fontFamily: "Outfit",
-    fontSize: 13,
-    color: "#777",
-    lineHeight: 20,
+    fontFamily: fonts.text,
+    fontSize: 13.5,
+    color: palette.textMid,
+    lineHeight: 21,
   },
   mixRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    columnGap: 18,
-    rowGap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    columnGap: 22,
+    rowGap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#1a1a1a",
+    borderBottomColor: palette.hairline,
   },
   mixItem: {
     flexDirection: "row",
     alignItems: "baseline",
-    gap: 6,
+    gap: 8,
   },
   mixCount: {
-    fontFamily: "Outfit",
-    fontSize: 16,
-    color: "#e0e0e0",
+    fontFamily: fonts.numeral,
+    fontSize: 24,
+    color: palette.textHi,
   },
   mixLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#666",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.4,
+    color: palette.textLow,
   },
   block: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: "#1a1a1a",
+    borderBottomColor: palette.hairline,
   },
   blockLast: {
     borderBottomWidth: 0,
   },
   blockLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 3,
-    color: "#666",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.8,
+    color: palette.goldLight,
   },
   blockEmpty: {
-    fontFamily: "Outfit",
-    fontSize: 12,
-    color: "#666",
-    lineHeight: 18,
+    fontFamily: fonts.text,
+    fontSize: 13,
+    color: palette.textMid,
+    lineHeight: 19,
     marginTop: 8,
   },
   impTop: {
     flexDirection: "row",
     alignItems: "baseline",
-    gap: 10,
+    gap: 12,
   },
   impName: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 2,
-    color: "#d0d0d0",
+    fontFamily: fonts.textMedium,
+    fontSize: 13,
+    letterSpacing: 1.2,
+    color: palette.textHi,
   },
   impDelta: {
-    fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#4fbf7b",
+    fontFamily: fonts.numeral,
+    fontSize: 20,
+    color: palette.goldPale,
   },
   impValues: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 1,
-    color: "#888",
+    fontFamily: fonts.text,
+    fontSize: 12.5,
+    color: palette.textMid,
     marginTop: 4,
   },
   impDates: {
-    fontFamily: "Outfit",
-    fontSize: 11,
-    color: "#555",
+    fontFamily: fonts.text,
+    fontSize: 12,
+    color: palette.textLow,
     marginTop: 4,
   },
   leakLabel: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 14,
-    color: "#d0d0d0",
-    lineHeight: 20,
+    color: palette.text,
+    lineHeight: 21,
   },
   leakMeta: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#777",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.4,
+    color: palette.textLow,
     marginTop: 6,
   },
 });
@@ -2154,41 +2221,44 @@ const pi = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    gap: 14,
+    minHeight: 48,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     borderBottomWidth: 1,
-    borderBottomColor: "#1a1a1a",
+    borderBottomColor: palette.hairline,
   },
   rowCompleted: {
-    opacity: 0.5,
+    opacity: 0.55,
   },
   rowPressed: {
-    backgroundColor: "#0a0a0a",
+    backgroundColor: palette.glassStrong,
   },
   check: {
-    width: 18,
-    height: 18,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: palette.glassEdgeHi,
+    backgroundColor: palette.glass,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 2,
+    marginTop: 1,
   },
   checkDone: {
-    backgroundColor: "#8A6A2F",
-    borderColor: "#8A6A2F",
+    backgroundColor: palette.goldSoft,
+    borderColor: palette.goldLight,
   },
   text: {
     flex: 1,
-    fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#c0c0c0",
-    lineHeight: 20,
+    fontFamily: fonts.text,
+    fontSize: 14.5,
+    color: palette.text,
+    lineHeight: 21,
   },
   textDone: {
     textDecorationLine: "line-through",
-    color: "#444",
+    color: palette.textLow,
   },
 });
 
@@ -2204,13 +2274,20 @@ const mission = StyleSheet.create({
     marginBottom: 4,
   },
   headerTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 5,
-    color: "#e0e0e0",
+    fontFamily: fonts.displayItalic,
+    fontSize: 26,
+    lineHeight: 30,
+    color: palette.textHi,
   },
   genBtn: {
-    padding: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: palette.glassStrong,
+    borderWidth: 1,
+    borderColor: palette.glassEdge,
   },
   loadingBlock: {
     paddingVertical: 60,
@@ -2222,84 +2299,89 @@ const mission = StyleSheet.create({
     gap: 16,
   },
   emptyTitle: {
-    fontFamily: "SpaceMono",
+    fontFamily: fonts.textMedium,
     fontSize: 12,
-    letterSpacing: 4,
-    color: "#333",
+    letterSpacing: 2,
+    color: palette.textLow,
   },
   emptyText: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 14,
-    color: "#444",
+    color: palette.textMid,
     textAlign: "center",
     lineHeight: 22,
   },
   generateBtn: {
-    backgroundColor: "#8A6A2F",
-    paddingHorizontal: 24,
-    paddingVertical: 14,
+    minHeight: 52,
+    borderRadius: radius.pill,
+    backgroundColor: "#B38F4B",
+    paddingHorizontal: 28,
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 8,
   },
   generateBtnText: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 3,
-    color: "#050505",
+    fontFamily: fonts.textMedium,
+    fontSize: 13,
+    letterSpacing: 1.4,
+    color: "#0a0806",
   },
   focusCard: {
-    backgroundColor: "#0a0a0a",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    borderLeftColor: "#8A6A2F",
-    borderLeftWidth: 2,
-    padding: 16,
-    marginBottom: 16,
+    ...glassPanel,
+    borderRadius: radius.lg,
+    borderColor: palette.goldHair,
+    backgroundColor: palette.graphite2,
+    padding: 20,
+    marginBottom: 18,
   },
   focusLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 3,
-    color: "#8A6A2F",
-    marginBottom: 6,
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.8,
+    color: palette.goldLight,
+    marginBottom: 8,
   },
   focusText: {
-    fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#c0c0c0",
-    lineHeight: 22,
+    fontFamily: fonts.text,
+    fontSize: 14.5,
+    color: palette.text,
+    lineHeight: 23,
   },
   progressRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 20,
+    gap: 14,
+    marginBottom: 22,
   },
   progressBar: {
     flex: 1,
-    height: 2,
-    backgroundColor: "#1a1a1a",
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: palette.glassStrong,
+    overflow: "hidden",
   },
   progressFill: {
-    height: 2,
-    backgroundColor: "#8A6A2F",
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: palette.goldLight,
   },
   progressLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    color: "#444",
+    fontFamily: fonts.numeral,
+    fontSize: 16,
+    color: palette.textMid,
   },
   section: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
   sectionLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 3,
-    color: "#8A6A2F",
-    marginBottom: 8,
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    color: palette.goldLight,
+    marginBottom: 10,
   },
   sectionItems: {
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
+    ...glassPanel,
+    borderRadius: radius.lg,
   },
 });
