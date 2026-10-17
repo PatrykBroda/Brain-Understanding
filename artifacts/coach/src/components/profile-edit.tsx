@@ -99,6 +99,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
     update.mutate(patch, { onSuccess: () => onClose() });
   };
 
+  const nameError = form.name.trim() ? null : "Enter your name";
   const computedAge = ageFromDob(form.dateOfBirth);
 
   // Sport-conditional art options, value-safe: the stored art is always kept
@@ -132,8 +133,16 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
           className={INPUT_CLASS}
           value={form.name}
           onChange={(e) => set("name", e.target.value)}
+          maxLength={60}
           required
+          aria-invalid={nameError ? true : undefined}
+          aria-describedby={nameError ? "profile-name-error" : undefined}
         />
+        {nameError && (
+          <p id="profile-name-error" role="alert" className="mt-1.5 text-[0.875rem] text-[#E5645A]">
+            {nameError}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">

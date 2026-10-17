@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiPatch } from "@/lib/api";
+import { NAME_MAX, nameError } from "@/lib/fighterName";
 import { Button, Display, Field, Label, haptic } from "@/components/ui";
 import { fonts, MIN_TAP, palette, radius } from "@/constants/theme";
 import type { Fighter } from "@/context/FighterContext";
@@ -87,6 +88,7 @@ const chip = StyleSheet.create({
 });
 
 interface FormState {
+  name: string;
   primarySport: string;
   art: string;
   level: string;
@@ -97,6 +99,7 @@ interface FormState {
 
 function toForm(f: Fighter): FormState {
   return {
+    name: f.name ?? "",
     primarySport: f.primarySport ?? "bjj",
     art: f.art ?? f.primarySport ?? "bjj",
     level: f.level ?? defaultLevelForSport(f.primarySport),
@@ -120,6 +123,8 @@ export function ProfileEditModal({
   const [form, setForm] = useState<FormState>(() => toForm(fighter));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nameTouched, setNameTouched] = useState(false);
+  const nameErr = nameError(form.name);
 
   function set<K extends keyof FormState>(k: K, v: FormState[K]) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -127,10 +132,15 @@ export function ProfileEditModal({
 
   async function handleSave() {
     if (saving) return;
+    if (nameErr) {
+      setNameTouched(true);
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
       await apiPatch("/fighter", {
+        name: form.name.trim(),
         primarySport: form.primarySport,
         art: form.art || form.primarySport,
         level: form.level,
@@ -172,6 +182,20 @@ export function ProfileEditModal({
               contentContainerStyle={styles.content}
               keyboardShouldPersistTaps="handled"
             >
+              <Field
+                label="Name"
+                value={form.name}
+                onChangeText={(t) => set("name", t)}
+                onBlur={() => setNameTouched(true)}
+                error={nameTouched ? nameErr : null}
+                placeholder="Your name"
+                maxLength={NAME_MAX}
+                autoCapitalize="words"
+                autoComplete="name"
+                textContentType="name"
+                returnKeyType="done"
+              />
+
               <View style={styles.field}>
                 <Label>Combat sport</Label>
                 <ChipSelector
@@ -226,7 +250,13 @@ export function ProfileEditModal({
 
               {error && <Text style={styles.errorText}>{error}</Text>}
 
-              <Button title="Save changes" onPress={handleSave} loading={saving} style={styles.saveBtn} />
+              <Button
+                title="Save changes"
+                onPress={handleSave}
+                loading={saving}
+                disabled={!!nameErr}
+                style={styles.saveBtn}
+              />
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
