@@ -13,7 +13,6 @@ import {
   Eyebrow,
   FadeIn,
   GlassCard,
-  IconButton,
   Label,
   Punch,
   Screen,
@@ -237,7 +236,6 @@ export default function StateScreen() {
             resizeMode="contain"
             accessibilityLabel="Frame"
           />
-          <IconButton icon="user" label="Open profile" onPress={() => router.push("/(tabs)/profile")} />
         </View>
 
         {failed ? (

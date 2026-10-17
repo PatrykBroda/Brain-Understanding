@@ -27,7 +27,6 @@ import {
   FadeIn,
   Field,
   GlassCard,
-  IconButton,
   Label,
   Numeral,
   Punch,
@@ -511,7 +510,6 @@ export default function HomeScreen() {
             resizeMode="contain"
             accessibilityLabel="Frame"
           />
-          <IconButton icon="user" label="Open profile" onPress={() => router.push("/(tabs)/profile")} />
         </FadeIn>
 
         {/* ─── 1. Athlete context (real profile data) ────────────────── */}
