@@ -1,5 +1,4 @@
 import { useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
@@ -20,8 +19,20 @@ import Svg, { Circle, Line, Path, Polygon, Text as SvgText } from "react-native-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
-import { ArcGauge, Display, Punch, Eyebrow, FadeIn, Screen, media } from "@/components/ui";
-import { fonts, palette, radius, shadow } from "@/constants/theme";
+import {
+  ArcGauge,
+  Button,
+  Display,
+  EmptyState,
+  FadeIn,
+  GlassCard,
+  IconButton,
+  Label,
+  Screen,
+  Status,
+  haptic,
+} from "@/components/ui";
+import { fonts, MIN_TAP, palette, radius, SCREEN_PAD, type as T } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter, type Fighter } from "@/context/FighterContext";
 import { apiDelete, apiGet, apiPatch, apiUrl, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
@@ -30,7 +41,7 @@ import { primaryFocus } from "@/lib/primaryFocus";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
 import { ProfileEditModal } from "@/components/ProfileEditModal";
-import { isBjjSport } from "@/lib/fighterOptions";
+import { isBjjSport, LEGACY_SPORTS, SPORTS } from "@/lib/fighterOptions";
 import { useEntitlement, useSyncBilling } from "@/hooks/useEntitlement";
 import { restorePurchases, hasFramePlus } from "@/lib/purchases";
 import {
@@ -45,46 +56,71 @@ import {
   type ModelFact,
 } from "@/lib/athleteModel";
 
-const ACCENT = palette.goldLight;
-
 // 12MB ceiling mirrors the web upload guard; base64 is ~4/3 the byte size.
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 
-// ─── Confidence pips (fact 1–5) ───────────────────────────────────────────────
+/** Sentence case: "GUARD RETENTION" / "guard retention" -> "Guard retention". */
+function sentence(s: string | null | undefined): string {
+  const v = (s ?? "").trim();
+  if (!v) return "—";
+  const lower = v === v.toUpperCase() ? v.toLowerCase() : v;
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+/** Display label for a sport key ("bjj" -> "BJJ", "muay_thai" -> "Muay Thai"). */
+function sportLabel(key: string | null | undefined): string {
+  if (!key) return "—";
+  return [...SPORTS, ...LEGACY_SPORTS].find((o) => o.key === key)?.label ?? sentence(key.replace(/_/g, " "));
+}
+
+// ─── Confidence: thin bar + text label (fact 1–5) ─────────────────────────────
 function FactConfidence({ value }: { value: number }) {
   const v = Math.max(0, Math.min(5, value));
+  const word = v >= 4 ? "High" : v === 3 ? "Medium" : "Low";
   return (
-    <View style={cd.wrap}>
-      <View style={cd.row}>
-        {[1, 2, 3, 4, 5].map((i) => (
-          <View key={i} style={[cd.pip, i <= v ? cd.active : cd.inactive]} />
-        ))}
+    <View style={cd.wrap} accessible accessibilityLabel={`Confidence ${word}, ${v} of 5`}>
+      <View style={cd.track}>
+        <View style={[cd.fill, { width: `${(v / 5) * 100}%` }]} />
       </View>
-      <Text style={cd.count}>{v}/5</Text>
-    </View>
-  );
-}
-// ─── Editorial section header (overline + title) ──────────────────────────────
-function SectionHead({ overline, title }: { overline: string; title: string }) {
-  return (
-    <View style={s.headBlock}>
-      <Text style={s.headOverline}>{overline}</Text>
-      <Text style={s.headTitle}>{title}</Text>
+      <Text style={cd.word}>{word}</Text>
     </View>
   );
 }
 
-// ─── Identity/state row (label · value · sub) ─────────────────────────────────
-function DataRow({ label, value, sub }: { label: string; value: string; sub?: string }) {
+// ─── Card with a sentence-case section title ──────────────────────────────────
+function Section({
+  title,
+  aside,
+  children,
+  padding = 0,
+}: {
+  title: string;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+  padding?: number;
+}) {
   return (
-    <View style={s.dataRow}>
+    <View style={s.section}>
+      <View style={s.sectionHead}>
+        <Display size="heading">{title}</Display>
+        {aside}
+      </View>
+      <GlassCard padding={padding}>{children}</GlassCard>
+    </View>
+  );
+}
+
+// ─── Label / value row with hairline separator ────────────────────────────────
+function DataRow({ label, value, sub, first }: { label: string; value: string; sub?: string; first?: boolean }) {
+  return (
+    <View style={[s.dataRow, !first && s.rowRule]}>
       <Text style={s.dataLabel}>{label}</Text>
       <View style={s.dataValueWrap}>
-        <Text style={s.dataValue} numberOfLines={2}>
+        <Text style={s.dataValue}>
           {value}
         </Text>
         {sub ? (
-          <Text style={s.dataSub} numberOfLines={2}>
+          <Text style={s.dataSub}>
             {sub}
           </Text>
         ) : null}
@@ -96,10 +132,10 @@ function DataRow({ label, value, sub }: { label: string; value: string; sub?: st
 // ─── Locked FRAME+ stub (section stays visible; body is upgrade tap-row) ──────
 function LockedBody({ note, onTap }: { note: string; onTap: () => void }) {
   return (
-    <Pressable style={s.lockRow} onPress={onTap}>
-      <Feather name="lock" size={14} color={palette.textLow} style={{ marginTop: 1 }} />
+    <Pressable style={s.lockRow} onPress={onTap} accessibilityRole="button" accessibilityLabel={`${note} Upgrade to FRAME+`}>
+      <Feather name="lock" size={16} color={palette.textLow} style={{ marginTop: 2 }} />
       <Text style={s.lockNote}>{note}</Text>
-      <Text style={s.lockBadge}>FRAME+</Text>
+      <Status label="FRAME+" tone="gold" />
     </Pressable>
   );
 }
@@ -123,7 +159,7 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
       .join(" ") + " Z";
 
   return (
-    <Svg viewBox="-18 0 226 190" width="100%" height={210} style={{ alignSelf: "center", maxWidth: 260 }}>
+    <Svg viewBox="-18 0 226 190" width="100%" height={210} style={{ alignSelf: "center", maxWidth: 280 }}>
       {gridLevels.map((level) => (
         <Polygon
           key={level}
@@ -132,27 +168,19 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
             return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
           }).join(" ")}
           fill="none"
-          stroke="rgba(255,255,255,0.10)"
+          stroke={palette.border}
           strokeWidth={1}
         />
       ))}
       {angles.map((_, i) => {
         const end = pt(1, i);
         return (
-          <Line
-            key={i}
-            x1={cx}
-            y1={cy}
-            x2={end.x.toFixed(1)}
-            y2={end.y.toFixed(1)}
-            stroke="rgba(255,255,255,0.10)"
-            strokeWidth={1}
-          />
+          <Line key={i} x1={cx} y1={cy} x2={end.x.toFixed(1)} y2={end.y.toFixed(1)} stroke={palette.border} strokeWidth={1} />
         );
       })}
-      <Path d={filledPath} fill="rgba(185,164,119,0.16)" stroke="#B9A477" strokeWidth={1.2} strokeLinejoin="round" />
+      <Path d={filledPath} fill="rgba(244,244,241,0.06)" stroke={palette.gold} strokeWidth={1.2} strokeLinejoin="round" />
       {filledPoints.map((p, i) => (
-        <Circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={2.5} fill={ACCENT} />
+        <Circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={2.5} fill={palette.gold} />
       ))}
       {dims.map((d, i) => {
         const lp = pt(1.38, i);
@@ -162,11 +190,11 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
             x={lp.x.toFixed(1)}
             y={lp.y.toFixed(1)}
             textAnchor="middle"
-            fontSize={8}
-            fontFamily="Outfit"
-            fill="#A4A8AE"
+            fontSize={8.5}
+            fontFamily={fonts.medium}
+            fill={palette.textMid}
           >
-            {d.label.toUpperCase()}
+            {sentence(d.label)}
           </SvgText>
         );
       })}
@@ -174,8 +202,16 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
   );
 }
 
-// ─── Hero identity band — the cover photo, changeable in place ────────────
-function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: string | null }) {
+// ─── Athlete context — name first; the athlete's own cover photo if they set one ─
+function IdentityBand({
+  fighter,
+  subtitle,
+  onEdit,
+}: {
+  fighter: Fighter;
+  subtitle?: string | null;
+  onEdit?: () => void;
+}) {
   const qc = useQueryClient();
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [heroToken, setHeroToken] = useState<string | null>(null);
@@ -192,9 +228,13 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
       uploadHero<{ fighter: Fighter }>(payload),
     onSuccess: () => {
       setUploadError(null);
+      haptic.success();
       qc.invalidateQueries({ queryKey: ["fighter"] });
     },
-    onError: (e) => setUploadError(e instanceof Error ? e.message : "Upload failed"),
+    onError: (e) => {
+      haptic.error();
+      setUploadError(e instanceof Error ? e.message : "Upload failed");
+    },
   });
 
   const remove = useMutation({
@@ -208,7 +248,7 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
   const zoom = (fighter.heroZoom ?? 100) / 100;
 
   async function pickHero() {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.select();
     if (Platform.OS !== "web") {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
@@ -240,72 +280,62 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
     });
   }
 
+  const identity = (
+    <View style={s.bandBody}>
+      <Text style={s.bandName} numberOfLines={2} accessibilityRole="header">
+        {fighter.name}
+      </Text>
+      {subtitle ? <Text style={s.bandSub}>{subtitle}</Text> : null}
+      <View style={s.chipRow}>
+        {fighter.primarySport ? <Status label={sportLabel(fighter.primarySport)} /> : null}
+        {fighter.level ? <Status label={fighter.level} /> : null}
+        {fighter.trainingFrequency ? <Status label={fighter.trainingFrequency} /> : null}
+      </View>
+    </View>
+  );
+
   return (
     <View>
-      <View style={s.band}>
-        {heroSrc ? (
+      {heroSrc ? (
+        <View style={s.band}>
           <Image
             source={{
               uri: heroSrc,
               ...(heroToken ? { headers: { Authorization: `Bearer ${heroToken}` } } : {}),
             }}
-            style={[StyleSheet.absoluteFill, { opacity: 0.42, transform: [{ scale: zoom }] }]}
+            style={[StyleSheet.absoluteFill, { opacity: 0.55, transform: [{ scale: zoom }] }]}
             resizeMode="cover"
           />
-        ) : (
-          <>
-            <Image source={media.gym} style={[StyleSheet.absoluteFill, { opacity: 0.7 }]} resizeMode="cover" />
-            <LinearGradient
-              colors={["rgba(255,255,255,0.32)", "rgba(8,9,11,0)"]}
-              start={{ x: 1, y: 0 }}
-              end={{ x: 0.3, y: 0.7 }}
-              style={StyleSheet.absoluteFill}
-            />
-          </>
-        )}
-        <LinearGradient
-          colors={["rgba(8,9,11,0.15)", "rgba(8,9,11,0.4)", "rgba(8,9,11,0.92)"]}
-          locations={[0, 0.55, 1]}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        />
-
-        <View style={s.bandControls}>
-          {hasHero && (
+          <LinearGradient
+            colors={["rgba(8,9,11,0.20)", "rgba(8,9,11,0.55)", "rgba(8,9,11,0.94)"]}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          <View style={s.bandControls}>
+            <IconButton icon="trash-2" label="Remove cover photo" onPress={() => remove.mutate()} disabled={busy} />
+            <IconButton icon="camera" label="Change cover photo" onPress={pickHero} disabled={busy} />
+          </View>
+          {identity}
+        </View>
+      ) : (
+        <GlassCard padding={0}>
+          {identity}
+          <View style={s.coverRow}>
             <Pressable
-              onPress={() => remove.mutate()}
+              onPress={pickHero}
               disabled={busy}
-              style={[s.bandBtn, busy && { opacity: 0.4 }]}
-              hitSlop={8}
-              accessibilityLabel="Remove cover photo"
+              accessibilityRole="button"
+              accessibilityLabel="Add cover photo"
+              style={({ pressed }) => [s.coverBtn, pressed && { backgroundColor: palette.raised }, busy && { opacity: 0.4 }]}
             >
-              <Feather name="trash-2" size={16} color={palette.text} />
+              {busy ? <ActivityIndicator size="small" color={palette.textMid} /> : <Feather name="camera" size={16} color={palette.textMid} />}
+              <Text style={s.coverText}>Add cover photo</Text>
             </Pressable>
-          )}
-          <Pressable
-            onPress={pickHero}
-            disabled={busy}
-            style={[s.bandBtn, busy && { opacity: 0.4 }]}
-            hitSlop={8}
-            accessibilityLabel={hasHero ? "Change cover photo" : "Add cover photo"}
-          >
-            {busy ? (
-              <ActivityIndicator size="small" color={ACCENT} />
-            ) : (
-              <Feather name="camera" size={16} color={ACCENT} />
-            )}
-          </Pressable>
-        </View>
-
-        <View style={s.bandBody}>
-          <Eyebrow style={s.bandKicker}>IDENTITY</Eyebrow>
-          <Punch style={s.bandName} numberOfLines={2}>
-            {fighter.name}
-          </Punch>
-          {subtitle ? <Text style={s.bandArchetype}>{subtitle.toUpperCase()}</Text> : null}
-        </View>
-      </View>
-      {uploadError && <Text style={s.bandError}>{uploadError}</Text>}
+          </View>
+        </GlassCard>
+      )}
+      {uploadError ? <Text style={s.bandError}>{uploadError}</Text> : null}
     </View>
   );
 }
@@ -334,13 +364,10 @@ export default function ProfileScreen() {
     try {
       const info = await restorePurchases();
       await sync.mutateAsync();
-      void Haptics.notificationAsync(
-        hasFramePlus(info)
-          ? Haptics.NotificationFeedbackType.Success
-          : Haptics.NotificationFeedbackType.Warning,
-      );
+      if (hasFramePlus(info)) haptic.success();
+      else haptic.select();
     } catch {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic.error();
     } finally {
       setRestoring(false);
     }
@@ -393,8 +420,8 @@ export default function ProfileScreen() {
   const focus = fighter ? primaryFocus(fighter, activeFacts) : null;
   const arch = getArchetype(fighter?.spiritAnimal);
   const comp = pressure
-    ? { value: `${pressure.daysToEvent}D · ${pressure.tierLabel.toUpperCase()}`, sub: pressure.competition.eventName }
-    : { value: "NONE SCHEDULED", sub: undefined as string | undefined };
+    ? { value: `${pressure.daysToEvent} days · ${pressure.tierLabel}`, sub: pressure.competition.eventName }
+    : { value: "None scheduled", sub: undefined as string | undefined };
 
   const isLoading = fighterLoading || factsLoading;
 
@@ -402,7 +429,7 @@ export default function ProfileScreen() {
     refetch();
     refetchFacts();
     compQuery.refetch();
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.select();
   }
 
   async function handleSignOut() {
@@ -446,13 +473,13 @@ export default function ProfileScreen() {
       await apiDelete<{ deleted: true }>("/account");
       await signOut();
       router.replace("/sign-in");
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptic.success();
       Alert.alert(
         "Account deleted",
         "Your FRAME account and training data have been permanently deleted.",
       );
     } catch (error) {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic.error();
       Alert.alert(
         "Could not delete account",
         error instanceof Error
@@ -494,404 +521,327 @@ export default function ProfileScreen() {
 
   if (isLoading && !fighter) {
     return (
-      <Screen>
-        <View style={[s.root, { paddingTop: topPad }]}>
-          <ActivityIndicator color={ACCENT} style={{ marginTop: 60 }} />
+      <Screen light={null}>
+        <View style={[s.root, { paddingTop: topPad + 12, paddingHorizontal: SCREEN_PAD }]}>
+          <EmptyState kind="loading" title="Loading your profile" />
         </View>
       </Screen>
     );
   }
 
+  const linkRows: { label: string; url: string; a11y?: string }[] = [
+    { label: "Privacy policy", url: apiUrl("/privacy") },
+    { label: "Support", url: apiUrl("/support") },
+    { label: "Terms of service", url: apiUrl("/terms") },
+    { label: "Manage App Store subscription", url: "https://apps.apple.com/account/subscriptions", a11y: "Manage App Store subscriptions" },
+  ];
+
   return (
-    <Screen photo={media.gym}>
+    <Screen light="silver" focus="topRight">
     <ScrollView
       style={s.root}
-      contentContainerStyle={[s.content, { paddingTop: topPad + 12, paddingBottom: bottomPad + 32 }]}
+      contentContainerStyle={[s.content, { paddingTop: topPad + 12, paddingBottom: bottomPad + 40 }]}
       refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} tintColor={ACCENT} />
+        <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} tintColor={palette.textMid} />
       }
     >
-      {/* PASSPORT HEADER */}
-      <View style={s.passportHead}>
-        <Eyebrow style={s.passportKicker}>ATHLETE</Eyebrow>
-        <Display size="title" style={s.passportTitle}>Passport</Display>
+      {/* HEADER */}
+      <View style={s.pageHead}>
+        <Display size="title">Profile</Display>
+        {fighter ? (
+          <IconButton icon="edit-2" label="Edit profile" onPress={() => setEditVisible(true)} />
+        ) : null}
       </View>
 
       {!fighter ? (
-        <Text style={s.emptyState}>No athlete profile yet.</Text>
+        <EmptyState
+          kind="empty"
+          icon="user"
+          title="No athlete profile yet"
+          body="Pull to refresh, or reload to check again."
+          actionLabel="Reload"
+          onAction={handleRefresh}
+        />
       ) : (
         <>
-          {/* IDENTITY BAND + cover photo (site leads with this) */}
-          <FadeIn style={s.identityWrap}>
+          {/* 1. ATHLETE CONTEXT FIRST */}
+          <FadeIn style={s.block}>
             <IdentityBand
               fighter={fighter}
-              subtitle={
-                arch
-                  ? `${arch.name} · ${model.coachingMode.label}`
-                  : fighter.archetype ?? null
-              }
+              subtitle={arch ? `${arch.name} · ${model.coachingMode.label}` : fighter.archetype ?? null}
             />
-            <Pressable
-              onPress={() => setEditVisible(true)}
-              style={s.editFab}
-              hitSlop={10}
-              accessibilityLabel="Edit profile"
-            >
-              <Feather name="edit-2" size={16} color={palette.text} />
-            </Pressable>
           </FadeIn>
 
           {/* BJJ rank is shown only to BJJ athletes. */}
           {fighter.level && isBjjSport(fighter.primarySport) ? (
-            <View style={s.beltCard}>
-              <Belt level={fighter.level} showMeaning />
+            <View style={s.block}>
+              <GlassCard>
+                <Belt level={fighter.level} showMeaning />
+              </GlassCard>
             </View>
           ) : null}
 
-          {/* ─── 1. ATHLETE MODEL — WHAT FRAME KNOWS ─────────────── */}
-          <View style={s.sectionHeader}>
-            <Text style={s.sectionOverline}>ATHLETE MODEL</Text>
-            <Text style={s.sectionTitle}>What FRAME knows</Text>
-          </View>
+          <Section title="Right now">
+            <DataRow first label="State" value={sentence(frameState.label)} sub={frameState.source} />
+            <DataRow label="Coaching mode" value={sentence(model.coachingMode.label)} sub={model.coachingMode.focus} />
+            <DataRow label="Competition" value={comp.value} sub={comp.sub} />
+            {focus ? <DataRow label="Primary focus" value={sentence(focus.label)} sub={focus.source} /> : null}
+          </Section>
 
-          <View style={s.panel}>
-            <View style={s.panelPad}>
-              <View style={s.headRow}>
-                <SectionHead overline="DOSSIER · MODEL CONFIDENCE" title="Understanding your game" />
-                {factsFetching ? <Text style={s.syncing}>SYNCING</Text> : null}
-              </View>
-
-              <View style={s.gaugeRow}>
-                <ArcGauge
-                  value={model.frameConfidence}
-                  size={220}
-                  display={`${model.frameConfidence}%`}
-                  label="Model confidence"
-                />
-              </View>
-
-              {model.lastUpdated ? (
-                <Text style={s.updated}>Updated {formatHeartbeat(model.lastUpdated)}</Text>
-              ) : null}
-
-              <View style={s.stageRow}>
-                <Text style={s.stageLabel}>STAGE</Text>
-                <Text style={s.stageValue}>{model.maturity.stage.label.toUpperCase()}</Text>
-              </View>
-
-              <Text style={s.bodyCopy}>{confidenceCopy(model.frameConfidence)}</Text>
+          {/* 2. ATHLETE MODEL */}
+          <Section
+            title="What FRAME knows"
+            aside={factsFetching ? <Text style={s.syncing}>Syncing</Text> : undefined}
+            padding={20}
+          >
+            <View style={s.gaugeRow}>
+              <ArcGauge
+                value={model.frameConfidence}
+                size={200}
+                display={`${model.frameConfidence}%`}
+                label="Model confidence"
+              />
             </View>
+            {model.lastUpdated ? (
+              <Text style={s.updated}>Updated {formatHeartbeat(model.lastUpdated)}</Text>
+            ) : null}
+            <View style={s.stageRow}>
+              <Text style={s.dataLabel}>Stage</Text>
+              <Status label={sentence(model.maturity.stage.label)} tone="gold" />
+            </View>
+            <Text style={s.bodyCopy}>{confidenceCopy(model.frameConfidence)}</Text>
 
             {model.lowestCategories.length > 0 && (
-              <View style={s.panelDivided}>
-                <Text style={s.subOverline}>LOWEST CONFIDENCE</Text>
+              <View style={s.lowest}>
+                <Label>Lowest confidence</Label>
                 {model.lowestCategories.map((c) => (
                   <View key={c} style={s.bulletRow}>
                     <View style={s.bulletDot} />
-                    <Text style={s.bulletText}>{(CATEGORY_LABELS[c] ?? c).toUpperCase()}</Text>
+                    <Text style={s.bulletText}>{CATEGORY_LABELS[c] ?? c}</Text>
                   </View>
                 ))}
               </View>
             )}
 
-            <Pressable style={s.ctaRow} onPress={() => router.push("/(tabs)/chat")}>
-              <Text style={s.ctaText}>CONTINUE CALIBRATION</Text>
-              <Feather name="arrow-right" size={13} color={ACCENT} />
-            </Pressable>
-          </View>
+            <Button
+              title="Continue calibration"
+              variant="secondary"
+              onPress={() => router.push("/(tabs)/chat")}
+              style={{ marginTop: 20 }}
+            />
+          </Section>
 
-          {/* ─── 2. ATHLETE STATE — REAL SIGNAL ONLY ─────────────── */}
-          <View style={s.panel}>
-            <View style={s.stateTop}>
-              <Text style={s.stateTopLabel}>ATHLETE STATE</Text>
-              <Text style={s.stateTopAside}>REAL SIGNAL ONLY</Text>
-            </View>
-            <View style={s.rowDivided}>
-              <DataRow label="STATE" value={frameState.label.toUpperCase()} sub={frameState.source} />
-              <DataRow
-                label="COACHING MODE"
-                value={model.coachingMode.label.toUpperCase()}
-                sub={model.coachingMode.focus}
-              />
-              <DataRow label="COMPETITION" value={comp.value} sub={comp.sub} />
-              {focus ? <DataRow label="PRIMARY FOCUS" value={focus.label.toUpperCase()} sub={focus.source} /> : null}
-            </View>
-          </View>
-
-          {/* ─── 3. MODEL COVERAGE — ATHLETE DNA ─────────────────── */}
-          <View style={s.panel}>
-            <View style={s.panelPad}>
-              <SectionHead overline="MODEL COVERAGE" title="Athlete DNA" />
-            </View>
+          {/* 3. DNA */}
+          <Section title="Athlete DNA">
             {isFramePlus ? (
               <View style={s.radarWrap}>
                 <RadarChart dims={model.radarData} />
                 <Text style={s.radarCaption}>
-                  Confidence bands — how well FRAME understands each dimension. Not scored 1–100.
+                  Confidence bands: how well FRAME understands each dimension. Not scored 1–100.
                 </Text>
               </View>
             ) : (
               <LockedBody
-                note="The DNA radar — how well FRAME reads each dimension of your game — is part of the full athlete model."
+                note="The DNA radar, how well FRAME reads each dimension of your game, is part of the full athlete model."
                 onTap={() => router.push("/paywall")}
               />
             )}
-          </View>
+          </Section>
 
-          {/* ─── 4. DERIVED READ — ATHLETE IDENTITY ──────────────── */}
-          <View style={s.panel}>
-            <View style={s.panelPad}>
-              <SectionHead overline="DERIVED READ" title="Athlete identity" />
-            </View>
-            <View style={s.rowDivided}>
+          {/* 4. DERIVED READ */}
+          <Section title="Athlete identity">
+            <DataRow
+              first
+              label="Current style"
+              value={`${sportLabel(fighter.primarySport ?? fighter.art)} · ${fighter.level ?? "—"}`}
+            />
+            {arch && (
+              <>
+                <DataRow label="Archetype" value={arch.name} />
+                <DataRow label="Pressure response" value={leadClause(arch.pressureSignature)} />
+                <DataRow label="Gift" value={leadClause(arch.gift)} />
+                <DataRow label="Shadow" value={leadClause(arch.shadow)} />
+              </>
+            )}
+            {model.topWeakness && (
               <DataRow
-                label="CURRENT STYLE"
-                value={`${(fighter.primarySport ?? fighter.art ?? "—")} · ${fighter.level ?? "—"}`.toUpperCase()}
+                label="Observed blind spot"
+                value={sentence(model.topWeakness.topic || model.topWeakness.content)}
+                sub={`Confidence ${model.topWeakness.confidence} of 5`}
               />
-              {arch && (
-                <>
-                  <DataRow label="PRIMARY ARCHETYPE" value={arch.name.toUpperCase()} />
-                  <DataRow label="PRESSURE RESPONSE" value={leadClause(arch.pressureSignature)} />
-                  <DataRow label="GIFT" value={leadClause(arch.gift)} />
-                  <DataRow label="SHADOW" value={leadClause(arch.shadow)} />
-                </>
-              )}
-              <DataRow
-                label="COACHING MODE"
-                value={model.coachingMode.label.toUpperCase()}
-                sub={model.coachingMode.focus}
-              />
-              {model.topWeakness && (
-                <DataRow
-                  label="OBSERVED BLIND SPOT"
-                  value={(model.topWeakness.topic || model.topWeakness.content).toUpperCase()}
-                  sub={`conf ${model.topWeakness.confidence}/5`}
-                />
-              )}
-            </View>
+            )}
 
-            {/* INTEGRITY / CADENCE / DAYS IN FRAME strip */}
-            <View style={s.tripleStrip}>
+            <View style={[s.tripleStrip, s.rowRule]}>
               <View style={s.tripleCell}>
-                <Text style={s.tripleLabel}>INTEGRITY</Text>
-                <Text style={s.tripleValue}>{model.integrityLabel.toUpperCase()}</Text>
+                <Text style={s.tripleLabel}>Integrity</Text>
+                <Text style={s.tripleValue}>{sentence(model.integrityLabel)}</Text>
               </View>
               <View style={[s.tripleCell, s.tripleBorder]}>
-                <Text style={s.tripleLabel}>CADENCE</Text>
-                <Text style={s.tripleValue}>{(fighter.trainingFrequency ?? "—").toUpperCase()}</Text>
+                <Text style={s.tripleLabel}>Cadence</Text>
+                <Text style={s.tripleValue}>{fighter.trainingFrequency ?? "—"}</Text>
               </View>
               <View style={[s.tripleCell, s.tripleBorder]}>
-                <Text style={s.tripleLabel}>DAYS IN FRAME</Text>
+                <Text style={s.tripleLabel}>Days in FRAME</Text>
                 <Text style={s.tripleValue}>{model.sinceDays}</Text>
               </View>
             </View>
-            <View style={s.integrityBarWrap}>
+            <View style={[s.integrityBarWrap, s.rowRule]}>
               <View style={s.integrityBar}>
                 {[0, 1, 2, 3, 4].map((i) => (
-                  <View
-                    key={i}
-                    style={[s.integritySeg, i < model.integritySegments ? s.integrityOn : s.integrityOff]}
-                  />
+                  <View key={i} style={[s.integritySeg, i < model.integritySegments ? s.integrityOn : s.integrityOff]} />
                 ))}
               </View>
               <Text style={s.integrityCaption}>
-                Frame integrity — how much of your structure survives when pressure spikes. Composure
-                under fragmentation, not a fitness score.
+                Frame integrity: how much of your structure survives when pressure spikes. Composure under
+                fragmentation, not a fitness score.
               </Text>
             </View>
-          </View>
+          </Section>
 
-          {/* ─── 5. FULL MODEL — N OBSERVATIONS ──────────────────── */}
-          <View style={s.sectionHeaderRow}>
-            <View>
-              <Text style={s.sectionOverline}>FULL MODEL</Text>
-              <Text style={s.sectionTitle}>
+          {/* 5. FULL MODEL */}
+          <View style={s.section}>
+            <View style={s.sectionHead}>
+              <Display size="heading">
                 {activeFacts.length} observation{activeFacts.length === 1 ? "" : "s"}
-              </Text>
+              </Display>
+              <Pressable onPress={() => router.push("/history")} hitSlop={8} style={s.linkAside} accessibilityRole="link">
+                <Text style={s.linkAsideText}>View history</Text>
+              </Pressable>
             </View>
-            <Pressable onPress={() => router.push("/history")} hitSlop={8}>
-              <Text style={s.viewHistory}>VIEW HISTORY →</Text>
-            </Pressable>
-          </View>
 
-          {!isFramePlus ? (
-            <View style={s.panel}>
-              <LockedBody
-                note={
-                  activeFacts.length === 0
-                    ? "FRAME records durable observations as you train and talk. The full model is a FRAME+ feature."
-                    : `FRAME holds ${activeFacts.length} recorded observation${activeFacts.length === 1 ? "" : "s"} on you. The full breakdown is a FRAME+ feature.`
-                }
-                onTap={() => router.push("/paywall")}
+            {!isFramePlus ? (
+              <GlassCard padding={0}>
+                <LockedBody
+                  note={
+                    activeFacts.length === 0
+                      ? "FRAME records durable observations as you train and talk. The full model is a FRAME+ feature."
+                      : `FRAME holds ${activeFacts.length} recorded observation${activeFacts.length === 1 ? "" : "s"} on you. The full breakdown is a FRAME+ feature.`
+                  }
+                  onTap={() => router.push("/paywall")}
+                />
+              </GlassCard>
+            ) : activeFacts.length === 0 ? (
+              <EmptyState
+                kind="empty"
+                icon="message-circle"
+                title="No observations yet"
+                body="The model sharpens with use. As you talk to the coach, FRAME records durable observations and feeds them back into how you're coached."
+                actionLabel="Talk to your coach"
+                onAction={() => router.push("/(tabs)/chat")}
               />
-            </View>
-          ) : activeFacts.length === 0 ? (
-            <View style={[s.panel, s.panelPad]}>
-              <Text style={s.bodyCopy}>
-                The model sharpens with use. As you talk to the coach, FRAME records durable
-                observations and feeds them back into how you're coached.
-              </Text>
-            </View>
-          ) : (
-            <View style={{ gap: 20 }}>
-              {CATEGORY_ORDER.filter((c) => (grouped[c]?.length ?? 0) > 0).map((c) => (
-                <View key={c}>
-                  <View style={s.catHeadRow}>
-                    <Text style={s.catHeadLabel}>{(CATEGORY_LABELS[c] ?? c).toUpperCase()}</Text>
-                    <View style={s.catHeadLine} />
-                    <Text style={s.catHeadCount}>{grouped[c]!.length}</Text>
-                  </View>
-                  <View style={{ gap: 6 }}>
+            ) : (
+              <View style={{ gap: 16 }}>
+                {CATEGORY_ORDER.filter((c) => (grouped[c]?.length ?? 0) > 0).map((c) => (
+                  <GlassCard key={c} padding={0}>
+                    <View style={s.catHeadRow}>
+                      <Text style={s.catHeadLabel}>{CATEGORY_LABELS[c] ?? c}</Text>
+                      <Text style={s.catHeadCount}>{grouped[c]!.length}</Text>
+                    </View>
                     {grouped[c]!.map((f) => (
-                      <View key={f.id} style={s.factItem}>
-                        <Text style={s.factText} numberOfLines={2}>
-                          {(f.topic || f.content).toUpperCase()}
-                        </Text>
+                      <View key={f.id} style={[s.factItem, s.rowRule]}>
+                        <Text style={s.factText}>{sentence(f.topic || f.content)}</Text>
                         <View style={s.factMeta}>
-                          {(f.evidenceCount ?? 1) > 1 && (
-                            <Text style={s.factEvidence}>×{f.evidenceCount}</Text>
-                          )}
+                          {(f.evidenceCount ?? 1) > 1 && <Text style={s.factEvidence}>×{f.evidenceCount}</Text>}
                           <FactConfidence value={f.confidence} />
                         </View>
                       </View>
                     ))}
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* MEMBERSHIP */}
-          <View style={[s.section, { marginTop: 32 }]}>
-            {isFramePlus ? (
-              <View style={s.memberRow}>
-                <Feather name="award" size={14} color={ACCENT} style={{ marginRight: 8 }} />
-                <Text style={s.memberText}>FRAME+ ACTIVE</Text>
+                  </GlassCard>
+                ))}
               </View>
-            ) : (
-              <Pressable
-                style={({ pressed }) => [s.upgradeCard, pressed && s.pressed]}
-                onPress={() => router.push("/paywall")}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={s.upgradeTitle}>FRAME+</Text>
-                  <Text style={s.upgradeSub}>
-                    Unlimited coaching · full history · full mission · subscribe in the iOS app
-                  </Text>
-                </View>
-                <Feather name="arrow-right" size={14} color={ACCENT} />
-              </Pressable>
             )}
-            <Pressable style={s.restoreLink} onPress={handleRestore} disabled={restoring}>
-              {restoring ? (
-                <ActivityIndicator color={palette.textMid} size="small" />
-              ) : (
-                <Text style={s.restoreLinkText}>RESTORE PURCHASES</Text>
-              )}
-            </Pressable>
           </View>
 
-          {/* ACCOUNT */}
+          {/* MEMBERSHIP */}
           <View style={s.section}>
-            <Text style={s.privacyHeading}>AI COACHING & PRIVACY</Text>
+            {isFramePlus ? (
+              <GlassCard tone="gold" padding={16}>
+                <View style={s.memberRow}>
+                  <Feather name="award" size={18} color={palette.gold} />
+                  <Text style={s.memberText}>FRAME+ active</Text>
+                </View>
+              </GlassCard>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Upgrade to FRAME+"
+                onPress={() => router.push("/paywall")}
+                style={({ pressed }) => pressed && s.pressed}
+              >
+                <GlassCard tone="gold" padding={18}>
+                  <View style={s.upgradeRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.upgradeTitle}>FRAME+</Text>
+                      <Text style={s.upgradeSub}>
+                        Unlimited coaching, full history, full mission. Subscribe in the iOS app.
+                      </Text>
+                    </View>
+                    <Feather name="arrow-right" size={18} color={palette.goldPale} />
+                  </View>
+                </GlassCard>
+              </Pressable>
+            )}
+            <Button
+              title="Restore purchases"
+              variant="ghost"
+              onPress={handleRestore}
+              loading={restoring}
+              style={{ marginTop: 8 }}
+            />
+          </View>
+
+          {/* ACCOUNT, PRIVACY */}
+          <Section title="AI coaching and privacy" padding={20}>
             <Text style={s.privacyCopy}>
               FRAME uses AI coaching services. Depending on the feature, FRAME may share the exact categories shown in the permission disclosure with Anthropic (Claude) or OpenAI. FRAME provides performance coaching, not medical advice or diagnosis.
             </Text>
-            <Pressable
-              style={s.privacyLink}
-              onPress={() => void Linking.openURL(apiUrl("/privacy"))}
-              accessibilityRole="link"
-            >
-              <Text style={s.privacyLinkText}>PRIVACY POLICY</Text>
-              <Feather name="external-link" size={13} color={ACCENT} />
-            </Pressable>
-            <Pressable
-              style={s.privacyLink}
-              onPress={() => void Linking.openURL(apiUrl("/support"))}
-              accessibilityRole="link"
-            >
-              <Text style={s.privacyLinkText}>SUPPORT</Text>
-              <Feather name="external-link" size={13} color={ACCENT} />
-            </Pressable>
-            <Pressable
-              style={s.privacyLink}
-              onPress={() =>
-                void Linking.openURL("https://apps.apple.com/account/subscriptions")
-              }
-              accessibilityRole="link"
-              accessibilityLabel="Manage App Store subscriptions"
-            >
-              <Text style={s.privacyLinkText}>MANAGE APP STORE SUBSCRIPTION</Text>
-              <Feather name="external-link" size={13} color={ACCENT} />
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                s.withdrawAiBtn,
-                (withdrawingAi || deletingAccount) && s.disabled,
-                pressed && s.pressed,
-              ]}
+            <View style={s.linkList}>
+              {linkRows.map((l, i) => (
+                <Pressable
+                  key={l.label}
+                  style={({ pressed }) => [s.linkRow, i > 0 && s.rowRule, pressed && { opacity: 0.7 }]}
+                  onPress={() => void Linking.openURL(l.url)}
+                  accessibilityRole="link"
+                  accessibilityLabel={l.a11y ?? l.label}
+                >
+                  <Text style={s.linkText}>{l.label}</Text>
+                  <Feather name="external-link" size={16} color={palette.textLow} />
+                </Pressable>
+              ))}
+            </View>
+            <Button
+              title="Withdraw AI permission"
+              variant="secondary"
               onPress={requestAiWithdrawal}
               disabled={withdrawingAi || deletingAccount}
-              accessibilityRole="button"
+              loading={withdrawingAi}
               accessibilityLabel="Withdraw AI permission"
-            >
-              {withdrawingAi ? (
-                <ActivityIndicator size="small" color={palette.textMid} />
-              ) : (
-                <Text style={s.withdrawAiText}>WITHDRAW AI PERMISSION</Text>
-              )}
-            </Pressable>
-            <Pressable
-              style={s.privacyLink}
-              onPress={() => void Linking.openURL(apiUrl("/terms"))}
-              accessibilityRole="link"
-            >
-              <Text style={s.privacyLinkText}>TERMS OF SERVICE</Text>
-              <Feather name="external-link" size={13} color={ACCENT} />
-            </Pressable>
-            {email ? <Text style={s.emailText}>{email}</Text> : null}
-            <Pressable
-              style={({ pressed }) => [
-                s.signOutBtn,
-                deletingAccount && s.disabled,
-                pressed && s.pressed,
-              ]}
+              style={{ marginTop: 16 }}
+            />
+          </Section>
+
+          <View style={s.section}>
+            {email ? <Text style={s.emailText}>Signed in as {email}</Text> : null}
+            <Button
+              title="Sign out"
+              variant="secondary"
               onPress={handleSignOut}
               disabled={deletingAccount}
-            >
-              <Feather name="log-out" size={14} color={palette.textMid} style={{ marginRight: 6 }} />
-              <Text style={s.signOutText}>SIGN OUT</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                s.deleteAccountBtn,
-                deletingAccount && s.disabled,
-                pressed && s.pressed,
-              ]}
+            />
+            <Button
+              title="Delete account"
+              variant="danger"
               onPress={requestAccountDeletion}
-              disabled={deletingAccount}
-              accessibilityRole="button"
+              loading={deletingAccount}
               accessibilityLabel="Delete account permanently"
-            >
-              {deletingAccount ? (
-                <ActivityIndicator size="small" color={palette.redLight} />
-              ) : (
-                <>
-                  <Feather name="trash-2" size={14} color={palette.redLight} style={{ marginRight: 6 }} />
-                  <Text style={s.deleteAccountText}>DELETE ACCOUNT</Text>
-                </>
-              )}
-            </Pressable>
+              style={{ marginTop: 12 }}
+            />
             <Text style={s.deleteAccountNote}>
               Permanently removes your active FRAME account data. App Store purchase records and subscription cancellation remain managed by Apple.
             </Text>
           </View>
 
-          <ProfileEditModal
-            visible={editVisible}
-            fighter={fighter}
-            onClose={() => setEditVisible(false)}
-          />
+          <ProfileEditModal visible={editVisible} fighter={fighter} onClose={() => setEditVisible(false)} />
         </>
       )}
     </ScrollView>
@@ -900,329 +850,111 @@ export default function ProfileScreen() {
 }
 
 const cd = StyleSheet.create({
-  wrap: { flexDirection: "row", alignItems: "center", gap: 6 },
-  row: { flexDirection: "row", gap: 3 },
-  pip: { width: 3, height: 10, borderRadius: 2 },
-  active: { backgroundColor: palette.goldLight },
-  inactive: { backgroundColor: "rgba(255,255,255,0.1)" },
-  count: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.5, color: palette.textLow },
+  wrap: { flexDirection: "row", alignItems: "center", gap: 8 },
+  track: { width: 44, height: 4, borderRadius: 2, backgroundColor: palette.borderStrong, overflow: "hidden" },
+  fill: { height: 4, borderRadius: 2, backgroundColor: palette.gold },
+  word: { fontFamily: fonts.medium, fontSize: 12, color: palette.textMid, width: 48 },
 });
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "transparent" },
-  content: { paddingHorizontal: 20 },
-  section: { marginBottom: 32 },
-  privacyHeading: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textMid, marginBottom: 10 },
-  privacyCopy: { fontFamily: fonts.text, fontSize: 13, lineHeight: 20, color: palette.textMid, marginBottom: 12 },
-  privacyLink: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 },
-  privacyLinkText: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.5, color: palette.goldLight },
-  emptyState: {
-    fontFamily: fonts.text,
-    fontSize: 14,
-    color: palette.textLow,
-    textAlign: "center",
-    paddingVertical: 48,
-  },
-
-  // Passport header
-  passportHead: { alignItems: "center", marginBottom: 18, gap: 2 },
-  passportKicker: { color: palette.goldLight },
-  passportTitle: { textAlign: "center" },
+  content: { paddingHorizontal: SCREEN_PAD },
+  pageHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
+  block: { marginBottom: 20 },
+  section: { marginBottom: 28 },
+  sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12, minHeight: 26 },
+  syncing: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid },
+  rowRule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.borderStrong },
+  linkAside: { minHeight: MIN_TAP, justifyContent: "center", marginVertical: -9 },
+  linkAsideText: { fontFamily: fonts.medium, fontSize: 14, color: palette.goldPale },
 
   // Identity band
-  identityWrap: { position: "relative", marginBottom: 16 },
   band: {
-    minHeight: 230,
+    minHeight: 240,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: palette.glassEdge,
-    backgroundColor: palette.graphite1,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
     overflow: "hidden",
     justifyContent: "flex-end",
   },
-  bandControls: { position: "absolute", top: 10, right: 10, flexDirection: "row", gap: 6, zIndex: 10 },
-  bandBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
-    backgroundColor: "rgba(8,9,11,0.55)",
-  },
-  bandBody: { paddingHorizontal: 16, paddingTop: 32, paddingBottom: 16 },
-  bandKicker: { color: palette.goldLight, marginBottom: 4 },
-  bandName: { fontSize: 50, lineHeight: 48, color: palette.textHi },
-  bandArchetype: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.4, color: palette.goldLight, marginTop: 8 },
-  bandError: {
-    fontFamily: fonts.text,
-    fontSize: 13,
-    color: palette.redLight,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  editFab: {
-    position: "absolute",
-    bottom: 14,
-    right: 14,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
-    backgroundColor: "rgba(8,9,11,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  // Belt
-  beltCard: {
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
-    borderRadius: radius.lg,
-    backgroundColor: palette.graphite1,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    marginBottom: 24,
-    ...shadow.card,
-  },
-
-  // Big editorial section header (numbered sections 1 & 5)
-  sectionHeader: { marginBottom: 16 },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  sectionOverline: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 6 },
-  sectionTitle: { fontFamily: fonts.displayThin, fontSize: 20, lineHeight: 25, color: palette.textHi },
-  viewHistory: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.8, color: palette.textLow },
-
-  // Panel shell
-  panel: {
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
-    borderRadius: radius.lg,
-    backgroundColor: palette.graphite1,
-    marginBottom: 20,
-    overflow: "hidden",
-    ...shadow.card,
-  },
-  panelPad: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 },
-  panelDivided: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
-    borderTopWidth: 1,
-    borderTopColor: palette.hairline,
-  },
-
-  // Section head (overline + title, inside panels)
-  headBlock: {},
-  headOverline: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 8 },
-  headTitle: { fontFamily: fonts.displayThin, fontSize: 15, lineHeight: 19, color: palette.textHi },
-  headRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
-  syncing: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.goldLight },
-
-  // Model confidence
-  gaugeRow: { alignItems: "center", marginTop: 12, marginBottom: 4 },
-  updated: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.5, color: palette.textLow, marginBottom: 16 },
-  stageRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14 },
-  stageLabel: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textMid },
-  stageValue: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.8, color: palette.goldLight },
-    bodyCopy: { fontFamily: fonts.text, fontSize: 13, lineHeight: 20, color: palette.textMid, marginTop: 16 },
-
-  // Lowest confidence bullets
-  subOverline: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 12 },
-  bulletRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
-  bulletDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: palette.goldLight },
-  bulletText: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.8, color: palette.textMid },
-
-  // CTA row
-  ctaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: palette.hairline,
-  },
-  ctaText: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.8, color: palette.goldLight },
-
-  // Athlete state top
-  stateTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 4,
-  },
-  stateTopLabel: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.8, color: palette.goldLight },
-  stateTopAside: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textMid },
+  bandControls: { position: "absolute", top: 10, right: 10, flexDirection: "row", gap: 8, zIndex: 10 },
+  bandBody: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 20, gap: 4 },
+  bandName: { ...T.title, fontSize: 30, lineHeight: 36, color: palette.textHi },
+  bandSub: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 20, color: palette.textMid },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  coverRow: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.borderStrong },
+  coverBtn: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: MIN_TAP, paddingHorizontal: 20 },
+  coverText: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid },
+  bandError: { fontFamily: fonts.regular, fontSize: 13, color: palette.redText, paddingHorizontal: 4, paddingTop: 10 },
 
   // Data rows
-  rowDivided: {},
   dataRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: palette.hairline,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
   },
-  dataLabel: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.4, color: palette.textMid, width: 112, paddingTop: 2 },
+  dataLabel: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid, width: 118, paddingTop: 1 },
   dataValueWrap: { flex: 1, alignItems: "flex-end" },
-  dataValue: { fontFamily: fonts.textMedium, fontSize: 13, letterSpacing: 0.6, color: palette.textHi, textAlign: "right" },
-  dataSub: { fontFamily: fonts.text, fontSize: 12, color: palette.textMid, marginTop: 3, textAlign: "right" },
+  dataValue: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, color: palette.textHi, textAlign: "right" },
+  dataSub: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: palette.textMid, marginTop: 3, textAlign: "right" },
+
+  // Model confidence
+  gaugeRow: { alignItems: "center", marginBottom: 4 },
+  updated: { fontFamily: fonts.regular, fontSize: 13, color: palette.textLow, textAlign: "center", marginBottom: 16 },
+  stageRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
+  bodyCopy: { ...T.bodySm, color: palette.textMid, marginTop: 12 },
+  lowest: { marginTop: 20, gap: 8 },
+  bulletRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  bulletDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: palette.textLow },
+  bulletText: { fontFamily: fonts.regular, fontSize: 15, color: palette.textHi },
 
   // Locked FRAME+ body
-  lockRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: palette.hairline,
-  },
-  lockNote: { flex: 1, fontFamily: fonts.text, fontSize: 13, lineHeight: 19, color: palette.textMid },
-  lockBadge: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.goldLight },
+  lockRow: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingHorizontal: 20, paddingVertical: 18, minHeight: MIN_TAP },
+  lockNote: { flex: 1, ...T.bodySm, color: palette.textMid },
 
   // Radar
-  radarWrap: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20 },
-  radarCaption: { fontFamily: fonts.text, fontSize: 12, lineHeight: 17, color: palette.textLow, textAlign: "center", marginTop: 8 },
+  radarWrap: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20 },
+  radarCaption: { ...T.caption, color: palette.textLow, textAlign: "center", marginTop: 8 },
 
-  // Integrity triple strip
-  tripleStrip: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: palette.hairline,
-  },
-  tripleCell: { flex: 1, paddingHorizontal: 12, paddingVertical: 12, alignItems: "center" },
-  tripleBorder: { borderLeftWidth: 1, borderLeftColor: palette.hairline },
-  tripleLabel: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textMid, marginBottom: 5 },
-  tripleValue: { fontFamily: fonts.numeral, fontSize: 18, letterSpacing: 0, color: palette.textHi, textAlign: "center" },
-  integrityBarWrap: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: palette.hairline,
-  },
+  // Integrity strip
+  tripleStrip: { flexDirection: "row" },
+  tripleCell: { flex: 1, paddingHorizontal: 8, paddingVertical: 14, alignItems: "center", gap: 4 },
+  tripleBorder: { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: palette.borderStrong },
+  tripleLabel: { fontFamily: fonts.medium, fontSize: 12, color: palette.textMid, textAlign: "center" },
+  tripleValue: { fontFamily: fonts.semi, fontSize: 16, color: palette.textHi, textAlign: "center", fontVariant: ["tabular-nums"] },
+  integrityBarWrap: { paddingHorizontal: 20, paddingVertical: 16 },
   integrityBar: { flexDirection: "row", gap: 4 },
   integritySeg: { height: 4, flex: 1, borderRadius: 2 },
-  integrityOn: { backgroundColor: ACCENT },
-  integrityOff: { backgroundColor: "rgba(255,255,255,0.14)" },
-  integrityCaption: { fontFamily: fonts.text, fontSize: 12, lineHeight: 16, color: palette.textMid, marginTop: 10 },
+  integrityOn: { backgroundColor: palette.gold },
+  integrityOff: { backgroundColor: palette.borderStrong },
+  integrityCaption: { ...T.caption, color: palette.textMid, marginTop: 10 },
 
   // Full model fact list
-  catHeadRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
-  catHeadLabel: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.6, color: palette.goldLight },
-  catHeadLine: { flex: 1, height: 1, backgroundColor: palette.goldHair },
-  catHeadCount: { fontFamily: fonts.textMedium, fontSize: 12.5, color: palette.textLow },
-  factItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    paddingLeft: 14,
-    paddingVertical: 4,
-    borderLeftWidth: 1,
-    borderLeftColor: palette.goldHair,
-  },
-  factText: { flex: 1, fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 0.8, color: palette.text },
-  factMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
-  factEvidence: { fontFamily: fonts.textMedium, fontSize: 12.5, color: palette.goldLight },
+  catHeadRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
+  catHeadLabel: { fontFamily: fonts.semi, fontSize: 16, color: palette.textHi },
+  catHeadCount: { fontFamily: fonts.medium, fontSize: 13, color: palette.textLow, fontVariant: ["tabular-nums"] },
+  factItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, paddingHorizontal: 20, paddingVertical: 14 },
+  factText: { flex: 1, fontFamily: fonts.regular, fontSize: 15, lineHeight: 21, color: palette.textHi },
+  factMeta: { alignItems: "flex-end", gap: 6 },
+  factEvidence: { fontFamily: fonts.medium, fontSize: 12, color: palette.textMid, fontVariant: ["tabular-nums"] },
 
   // Membership
-  memberRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 52,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-    backgroundColor: palette.goldWash,
-    paddingHorizontal: 20,
-  },
-  memberText: { fontFamily: fonts.textMedium, fontSize: 12, color: palette.goldLight, letterSpacing: 1.8 },
-  upgradeCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-    borderRadius: radius.lg,
-    backgroundColor: palette.goldWash,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    minHeight: 64,
-  },
-  upgradeTitle: { fontFamily: fonts.displayThin, fontSize: 17, lineHeight: 21, color: palette.goldPale },
-  upgradeSub: { fontFamily: fonts.text, fontSize: 12.5, color: palette.textMid, marginTop: 6, lineHeight: 18 },
-  restoreLink: { alignItems: "center", justifyContent: "center", minHeight: 48 },
-  restoreLinkText: { fontFamily: fonts.textMedium, fontSize: 12.5, color: palette.textLow, letterSpacing: 1.8 },
+  memberRow: { flexDirection: "row", alignItems: "center", gap: 10, justifyContent: "center" },
+  memberText: { fontFamily: fonts.semi, fontSize: 16, color: palette.goldPale },
+  upgradeRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  upgradeTitle: { ...T.heading, color: palette.goldPale },
+  upgradeSub: { ...T.bodySm, color: palette.textMid, marginTop: 4 },
 
   // Account
-  emailText: { fontFamily: fonts.text, fontSize: 13, color: palette.textLow, marginBottom: 12, textAlign: "center" },
-  withdrawAiBtn: {
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
-    minHeight: 48,
-    borderRadius: radius.pill,
-    paddingHorizontal: 20,
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  withdrawAiText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    color: palette.textMid,
-    letterSpacing: 1.8,
-  },
-  signOutBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
-    minHeight: 48,
-    borderRadius: radius.pill,
-    paddingHorizontal: 20,
-  },
-  signOutText: { fontFamily: fonts.textMedium, fontSize: 12, color: palette.textLow, letterSpacing: 1.8 },
-  deleteAccountBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(229,100,90,0.35)",
-    minHeight: 48,
-    borderRadius: radius.pill,
-    paddingHorizontal: 20,
-    marginTop: 12,
-  },
-  deleteAccountText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    color: palette.redLight,
-    letterSpacing: 1.8,
-  },
-  deleteAccountNote: {
-    fontFamily: fonts.text,
-    fontSize: 12,
-    color: palette.textLow,
-    textAlign: "center",
-    marginTop: 8,
-  },
-  disabled: { opacity: 0.45 },
-  pressed: { opacity: 0.7 },
+  privacyCopy: { ...T.bodySm, color: palette.textMid },
+  linkList: { marginTop: 12 },
+  linkRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: MIN_TAP + 4 },
+  linkText: { fontFamily: fonts.medium, fontSize: 15, color: palette.textHi },
+  emailText: { fontFamily: fonts.regular, fontSize: 13, color: palette.textLow, marginBottom: 12, textAlign: "center" },
+  deleteAccountNote: { ...T.caption, color: palette.textLow, textAlign: "center", marginTop: 10 },
+  pressed: { opacity: 0.8 },
 });

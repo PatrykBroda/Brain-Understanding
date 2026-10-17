@@ -13,8 +13,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiPatch } from "@/lib/api";
-import { Button, Display, Eyebrow, Field, Screen } from "@/components/ui";
-import { fonts, palette, radius } from "@/constants/theme";
+import { Button, Display, Field, Label, haptic } from "@/components/ui";
+import { fonts, MIN_TAP, palette, radius } from "@/constants/theme";
 import type { Fighter } from "@/context/FighterContext";
 import {
   SPORTS,
@@ -48,7 +48,10 @@ function ChipSelector({
         <Pressable
           key={o.key}
           style={[chip.item, value === o.key && chip.selected]}
-          onPress={() => onSelect(o.key)}
+          onPress={() => {
+            if (value !== o.key) haptic.select();
+            onSelect(o.key);
+          }}
           accessibilityRole="button"
           accessibilityState={{ selected: value === o.key }}
         >
@@ -64,20 +67,17 @@ function ChipSelector({
 const chip = StyleSheet.create({
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   item: {
-    minHeight: 44,
+    minHeight: MIN_TAP,
     justifyContent: "center",
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: palette.hairline,
-    backgroundColor: palette.glass,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
     paddingHorizontal: 18,
   },
-  selected: {
-    borderColor: palette.goldHair,
-    backgroundColor: palette.goldWash,
-  },
-  text: { fontFamily: fonts.textMedium, fontSize: 13, color: palette.textMid },
-  selectedText: { color: palette.goldPale },
+  selected: { borderColor: palette.goldHair, backgroundColor: palette.raised },
+  text: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid },
+  selectedText: { color: palette.textHi },
 });
 
 interface FormState {
@@ -142,162 +142,126 @@ export function ProfileEditModal({
   }
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: "#08090B" }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <Screen>
-        <View
-          style={[
-            styles.sheetHeader,
-            { paddingTop: Platform.OS === "ios" ? insets.top + 12 : 16 },
-          ]}
-        >
-          <Display size="heading" style={styles.sheetTitle}>
-            Edit profile
-          </Display>
-          <Pressable onPress={onClose} hitSlop={12} style={styles.cancelBtn} accessibilityRole="button">
-            <Text style={styles.cancelText}>Cancel</Text>
-          </Pressable>
-        </View>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={styles.scrim}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" accessibilityRole="button" />
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.kav} pointerEvents="box-none">
+          <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            <View style={styles.grabber} />
+            <View style={styles.sheetHeader}>
+              <Display size="heading">Edit profile</Display>
+              <Pressable
+                onPress={onClose}
+                hitSlop={8}
+                style={({ pressed }) => [styles.cancelBtn, pressed && { backgroundColor: palette.raised }]}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel"
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+            </View>
 
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: insets.bottom + 40 },
-          ]}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.field}>
-            <Eyebrow style={styles.label}>Combat sport</Eyebrow>
-            <ChipSelector
-              options={PROFILE_SPORTS}
-              value={form.primarySport}
-              onSelect={(k) => {
-                setForm((current) => ({
-                  ...current,
-                  primarySport: k,
-                  art: k,
-                  level: defaultLevelForSport(k),
-                }));
-              }}
-            />
+            <ScrollView
+              style={{ flexShrink: 1 }}
+              contentContainerStyle={styles.content}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.field}>
+                <Label>Combat sport</Label>
+                <ChipSelector
+                  options={PROFILE_SPORTS}
+                  value={form.primarySport}
+                  onSelect={(k) => {
+                    setForm((current) => ({
+                      ...current,
+                      primarySport: k,
+                      art: k,
+                      level: defaultLevelForSport(k),
+                    }));
+                  }}
+                />
+              </View>
+
+              <View style={styles.field}>
+                <Label>{levelLabelForSport(form.primarySport).charAt(0) + levelLabelForSport(form.primarySport).slice(1).toLowerCase().replace(/bjj/, "BJJ")}</Label>
+                <ChipSelector
+                  options={levelsForSport(form.primarySport)}
+                  value={form.level}
+                  onSelect={(k) => set("level", k)}
+                />
+              </View>
+
+              <View style={styles.field}>
+                <Label>Training frequency</Label>
+                <ChipSelector options={FREQS} value={form.trainingFrequency} onSelect={(k) => set("trainingFrequency", k)} />
+              </View>
+
+              <Field
+                label="Goals"
+                style={styles.textArea}
+                value={form.goals}
+                onChangeText={(t) => set("goals", t)}
+                placeholder="What are you working toward?"
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+
+              <Field
+                label="Acknowledged weaknesses"
+                style={styles.textArea}
+                value={form.weaknesses}
+                onChangeText={(t) => set("weaknesses", t)}
+                placeholder="What do you know needs work?"
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+
+              {error && <Text style={styles.errorText}>{error}</Text>}
+
+              <Button title="Save changes" onPress={handleSave} loading={saving} style={styles.saveBtn} />
+            </ScrollView>
           </View>
-
-          <View style={styles.field}>
-            <Eyebrow style={styles.label}>{levelLabelForSport(form.primarySport)}</Eyebrow>
-            <ChipSelector
-              options={levelsForSport(form.primarySport)}
-              value={form.level}
-              onSelect={(k) => set("level", k)}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Eyebrow style={styles.label}>Training frequency</Eyebrow>
-            <ChipSelector
-              options={FREQS}
-              value={form.trainingFrequency}
-              onSelect={(k) => set("trainingFrequency", k)}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Field
-              label="Goals"
-              style={styles.textArea}
-              value={form.goals}
-              onChangeText={(t) => set("goals", t)}
-              placeholder="What are you working toward?"
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Field
-              label="Acknowledged weaknesses"
-              style={styles.textArea}
-              value={form.weaknesses}
-              onChangeText={(t) => set("weaknesses", t)}
-              placeholder="What do you know needs work?"
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
-          </View>
-
-          {error && <Text style={styles.errorText}>{error}</Text>}
-
-          <Button
-            title="Save changes"
-            onPress={handleSave}
-            loading={saving}
-            style={styles.saveBtn}
-          />
-        </ScrollView>
-        </Screen>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  scrim: { flex: 1, backgroundColor: palette.scrim, justifyContent: "flex-end" },
+  kav: { width: "100%", maxHeight: "92%", alignItems: "center" },
+  sheet: {
+    width: "100%",
+    maxWidth: 560,
+    flexShrink: 1,
+    backgroundColor: palette.raised,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: palette.borderStrong,
+  },
+  grabber: { alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: palette.borderStrong, marginTop: 10 },
   sheetHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingBottom: 12,
-  },
-  sheetTitle: {},
-  cancelBtn: {
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    borderRadius: radius.pill,
-    backgroundColor: palette.glass,
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
-  },
-  cancelText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 0.6,
-    color: palette.text,
-  },
-  content: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    gap: 26,
-  },
-  field: {
-    gap: 12,
-  },
-  label: {
-    color: palette.goldLight,
-  },
-  textArea: {
-    minHeight: 96,
     paddingTop: 14,
-    paddingBottom: 14,
-    lineHeight: 22,
-    fontSize: 15,
+    paddingBottom: 8,
   },
-  errorText: {
-    fontFamily: fonts.text,
-    fontSize: 13.5,
-    color: palette.redLight,
+  cancelBtn: {
+    minHeight: MIN_TAP,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    borderRadius: radius.sm,
   },
-  saveBtn: {
-    marginTop: 8,
-  },
+  cancelText: { fontFamily: fonts.medium, fontSize: 15, color: palette.textMid },
+  content: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 8, gap: 24 },
+  field: { gap: 10 },
+  textArea: { minHeight: 96, paddingTop: 14, paddingBottom: 14, lineHeight: 22 },
+  errorText: { fontFamily: fonts.regular, fontSize: 14, color: palette.redText },
+  saveBtn: { marginTop: 4 },
 });

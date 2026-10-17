@@ -1,7 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Defs, RadialGradient as SvgRadialGradient, Rect, Stop } from "react-native-svg";
 
 import { fonts, palette, radius } from "@/constants/theme";
 
@@ -68,7 +67,6 @@ function beltKeyOf(level: string): string | null {
 // stitching, a black BJJ rank-tip bar near the right end, a centre knot with
 // two hanging tails, gold L-corner brackets and a soft golden halo. The cloth
 // keeps the rank colour; the gold only frames it — "belt in a luxury system".
-const GOLD = "hsla(40,75%,58%,1)";
 
 // Vertical cloth shade: bright top highlight → solid cloth → dark bottom.
 function bandShade(cloth: string): [string, string, string, string] {
@@ -97,8 +95,6 @@ function Band({
         locations={BAND_LOCS}
         style={StyleSheet.absoluteFill}
       />
-      {/* gold top edge line */}
-      <View style={beltStyles.goldEdgeTop} />
       {/* dark edge stitching */}
       <View style={[beltStyles.stitch, { top: 4, backgroundColor: stitch }]} />
       <View style={[beltStyles.stitch, { bottom: 4, backgroundColor: stitch }]} />
@@ -108,30 +104,16 @@ function Band({
 
 function RealisticBelt({ cloth, ink, label }: { cloth: string; ink: string; label: string }) {
   const isDarkCloth = cloth === "#1d1d1d";
-  const stitch = isDarkCloth ? "rgba(212,175,90,0.55)" : "rgba(0,0,0,0.14)";
+  const stitch = isDarkCloth ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.14)";
 
   return (
     <View style={beltStyles.beltWrap} accessibilityLabel={`${label} belt`}>
-      {/* golden halo */}
-      <View style={beltStyles.halo} pointerEvents="none">
-        <Svg width="100%" height="100%">
-          <Defs>
-            <SvgRadialGradient id="beltHalo" cx="50%" cy="50%" r="60%">
-              <Stop offset="0%" stopColor="#d9a441" stopOpacity={0.16} />
-              <Stop offset="100%" stopColor="#d9a441" stopOpacity={0} />
-            </SvgRadialGradient>
-          </Defs>
-          <Rect x="0" y="0" width="100%" height="100%" fill="url(#beltHalo)" />
-        </Svg>
-      </View>
-
       {/* left + right bands */}
       <Band side="left" cloth={cloth} stitch={stitch} />
       <Band side="right" cloth={cloth} stitch={stitch} />
 
       {/* rank tip bar near right end (gold line + black tip, BJJ-style) */}
       <View style={beltStyles.tipGroup}>
-        <View style={beltStyles.tipGold} />
         <View style={[beltStyles.tipBar, { backgroundColor: ink }]} />
       </View>
 
@@ -149,11 +131,6 @@ function RealisticBelt({ cloth, ink, label }: { cloth: string; ink: string; labe
         </View>
       </View>
 
-      {/* gold L-corner brackets */}
-      <View style={[beltStyles.corner, beltStyles.cornerTL]} pointerEvents="none" />
-      <View style={[beltStyles.corner, beltStyles.cornerTR]} pointerEvents="none" />
-      <View style={[beltStyles.corner, beltStyles.cornerBL]} pointerEvents="none" />
-      <View style={[beltStyles.corner, beltStyles.cornerBR]} pointerEvents="none" />
     </View>
   );
 }
@@ -182,10 +159,10 @@ function BeltLadder({ currentIndex }: { currentIndex: number }) {
             <Text
               style={[
                 beltStyles.rungLabel,
-                { color: isCurrent ? palette.goldLight : earned ? palette.textMid : palette.textLow },
+                { color: isCurrent ? palette.textHi : earned ? palette.textMid : palette.textLow },
               ]}
             >
-              {rung.label.slice(0, 3).toUpperCase()}
+              {rung.label}
             </Text>
           </View>
         );
@@ -204,7 +181,7 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
   if (ladderIndex < 0) {
     return (
       <View style={beltStyles.unranked}>
-        <Text style={beltStyles.unrankedText}>UNRANKED / OTHER</Text>
+        <Text style={beltStyles.unrankedText}>Unranked / other</Text>
       </View>
     );
   }
@@ -217,11 +194,11 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
       <RealisticBelt cloth={rung.cloth} ink={rung.ink} label={rung.label} />
 
       <View style={beltStyles.headRow}>
-        <Text style={beltStyles.rankLabel}>{rung.label.toUpperCase()} BELT</Text>
+        <Text style={beltStyles.rankLabel}>{rung.label} belt</Text>
         {next ? (
-          <Text style={beltStyles.nextLabel}>NEXT · {next.label.toUpperCase()}</Text>
+          <Text style={beltStyles.nextLabel}>Next: {next.label}</Text>
         ) : (
-          <Text style={beltStyles.apexLabel}>APEX</Text>
+          <Text style={beltStyles.apexLabel}>Apex</Text>
         )}
       </View>
 
@@ -229,7 +206,7 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
 
       {showMeaning && meaning && (
         <View style={beltStyles.meaning}>
-          <Text style={beltStyles.meaningState}>{meaning.state.toUpperCase()}</Text>
+          <Text style={beltStyles.meaningState}>{meaning.state}</Text>
           <Text style={beltStyles.meaningText}>{meaning.meaning}</Text>
         </View>
       )}
@@ -255,10 +232,6 @@ const beltStyles = StyleSheet.create({
     top: 14,
     height: 40,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 6 },
   },
   bandLeft: {
     left: 0,
@@ -278,14 +251,6 @@ const beltStyles = StyleSheet.create({
     borderTopLeftRadius: 1,
     borderBottomLeftRadius: 1,
   },
-  goldEdgeTop: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    height: 1,
-    backgroundColor: "hsla(40,75%,60%,0.35)",
-  },
   stitch: {
     position: "absolute",
     left: 4,
@@ -300,11 +265,6 @@ const beltStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-  },
-  tipGold: {
-    width: 3,
-    height: 40,
-    backgroundColor: "hsla(40,75%,58%,0.6)",
   },
   tipBar: {
     width: 26,
@@ -369,16 +329,6 @@ const beltStyles = StyleSheet.create({
     top: 19,
     height: 2,
   },
-  corner: {
-    position: "absolute",
-    width: 6,
-    height: 6,
-    borderColor: "hsla(40,75%,58%,0.7)",
-  },
-  cornerTL: { left: 1, top: 1, borderTopWidth: 1, borderLeftWidth: 1 },
-  cornerTR: { right: 1, top: 1, borderTopWidth: 1, borderRightWidth: 1 },
-  cornerBL: { left: 1, bottom: 1, borderBottomWidth: 1, borderLeftWidth: 1 },
-  cornerBR: { right: 1, bottom: 1, borderBottomWidth: 1, borderRightWidth: 1 },
   ladder: {
     flexDirection: "row",
     alignItems: "center",
@@ -396,72 +346,32 @@ const beltStyles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1,
   },
-  nodeCurrent: {
-    shadowColor: "#B9A477",
-    shadowOpacity: 0.6,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  rungLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.2,
-  },
+  nodeCurrent: { borderColor: palette.textHi, borderWidth: 1.5 },
+  rungLabel: { fontFamily: fonts.medium, fontSize: 12 },
   headRow: {
     flexDirection: "row",
     alignItems: "baseline",
     justifyContent: "space-between",
   },
-  rankLabel: {
-    fontFamily: fonts.displayThin,
-    fontSize: 17,
-    lineHeight: 21,
-    color: palette.textHi,
-  },
-  nextLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.4,
-    color: palette.textMid,
-  },
-  apexLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.4,
-    color: palette.goldLight,
-  },
+  rankLabel: { fontFamily: fonts.semi, fontSize: 19, lineHeight: 26, letterSpacing: -0.3, color: palette.textHi },
+  nextLabel: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid },
+  apexLabel: { fontFamily: fonts.medium, fontSize: 13, color: palette.goldPale },
   meaning: {
-    borderLeftWidth: 1,
-    borderLeftColor: palette.goldHair,
+    borderLeftWidth: 2,
+    borderLeftColor: palette.gold,
     paddingLeft: 14,
     paddingTop: 2,
   },
-  meaningState: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.6,
-    color: palette.goldLight,
-  },
-  meaningText: {
-    fontFamily: fonts.text,
-    fontSize: 13,
-    color: palette.textMid,
-    lineHeight: 19,
-    marginTop: 4,
-  },
+  meaningState: { fontFamily: fonts.medium, fontSize: 14, color: palette.textHi },
+  meaningText: { fontFamily: fonts.regular, fontSize: 14, color: palette.textMid, lineHeight: 20, marginTop: 4 },
   unranked: {
     height: 56,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: palette.glassEdge,
-    backgroundColor: palette.glass,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
     alignItems: "center",
     justifyContent: "center",
   },
-  unrankedText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.8,
-    color: palette.textMid,
-  },
+  unrankedText: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid },
 });
