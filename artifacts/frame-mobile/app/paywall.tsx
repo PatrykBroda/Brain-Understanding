@@ -2,7 +2,6 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   AppState,
   Linking,
@@ -31,9 +30,8 @@ import { apiUrl } from "@/lib/api";
 import { didVerifiedPriceChange, toShownPriceReport, verifyApplePrice, type VerifiedPackage } from "@/lib/applePrice";
 import { formatSubscriptionRenewal } from "@/lib/subscriptionDisclosure";
 import { reportCrash, reportPriceShown } from "@/lib/crashReporter";
-import { LinearGradient } from "expo-linear-gradient";
-import { Button, Display, Eyebrow, FadeIn, GlassCard, IconButton, Screen, media } from "@/components/ui";
-import { fonts, palette, radius, shadow } from "@/constants/theme";
+import { Button, Display, EmptyState, Eyebrow, FadeIn, IconButton, Screen, haptic } from "@/components/ui";
+import { fonts, palette, radius, SCREEN_PAD } from "@/constants/theme";
 
 const FRAME_PLUS_PERKS = [
   "Unlimited coaching conversations",
@@ -54,6 +52,8 @@ export default function PaywallScreen() {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
+  // Visual selection only: the CTA buys whichever plan is selected.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -182,8 +182,13 @@ export default function PaywallScreen() {
     }
   }
 
+  const plansReady = isPurchasesSupported() && Platform.OS === "ios" && !loadError && packages.length > 0;
+  const selected = packages.find((p) => p.identifier === selectedId) ?? packages[0] ?? null;
+  const busy = !!busyId;
+  const off = busy || restoring;
+
   return (
-    <Screen photo={media.stillA}>
+    <Screen light="champagne" focus="top" intensity={0.8}>
       <View style={[s.root, { paddingTop: insets.top + 8 }]}>
         <View style={s.closeRow}>
           <IconButton icon="x" label="Close" onPress={close} />
@@ -198,113 +203,90 @@ export default function PaywallScreen() {
             <Display size="title" style={s.title}>
               Train with the full system
             </Display>
+            <View style={s.perks}>
+              {FRAME_PLUS_PERKS.map((p) => (
+                <View key={p} style={s.perkRow}>
+                  <Feather name="check" size={16} color={palette.gold} />
+                  <Text style={s.perkText}>{p}</Text>
+                </View>
+              ))}
+            </View>
           </FadeIn>
 
           <FadeIn index={1}>
-            <GlassCard tone="gold" radius={28} padding={22} style={s.perksCard}>
-              <View style={s.perks}>
-                {FRAME_PLUS_PERKS.map((p) => (
-                  <View key={p} style={s.perkRow}>
-                    <View style={s.perkDot}>
-                      <Feather name="check" size={12} color={palette.goldPale} />
-                    </View>
-                    <Text style={s.perkText}>{p}</Text>
-                  </View>
-                ))}
-              </View>
-              <Text style={s.periodServices}>
-                Every subscription period includes all FRAME+ services listed above.
-              </Text>
-            </GlassCard>
-          </FadeIn>
-
-          <FadeIn index={2}>
             {loading ? (
-              <ActivityIndicator color={palette.goldLight} style={{ marginTop: 32 }} />
+              <EmptyState kind="loading" title="Loading plans" body="Checking current App Store prices." />
             ) : !isPurchasesSupported() || Platform.OS !== "ios" ? (
-              <Text style={s.unavailable}>
-                Subscriptions are available in the iOS app.
-              </Text>
-            ) : loadError || packages.length === 0 ? (
-              <View style={s.unavailableWrap}>
-                <Text style={s.unavailable}>
-                  Current App Store prices aren&apos;t available. Purchases are paused;
-                  you can still restore an existing subscription.
-                </Text>
-                {__DEV__ && loadError ? (
-                  <Text style={s.diagnostic}>{loadError}</Text>
-                ) : null}
-                <Button
-                  title="TRY AGAIN"
-                  variant="glass"
-                  style={{ marginTop: 16 }}
-                  onPress={() => setLoadAttempt((attempt) => attempt + 1)}
+              <EmptyState icon="smartphone" title="Subscriptions are in the iOS app" body="Open FRAME on your iPhone to see plans and subscribe." />
+            ) : !plansReady ? (
+              <View>
+                <EmptyState
+                  kind="error"
+                  title="Plans unavailable"
+                  body="Current App Store prices aren't available, so purchases are paused. You can still restore an existing subscription."
+                  actionLabel="Try again"
+                  onAction={() => setLoadAttempt((attempt) => attempt + 1)}
                 />
+                {__DEV__ && loadError ? <Text style={s.diagnostic}>{loadError}</Text> : null}
               </View>
             ) : (
-              <View style={s.plans}>
+              <View style={s.plans} accessibilityRole="radiogroup">
                 {packages.map((pkg) => {
-                  const busy = busyId === pkg.identifier;
                   const period = getSubscriptionPeriodLabel(pkg);
                   if (!period) return null;
-                  const off = !!busyId || restoring;
+                  const isSel = selected?.identifier === pkg.identifier;
                   return (
                     <Pressable
                       key={pkg.identifier}
-                      accessibilityRole="button"
-                      accessibilityState={{ disabled: off, busy }}
-                      style={({ pressed }) => [
-                        shadow.glow,
-                        s.planBtn,
-                        pressed && s.pressed,
-                        off && !busy && { opacity: 0.55 },
-                      ]}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: isSel, disabled: off }}
                       disabled={off}
-                      onPress={() => onBuy(pkg)}
+                      onPress={() => {
+                        haptic.select();
+                        setSelectedId(pkg.identifier);
+                      }}
+                      style={({ pressed }) => [
+                        s.planCard,
+                        isSel && s.planCardOn,
+                        pressed && !isSel && { backgroundColor: palette.raised },
+                        off && { opacity: 0.6 },
+                      ]}
                     >
-                      <LinearGradient
-                        colors={["rgba(185,164,119,0.38)", "rgba(185,164,119,0.16)"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={StyleSheet.absoluteFill}
-                      />
                       <View style={s.planCopy}>
-                        <Text style={s.planTitle}>
-                          {getSubscriptionPlanLabel(pkg.product.title)}
-                        </Text>
-                        <Text style={s.planPrice}>
-                          {formatSubscriptionRenewal(pkg.applePrice.localizedPrice, period)}
-                        </Text>
-                        <Text style={s.planIncludes}>
-                          Nothing is charged until you confirm with Apple.
-                        </Text>
+                        <Text style={s.planTitle}>{getSubscriptionPlanLabel(pkg.product.title)}</Text>
+                        <Text style={s.planPrice}>{formatSubscriptionRenewal(pkg.applePrice.localizedPrice, period)}</Text>
                       </View>
-                      <View style={s.planAction}>
-                        {busy ? (
-                          <ActivityIndicator color="#08090B" />
-                        ) : (
-                          <Feather name="arrow-right" size={18} color="#08090B" />
-                        )}
+                      <View style={[s.radio, isSel && s.radioOn]}>
+                        {isSel ? <Feather name="check" size={14} color={palette.onGold} /> : null}
                       </View>
                     </Pressable>
                   );
                 })}
+                <Text style={s.periodServices}>Every subscription period includes all FRAME+ services listed above.</Text>
+                <Button
+                  title="Continue"
+                  onPress={() => selected && void onBuy(selected)}
+                  loading={busy}
+                  disabled={!selected || restoring}
+                  style={s.cta}
+                />
+                <Text style={s.charge}>Nothing is charged until you confirm with Apple.</Text>
               </View>
             )}
 
             <Button
-              title="RESTORE PURCHASES"
-              variant="glass"
+              title="Restore purchases"
+              variant="ghost"
               style={s.restoreBtn}
               onPress={onRestore}
               loading={restoring}
-              disabled={!!busyId}
+              disabled={busy}
             />
 
             <Text style={s.legal}>
-              Subscriptions renew automatically unless cancelled at least 24 hours
-              before the end of the current period. Manage or cancel anytime in your
-              {Platform.OS === "ios" ? " App Store" : " store"} account settings.
+              Subscriptions renew automatically unless cancelled at least 24 hours before the end of the current
+              period. Manage or cancel anytime in your{Platform.OS === "ios" ? " App Store" : " store"} account
+              settings.
             </Text>
             <View style={s.legalLinks}>
               <Pressable
@@ -313,31 +295,25 @@ export default function PaywallScreen() {
                 accessibilityLabel="Open Privacy Policy"
                 style={s.legalBtn}
               >
-                <Text style={s.legalLink}>PRIVACY POLICY</Text>
+                <Text style={s.legalLink}>Privacy policy</Text>
               </Pressable>
-              <Text style={s.legalDivider}>·</Text>
               <Pressable
                 onPress={() => void Linking.openURL(apiUrl("/terms"))}
                 accessibilityRole="link"
                 accessibilityLabel="Open Terms of Use"
                 style={s.legalBtn}
               >
-                <Text style={s.legalLink}>TERMS OF USE (EULA)</Text>
+                <Text style={s.legalLink}>Terms of use (EULA)</Text>
               </Pressable>
               {Platform.OS === "ios" ? (
-                <>
-                  <Text style={s.legalDivider}>·</Text>
-                  <Pressable
-                    onPress={() =>
-                      void Linking.openURL("https://apps.apple.com/account/subscriptions")
-                    }
-                    accessibilityRole="link"
-                    accessibilityLabel="Manage App Store subscriptions"
-                    style={s.legalBtn}
-                  >
-                    <Text style={s.legalLink}>MANAGE SUBSCRIPTION</Text>
-                  </Pressable>
-                </>
+                <Pressable
+                  onPress={() => void Linking.openURL("https://apps.apple.com/account/subscriptions")}
+                  accessibilityRole="link"
+                  accessibilityLabel="Manage App Store subscriptions"
+                  style={s.legalBtn}
+                >
+                  <Text style={s.legalLink}>Manage subscription</Text>
+                </Pressable>
               ) : null}
             </View>
           </FadeIn>
@@ -348,120 +324,56 @@ export default function PaywallScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, paddingHorizontal: 20 },
+  root: { flex: 1, paddingHorizontal: SCREEN_PAD },
   closeRow: { alignItems: "flex-end" },
   content: { paddingTop: 4 },
-  kicker: { color: palette.goldLight, marginBottom: 8 },
-  title: { marginBottom: 24 },
-  perksCard: { marginBottom: 28 },
-  perks: { gap: 14, marginBottom: 18 },
+  kicker: { color: palette.gold, marginBottom: 8 },
+  title: { marginBottom: 20 },
+  perks: { gap: 12, marginBottom: 28 },
   perkRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  perkDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: palette.goldWash,
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-  },
-  perkText: { flex: 1, fontFamily: fonts.text, fontSize: 15, color: palette.text },
-  periodServices: {
-    fontFamily: fonts.textMedium,
-    fontSize: 13,
-    color: palette.textMid,
-    lineHeight: 19,
-  },
-  plans: { gap: 14 },
-  planBtn: {
+  perkText: { flex: 1, fontFamily: fonts.regular, fontSize: 16, lineHeight: 22, color: palette.textHi },
+  plans: { gap: 12 },
+  planCard: {
     flexDirection: "row",
     alignItems: "center",
-    overflow: "hidden",
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: palette.goldHair,
-    backgroundColor: palette.graphite2,
-    paddingVertical: 20,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
+    paddingVertical: 18,
     paddingHorizontal: 20,
+    minHeight: 76,
   },
-  planCopy: { flex: 1, flexShrink: 1, minWidth: 0 },
-  planAction: {
-    flexShrink: 0,
+  planCardOn: { borderColor: palette.gold, backgroundColor: palette.raised },
+  planCopy: { flex: 1, flexShrink: 1, minWidth: 0, gap: 4 },
+  planTitle: { fontFamily: fonts.semi, fontSize: 18, color: palette.textHi },
+  planPrice: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: palette.textMid, fontVariant: ["tabular-nums"] },
+  radio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginLeft: 14,
+    borderWidth: 1.5,
+    borderColor: palette.borderStrong,
     alignItems: "center",
     justifyContent: "center",
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#B9A477",
-    marginLeft: 14,
   },
-  planTitle: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.6,
-    color: palette.goldPale,
-    flexShrink: 1,
-  },
-  planPrice: {
-    fontFamily: fonts.numeral,
-    fontSize: 20,
-    color: palette.textHi,
-    lineHeight: 27,
-    marginTop: 6,
-    flexShrink: 1,
-  },
-  planIncludes: {
-    fontFamily: fonts.text,
-    fontSize: 12,
-    color: palette.textMid,
-    lineHeight: 17,
-    marginTop: 6,
-    flexShrink: 1,
-  },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
-  unavailable: {
-    fontFamily: fonts.text,
-    fontSize: 14,
-    color: palette.textMid,
-    textAlign: "center",
-    marginTop: 24,
-    lineHeight: 21,
-  },
-  unavailableWrap: { alignItems: "center" },
-  diagnostic: {
-    fontFamily: fonts.text,
-    fontSize: 12,
-    color: palette.textLow,
-    textAlign: "center",
-    lineHeight: 15,
-    marginTop: 8,
-  },
-  restoreBtn: { marginTop: 20 },
-  legal: {
-    fontFamily: fonts.text,
-    fontSize: 12.5,
-    color: palette.textLow,
-    textAlign: "center",
-    lineHeight: 17,
-    marginTop: 20,
-  },
+  radioOn: { backgroundColor: palette.gold, borderColor: palette.gold },
+  periodServices: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: palette.textLow, marginTop: 4 },
+  cta: { marginTop: 8 },
+  charge: { fontFamily: fonts.regular, fontSize: 13, color: palette.textMid, textAlign: "center" },
+  diagnostic: { fontFamily: fonts.regular, fontSize: 12, color: palette.textLow, textAlign: "center", lineHeight: 16, marginTop: 8 },
+  restoreBtn: { marginTop: 8 },
+  legal: { fontFamily: fonts.regular, fontSize: 12, color: palette.textLow, textAlign: "center", lineHeight: 17, marginTop: 12 },
   legalLinks: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
     alignItems: "center",
-    columnGap: 8,
-    marginTop: 8,
+    columnGap: 16,
+    marginTop: 4,
     paddingBottom: 8,
   },
-  legalBtn: { minHeight: 44, justifyContent: "center", paddingHorizontal: 4 },
-  legalLink: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    color: palette.goldLight,
-    letterSpacing: 1.2,
-    textDecorationLine: "underline",
-  },
-  legalDivider: { color: palette.textLow, fontSize: 12 },
+  legalBtn: { minHeight: 44, justifyContent: "center" },
+  legalLink: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid, textDecorationLine: "underline" },
 });
