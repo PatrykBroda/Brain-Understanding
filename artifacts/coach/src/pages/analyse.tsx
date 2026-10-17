@@ -1387,7 +1387,7 @@ function WorkstationRight({
       </div>
 
       {/* summary */}
-      <p className="glass glass-gold font-display not-italic text-[1.2rem] text-[#f1ede6] leading-snug p-5">
+      <p className="glass glass-gold font-display not-italic text-[1rem] text-[#f1ede6] leading-snug p-5">
         {analysis.summary}
       </p>
 
@@ -2200,7 +2200,7 @@ function Report({
         </button>
       </div>
 
-      <p className="glass glass-gold font-display not-italic text-[1.2rem] text-[#f1ede6] leading-snug p-5">
+      <p className="glass glass-gold font-display not-italic text-[1rem] text-[#f1ede6] leading-snug p-5">
         {analysis.summary}
       </p>
 

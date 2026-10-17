@@ -191,7 +191,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
           <div className="font-mono text-[10px] uppercase tracking-[0.55em] text-muted-foreground mb-1.5">
             Athlete
           </div>
-          <div className="font-display text-4xl text-[#f1ede6] leading-none truncate">
+          <div className="punch text-5xl text-[#f4f0e9] truncate">
             {fighter.name}
           </div>
           {fighter.spiritAnimal && (

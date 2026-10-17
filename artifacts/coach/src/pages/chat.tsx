@@ -276,7 +276,7 @@ export default function ChatPage() {
                   <div className="eyebrow">
                     Frame open
                   </div>
-                  <p className="font-display text-[1.6rem] leading-snug text-foreground/90 max-w-sm">
+                  <p className="font-display text-[1.25rem] leading-snug text-foreground/90 max-w-sm">
                     Say what happened. Debrief a session, request a drill, regulate, or reflect.
                   </p>
                 </div>

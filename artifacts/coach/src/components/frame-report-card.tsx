@@ -35,7 +35,7 @@ function scoreColor(v: number): string {
 }
 
 const SANS = "'Outfit Variable','Outfit',system-ui,-apple-system,sans-serif";
-const SERIF = "'Instrument Serif','Times New Roman',serif";
+const DISPLAY_FONT = "'Unbounded Variable','Unbounded','Outfit Variable',system-ui,sans-serif";
 
 function polar(cx: number, cy: number, r: number, deg: number) {
   const a = ((deg - 90) * Math.PI) / 180;
@@ -136,7 +136,7 @@ export const FrameReportCard = forwardRef<
           <div style={{ fontSize: 9, letterSpacing: "0.4em", textTransform: "uppercase", color: "#8c857a" }}>
             FRAME Report
           </div>
-          <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 30, lineHeight: 1.05, marginTop: 4, color: "#f1ede6" }}>
+          <div style={{ fontFamily: DISPLAY_FONT, fontWeight: 250, letterSpacing: "-0.03em", fontSize: 22, lineHeight: 1.15, marginTop: 4, color: "#f1ede6" }}>
             {fighter?.name ?? "Athlete"}
           </div>
         </div>
@@ -166,7 +166,7 @@ export const FrameReportCard = forwardRef<
             Session score
           </div>
           {analysis.styleProfile && (
-            <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 19, lineHeight: 1.15, color: accent, marginTop: 6 }}>
+            <div style={{ fontFamily: DISPLAY_FONT, fontWeight: 250, letterSpacing: "-0.02em", fontSize: 15, lineHeight: 1.2, color: accent, marginTop: 6 }}>
               {analysis.styleProfile}
             </div>
           )}
@@ -220,7 +220,7 @@ export const FrameReportCard = forwardRef<
         <div
           style={{
             marginTop: 18,
-            fontFamily: SERIF,
+            fontFamily: DISPLAY_FONT,
             fontSize: 13,
             lineHeight: 1.5,
             color: "#d8d2c8",

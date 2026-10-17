@@ -130,7 +130,7 @@ export default function StatePage() {
           <div className="frame-state-caption-top eyebrow eyebrow-gold">State</div>
           <div
             key={frameState.label}
-            className="frame-state-label font-display text-[clamp(2.6rem,11vw,3.6rem)] leading-none"
+            className="frame-state-label punch text-[clamp(3.6rem,17vw,5.4rem)]"
             style={{
               color: labelColor,
               textShadow: labelGlow,
@@ -140,7 +140,7 @@ export default function StatePage() {
           >
             {frameState.label}
           </div>
-          <div className="frame-state-caption-bottom font-display text-[1.15rem] leading-snug text-foreground/80 pt-1">
+          <div className="frame-state-caption-bottom font-light tracking-wide text-[1rem] leading-snug text-foreground/80 pt-1">
             {STATE_CUE[frameState.label]}
           </div>
         </div>

@@ -14,6 +14,7 @@ import HistoryPage from "@/pages/history";
 import CampPage from "@/pages/planner";
 import AnalysePage from "@/pages/analyse";
 import SplashPage from "@/pages/splash";
+import { AppBackdrop, MEDIA } from "@/components/media-backdrop";
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
 import { useFighter } from "@/hooks/use-fighter";
@@ -312,6 +313,21 @@ const PAGE_TITLES: Record<string, string> = {
   "/sign-up": "Create account · FRAME",
 };
 
+const BACKDROPS: Record<string, { src: string; position?: string }> = {
+  "/home": { src: MEDIA.stillB, position: "60% 40%" },
+  "/chat": { src: MEDIA.gym, position: "50% 30%" },
+  "/analyse": { src: MEDIA.stillA, position: "50% 40%" },
+  "/camp": { src: MEDIA.stillB, position: "30% 40%" },
+  "/profile": { src: MEDIA.gym, position: "40% 25%" },
+  "/history": { src: MEDIA.stillA, position: "70% 40%" },
+};
+
+function RouteBackdrop() {
+  const [location] = useLocation();
+  const b = BACKDROPS["/" + (location.split("/")[1] ?? "")];
+  return b ? <AppBackdrop src={b.src} position={b.position} /> : null;
+}
+
 function PageTitle() {
   const [location] = useLocation();
   useEffect(() => {
@@ -333,6 +349,7 @@ function AppRoutes() {
       <ApiSetup />
       <UserScopedQueryReset />
       <PageTitle />
+      <RouteBackdrop />
       <TooltipProvider>
         <FramePlusProvider>
           <Switch>

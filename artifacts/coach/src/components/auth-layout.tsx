@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { ChevronLeft } from "lucide-react";
-import loginHero from "@/assets/login-hero.jpg";
+import { VideoBackdrop } from "@/components/media-backdrop";
 
 // Film-grain layer: inline SVG turbulence noise, tiled. Pure decoration.
 const GRAIN_URI = `url("data:image/svg+xml,${encodeURIComponent(
@@ -13,23 +13,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       className="frame-ambient relative grid h-[100dvh] text-foreground overflow-hidden"
       style={{ gridTemplateRows: "auto minmax(0,1fr) auto" }}
     >
-      {/* Combat photo, pushed back into the graphite: monochrome, luminosity-blended
-          so it reads as texture and depth rather than a flat picture. */}
-      <img
-        src={loginHero}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover object-[center_28%] pointer-events-none select-none z-0 mix-blend-luminosity"
-        style={{ filter: "grayscale(1) contrast(1.05)", opacity: 0.3 }}
-      />
-      {/* Graphite wash: dark at the edges and floor, open at the core so the card glows */}
-      <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(5,5,5,0.55) 0%, rgba(5,5,5,0.35) 40%, rgba(5,5,5,0.92) 100%), radial-gradient(ellipse 95% 60% at 50% 40%, transparent 30%, rgba(5,5,5,0.6) 100%)",
-        }}
-      />
+      {/* Looping fight edit (placeholder footage), blurred + darkened; poster if reduced-motion / video fails */}
+      <VideoBackdrop blur={2} dim={0.28} />
       {/* Film grain */}
       <div
         className="absolute inset-0 pointer-events-none z-0 mix-blend-overlay"
@@ -52,13 +37,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
         </Link>
         <div className="text-center">
-          <div className="font-display text-[1.7rem] leading-none text-[#f1ede6]">Frame</div>
-          <div className="eyebrow mt-1.5 !text-[10px]">MMA · Calibration system</div>
+          <div className="wordmark text-[1.15rem]">Frame</div>
+          <div className="eyebrow mt-2 !text-[9px] !text-[#cfc9bf]">MMA · Calibration system</div>
         </div>
         <div />
       </header>
 
-      <main className="relative z-10 min-h-0 grid place-items-center overflow-y-auto px-5 py-4">
+      <main className="relative z-10 min-h-0 grid place-items-center content-end overflow-y-auto px-5 py-4 sm:content-center">
         <div className="frame-auth-in w-full grid place-items-center">{children}</div>
       </main>
 

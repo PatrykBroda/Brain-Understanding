@@ -17,6 +17,7 @@ import { primaryFocus } from "@/lib/primary-focus";
 import { heroFileUrl, api, type DailyCheckin } from "@/lib/api";
 import { AuthedImage } from "@/components/authed-image";
 import { ArcGauge, Sparkline } from "@/components/frame-ui";
+import { MEDIA } from "@/components/media-backdrop";
 import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -370,13 +371,20 @@ export default function DashboardPage() {
                   draggable={false}
                 />
               ) : (
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background:
-                      "radial-gradient(70% 90% at 88% 0%, rgba(199,161,90,0.30), transparent 70%), radial-gradient(60% 80% at 0% 100%, rgba(191,29,29,0.20), transparent 70%), linear-gradient(160deg, #17130e 0%, #0a0908 70%)",
-                  }}
-                />
+                <>
+                  <img
+                    src={MEDIA.stillB}
+                    alt=""
+                    aria-hidden
+                    className="absolute inset-0 h-full w-full object-cover"
+                    style={{ objectPosition: "50% 30%", filter: "saturate(0.9) contrast(1.1)", opacity: 0.8 }}
+                    draggable={false}
+                  />
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: "radial-gradient(70% 90% at 90% 0%, rgba(214,120,40,0.34), transparent 70%)", mixBlendMode: "screen" }}
+                  />
+                </>
               )}
               {/* Legibility washes — graphite, not flat black */}
               <div
@@ -457,7 +465,7 @@ export default function DashboardPage() {
               {!adjusting && (
                 <div className="absolute bottom-0 inset-x-0 px-6 pb-6">
                   <div className="eyebrow eyebrow-gold mb-2">Athlete</div>
-                  <h1 className="font-display text-[clamp(2.8rem,11vw,4.8rem)] leading-[0.98] text-[#f1ede6]">
+                  <h1 className="punch text-[clamp(3.2rem,15vw,5.6rem)] text-[#f4f0e9]">
                     {fighter?.name ?? "—"}
                   </h1>
                   {metaParts.length > 0 && (

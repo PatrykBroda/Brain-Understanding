@@ -103,7 +103,7 @@ function GroundingCard({ step, onDone }: { step: GroundingStep; onDone: () => vo
 
       {done ? (
         <div className="flex flex-col items-center gap-4" style={{ animation: "reg-fade 0.4s ease-out" }}>
-          <div className="font-display text-4xl text-[hsl(var(--primary-pale))]">Anchored</div>
+          <div className="font-display text-2xl text-[hsl(var(--primary-pale))]">Anchored</div>
           <button
             type="button"
             onClick={onDone}

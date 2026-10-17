@@ -1,4 +1,4 @@
-import { softCaseLines } from "@/lib/soft-case";
+import { VideoBackdrop } from "@/components/media-backdrop";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useFighter } from "@/hooks/use-fighter";
@@ -42,6 +42,7 @@ export default function SplashPage() {
       }`}
       style={{ gridTemplateRows: "auto minmax(0,1fr) auto" }}
     >
+      <VideoBackdrop blur={2} dim={0.42} />
       {/* Bronze + crimson glow fields give the screen depth */}
       <div aria-hidden className="glow-orb z-0 left-1/2 top-[8%] h-[26rem] w-[26rem] -translate-x-1/2" />
       <div
@@ -75,11 +76,11 @@ export default function SplashPage() {
         </span>
       </header>
 
-      {/* Hero — elegant italic serif lines */}
+      {/* Hero — condensed punch lines over the edit */}
       <main className="relative z-10 min-h-0 grid place-items-center px-6">
         <div className="frame-splash-hero text-center max-w-2xl">
-          <h1 className="font-display leading-[1.08] text-[#f1ede6]" style={{ fontSize: "clamp(2.5rem, 10vw, 4.6rem)" }}>
-            {softCaseLines(HERO_LINES).map((line, i) => (
+          <h1 className="punch text-[#f4f0e9]" style={{ fontSize: "clamp(3rem, 14vw, 5.6rem)" }}>
+            {HERO_LINES.map((line, i) => (
               <span
                 key={line}
                 className="block frame-splash-line"
@@ -101,7 +102,7 @@ export default function SplashPage() {
       {/* Wordmark + SKIP */}
       <section className="relative z-10 flex flex-col items-center text-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] gap-4">
         <div>
-          <div className="font-display text-[clamp(2.2rem,9vw,2.9rem)] leading-none text-[#f1ede6]">Frame</div>
+          <div className="wordmark text-[clamp(1.5rem,6.5vw,2rem)]">Frame</div>
           <div className="eyebrow mt-2 !text-[#E0564E]">MMA AI</div>
         </div>
 

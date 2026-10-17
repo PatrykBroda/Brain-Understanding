@@ -130,7 +130,7 @@ export const FrameIntelligenceReport = forwardRef<
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <TinyLabel>FRAME Intelligence</TinyLabel>
-          <div style={{ fontFamily: "'Instrument Serif','Times New Roman',serif", fontStyle: "italic", fontSize: 30, lineHeight: 1.05, marginTop: 4, color: "#f1ede6" }}>
+          <div style={{ fontFamily: "'Unbounded Variable','Unbounded',system-ui,sans-serif", fontWeight: 250, letterSpacing: "-0.03em", fontSize: 22, lineHeight: 1.15, marginTop: 4, color: "#f1ede6" }}>
             {fighter?.name ?? "Athlete"}
           </div>
         </div>

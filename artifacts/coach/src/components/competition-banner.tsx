@@ -68,7 +68,7 @@ export function CompetitionBanner() {
             <div className="eyebrow" style={{ color: style.fg }}>
               {pressure.tierLabel}
             </div>
-            <div className="mt-1 truncate font-display text-[1.25rem] leading-tight text-[#f1ede6]">
+            <div className="mt-1 truncate font-display text-[1rem] leading-tight text-[#f1ede6]">
               {c.eventName}
             </div>
           </div>

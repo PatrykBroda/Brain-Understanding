@@ -24,7 +24,7 @@ function Row({
     <div className="px-5 py-4 flex items-start justify-between gap-4" title={title}>
       <div className="eyebrow pt-1.5 flex-none w-28">{label}</div>
       <div className="min-w-0 text-right">
-        <div className="font-display text-[1.3rem] leading-tight text-[#f1ede6] truncate">
+        <div className="font-display text-[1.05rem] leading-tight text-[#f1ede6] truncate">
           {value}
         </div>
         {sub && (

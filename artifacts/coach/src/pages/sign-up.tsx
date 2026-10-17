@@ -68,12 +68,12 @@ export default function SignUpPage() {
 
   return (
     <AuthLayout>
-      <div className="glass w-full max-w-[420px] overflow-hidden">
+      <div className="glass glass-clear w-full max-w-[420px] overflow-hidden">
         <div aria-hidden className="glow-orb -right-20 -top-24 h-52 w-52 opacity-70" />
         <div className="relative px-7 pt-9 pb-7">
           <div className="mb-7 text-center">
-            <h1 className="display-heading !text-[2.1rem]">Create your FRAME account</h1>
-            <div className="eyebrow eyebrow-gold mt-3">Calibration system</div>
+            <h1 className="punch !text-[clamp(2.8rem,15vw,3.8rem)]">Join Frame</h1>
+            <div className="eyebrow eyebrow-gold mt-3">Create your account</div>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">

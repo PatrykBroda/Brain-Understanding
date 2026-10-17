@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { MEDIA } from "@/components/media-backdrop";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useFighter } from "@/hooks/use-fighter";
@@ -178,13 +179,20 @@ export default function ProfilePage() {
                       draggable={false}
                     />
                   ) : (
-                    <div
-                      className="w-full h-full"
-                      style={{
-                        background:
-                          "radial-gradient(120% 90% at 80% 0%, hsla(39,49%,36%,0.34), transparent 60%), radial-gradient(90% 80% at 0% 100%, hsla(0,74%,43%,0.14), transparent 65%), hsla(30,14%,6%,0.6)",
-                      }}
-                    />
+                    <>
+                      <img
+                        src={MEDIA.gym}
+                        alt=""
+                        aria-hidden
+                        className="w-full h-full object-cover"
+                        style={{ objectPosition: "30% 55%", opacity: 0.7, filter: "contrast(1.1)" }}
+                        draggable={false}
+                      />
+                      <div
+                        className="absolute inset-0"
+                        style={{ background: "radial-gradient(90% 80% at 100% 0%, rgba(214,120,40,0.32), transparent 65%)", mixBlendMode: "screen" }}
+                      />
+                    </>
                   )}
                   <div
                     className="absolute inset-0"
@@ -293,9 +301,6 @@ export default function ProfilePage() {
 
               {/* ─── ATHLETE MODEL — what FRAME knows ──────────────── */}
               <div className="pt-6">
-                <div className="eyebrow eyebrow-gold mb-3">
-                  Athlete Model
-                </div>
                 <AthleteModel variant="mobile" />
               </div>
 

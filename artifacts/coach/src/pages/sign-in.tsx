@@ -40,11 +40,11 @@ export default function SignInPage() {
 
   return (
     <AuthLayout>
-      <div className="glass w-full max-w-[420px] overflow-hidden">
+      <div className="glass glass-clear w-full max-w-[420px] overflow-hidden">
         <div aria-hidden className="glow-orb -right-20 -top-24 h-52 w-52 opacity-70" />
         <div className="relative px-7 pt-9 pb-7">
           <div className="mb-8 text-center">
-            <h1 className="display-heading !text-[2.1rem]">Sign in to FRAME</h1>
+            <h1 className="punch punch-xl !text-[clamp(3.4rem,18vw,4.6rem)]">Sign in</h1>
             <div className="eyebrow eyebrow-gold mt-3">Welcome back</div>
           </div>
 
