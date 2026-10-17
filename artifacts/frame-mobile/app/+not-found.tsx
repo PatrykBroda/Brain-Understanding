@@ -1,27 +1,24 @@
-import { Link, Stack } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Stack, useRouter } from "expo-router";
+import { StyleSheet, View } from "react-native";
 
-import { Display, Eyebrow, GlassCard, Screen } from "@/components/ui";
-import { fonts, MIN_TAP, palette, radius } from "@/constants/theme";
+import { Button, EmptyState, Screen } from "@/components/ui";
 
 export default function NotFoundScreen() {
+  const router = useRouter();
   return (
     <>
-      <Stack.Screen options={{ title: "Oops!" }} />
-      <Screen>
+      <Stack.Screen options={{ title: "Not found" }} />
+      <Screen light="silver" focus="center" intensity={0.7}>
         <View style={styles.container}>
-          <GlassCard radius={32} padding={28} style={styles.card}>
-            <Eyebrow style={styles.eyebrow}>404</Eyebrow>
-            <Display size="heading" style={styles.title}>
-              This screen doesn&apos;t exist.
-            </Display>
-
-            <Link href="/" asChild>
-              <Pressable accessibilityRole="link" style={styles.link}>
-                <Text style={styles.linkText}>Go to home screen!</Text>
-              </Pressable>
-            </Link>
-          </GlassCard>
+          <View style={styles.card}>
+            <EmptyState
+              icon="compass"
+              title="This screen doesn't exist"
+              body="The link may be out of date. Head back to your home screen."
+              actionLabel="Go to home"
+              onAction={() => router.replace("/")}
+            />
+          </View>
         </View>
       </Screen>
     </>
@@ -29,29 +26,6 @@ export default function NotFoundScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  card: { width: "100%", maxWidth: 420, alignItems: "stretch" },
-  eyebrow: { color: palette.goldLight, textAlign: "center" },
-  title: { textAlign: "center", marginTop: 8 },
-  link: {
-    marginTop: 24,
-    minHeight: MIN_TAP,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: palette.goldWash,
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-  },
-  linkText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 14,
-    letterSpacing: 0.6,
-    color: palette.goldPale,
-  },
+  container: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+  card: { width: "100%", maxWidth: 420 },
 });

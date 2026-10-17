@@ -1,9 +1,8 @@
-import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, VideoView } from "expo-video";
 import React, { useEffect, useState } from "react";
-import { Platform, StyleSheet, useWindowDimensions, View, type ImageSourcePropType } from "react-native";
+import { StyleSheet, useWindowDimensions, View, type ImageSourcePropType } from "react-native";
 
 import { palette } from "@/constants/theme";
 import { useReducedMotion } from "./motion";
@@ -87,9 +86,11 @@ function LoopVideo({ source, onFail }: { source: number; onFail: () => void }) {
 /**
  * Looping muted background video for sign-in / sign-up / splash.
  * Poster image underneath always; video only when motion is allowed and it
- * hasn't failed - so it can never block signing in. Dark gradient + blur on top.
+ * hasn't failed - so it can never block signing in. Neutral dark scrim on top
+ * that keeps the top and bottom bands dark (reserved for the wordmark and the
+ * headline/controls). No blur, no colour grade: imagery is monochrome.
  */
-export function VideoBackdrop({ blur = 0, dim = 0.25 }: { blur?: number; dim?: number }) {
+export function VideoBackdrop({ dim = 0.2 }: { dim?: number }) {
   const reduced = useReducedMotion();
   const { width, height } = useWindowDimensions();
   const wide = width > height * 1.1;
@@ -100,11 +101,10 @@ export function VideoBackdrop({ blur = 0, dim = 0.25 }: { blur?: number; dim?: n
       {!reduced && !failed ? (
         <LoopVideo source={wide ? media.videoWide : media.videoPortrait} onFail={() => setFailed(true)} />
       ) : null}
-      {blur > 0 && Platform.OS !== "web" ? <BlurView intensity={blur} tint="dark" style={StyleSheet.absoluteFill} /> : null}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(8,9,11,${dim})` }]} />
       <LinearGradient
-        colors={["rgba(8,9,11,0.72)", "rgba(8,9,11,0.05)", "rgba(8,9,11,0.35)", "rgba(8,9,11,0.97)"]}
-        locations={[0, 0.3, 0.55, 1]}
+        colors={["rgba(8,9,11,0.78)", "rgba(8,9,11,0.08)", "rgba(8,9,11,0.55)", "rgba(8,9,11,0.94)", "rgba(8,9,11,0.98)"]}
+        locations={[0, 0.22, 0.48, 0.74, 1]}
         style={StyleSheet.absoluteFill}
       />
     </View>

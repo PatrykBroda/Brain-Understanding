@@ -1,14 +1,13 @@
 import { Redirect } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { reportStartup } from "@/lib/crashReporter";
 import { BootLoader } from "@/components/BootLoader";
 import { INTRO_SEEN_KEY } from "@/app/splash";
-import { Button, Display, Eyebrow, GlassCard, Screen } from "@/components/ui";
-import { fonts, palette } from "@/constants/theme";
+import { EmptyState, Screen } from "@/components/ui";
 
 function LoadingScreen({ label }: { label: string }) {
   return <BootLoader label={label} />;
@@ -46,7 +45,7 @@ export default function IndexScreen() {
   }, [ready]);
 
   if (!isLoaded) {
-    return <LoadingScreen label="CONNECTING · SLOW NETWORK" />;
+    return <LoadingScreen label="Connecting. This can take a moment on a slow network." />;
   }
 
   if (!isSignedIn) {
@@ -54,23 +53,22 @@ export default function IndexScreen() {
   }
 
   if (fighterLoading) {
-    return <LoadingScreen label="LOADING YOUR FRAME" />;
+    return <LoadingScreen label="Loading your Frame" />;
   }
 
   if (error) {
     return (
-      <Screen tone="red">
+      <Screen light={null}>
         <View style={styles.loading}>
-          <GlassCard tone="red" radius={32} padding={28} style={styles.card}>
-            <Eyebrow style={styles.errorKicker}>CONNECTION LOST</Eyebrow>
-            <Display size="heading" style={styles.errorTitle}>
-              We can't reach your frame.
-            </Display>
-            <Text style={styles.errorBody}>
-              Could not reach the frame. Check your connection.
-            </Text>
-            <Button title="RETRY" onPress={refetch} />
-          </GlassCard>
+          <View style={styles.card}>
+            <EmptyState
+              kind="error"
+              title="We can't reach your Frame"
+              body="Check your connection and try again."
+              actionLabel="Try again"
+              onAction={refetch}
+            />
+          </View>
         </View>
       </Screen>
     );
@@ -81,7 +79,7 @@ export default function IndexScreen() {
   }
 
   if (introSeen === null) {
-    return <LoadingScreen label="LOADING YOUR FRAME" />;
+    return <LoadingScreen label="Loading your Frame" />;
   }
   if (!introSeen) {
     return <Redirect href="/splash" />;
@@ -91,21 +89,6 @@ export default function IndexScreen() {
 }
 
 const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
+  loading: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
   card: { width: "100%", maxWidth: 420 },
-  errorKicker: { color: palette.redLight, textAlign: "center" },
-  errorTitle: { textAlign: "center", marginTop: 8, marginBottom: 12 },
-  errorBody: {
-    color: palette.textMid,
-    fontFamily: fonts.text,
-    fontSize: 14,
-    lineHeight: 21,
-    textAlign: "center",
-    marginBottom: 28,
-  },
 });

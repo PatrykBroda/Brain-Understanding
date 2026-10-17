@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
+import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter, type Fighter } from "@/context/FighterContext";
 import { apiPost } from "@/lib/api";
@@ -29,18 +30,21 @@ import {
   levelLabelForSport,
   levelsForSport,
 } from "@/lib/fighterOptions";
+import { EntryBrand } from "@/components/EntryBrand";
 import {
   Body,
   Button,
   Display,
-  Eyebrow,
   FadeIn,
   Field,
-  GlassCard,
-  Numeral,
+  Label,
+  PhotoBackdrop,
+  Punch,
   Screen,
+  haptic,
+  media,
 } from "@/components/ui";
-import { fonts, MIN_TAP, palette, radius, space } from "@/constants/theme";
+import { fonts, MIN_TAP, palette, radius, SCREEN_PAD, space } from "@/constants/theme";
 
 const FREQS = [
   { key: "1-2", label: "1-2x / week" },
@@ -65,13 +69,11 @@ function ProgressBar({ step }: { step: number }) {
       accessible
       accessibilityRole="progressbar"
       accessibilityLabel={`Step ${step + 1} of ${TOTAL_STEPS}`}
+      accessibilityValue={{ min: 1, max: TOTAL_STEPS, now: step + 1 }}
     >
-      <View style={pb.numRow}>
-        <Numeral size="m" style={{ color: palette.goldPale }}>
-          {String(step + 1).padStart(2, "0")}
-        </Numeral>
-        <Text style={pb.of}>/ {String(TOTAL_STEPS).padStart(2, "0")}</Text>
-      </View>
+      <Label style={pb.count}>
+        Step {step + 1} of {TOTAL_STEPS}
+      </Label>
       <View style={pb.track}>
         {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
           <View key={i} style={[pb.seg, i <= step && pb.segOn]} />
@@ -82,13 +84,18 @@ function ProgressBar({ step }: { step: number }) {
 }
 
 const pb = StyleSheet.create({
-  wrap: { width: "100%", marginBottom: space.xl, gap: 14 },
-  numRow: { flexDirection: "row", alignItems: "baseline", gap: 8 },
-  of: { fontFamily: fonts.numeral, fontSize: 15, color: palette.textLow, letterSpacing: 1 },
+  wrap: { width: "100%", gap: 10 },
+  count: { fontVariant: ["tabular-nums"] },
   track: { flexDirection: "row", gap: 6 },
-  seg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: palette.glassStrong },
-  segOn: { backgroundColor: palette.goldLight },
+  seg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: palette.borderStrong },
+  segOn: { backgroundColor: palette.gold },
 });
+
+/** "BJJ BELT" -> "BJJ belt" (lib labels are shouty; screens use sentence case). */
+function sentenceCase(s: string): string {
+  const t = s.toLowerCase();
+  return (t.charAt(0).toUpperCase() + t.slice(1)).replace(/bjj/i, "BJJ");
+}
 
 function ChipSelector({
   options,
@@ -101,19 +108,24 @@ function ChipSelector({
 }) {
   return (
     <View style={chip.row}>
-      {options.map((o) => (
-        <Pressable
-          key={o.key}
-          accessibilityRole="button"
-          accessibilityState={{ selected: value === o.key }}
-          style={[chip.item, value === o.key && chip.selected]}
-          onPress={() => onSelect(o.key)}
-        >
-          <Text style={[chip.text, value === o.key && chip.selectedText]}>
-            {o.label}
-          </Text>
-        </Pressable>
-      ))}
+      {options.map((o) => {
+        const on = value === o.key;
+        return (
+          <Pressable
+            key={o.key}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            style={({ pressed }) => [chip.item, on && chip.selected, pressed && !on && chip.pressed]}
+            onPress={() => {
+              haptic.select();
+              onSelect(o.key);
+            }}
+          >
+            {on ? <Feather name="check" size={14} color={palette.goldPale} /> : null}
+            <Text style={[chip.text, on && chip.selectedText]}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -122,15 +134,18 @@ const chip = StyleSheet.create({
   row: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   item: {
     minHeight: MIN_TAP,
-    justifyContent: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: palette.hairline,
-    backgroundColor: palette.glass,
-    paddingHorizontal: 20,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
+    paddingHorizontal: 18,
   },
+  pressed: { backgroundColor: palette.raised },
   selected: { borderColor: palette.goldHair, backgroundColor: palette.goldWash },
-  text: { fontFamily: fonts.textMedium, fontSize: 14, color: palette.textMid, letterSpacing: 0.3 },
+  text: { fontFamily: fonts.medium, fontSize: 15, color: palette.textMid },
   selectedText: { color: palette.goldPale },
 });
 
@@ -244,188 +259,161 @@ export default function OnboardingScreen() {
   const nextDisabled = step === 0 && !name.trim();
 
   return (
-    <Screen>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
+    <Screen light={null}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView
-          contentContainerStyle={[
-            styles.inner,
-            { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 },
-          ]}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <FadeIn index={0} style={styles.top}>
-            <Eyebrow style={{ color: palette.goldLight }}>FRAME</Eyebrow>
-            <Body small style={{ color: palette.textLow, marginTop: 4 }}>
-              LET'S SEE WHAT YOU BECOME UNDER PRESSURE
-            </Body>
-          </FadeIn>
+          {/* Monochrome training-environment band with a reserved text zone */}
+          <View style={[styles.band, step === 0 ? styles.bandTall : styles.bandShort, { paddingTop: insets.top + 16 }]}>
+            <PhotoBackdrop source={media.gym} opacity={0.75} position="center 30%" />
+            <View style={styles.bandInner}>
+              <EntryBrand compact />
+              {step === 0 ? (
+                <View style={{ marginTop: "auto" }}>
+                  <Punch style={styles.headline}>Your corner team between training sessions.</Punch>
+                  <Body style={styles.sub}>AI coaching for fighters and athletes.</Body>
+                </View>
+              ) : null}
+            </View>
+          </View>
 
-          <FadeIn index={1} style={styles.cardWrap}>
+          <FadeIn index={0} key={step} style={styles.cardWrap}>
             <ProgressBar step={step} />
-            <GlassCard radius={32} padding={space.xl} blur>
-              <Display size="heading" style={styles.heading}>
-                {STEP_HEADINGS[step]}
-              </Display>
+            <Display size="title" style={styles.heading}>
+              {STEP_HEADINGS[step]}
+            </Display>
 
-              {step === 0 && (
-                <View style={styles.section}>
-                  <Field
-                    label="YOUR NAME"
-                    value={name}
-                    onChangeText={setName}
-                    placeholder="What do they call you?"
-                    autoCapitalize="words"
-                  />
-                </View>
-              )}
+            {step === 0 && (
+              <View style={styles.section}>
+                <Field
+                  label="Your name"
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="What do they call you?"
+                  autoCapitalize="words"
+                />
+              </View>
+            )}
 
-              {step === 1 && (
-                <View style={styles.section}>
-                  <Eyebrow style={styles.label}>DATE OF BIRTH</Eyebrow>
-                  <Text style={styles.hint}>No hyphens needed</Text>
-                  <View style={styles.dobRow}>
-                    <View style={styles.dobField}>
-                      <Field
-                        label="DAY"
-                        style={[styles.dobInput, dobError ? styles.inputError : null]}
-                        value={dob.day}
-                        onChangeText={(value) => updateDobPart("day", value)}
-                        placeholder="DD"
-                        keyboardType="number-pad"
-                        maxLength={2}
-                        textContentType="none"
-                      />
-                    </View>
-                    <View style={styles.dobField}>
-                      <Field
-                        label="MONTH"
-                        inputRef={monthInputRef}
-                        style={[styles.dobInput, dobError ? styles.inputError : null]}
-                        value={dob.month}
-                        onChangeText={(value) => updateDobPart("month", value)}
-                        placeholder="MM"
-                        keyboardType="number-pad"
-                        maxLength={2}
-                        textContentType="none"
-                      />
-                    </View>
-                    <View style={[styles.dobField, styles.yearField]}>
-                      <Field
-                        label="YEAR"
-                        inputRef={yearInputRef}
-                        style={[styles.dobInput, dobError ? styles.inputError : null]}
-                        value={dob.year}
-                        onChangeText={(value) => updateDobPart("year", value)}
-                        placeholder="YYYY"
-                        keyboardType="number-pad"
-                        maxLength={4}
-                        textContentType="none"
-                      />
-                    </View>
+            {step === 1 && (
+              <View style={styles.section}>
+                <Label style={styles.label}>Date of birth</Label>
+                <View style={styles.dobRow}>
+                  <View style={styles.dobField}>
+                    <Field
+                      label="Day"
+                      style={[styles.dobInput, dobError ? styles.inputError : null]}
+                      value={dob.day}
+                      onChangeText={(value) => updateDobPart("day", value)}
+                      placeholder="DD"
+                      keyboardType="number-pad"
+                      maxLength={2}
+                      textContentType="none"
+                    />
                   </View>
-                  {age != null ? (
-                    <Text style={styles.ageConfirmation}>{age} YEARS OLD</Text>
-                  ) : null}
-                  {dobError ? (
-                    <Text style={styles.errorText} accessibilityRole="alert">
-                      {dobError}
-                    </Text>
-                  ) : null}
+                  <View style={styles.dobField}>
+                    <Field
+                      label="Month"
+                      inputRef={monthInputRef}
+                      style={[styles.dobInput, dobError ? styles.inputError : null]}
+                      value={dob.month}
+                      onChangeText={(value) => updateDobPart("month", value)}
+                      placeholder="MM"
+                      keyboardType="number-pad"
+                      maxLength={2}
+                      textContentType="none"
+                    />
+                  </View>
+                  <View style={[styles.dobField, styles.yearField]}>
+                    <Field
+                      label="Year"
+                      inputRef={yearInputRef}
+                      style={[styles.dobInput, dobError ? styles.inputError : null]}
+                      value={dob.year}
+                      onChangeText={(value) => updateDobPart("year", value)}
+                      placeholder="YYYY"
+                      keyboardType="number-pad"
+                      maxLength={4}
+                      textContentType="none"
+                    />
+                  </View>
                 </View>
-              )}
+                {age != null ? <Text style={styles.ageConfirmation}>{age} years old</Text> : null}
+                {dobError ? (
+                  <Text style={styles.errorText} accessibilityRole="alert">
+                    {dobError}
+                  </Text>
+                ) : null}
+              </View>
+            )}
 
-              {step === 2 && (
-                <View style={styles.section}>
-                  <Eyebrow style={styles.label}>PRIMARY SPORT</Eyebrow>
-                  <ChipSelector
-                    options={SPORTS}
-                    value={sport}
-                    onSelect={(nextSport) => {
-                      setSport(nextSport);
-                      setLevel(defaultLevelForSport(nextSport));
-                    }}
-                  />
+            {step === 2 && (
+              <View style={styles.section}>
+                <Label style={styles.label}>Primary sport</Label>
+                <ChipSelector
+                  options={SPORTS}
+                  value={sport}
+                  onSelect={(nextSport) => {
+                    setSport(nextSport);
+                    setLevel(defaultLevelForSport(nextSport));
+                  }}
+                />
 
-                  <Eyebrow style={[styles.label, { marginTop: 28 }]}>
-                    {levelLabelForSport(sport)}
-                  </Eyebrow>
-                  <ChipSelector
-                    options={levelsForSport(sport)}
-                    value={level}
-                    onSelect={setLevel}
-                  />
-                </View>
-              )}
+                <Label style={[styles.label, { marginTop: space.xl }]}>{sentenceCase(levelLabelForSport(sport))}</Label>
+                <ChipSelector options={levelsForSport(sport)} value={level} onSelect={setLevel} />
+              </View>
+            )}
 
-              {step === 3 && (
-                <View style={styles.section}>
-                  <Eyebrow style={styles.label}>TRAINING FREQUENCY</Eyebrow>
-                  <ChipSelector options={FREQS} value={freq} onSelect={setFreq} />
-                </View>
-              )}
+            {step === 3 && (
+              <View style={styles.section}>
+                <Label style={styles.label}>Training frequency</Label>
+                <ChipSelector options={FREQS} value={freq} onSelect={setFreq} />
+              </View>
+            )}
 
-              {step === 4 && (
-                <View style={[styles.section, { gap: 20 }]}>
-                  <Field
-                    label="PRIMARY GOALS"
-                    style={styles.textarea}
-                    value={goals}
-                    onChangeText={setGoals}
-                    placeholder="What are you here to build?"
-                    multiline
-                    numberOfLines={3}
-                  />
-                  <Field
-                    label="KNOWN WEAKNESSES"
-                    style={styles.textarea}
-                    value={weaknesses}
-                    onChangeText={setWeaknesses}
-                    placeholder="What breaks first when pressure spikes?"
-                    multiline
-                    numberOfLines={3}
-                  />
+            {step === 4 && (
+              <View style={[styles.section, { gap: 20 }]}>
+                <Field
+                  label="Primary goals"
+                  style={styles.textarea}
+                  value={goals}
+                  onChangeText={setGoals}
+                  placeholder="What are you here to build?"
+                  multiline
+                  numberOfLines={3}
+                />
+                <Field
+                  label="Known weaknesses"
+                  style={styles.textarea}
+                  value={weaknesses}
+                  onChangeText={setWeaknesses}
+                  placeholder="What breaks first when pressure spikes?"
+                  multiline
+                  numberOfLines={3}
+                />
 
-                  {error ? (
-                    <Text style={styles.errorText} accessibilityRole="alert">
-                      {error}
-                    </Text>
-                  ) : null}
-                </View>
-              )}
-            </GlassCard>
+                {error ? (
+                  <Text style={styles.errorText} accessibilityRole="alert">
+                    {error}
+                  </Text>
+                ) : null}
+              </View>
+            )}
 
             <View style={styles.nav}>
               {step > 0 ? (
-                <Pressable
-                  onPress={back}
-                  style={styles.backBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel="Back"
-                >
-                  <Text style={styles.backText}>BACK</Text>
-                </Pressable>
+                <Button title="Back" variant="ghost" onPress={back} style={styles.backBtn} />
               ) : (
                 <View />
               )}
 
               {step < TOTAL_STEPS - 1 ? (
-                <Button
-                  title="NEXT"
-                  onPress={next}
-                  disabled={nextDisabled}
-                  style={styles.nextBtn}
-                />
+                <Button title="Next" onPress={next} disabled={nextDisabled} style={styles.nextBtn} />
               ) : (
-                <Button
-                  title="READING YOU..."
-                  onPress={handleSubmit}
-                  loading={loading}
-                  style={styles.nextBtn}
-                />
+                <Button title="Finish setup" onPress={handleSubmit} loading={loading} style={styles.nextBtn} />
               )}
             </View>
           </FadeIn>
@@ -436,40 +424,31 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  inner: { alignItems: "center", paddingHorizontal: 24 },
-  top: { width: "100%", maxWidth: 440, marginBottom: space.xl },
-  cardWrap: { width: "100%", maxWidth: 440 },
-  heading: { marginBottom: space.xl },
+  band: { overflow: "hidden", backgroundColor: palette.bg, paddingHorizontal: SCREEN_PAD + 2 },
+  bandTall: { minHeight: 300 },
+  bandShort: { minHeight: 120 },
+  bandInner: { flex: 1, paddingBottom: space.lg },
+  headline: { fontSize: 32, lineHeight: 36, letterSpacing: -1 },
+  sub: { marginTop: space.sm, fontSize: 16, lineHeight: 22 },
+  cardWrap: { width: "100%", maxWidth: 480, alignSelf: "center", paddingHorizontal: SCREEN_PAD + 2, paddingTop: space.lg },
+  heading: { marginTop: space.xl, marginBottom: space.xl },
   section: { width: "100%" },
-  label: { color: palette.goldLight, marginBottom: 12 },
-  hint: { fontFamily: fonts.text, fontSize: 12.5, color: palette.textLow, marginBottom: 12 },
+  label: { marginBottom: 12 },
   dobRow: { flexDirection: "row", gap: 10 },
   dobField: { flex: 1 },
   yearField: { flex: 1.45 },
-  dobInput: { textAlign: "center", paddingHorizontal: 8, fontSize: 18 },
-  inputError: { borderColor: "rgba(229,100,90,0.55)" },
-  ageConfirmation: {
-    marginTop: 14,
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.6,
-    color: palette.goldLight,
-  },
+  dobInput: { textAlign: "center", paddingHorizontal: 8, fontSize: 18, fontVariant: ["tabular-nums"] },
+  inputError: { borderColor: palette.redHair },
+  ageConfirmation: { marginTop: 14, fontFamily: fonts.medium, fontSize: 14, color: palette.goldPale, fontVariant: ["tabular-nums"] },
   textarea: { minHeight: 96, textAlignVertical: "top", paddingTop: 16 },
-  errorText: {
-    color: palette.redLight,
-    fontFamily: fonts.text,
-    fontSize: 13,
-    marginTop: 8,
-  },
+  errorText: { color: palette.redText, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, marginTop: 8 },
   nav: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     width: "100%",
-    marginTop: space.xl,
+    marginTop: space.xxl,
   },
-  backBtn: { minHeight: MIN_TAP, minWidth: MIN_TAP, justifyContent: "center", paddingHorizontal: 8 },
-  backText: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.6, color: palette.textMid },
+  backBtn: { minWidth: 88 },
   nextBtn: { minWidth: 160 },
 });

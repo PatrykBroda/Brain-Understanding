@@ -1,114 +1,56 @@
-import { VideoBackdrop } from "@/components/ui";
-import { fonts, palette } from "@/constants/theme";
-import React, { useEffect, useMemo, useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Atmosphere, Body, Button, Label, Punch, VideoBackdrop } from "@/components/ui";
+import { palette, SCREEN_PAD, space } from "@/constants/theme";
+import React, { useEffect, useRef } from "react";
+import { Image, StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
-  cancelAnimation,
+  runOnJS,
   useAnimatedStyle,
+  useReducedMotion as useReanimatedReducedMotion,
   useSharedValue,
   withDelay,
-  withRepeat,
-  withSequence,
   withTiming,
-  runOnJS,
 } from "react-native-reanimated";
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
- * Native re-creation of the web splash / entry interstitial (see coach
- * src/pages/splash.tsx + components/entry-sequence.tsx). Brutalist documentary
- * look: pure black, overhead spotlight, heavy edge vignette, a stacked
- * uppercase aphorism that rises line-by-line, FRAME wordmark with a red
- * "MMA AI" tag, three bouncing loader dots, and a SKIP affordance. Auto-
- * dismisses after `minMs`, then fades out before calling onDismiss.
- *
- * Film grain from the web (SVG turbulence) has no native equivalent and is
- * intentionally omitted; everything else ports directly.
+ * First-launch entry sequence: monochrome loop, wordmark, the positioning line
+ * and sub-line rising once, a thin progress line, and a Skip. Auto-dismisses
+ * after `minMs`, then fades out (opacity only) before calling onDismiss.
+ * Opacity + transform only; reduced motion = no rise, no progress sweep.
  */
 
-const APHORISMS: ReadonlyArray<readonly string[]> = [
-  ["MOST MISTAKES", "ARE NERVOUS SYSTEM", "MISTAKES"],
-  ["PRESSURE IS NOT", "THE PROBLEM.", "FRAGMENTATION IS."],
-  ["THE SYSTEM YOU BUILD", "IS THE SYSTEM", "THAT TESTS YOU."],
-  ["COHERENCE", "BEATS", "INTENSITY."],
-  ["POSITION BEFORE SUBMISSION.", "REGULATION", "BEFORE POSITION."],
-  ["THE ROLL REVEALS", "WHAT THE DRILL", "HIDES."],
-  ["TILT", "IS", "DATA."],
-  ["ANCHOR", "BEFORE", "YOU ACT."],
-  ["NARROW", "THE DECISION", "TREE."],
-  ["THE FRAME IS BUILT", "ONE REP", "AT A TIME."],
-];
+const FADE_OUT_MS = 320;
 
-const FADE_OUT_MS = 420;
-
-function pickRotated(seed: number): readonly string[] {
-  // Simple rotation away from the last shown index, persisted by the caller
-  // through the module-level ref below (kept in-memory for the session).
-  let idx = Math.floor(Math.random() * APHORISMS.length);
-  if (idx === seed) idx = (idx + 1) % APHORISMS.length;
-  lastIdxRef.current = idx;
-  return APHORISMS[idx]!;
-}
-const lastIdxRef = { current: -1 };
-
-function Line({ text, index }: { text: string; index: number }) {
-  const p = useSharedValue(0);
+function Rise({ index, children }: { index: number; children: React.ReactNode }) {
+  const reduced = useReanimatedReducedMotion();
+  const p = useSharedValue(reduced ? 1 : 0);
   useEffect(() => {
-    p.value = withDelay(
-      50 + index * 120,
-      withTiming(1, { duration: 800, easing: Easing.bezier(0.2, 0.6, 0.2, 1) }),
-    );
-  }, [index, p]);
+    if (reduced) return;
+    p.value = withDelay(120 + index * 140, withTiming(1, { duration: 320, easing: Easing.out(Easing.cubic) }));
+  }, [index, p, reduced]);
   const style = useAnimatedStyle(() => ({
     opacity: p.value,
     transform: [{ translateY: (1 - p.value) * 8 }],
   }));
-  return (
-    <Animated.Text style={[s.heroLine, style]}>{text}</Animated.Text>
-  );
-}
-
-function LoaderDot({ delay }: { delay: number }) {
-  const y = useSharedValue(0);
-  useEffect(() => {
-    y.value = withDelay(
-      delay,
-      withRepeat(
-        withSequence(
-          withTiming(-5, { duration: 480, easing: Easing.inOut(Easing.quad) }),
-          withTiming(0, { duration: 720, easing: Easing.inOut(Easing.quad) }),
-        ),
-        -1,
-      ),
-    );
-    return () => cancelAnimation(y);
-  }, [delay, y]);
-  const style = useAnimatedStyle(() => ({
-    opacity: 0.4 + (Math.abs(y.value) / 5) * 0.6,
-    transform: [{ translateY: y.value }],
-  }));
-  return <Animated.View style={[s.dot, style]} />;
+  return <Animated.View style={style}>{children}</Animated.View>;
 }
 
 export function EntrySequence({
   onDismiss,
-  hero,
   callsign,
   minMs = 2500,
 }: {
   onDismiss: () => void;
+  /** @deprecated v3: the sequence now carries the fixed positioning line */
   hero?: readonly string[];
   callsign?: string | null;
   minMs?: number;
 }) {
   const insets = useSafeAreaInsets();
-  const lines = useMemo(
-    () => hero ?? pickRotated(lastIdxRef.current),
-    [hero],
-  );
+  const reduced = useReanimatedReducedMotion();
   const fade = useSharedValue(1);
+  const progress = useSharedValue(0);
   const closingRef = useRef(false);
   const mountedAt = useRef(Date.now());
 
@@ -129,168 +71,73 @@ export function EntrySequence({
   );
 
   useEffect(() => {
+    progress.value = reduced ? 1 : withTiming(1, { duration: minMs, easing: Easing.linear });
     const t = setTimeout(() => close(false), minMs);
     return () => clearTimeout(t);
-  }, [close, minMs]);
+  }, [close, minMs, progress, reduced]);
 
   const fadeStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
+  const trackW = useSharedValue(0);
+  const barStyle = useAnimatedStyle(() => ({ transform: [{ translateX: (progress.value - 1) * trackW.value }] }));
 
-  const sign = callsign?.split(" ")[0]?.toUpperCase() ?? "ATHLETE";
+  const first = callsign?.trim().split(" ")[0] ?? null;
 
   return (
     <Animated.View style={[s.root, fadeStyle]}>
-      <VideoBackdrop blur={10} dim={0.3} />
-      {/* spotlight + vignette via SVG radial gradients (RN has no CSS radial) */}
-      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Defs>
-          <RadialGradient id="spot" cx="50%" cy="6%" rx="90%" ry="50%">
-            <Stop offset="0%" stopColor="#B9A477" stopOpacity={0.22} />
-            <Stop offset="60%" stopColor="#B9A477" stopOpacity={0} />
-          </RadialGradient>
-          <RadialGradient id="vig" cx="50%" cy="50%" rx="110%" ry="80%">
-            <Stop offset="35%" stopColor="#08090B" stopOpacity={0} />
-            <Stop offset="90%" stopColor="#08090B" stopOpacity={0.7} />
-            <Stop offset="100%" stopColor="#08090B" stopOpacity={1} />
-          </RadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill="url(#spot)" />
-        <Rect x="0" y="0" width="100%" height="100%" fill="url(#vig)" />
-      </Svg>
+      <VideoBackdrop dim={0.2} />
+      <Atmosphere focus="topLeft" tone="silver" intensity={0.8} />
 
-      {/* TUNING FRAME · CALLSIGN */}
-      <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-        <View style={s.headerLeft}>
-          <View style={s.headerDot} />
-          <Text style={s.headerText}>TUNING FRAME</Text>
-        </View>
-        <Text style={s.callsign}>{sign}</Text>
+      <View style={[s.header, { paddingTop: insets.top + 16 }]}>
+        <Image source={require("../assets/images/frame-logo.png")} style={s.logo} resizeMode="contain" />
+        {first ? <Label>Welcome, {first}</Label> : null}
       </View>
 
-      {/* hero */}
-      <View style={s.hero}>
-        <View style={s.heroInner}>
-          {lines.map((line, i) => (
-            <Line key={`${line}-${i}`} text={line} index={i} />
-          ))}
-          <View style={s.loaderRow}>
-            <LoaderDot delay={0} />
-            <LoaderDot delay={180} />
-            <LoaderDot delay={360} />
-          </View>
-        </View>
-      </View>
+      <View style={s.spacer} />
 
-      {/* wordmark + skip */}
-      <View style={[s.footer, { paddingBottom: insets.bottom + 24 }]}>
-        <View style={s.wordmarkBlock}>
-          <Text style={s.wordmark}>FRAME</Text>
-          <Text style={s.mmaTag}>MMA AI</Text>
+      <View style={[s.band, { paddingBottom: insets.bottom + 20 }]}>
+        <Rise index={0}>
+          <Punch style={s.headline}>Your corner team between training sessions.</Punch>
+        </Rise>
+        <Rise index={1}>
+          <Body style={s.sub}>AI coaching for fighters and athletes.</Body>
+        </Rise>
+        <View
+          style={s.track}
+          onLayout={(e) => {
+            trackW.value = e.nativeEvent.layout.width;
+          }}
+          accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Animated.View style={[s.bar, barStyle]} />
         </View>
-        <Pressable onPress={() => close(true)} hitSlop={12}>
-          <Text style={s.skip}>SKIP</Text>
-        </Pressable>
+        <View style={s.skipRow}>
+          <Button title="Skip" variant="ghost" onPress={() => close(true)} style={s.skip} quiet />
+        </View>
       </View>
     </Animated.View>
   );
 }
 
 const s = StyleSheet.create({
-  root: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#08090B",
-    zIndex: 50,
-  },
+  root: { ...StyleSheet.absoluteFillObject, backgroundColor: palette.bg, zIndex: 50 },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingBottom: 8,
+    paddingHorizontal: SCREEN_PAD + 4,
   },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  logo: { width: 40, height: 40 },
+  spacer: { flex: 1 },
+  band: { paddingHorizontal: SCREEN_PAD + 4 },
+  headline: { fontSize: 36, lineHeight: 40, letterSpacing: -1.2 },
+  sub: { marginTop: space.md, fontSize: 17, lineHeight: 24 },
+  track: {
+    height: 2,
+    marginTop: space.xl,
+    borderRadius: 1,
+    backgroundColor: palette.border,
+    overflow: "hidden",
   },
-  headerDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: palette.goldLight,
-  },
-  headerText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 2,
-    color: palette.textMid,
-  },
-  callsign: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 2,
-    color: palette.goldLight,
-  },
-  hero: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 28,
-  },
-  heroInner: {
-    alignItems: "center",
-  },
-  heroLine: {
-    fontFamily: fonts.punch,
-    fontSize: 60,
-    lineHeight: 58,
-    letterSpacing: 0.5,
-    textAlign: "center",
-    color: palette.textHi,
-  },
-  loaderRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
-    marginTop: 40,
-  },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: palette.goldLight,
-  },
-  footer: {
-    alignItems: "center",
-    gap: 16,
-    paddingHorizontal: 24,
-  },
-  wordmarkBlock: {
-    alignItems: "center",
-  },
-  wordmark: {
-    fontFamily: fonts.displayThin,
-    fontSize: 20,
-    lineHeight: 26,
-    letterSpacing: 8,
-    paddingLeft: 8,
-    color: palette.textHi,
-  },
-  mmaTag: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 3,
-    paddingLeft: 3,
-    marginTop: 4,
-    color: palette.redLight,
-  },
-  skip: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 2.4,
-    color: palette.textMid,
-    paddingHorizontal: 20,
-    minHeight: 44,
-    textAlignVertical: "center",
-    lineHeight: 44,
-  },
+  bar: { height: 2, width: "100%", backgroundColor: palette.gold },
+  skipRow: { alignItems: "flex-start", marginTop: space.sm },
+  skip: { paddingHorizontal: 0, minHeight: 44, minWidth: 64, alignItems: "flex-start" },
 });
