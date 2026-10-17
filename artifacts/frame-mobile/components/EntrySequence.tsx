@@ -129,7 +129,7 @@ const s = StyleSheet.create({
   spacer: { flex: 1 },
   band: { paddingHorizontal: SCREEN_PAD + 4 },
   headline: { fontSize: 36, lineHeight: 40, letterSpacing: -1.2 },
-  sub: { marginTop: space.md, fontSize: 17, lineHeight: 24 },
+  sub: { marginTop: space.md, fontSize: 17, lineHeight: 24, color: palette.textHi },
   track: {
     height: 2,
     marginTop: space.xl,

@@ -87,7 +87,7 @@ export function VideoBackdrop({ dim = AUTH_SCRIM }: { dim?: number }) {
       ) : null}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(8,9,11,${dim})` }]} />
       <LinearGradient
-        colors={["rgba(8,9,11,0.78)", "rgba(8,9,11,0.08)", "rgba(8,9,11,0.55)", "rgba(8,9,11,0.94)", "rgba(8,9,11,0.98)"]}
+        colors={["rgba(8,9,11,0.78)", "rgba(8,9,11,0.22)", "rgba(8,9,11,0.55)", "rgba(8,9,11,0.94)", "rgba(8,9,11,0.98)"]}
         locations={[0, 0.22, 0.48, 0.74, 1]}
         style={StyleSheet.absoluteFill}
       />

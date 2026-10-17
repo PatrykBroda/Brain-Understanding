@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
   bandShort: { minHeight: 120 },
   bandInner: { flex: 1, paddingBottom: space.lg },
   headline: { fontSize: 32, lineHeight: 36, letterSpacing: -1 },
-  sub: { marginTop: space.sm, fontSize: 16, lineHeight: 22 },
+  sub: { marginTop: space.sm, fontSize: 16, lineHeight: 22, color: palette.textHi },
   cardWrap: { width: "100%", maxWidth: 480, alignSelf: "center", paddingHorizontal: SCREEN_PAD + 2, paddingTop: space.md },
   heading: { marginTop: space.lg, marginBottom: space.xl },
   section: { width: "100%" },
