@@ -275,7 +275,10 @@ importers:
       '@fontsource-variable/outfit':
         specifier: ^5.3.0
         version: 5.3.0
-      '@fontsource/instrument-serif':
+      '@fontsource-variable/unbounded':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/barlow-condensed':
         specifier: ^5.3.0
         version: 5.3.0
       '@react-three/drei':
@@ -504,6 +507,12 @@ importers:
 
   artifacts/frame-mobile:
     dependencies:
+      '@expo-google-fonts/barlow-condensed':
+        specifier: ^0.4.1
+        version: 0.4.1
+      '@expo-google-fonts/unbounded':
+        specifier: ^0.4.1
+        version: 0.4.1
       '@react-three/drei':
         specifier: 10.7.7
         version: 10.7.7(eca8cb10f250278447a215686bee68c3)
@@ -516,6 +525,9 @@ importers:
       expo-gl:
         specifier: ~16.0.10
         version: 16.0.10(expo@54.0.36)(react-dom@19.1.0(react@19.1.0))(react-native-reanimated@4.1.7(react-native-worklets@0.5.1(@babel/core@7.29.0)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.1.0))(react@19.1.0))(react-native-web@0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.1.0))(react@19.1.0)
+      expo-video:
+        specifier: ~3.0.16
+        version: 3.0.16(expo@54.0.36)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.1.0))(react@19.1.0)
       react-native-purchases:
         specifier: ^9.6.0
         version: 9.15.2(react-native-web@0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.1.0))(react@19.1.0)
@@ -526,9 +538,6 @@ importers:
       '@babel/core':
         specifier: ^7.25.2
         version: 7.29.0
-      '@expo-google-fonts/instrument-serif':
-        specifier: ^0.4.1
-        version: 0.4.1
       '@expo-google-fonts/inter':
         specifier: ^0.4.0
         version: 0.4.2
@@ -1707,8 +1716,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@expo-google-fonts/instrument-serif@0.4.1':
-    resolution: {integrity: sha512-1CgCrLbTSgE7RV8ZrTT7i06UAyNQDBrhxQuxkReNnfq5yvUhTmvpOK17grlEsXG5p04lJ1ZXGiIjPeHo6X0sXg==}
+  '@expo-google-fonts/barlow-condensed@0.4.1':
+    resolution: {integrity: sha512-9yuXU1MpI4Dw/8rR4pj2EXcT4/31H5+DrrT47auF8IzD9r7SZPRoNVq8clRq7zxOTh7v1gJk3pBhydDVf2x/dA==}
 
   '@expo-google-fonts/inter@0.4.2':
     resolution: {integrity: sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ==}
@@ -1718,6 +1727,9 @@ packages:
 
   '@expo-google-fonts/space-mono@0.4.2':
     resolution: {integrity: sha512-soYY/qcKcnY7xjIhuMAVzJYxSdJ3Z8TjrtFHOB5SK7/4MEMGpoaw+CAVyvXnA3fsO7J7waIW+/5Z0Y0i/CfSeg==}
+
+  '@expo-google-fonts/unbounded@0.4.1':
+    resolution: {integrity: sha512-L5wlbPo/TWCmkNwtxeurXxo8D8koCPzajYWIMBqVRmcW1riG48fiK2bOBwopVzL/ifWvuAUXYvcunIMcem/2Dg==}
 
   '@expo/cli@54.0.23':
     resolution: {integrity: sha512-km0h72SFfQCmVycH/JtPFTVy69w6Lx1cHNDmfLfQqgKFYeeHTjx7LVDP4POHCtNxFP2UeRazrygJhlh4zz498g==}
@@ -1915,8 +1927,11 @@ packages:
   '@fontsource-variable/outfit@5.3.0':
     resolution: {integrity: sha512-fPb5XnYK0k7SbR++HEmm4+ZqDszmLKQ+sPRUr8oQ/KNC0vy6r6hazJFe8iYozv4cqlHbvJ/JECkJWrfDodUMVQ==}
 
-  '@fontsource/instrument-serif@5.3.0':
-    resolution: {integrity: sha512-mDiaIg0u67sYV59fie92Wz4sM8UiVlbL7fLxnFPCKkX15DMASEnQTREbaP5S5/3DCcsoAOcQ0sV9E4AeY4QqYQ==}
+  '@fontsource-variable/unbounded@5.3.0':
+    resolution: {integrity: sha512-ea565Ncn4r7gPdBEHcmaF31V11hDfkL7b/JCklLobQbMfbu2ZZQrVWNgdeEFWFLqNh36yhieZWOgxdAnMTzrLg==}
+
+  '@fontsource/barlow-condensed@5.3.0':
+    resolution: {integrity: sha512-RA7MmIx0v3eQ6Gcf74qLVLOwLB0GpPOzx+eU9iG/AmCnSJGcIWYeU8y6CEMGZ210MGwGg5CZhzLkkvyZdTTk1g==}
 
   '@gerrit0/mini-shiki@3.23.0':
     resolution: {integrity: sha512-bEMORlG0cqdjVyCEuU0cDQbORWX+kYCeo0kV1lbxF5bt4r7SID2l9bqsxJEM0zndaxpOUT7riCyIVEuqq/Ynxg==}
@@ -4532,6 +4547,13 @@ packages:
     peerDependenciesMeta:
       react-native-web:
         optional: true
+
+  expo-video@3.0.16:
+    resolution: {integrity: sha512-H1HlxcHGomZItqisGfW3YL/G9BHtNBfVSimDJcLuyxyU87wFnV8loO9tCjuhufkfh/aTa2sW5BYAjLjg9DvnBQ==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+      react-native: '*'
 
   expo-web-browser@15.0.11:
     resolution: {integrity: sha512-r2LS4Ro6DgUPZkcaEfgt8mp9eJuoA93x11Jh7S6utFe0FEzvUNn2yFhxg8XVwESaaHGt2k5V8LuK36rsp0BeIw==}
@@ -8501,13 +8523,15 @@ snapshots:
   '@esbuild/linux-x64@0.27.3':
     optional: true
 
-  '@expo-google-fonts/instrument-serif@0.4.1': {}
+  '@expo-google-fonts/barlow-condensed@0.4.1': {}
 
   '@expo-google-fonts/inter@0.4.2': {}
 
   '@expo-google-fonts/outfit@0.4.3': {}
 
   '@expo-google-fonts/space-mono@0.4.2': {}
+
+  '@expo-google-fonts/unbounded@0.4.1': {}
 
   '@expo/cli@54.0.23(expo-router@6.0.24)(expo@54.0.36)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.1.0))(typescript@5.9.3)':
     dependencies:
@@ -9029,7 +9053,9 @@ snapshots:
 
   '@fontsource-variable/outfit@5.3.0': {}
 
-  '@fontsource/instrument-serif@5.3.0': {}
+  '@fontsource-variable/unbounded@5.3.0': {}
+
+  '@fontsource/barlow-condensed@5.3.0': {}
 
   '@gerrit0/mini-shiki@3.23.0':
     dependencies:
@@ -11924,6 +11950,12 @@ snapshots:
       react-native-web: 0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     transitivePeerDependencies:
       - supports-color
+
+  expo-video@3.0.16(expo@54.0.36)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.1.0))(react@19.1.0):
+    dependencies:
+      expo: 54.0.36(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(react-native-webview@13.15.0(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+      react: 19.1.0
+      react-native: 0.81.5(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.1.0)
 
   expo-web-browser@15.0.11(expo@54.0.36)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.1.0)):
     dependencies:
