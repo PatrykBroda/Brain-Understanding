@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ChevronDown, ChevronRight, Shield } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { CosmicOrb } from "@/components/cosmic-orb";
 import { FramePlusPill } from "@/components/frame-plus-modal";
@@ -105,12 +105,7 @@ export default function StatePage() {
       />
       <header className="relative z-10 flex flex-none items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
         <FrameWordmark size={28} />
-        <div className="flex items-center gap-2">
-          <FramePlusPill />
-          <Link href="/profile" aria-label="Open profile" className="icon-round outline-none">
-            <Shield className="h-[18px] w-[18px]" strokeWidth={1.75} />
-          </Link>
-        </div>
+        <FramePlusPill />
       </header>
 
       <main className="relative z-10 min-h-0 flex-1 overflow-y-auto">
