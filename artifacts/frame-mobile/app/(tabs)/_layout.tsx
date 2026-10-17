@@ -6,6 +6,8 @@ import { Image, Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useFighter } from "@/context/FighterContext";
+import { LinearGradient } from "expo-linear-gradient";
+import { fonts, gradients, palette } from "@/constants/theme";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -25,30 +27,34 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#8A6A2F",
-        tabBarInactiveTintColor: "#444",
+        tabBarActiveTintColor: palette.goldLight,
+        tabBarInactiveTintColor: palette.textLow,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : "#050505",
+          backgroundColor: isIOS ? "transparent" : palette.graphite0,
           borderTopWidth: 1,
-          borderTopColor: "#1a1a1a",
+          borderTopColor: palette.glassEdge,
           elevation: 0,
           paddingBottom: isWeb ? 0 : insets.bottom,
-          height: isWeb ? 84 : 50 + insets.bottom,
+          height: isWeb ? 84 : 56 + insets.bottom,
         },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView
-              intensity={90}
-              tint="dark"
+        tabBarBackground: () => (
+          <>
+            {isIOS ? (
+              <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill} />
+            ) : null}
+            <LinearGradient
+              colors={gradients.tabBar}
               style={StyleSheet.absoluteFill}
+              pointerEvents="none"
             />
-          ) : null,
+          </>
+        ),
         tabBarShowLabel: true,
         tabBarLabelStyle: {
-          fontFamily: "SpaceMono",
-          fontSize: 8,
-          letterSpacing: 1.5,
+          fontFamily: fonts.textMedium,
+          fontSize: 10,
+          letterSpacing: 1.2,
           marginBottom: 2,
         },
       }}

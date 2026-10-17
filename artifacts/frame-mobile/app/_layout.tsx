@@ -1,4 +1,14 @@
-import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold } from "@expo-google-fonts/outfit";
+import {
+  Outfit_200ExtraLight,
+  Outfit_300Light,
+  Outfit_400Regular,
+  Outfit_500Medium,
+  Outfit_600SemiBold,
+} from "@expo-google-fonts/outfit";
+import {
+  InstrumentSerif_400Regular,
+  InstrumentSerif_400Regular_Italic,
+} from "@expo-google-fonts/instrument-serif";
 import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
 import Constants from "expo-constants";
 import { useFonts } from "expo-font";
@@ -141,9 +151,11 @@ const noticeStyles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    backgroundColor: "#17130C",
+    minHeight: 44,
+    borderRadius: 18,
+    backgroundColor: "rgba(23,19,12,0.96)",
     borderWidth: 1,
-    borderColor: "#8A6A2F",
+    borderColor: "rgba(199,161,90,0.28)",
   },
   text: {
     flex: 1,
@@ -153,8 +165,8 @@ const noticeStyles = StyleSheet.create({
     lineHeight: 18,
   },
   dismiss: {
-    color: "#C8A96A",
-    fontFamily: "SpaceMono",
+    color: "#C7A15A",
+    fontFamily: "OutfitMedium",
     fontSize: 10,
     letterSpacing: 1.5,
   },
@@ -308,6 +320,12 @@ export default function RootLayout() {
     Outfit_400Regular,
     Outfit_500Medium,
     Outfit_600SemiBold,
+    OutfitExtraLight: Outfit_200ExtraLight,
+    OutfitLight: Outfit_300Light,
+    OutfitMedium: Outfit_500Medium,
+    OutfitSemiBold: Outfit_600SemiBold,
+    InstrumentSerif: InstrumentSerif_400Regular,
+    InstrumentSerifItalic: InstrumentSerif_400Regular_Italic,
     SpaceMono: SpaceMono_400Regular,
     SpaceMono_400Regular,
   });
