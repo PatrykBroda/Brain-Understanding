@@ -1,8 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Image as ExpoImage } from "expo-image";
 import {
-  ActivityIndicator,
   Image,
   PanResponder,
   Platform,
@@ -23,19 +21,22 @@ import {
   ArcGauge,
   Body,
   Button,
-  Display, Punch,
+  Display,
+  EmptyState,
   Eyebrow,
   FadeIn,
   Field,
   GlassCard,
   IconButton,
+  Label,
   Numeral,
+  Punch,
   Screen,
   Sparkline,
   TickScale,
-  media,
+  haptic,
 } from "@/components/ui";
-import { fonts, palette, radius } from "@/constants/theme";
+import { fonts, MIN_TAP, palette, radius, SCREEN_PAD } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { useActiveCompetition } from "@/hooks/useCompetition";
@@ -96,9 +97,11 @@ const INVERTED_METRICS: Partial<
 function MetricSlider({
   value,
   onChange,
+  label,
 }: {
   value: number;
   onChange: (v: number) => void;
+  label: string;
 }) {
   const [width, setWidth] = useState(0);
   const widthRef = useRef(0);
@@ -146,6 +149,15 @@ function MetricSlider({
       ref={trackRef}
       style={sliderStyles.track}
       onLayout={() => remeasure()}
+      accessible
+      accessibilityRole="adjustable"
+      accessibilityLabel={label}
+      accessibilityValue={{ min: 0, max: 100, now: value }}
+      accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
+      onAccessibilityAction={(e) => {
+        if (e.nativeEvent.actionName === "increment") onChange(Math.min(100, value + 5));
+        if (e.nativeEvent.actionName === "decrement") onChange(Math.max(0, value - 5));
+      }}
       {...responder.panHandlers}
     >
       <View style={sliderStyles.trackBg} />
@@ -161,7 +173,6 @@ function MetricSlider({
     </View>
   );
 }
-
 
 function CheckinForm({
   existing,
@@ -204,24 +215,31 @@ function CheckinForm({
         restingHr,
       },
       {
-        onSuccess: onDone,
-        onError: (e) =>
-          setErr(e instanceof Error ? e.message : "Couldn't save check-in"),
+        onSuccess: () => {
+          haptic.success();
+          onDone();
+        },
+        onError: (e) => {
+          haptic.error();
+          setErr(e instanceof Error ? e.message : "Couldn't save check-in");
+        },
       },
     );
   };
 
   return (
-    <GlassCard radius={28} padding={22}>
+    <GlassCard raised padding={20}>
       <View style={styles.formStack}>
+        <Display size="heading">{existing ? "Update today's check-in" : "Today's check-in"}</Display>
         <Body small>Rate how you actually feel. 100 = fully recovered.</Body>
         {METRIC_LABELS.map(({ key, label, hint }) => (
           <View key={key} style={styles.formRow}>
             <View style={styles.formRowHead}>
-              <Eyebrow style={{ color: palette.textMid }}>{label}</Eyebrow>
+              <Text style={styles.formLabel}>{label}</Text>
               <Text style={styles.formValue}>{values[key]}</Text>
             </View>
             <MetricSlider
+              label={label}
               value={values[key]}
               onChange={(v) => setValues((prev) => ({ ...prev, [key]: v }))}
             />
@@ -230,23 +248,26 @@ function CheckinForm({
         ))}
         <View style={styles.hrBox}>
           <Field
-            label="Resting HR (optional, bpm)"
+            label="Resting heart rate (optional, bpm)"
             value={hr}
             onChangeText={setHr}
             keyboardType="number-pad"
             placeholder="—"
           />
         </View>
-        {err && <Text style={styles.formErr}>{err}</Text>}
+        {err && (
+          <Text style={styles.formErr} accessibilityRole="alert">
+            {err}
+          </Text>
+        )}
         <View style={styles.formActions}>
           <Button
-            title={save.isPending ? "Saving" : existing ? "Update" : "Log check-in"}
+            title={existing ? "Update" : "Log check-in"}
             onPress={submit}
-            disabled={save.isPending}
+            loading={save.isPending}
+            style={{ flex: 1 }}
           />
-          <Pressable onPress={onDone} hitSlop={8} style={styles.cancelBtn}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </Pressable>
+          <Button title="Cancel" variant="ghost" onPress={onDone} />
         </View>
       </View>
     </GlassCard>
@@ -262,12 +283,12 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
 
   if (points.length < 2) {
     return (
-      <View style={{ gap: 8 }}>
-        <Eyebrow>Readiness trend</Eyebrow>
+      <View style={{ gap: 6 }}>
+        <Text style={styles.cardTitle}>Readiness trend</Text>
         <Body small>
           {points.length === 0
-            ? "No check-ins in the last 30 days — log one to start the trend."
-            : "One check-in logged — the trend starts at two."}
+            ? "No check-ins in the last 30 days. Log one to start the trend."
+            : "One check-in logged. The trend starts at two."}
         </Body>
       </View>
     );
@@ -284,7 +305,7 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
   return (
     <View onLayout={(e: LayoutChangeEvent) => setW(Math.floor(e.nativeEvent.layout.width))}>
       <View style={styles.trendHead}>
-        <Eyebrow>Readiness trend</Eyebrow>
+        <Text style={styles.cardTitle}>Readiness trend</Text>
         <Text style={styles.trendMeta}>
           {points.length} days · {delta === 0 ? "level" : delta > 0 ? `+${delta}` : `${delta}`}
         </Text>
@@ -304,25 +325,54 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
   );
 }
 
-/** One check-in metric: label, thin numeral and a tick scale that fills the row. */
+/** One check-in metric: label, tabular value and a score bar that fills the row. */
 function MetricRow({ label, value }: { label: string; value: number | null }) {
   const [w, setW] = useState(0);
   return (
     <View
       style={styles.metricRow}
       onLayout={(e: LayoutChangeEvent) => setW(Math.floor(e.nativeEvent.layout.width))}
+      accessible
+      accessibilityLabel={`${label} ${value != null ? value : "no data"}`}
     >
       <View style={styles.metricHead}>
-        <Eyebrow>{label}</Eyebrow>
+        <Label>{label}</Label>
         <Numeral size="s">{value != null ? value : "—"}</Numeral>
       </View>
-      {value != null && w > 0 ? (
-        <TickScale value={value} width={w} height={26} ticks={Math.max(21, Math.floor(w / 7))} />
-      ) : (
-        <View style={{ height: 26 }} />
-      )}
+      {value != null && w > 0 ? <TickScale value={value} width={w} height={14} /> : <View style={{ height: 14 }} />}
     </View>
   );
+}
+
+/** Setup step for a new athlete: done state is real (derived from their data). */
+function SetupRow({ done, title, body, onPress, last }: { done: boolean; title: string; body: string; onPress: () => void; last?: boolean }) {
+  return (
+    <Pressable
+      onPress={() => {
+        haptic.select();
+        onPress();
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}${done ? ", done" : ""}`}
+      style={({ pressed }) => [styles.setupRow, !last && styles.setupRule, pressed && { opacity: 0.7 }]}
+    >
+      <View style={[styles.setupDot, done && styles.setupDotOn]}>
+        {done ? <Feather name="check" size={13} color={palette.onGold} /> : null}
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={styles.setupTitle}>{title}</Text>
+        <Text style={styles.setupBody}>{body}</Text>
+      </View>
+      <Feather name="chevron-right" size={18} color={palette.textLow} />
+    </Pressable>
+  );
+}
+
+function titleCase(s: string): string {
+  return s
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 }
 
 export default function HomeScreen() {
@@ -352,9 +402,8 @@ export default function HomeScreen() {
 
   const activeComp = useActiveCompetition();
   const competition = activeComp.data?.competition ?? null;
-  const pressure = activeComp.data?.pressure ?? null;
 
-  const { data: rawFacts } = useQuery<AthleteFact[]>({
+  const factsQuery = useQuery<AthleteFact[]>({
     queryKey: ["facts"],
     queryFn: () =>
       apiGet<{ facts: AthleteFact[] }>("/memory").then((r) =>
@@ -364,8 +413,8 @@ export default function HomeScreen() {
     staleTime: 60_000,
   });
   const facts = useMemo(
-    () => (Array.isArray(rawFacts) ? rawFacts : []),
-    [rawFacts],
+    () => (Array.isArray(factsQuery.data) ? factsQuery.data : []),
+    [factsQuery.data],
   );
   const focus = fighter ? primaryFocus(fighter, facts) : null;
   const hasFocus = !!focus && focus.label !== "Not yet identified";
@@ -394,15 +443,19 @@ export default function HomeScreen() {
     () => readinessModifier(conversationQuery.data ?? []),
     [conversationQuery.data],
   );
+  const hasChat = (conversationQuery.data?.length ?? 0) > 0;
 
   const baseReadiness = checkinScore ?? sessionScore;
   const readiness = applyReadinessModifier(baseReadiness, chatModifier);
   const provenance =
     checkinScore != null
-      ? "TODAY'S CHECK-IN"
+      ? "From today's check-in"
       : sessionScore != null
-        ? "LAST SESSION"
+        ? "From your last session"
         : null;
+
+  const readinessLoading = checkinQuery.isLoading && analysesQuery.isLoading;
+  const readinessFailed = !readinessLoading && checkinQuery.isError && analysesQuery.isError && readiness == null;
 
   const hasHero = !!fighter && (fighter.heroImageUrl ?? "").trim() !== "";
   const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
@@ -417,22 +470,34 @@ export default function HomeScreen() {
 
   const metaParts = fighter
     ? [
-        fighter.primarySport
-          ? fighter.primarySport.replace(/_/g, " ").toUpperCase()
-          : null,
+        fighter.primarySport ? titleCase(fighter.primarySport) : null,
+        fighter.level || null,
         fighter.weightClass || null,
-        fighter.stance ? fighter.stance.toUpperCase() : null,
+        fighter.stance ? titleCase(fighter.stance) : null,
       ].filter((p): p is string => !!p)
     : [];
 
   const topPad = Platform.OS === "web" ? 24 : insets.top;
-  const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 0) + 90;
+  const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 0) + 96;
 
   const metricVal = (key: (typeof METRIC_LABELS)[number]["key"]) =>
     checkin ? (INVERTED_METRICS[key] ? 100 - checkin[key] : checkin[key]) : null;
 
+  const isNewAthlete = !readinessLoading && !readinessFailed && !checkin && sessionScore == null && !hasChat;
+
+  const nameBlock = (
+    <>
+      <Punch style={styles.heroName} numberOfLines={2}>
+        {fighter?.name ?? "Athlete"}
+      </Punch>
+      {metaParts.length > 0 ? (
+        <Text style={styles.heroMeta}>{metaParts.join("  ·  ")}</Text>
+      ) : null}
+    </>
+  );
+
   return (
-    <Screen photo={media.stillB}>
+    <Screen light="champagne" focus="topLeft" intensity={0.9}>
       <ScrollView
         style={styles.root}
         contentContainerStyle={{ paddingBottom: bottomPad, paddingTop: topPad + 8 }}
@@ -444,106 +509,118 @@ export default function HomeScreen() {
             source={require("@/assets/images/frame-wordmark.png")}
             style={styles.wordmark}
             resizeMode="contain"
+            accessibilityLabel="Frame"
           />
-          <IconButton
-            icon="user"
-            label="Open profile"
-            onPress={() => router.push("/(tabs)/profile")}
-          />
+          <IconButton icon="user" label="Open profile" onPress={() => router.push("/(tabs)/profile")} />
         </FadeIn>
 
-        {/* ─── Athlete hero card ──────────────────────────────────────── */}
+        {/* ─── 1. Athlete context (real profile data) ────────────────── */}
         <FadeIn index={1} style={styles.pad}>
-          <View style={styles.hero}>
-            {heroSrc ? (
+          {heroSrc ? (
+            <View style={styles.hero}>
               <Image
                 source={{
                   uri: heroSrc,
                   ...(heroToken ? { headers: { Authorization: `Bearer ${heroToken}` } } : {}),
                 }}
-                style={[StyleSheet.absoluteFill, { opacity: 0.55, transform: [{ scale: zoom }] }]}
+                style={[StyleSheet.absoluteFill, { opacity: 0.7, transform: [{ scale: zoom }] }]}
                 resizeMode="cover"
               />
+              <LinearGradient
+                colors={["rgba(8,9,11,0.1)", "rgba(8,9,11,0.45)", "rgba(8,9,11,0.94)"]}
+                locations={[0, 0.4, 1]}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
+              <View style={styles.heroIdentity}>{nameBlock}</View>
+            </View>
+          ) : (
+            <View style={styles.identity}>{nameBlock}</View>
+          )}
+        </FadeIn>
+
+        {/* ─── 2. Today's focus ───────────────────────────────────────── */}
+        <FadeIn index={2} style={styles.pad}>
+          <GlassCard padding={20}>
+            <Eyebrow>Today&apos;s focus</Eyebrow>
+            {factsQuery.isLoading ? (
+              <Body small style={{ marginTop: 10 }}>
+                Reading your athlete model…
+              </Body>
+            ) : hasFocus && focus ? (
+              <>
+                <Display size="heading" style={styles.focusLabel}>
+                  {focus.label}
+                </Display>
+                <Text style={styles.focusSource}>{focus.source}</Text>
+              </>
             ) : (
               <>
-                <ExpoImage
-                  source={media.stillA}
-                  style={[StyleSheet.absoluteFill, { opacity: 0.85 }]}
-                  contentFit="cover"
-                  contentPosition={{ top: 0, left: "45%" }}
-                />
-                <LinearGradient
-                  colors={["rgba(255,255,255,0.36)", "rgba(255,255,255,0)"]}
-                  start={{ x: 0.9, y: 0 }}
-                  end={{ x: 0.2, y: 1 }}
-                  style={StyleSheet.absoluteFill}
-                />
+                <Display size="heading" style={styles.focusLabel}>
+                  Your focus appears here
+                </Display>
+                <Text style={styles.focusSource}>
+                  Tell your coach what breaks down in training, or add weaknesses in your profile.
+                </Text>
               </>
             )}
-            <LinearGradient
-              colors={["rgba(8,9,11,0.15)", "rgba(8,9,11,0.35)", "rgba(8,9,11,0.92)"]}
-              locations={[0, 0.45, 1]}
-              style={StyleSheet.absoluteFill}
-              pointerEvents="none"
-            />
-            <View style={styles.heroIdentity}>
-              <Eyebrow style={{ color: palette.goldLight }}>Athlete</Eyebrow>
-              <Punch style={styles.heroName} numberOfLines={2}>
-                {fighter?.name ?? "—"}
-              </Punch>
-              {metaParts.length > 0 && (
-                <Text style={styles.heroMeta}>{metaParts.join("  ·  ")}</Text>
-              )}
-            </View>
-          </View>
-        </FadeIn>
-
-        <FadeIn index={2}>
-          <CompetitionBanner />
-        </FadeIn>
-
-        {/* ─── Fight readiness ────────────────────────────────────────── */}
-        <FadeIn index={3} style={styles.pad}>
-          <GlassCard tone="gold" radius={32} padding={22}>
-            <View style={styles.sectionHeadRow}>
-              <Eyebrow>Fight readiness</Eyebrow>
-              {provenance && <Text style={styles.sectionMeta}>{provenance}</Text>}
-            </View>
-
-            <View style={styles.gaugeBox}>
-              {readiness != null ? (
-                <ArcGauge value={readiness} size={250} label={bandFor(readiness)} unit="/ 100" />
-              ) : (
-                <View style={styles.emptyGauge}>
-                  <Text style={styles.readyBigEmpty}>—</Text>
-                  <Body small style={styles.readyEmptyNote}>
-                    No real data yet. Log a check-in or analyse a session.
-                  </Body>
-                </View>
-              )}
-            </View>
-
-            {!editing && (
-              <Pressable
-                onPress={() => setEditing(true)}
-                style={styles.editPill}
-                hitSlop={6}
-                accessibilityRole="button"
-              >
-                {checkin ? (
-                  <>
-                    <Feather name="edit-2" size={13} color={palette.goldLight} />
-                    <Text style={styles.editText}>Edit today's check-in</Text>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.editText}>Log today's check-in</Text>
-                    <Feather name="chevron-right" size={14} color={palette.goldLight} />
-                  </>
-                )}
-              </Pressable>
-            )}
           </GlassCard>
+        </FadeIn>
+
+        {/* ─── 3. Access to coaching — the one primary action ─────────── */}
+        <FadeIn index={3} style={styles.pad}>
+          <Button
+            title={hasChat ? "Continue with your coach" : "Start with your coach"}
+            onPress={() => router.push("/(tabs)/chat")}
+          />
+        </FadeIn>
+
+        {/* ─── Supporting info ────────────────────────────────────────── */}
+        {/* Fight readiness */}
+        <FadeIn index={4} style={styles.pad}>
+          {readinessLoading ? (
+            <EmptyState kind="loading" title="Loading your readiness" />
+          ) : readinessFailed ? (
+            <EmptyState
+              kind="error"
+              title="Couldn't load your readiness"
+              body="Check your connection and try again."
+              actionLabel="Try again"
+              onAction={() => {
+                void checkinQuery.refetch();
+                void analysesQuery.refetch();
+              }}
+            />
+          ) : (
+            <GlassCard padding={20}>
+              <View style={styles.sectionHeadRow}>
+                <Text style={styles.cardTitle}>Fight readiness</Text>
+                {provenance && <Text style={styles.sectionMeta}>{provenance}</Text>}
+              </View>
+
+              <View style={styles.gaugeBox}>
+                {readiness != null ? (
+                  <ArcGauge value={readiness} size={216} label={bandFor(readiness)} unit="/ 100" />
+                ) : (
+                  <View style={styles.emptyGauge}>
+                    <Text style={styles.emptyTitle}>No readiness yet</Text>
+                    <Body small style={styles.readyEmptyNote}>
+                      It comes from a check-in or an analysed session. Log how you feel to start.
+                    </Body>
+                  </View>
+                )}
+              </View>
+
+              {!editing && (
+                <Button
+                  title={checkin ? "Edit today's check-in" : "Log today's check-in"}
+                  variant="secondary"
+                  onPress={() => setEditing(true)}
+                  style={{ marginTop: 8 }}
+                />
+              )}
+            </GlassCard>
+          )}
         </FadeIn>
 
         {editing && (
@@ -552,92 +629,100 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ─── Breakdown ──────────────────────────────────────────────── */}
-        <FadeIn index={4} style={styles.pad}>
-          <GlassCard radius={28} padding={20}>
-            <View style={styles.metricGrid}>
-              {METRIC_LABELS.map(({ key, label }) => (
-                <MetricRow key={key} label={label} value={metricVal(key)} />
-              ))}
-              <View style={styles.metricHead}>
-                <Eyebrow>Cardio HR</Eyebrow>
-                <Numeral size="s">
-                  {checkin?.restingHr != null ? `${checkin.restingHr}` : "—"}
-                  {checkin?.restingHr != null && <Text style={styles.bpm}> bpm</Text>}
-                </Numeral>
-              </View>
-            </View>
-          </GlassCard>
-        </FadeIn>
-
-        {/* ─── Today's focus ──────────────────────────────────────────── */}
-        {hasFocus && focus && (
+        {/* New athlete: concrete first steps, completion is real */}
+        {isNewAthlete && (
           <FadeIn index={5} style={styles.pad}>
-            <Pressable accessibilityRole="button" onPress={() => router.push("/(tabs)/chat")}>
-              <GlassCard radius={28} padding={20}>
-                <Eyebrow style={{ color: palette.goldLight }}>Today's focus</Eyebrow>
-                <View style={styles.focusRow}>
-                  <Display size="sub" style={styles.focusLabel}>
-                    {focus.label}
-                  </Display>
-                  <View style={styles.chevDisc}>
-                    <Feather name="arrow-up-right" size={16} color={palette.goldPale} />
-                  </View>
+            <GlassCard padding={20}>
+              <Text style={styles.cardTitle}>Get set up</Text>
+              <View style={{ marginTop: 4 }}>
+                <SetupRow
+                  done={!!checkin}
+                  title="Log a check-in"
+                  body="Sleep, energy, soreness and stress"
+                  onPress={() => setEditing(true)}
+                />
+                <SetupRow
+                  done={hasChat}
+                  title="Tell your coach about your training"
+                  body="What you do, and what breaks down"
+                  onPress={() => router.push("/(tabs)/chat")}
+                />
+                <SetupRow
+                  done={sessionScore != null}
+                  title="Analyse a session"
+                  body="Upload a clip for a session score"
+                  onPress={() => router.push("/(tabs)/analyse")}
+                  last
+                />
+              </View>
+            </GlassCard>
+          </FadeIn>
+        )}
+
+        {/* Today's breakdown */}
+        {checkin && (
+          <FadeIn index={5} style={styles.pad}>
+            <GlassCard padding={20}>
+              <Text style={styles.cardTitle}>Today&apos;s check-in</Text>
+              <View style={styles.metricGrid}>
+                {METRIC_LABELS.map(({ key, label }) => (
+                  <MetricRow key={key} label={label} value={metricVal(key)} />
+                ))}
+                <View style={styles.metricHead}>
+                  <Label>Resting heart rate</Label>
+                  <Numeral size="s">
+                    {checkin.restingHr != null ? `${checkin.restingHr}` : "—"}
+                    {checkin.restingHr != null && <Text style={styles.bpm}> bpm</Text>}
+                  </Numeral>
                 </View>
-                <Text style={styles.focusSource}>{focus.source}</Text>
-              </GlassCard>
+              </View>
+            </GlassCard>
+          </FadeIn>
+        )}
+
+        {/* Camp: banner when active, a quiet prompt when not */}
+        {competition ? (
+          <FadeIn index={6}>
+            <CompetitionBanner />
+          </FadeIn>
+        ) : activeComp.isLoading ? null : (
+          <FadeIn index={6} style={styles.pad}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push("/(tabs)/planner")}
+              style={({ pressed }) => [styles.campRow, pressed && { backgroundColor: palette.raised }]}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.campTitle}>No active camp</Text>
+                <Text style={styles.campBody}>Set a fight or competition to plan your build.</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color={palette.textLow} />
             </Pressable>
           </FadeIn>
         )}
 
-        {/* ─── Readiness trend — FRAME+ ───────────────────────────────── */}
-        <FadeIn index={6} style={styles.pad}>
-          <GlassCard radius={28} padding={20}>
+        {/* Readiness trend — FRAME+ */}
+        <FadeIn index={7} style={styles.pad}>
+          <GlassCard padding={20}>
             {isFramePlus ? (
               historyQuery.isLoading ? (
-                <ActivityIndicator size="small" color={palette.goldLight} />
+                <Body small>Loading your trend…</Body>
               ) : (
                 <ReadinessTrend checkins={historyCheckins} />
               )
             ) : (
-              <Pressable onPress={() => router.push("/paywall")} style={styles.lockedRow}>
+              <Pressable
+                onPress={() => router.push("/paywall")}
+                accessibilityRole="button"
+                accessibilityLabel="Readiness trend, included with FRAME+"
+                style={styles.lockedRow}
+              >
                 <View style={styles.lockedLeft}>
-                  <Feather name="lock" size={14} color={palette.textLow} />
-                  <Eyebrow>Readiness trend</Eyebrow>
+                  <Feather name="lock" size={16} color={palette.textLow} />
+                  <Text style={styles.cardTitle}>Readiness trend</Text>
                 </View>
                 <Text style={styles.lockedPlus}>FRAME+</Text>
               </Pressable>
-            )}
-          </GlassCard>
-        </FadeIn>
-
-        {/* ─── Competition context ────────────────────────────────────── */}
-        <FadeIn index={7} style={styles.pad}>
-          <GlassCard radius={28} padding={20}>
-            <Eyebrow>Competition context</Eyebrow>
-            {competition && pressure ? (
-              <Pressable style={styles.compRow} onPress={() => router.push("/(tabs)/planner")}>
-                <View style={{ flex: 1 }}>
-                  <Display size="sub">{competition.eventName}</Display>
-                  <Text style={styles.compPhase}>{pressure.phase}</Text>
-                </View>
-                <View style={styles.compRight}>
-                  <Text style={styles.compDays}>{pressure.daysToEvent}</Text>
-                  <Text style={styles.compDaysLabel}>days out</Text>
-                </View>
-              </Pressable>
-            ) : (
-              <View style={styles.compEmpty}>
-                <Body small>No active camp.</Body>
-                <Pressable
-                  style={styles.compEmptyCta}
-                  onPress={() => router.push("/(tabs)/planner")}
-                  hitSlop={8}
-                >
-                  <Text style={styles.compEmptyCtaText}>Set a camp</Text>
-                  <Feather name="chevron-right" size={14} color={palette.goldLight} />
-                </Pressable>
-              </View>
             )}
           </GlassCard>
         </FadeIn>
@@ -648,132 +733,91 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "transparent" },
-  pad: { paddingHorizontal: 20, marginTop: 16 },
+  pad: { paddingHorizontal: SCREEN_PAD, marginTop: 16 },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: SCREEN_PAD,
   },
   wordmark: { width: 104, height: 33, tintColor: palette.text },
+  identity: { paddingTop: 20, paddingBottom: 4, gap: 6 },
   hero: {
-    height: 230,
+    height: 220,
     borderRadius: radius.xl,
     overflow: "hidden",
     justifyContent: "flex-end",
     borderWidth: 1,
-    borderColor: palette.glassEdge,
-    backgroundColor: palette.graphite1,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
   },
-  heroIdentity: { padding: 22, gap: 4 },
-  heroName: { fontSize: 58, lineHeight: 56, color: palette.textHi },
-  heroMeta: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.4,
-    color: palette.textMid,
-    marginTop: 6,
-  },
-  sectionHeadRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  sectionMeta: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.2,
-    color: palette.goldLight,
-  },
-  gaugeBox: { alignItems: "center", marginTop: 14 },
-  emptyGauge: { alignItems: "center", paddingVertical: 28, gap: 8 },
-  readyBigEmpty: { fontFamily: fonts.numeralXL, fontSize: 84, lineHeight: 88, color: palette.textLow },
-  readyEmptyNote: { textAlign: "center", maxWidth: 240 },
-  editPill: {
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    minHeight: 44,
-    paddingHorizontal: 20,
-    borderRadius: radius.pill,
-    backgroundColor: palette.goldWash,
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-    marginTop: 6,
-  },
-  editText: { fontFamily: fonts.textMedium, fontSize: 13, letterSpacing: 0.4, color: palette.goldPale },
+  heroIdentity: { padding: 20, gap: 6 },
+  heroName: { fontSize: 36, lineHeight: 40, letterSpacing: -1.2, color: palette.textHi },
+  heroMeta: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 20, color: palette.textMid },
+  cardTitle: { fontFamily: fonts.semi, fontSize: 18, letterSpacing: -0.2, color: palette.textHi },
+  focusLabel: { marginTop: 10 },
+  focusSource: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: palette.textMid, marginTop: 6 },
+  sectionHeadRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
+  sectionMeta: { fontFamily: fonts.regular, fontSize: 13, color: palette.textMid, flexShrink: 1, textAlign: "right" },
+  gaugeBox: { alignItems: "center", marginTop: 12 },
+  emptyGauge: { alignItems: "center", paddingVertical: 20, gap: 8 },
+  emptyTitle: { fontFamily: fonts.semi, fontSize: 17, color: palette.textMid },
+  readyEmptyNote: { textAlign: "center", maxWidth: 280 },
   // Breakdown
-  metricGrid: { gap: 18 },
-  metricRow: { gap: 6 },
+  metricGrid: { gap: 18, marginTop: 16 },
+  metricRow: { gap: 8 },
   metricHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
-  bpm: { fontFamily: fonts.text, fontSize: 12, color: palette.textMid },
-  // Focus
-  focusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    marginTop: 10,
-  },
-  focusLabel: { flex: 1 },
-  chevDisc: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  bpm: { fontFamily: fonts.regular, fontSize: 13, color: palette.textMid },
+  // Setup
+  setupRow: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingVertical: 10 },
+  setupRule: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.borderStrong },
+  setupDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: palette.borderStrong,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: palette.goldWash,
+  },
+  setupDotOn: { backgroundColor: palette.gold, borderColor: palette.gold },
+  setupTitle: { fontFamily: fonts.medium, fontSize: 16, color: palette.textHi },
+  setupBody: { fontFamily: fonts.regular, fontSize: 13, color: palette.textMid },
+  // Camp
+  campRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    minHeight: MIN_TAP + 16,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: palette.goldHair,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
+    marginTop: 16,
+    marginHorizontal: SCREEN_PAD,
   },
-  focusSource: {
-    fontFamily: fonts.text,
-    fontSize: 12,
-    color: palette.textLow,
-    marginTop: 8,
-    textTransform: "capitalize",
-  },
+  campTitle: { fontFamily: fonts.semi, fontSize: 16, color: palette.textHi },
+  campBody: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: palette.textMid, marginTop: 2 },
   // Check-in form
-  formStack: { gap: 20 },
-  formRow: { gap: 4 },
+  formStack: { gap: 18 },
+  formRow: { gap: 2 },
   formRowHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
-  formValue: { fontFamily: fonts.numeral, fontSize: 22, color: palette.goldPale },
-  formHint: { fontFamily: fonts.text, fontSize: 12, color: palette.textLow },
-  hrBox: { width: 220 },
-  formErr: { fontFamily: fonts.text, fontSize: 13, color: palette.redLight },
-  formActions: { flexDirection: "row", alignItems: "center", gap: 18, paddingTop: 4 },
-  cancelBtn: { minHeight: 44, justifyContent: "center", paddingHorizontal: 6 },
-  cancelText: { fontFamily: fonts.textMedium, fontSize: 13, letterSpacing: 0.6, color: palette.textMid },
+  formLabel: { fontFamily: fonts.medium, fontSize: 15, color: palette.textHi },
+  formValue: { fontFamily: fonts.semi, fontSize: 20, color: palette.textHi, fontVariant: ["tabular-nums"] },
+  formHint: { fontFamily: fonts.regular, fontSize: 12, color: palette.textLow },
+  hrBox: { width: "100%" },
+  formErr: { fontFamily: fonts.regular, fontSize: 14, color: palette.redText },
+  formActions: { flexDirection: "row", alignItems: "center", gap: 12, paddingTop: 4 },
   // Trend
   trendHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
-  trendMeta: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.2,
-    color: palette.goldLight,
-  },
+  trendMeta: { fontFamily: fonts.regular, fontSize: 13, color: palette.textMid, fontVariant: ["tabular-nums"] },
   trendAxis: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
-  trendAxisLabel: { fontFamily: fonts.text, fontSize: 12, color: palette.textLow },
-  lockedRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 },
+  trendAxisLabel: { fontFamily: fonts.regular, fontSize: 12, color: palette.textLow, fontVariant: ["tabular-nums"] },
+  lockedRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: MIN_TAP },
   lockedLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  lockedPlus: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.6, color: palette.goldLight },
-  // Competition
-  compRow: { flexDirection: "row", alignItems: "center", paddingTop: 14, gap: 16, minHeight: 44 },
-  compPhase: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.4,
-    color: palette.textMid,
-    marginTop: 6,
-  },
-  compRight: { alignItems: "flex-end" },
-  compDays: { fontFamily: fonts.numeralXL, fontSize: 52, lineHeight: 54, letterSpacing: -2, color: palette.goldPale },
-  compDaysLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.4,
-    color: palette.textMid,
-  },
-  compEmpty: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 10 },
-  compEmptyCta: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 },
-  compEmptyCtaText: { fontFamily: fonts.textMedium, fontSize: 13, color: palette.goldLight },
+  lockedPlus: { fontFamily: fonts.medium, fontSize: 13, color: palette.gold },
 });
 
 const sliderStyles = StyleSheet.create({
@@ -784,17 +828,17 @@ const sliderStyles = StyleSheet.create({
     right: 0,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: palette.borderStrong,
   },
-  trackFill: { position: "absolute", left: 0, height: 3, borderRadius: 2, backgroundColor: palette.goldLight },
+  trackFill: { position: "absolute", left: 0, height: 3, borderRadius: 2, backgroundColor: palette.gold },
   thumb: {
     position: "absolute",
     width: 22,
     height: 22,
     borderRadius: 11,
     backgroundColor: palette.goldPale,
-    borderWidth: 5,
-    borderColor: "rgba(185,164,119,0.35)",
+    borderWidth: 3,
+    borderColor: palette.raised,
     top: 11,
   },
 });
