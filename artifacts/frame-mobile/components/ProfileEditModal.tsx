@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -125,6 +125,15 @@ export function ProfileEditModal({
   const [error, setError] = useState<string | null>(null);
   const [nameTouched, setNameTouched] = useState(false);
   const nameErr = nameError(form.name);
+
+  // Reopening after a cancel (or a save) starts from the current saved profile, not stale edits.
+  useEffect(() => {
+    if (!visible) return;
+    setForm(toForm(fighter));
+    setNameTouched(false);
+    setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   function set<K extends keyof FormState>(k: K, v: FormState[K]) {
     setForm((f) => ({ ...f, [k]: v }));
