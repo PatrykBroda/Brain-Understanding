@@ -60,6 +60,10 @@ export const fightersTable = pgTable("fighters", {
     .$onUpdate(() => new Date()),
 });
 
+// Display name: trimmed, 1-60 chars. Shared by create and edit so the two can't drift.
+export const FIGHTER_NAME_MAX = 60;
+const fighterNameSchema = z.string().trim().min(1, "name is required").max(FIGHTER_NAME_MAX);
+
 // `age` is omitted everywhere the client can write: it is server-derived from
 // `dateOfBirth` (the single source of truth) so the two can never desync.
 export const insertFighterSchema = createInsertSchema(fightersTable)
@@ -77,6 +81,7 @@ export const insertFighterSchema = createInsertSchema(fightersTable)
     updatedAt: true,
   })
   .extend({
+    name: fighterNameSchema,
     dateOfBirth: z.string().date(),
   });
 
@@ -95,6 +100,7 @@ export const updateFighterSchema = createInsertSchema(fightersTable)
     vocabularyLevel: true,
   })
   .extend({
+    name: fighterNameSchema,
     heroPosX: z.coerce.number().int().min(0).max(100),
     heroPosY: z.coerce.number().int().min(0).max(100),
     heroZoom: z.coerce.number().int().min(100).max(250),
