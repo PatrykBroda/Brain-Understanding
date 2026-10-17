@@ -77,8 +77,8 @@ export function BreathCard({
             className="absolute w-40 h-40 rounded-full border border-[hsl(var(--primary-light))]/60"
             style={{
               background:
-                "radial-gradient(circle at 35% 30%, rgba(230,210,163,0.28), rgba(138,106,47,0.16) 55%, rgba(138,106,47,0.04) 100%)",
-              boxShadow: "0 0 48px rgba(199,161,90,0.30), inset 0 1px 0 rgba(255,244,224,0.25)",
+                "radial-gradient(circle at 35% 30%, rgba(230,210,163,0.28), rgba(185,164,119,0.16) 55%, rgba(185,164,119,0.04) 100%)",
+              boxShadow: "0 0 48px rgba(185,164,119,0.30), inset 0 1px 0 rgba(255,255,255,0.25)",
               transform: `scale(${scale})`,
               transition: `transform ${transitionSec}s ease-in-out`,
             }}
@@ -142,7 +142,7 @@ export function BreathCard({
           {phases.map((p, i) => (
             <span
               key={p.key + i}
-              className={`chip !px-2.5 !py-1 !text-[10px] ${
+              className={`chip !px-2.5 !py-1 !text-xs ${
                 running && i === phaseIdx
                   ? "!border-primary/50 !bg-primary/20 !text-[hsl(var(--primary-pale))]"
                   : "!text-muted-foreground"

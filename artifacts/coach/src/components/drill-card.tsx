@@ -21,13 +21,13 @@ export function DrillCard({ drill }: { drill: Drill }) {
   return (
     <div className="my-4 border border-primary/30 bg-primary/5 rounded-2xl">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-primary/20 bg-primary/10">
-        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A]">
+        <div className="text-xs text-[#B9A477]">
           Prescription
         </div>
-        <div className="font-mono text-[10px] text-[#C7A15A]">DRILL</div>
+        <div className="text-xs text-[#B9A477]">DRILL</div>
       </div>
       {drill.title && (
-        <div className="px-4 pt-4 pb-2 font-mono text-sm text-foreground tracking-wide uppercase">
+        <div className="px-4 pt-4 pb-2 text-sm text-foreground tracking-wide ">
           {drill.title}
         </div>
       )}

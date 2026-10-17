@@ -142,7 +142,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="icon-round text-muted-foreground hover:text-[#C7A15A] transition-colors"
+              className="icon-round text-muted-foreground hover:text-[#B9A477] transition-colors"
               aria-label="Edit profile"
             >
               <Pencil className="w-4 h-4" strokeWidth={1.5} />
@@ -257,7 +257,7 @@ export default function ProfilePage() {
               </div>
 
               {uploadError && (
-                <div className="glass glass-red mt-3 px-4 py-2 font-mono text-[11px] text-[#E0564E] tracking-wide">
+                <div className="glass glass-red mt-3 px-4 py-2 text-xs text-[#E5645A] tracking-wide">
                   {uploadError}
                 </div>
               )}
@@ -293,7 +293,7 @@ export default function ProfilePage() {
                   <span className="eyebrow eyebrow-gold">
                     Continue Calibration
                   </span>
-                  <span className="font-mono text-[11px] text-foreground/70 group-hover:text-[#C7A15A] transition-colors">
+                  <span className="text-xs text-foreground/70 group-hover:text-[#B9A477] transition-colors">
                     →
                   </span>
                 </Link>
@@ -314,7 +314,7 @@ export default function ProfilePage() {
                           FRAME+ active
                         </div>
                         {sub.status?.currentPeriodEnd && (
-                          <div className="font-mono text-[10px] tracking-wide text-muted-foreground mt-1">
+                          <div className="text-xs tracking-wide text-muted-foreground mt-1">
                             {sub.status.cancelAtPeriodEnd ? "Ends" : "Renews"}{" "}
                             {new Date(sub.status.currentPeriodEnd).toLocaleDateString(undefined, {
                               month: "short",
@@ -323,7 +323,7 @@ export default function ProfilePage() {
                             })}
                           </div>
                         )}
-                        <div className="font-mono text-[10px] tracking-wide text-muted-foreground mt-1">
+                        <div className="text-xs tracking-wide text-muted-foreground mt-1">
                           Manage or cancel in the iOS app
                         </div>
                       </div>
@@ -336,15 +336,15 @@ export default function ProfilePage() {
                     className="glass w-full flex items-center justify-between hover:border-primary/40 transition-colors px-5 py-4 text-left group"
                   >
                     <div>
-                      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/85 group-hover:text-[#C7A15A] transition-colors">
+                      <div className="text-xs text-foreground/85 group-hover:text-[#B9A477] transition-colors">
                         FRAME+
                       </div>
-                      <div className="font-mono text-[10px] tracking-wide text-muted-foreground mt-1">
+                      <div className="text-xs tracking-wide text-muted-foreground mt-1">
                         Unlimited coaching · full history · full mission ·
                         subscribe in the iOS app
                       </div>
                     </div>
-                    <span className="font-mono text-[11px] text-foreground/70 group-hover:text-[#C7A15A] transition-colors">
+                    <span className="text-xs text-foreground/70 group-hover:text-[#B9A477] transition-colors">
                       →
                     </span>
                   </button>
@@ -353,23 +353,23 @@ export default function ProfilePage() {
 
               {/* ─── ACCOUNT ───────────────────────────────────────── */}
               <div className="space-y-2.5 pt-6 pb-2">
-                <div className="flex justify-center gap-4 font-mono text-[11px] uppercase tracking-[0.12em]">
-                  <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-[#C7A15A] hover:underline">
+                <div className="flex justify-center gap-4 text-xs ">
+                  <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-[#B9A477] hover:underline">
                     Privacy & AI permissions
                   </a>
-                  <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-[#C7A15A] hover:underline">
+                  <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-[#B9A477] hover:underline">
                     Terms
                   </a>
                 </div>
                 {email && (
-                  <div className="font-mono text-[10px] text-muted-foreground/90 tracking-wide text-center">
+                  <div className="text-xs text-muted-foreground/90 tracking-wide text-center">
                     {email}
                   </div>
                 )}
                 <button
                   type="button"
                   onClick={() => { signOut(); setLocation(`${basePath}/sign-in`); }}
-                  className="w-full flex items-center justify-center gap-2 hover:text-[#C7A15A] btn-quiet"
+                  className="w-full flex items-center justify-center gap-2 hover:text-[#B9A477] btn-quiet"
                 >
                   <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
                   Sign out

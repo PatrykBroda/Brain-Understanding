@@ -25,7 +25,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div
         aria-hidden
         className="glow-orb z-0 bottom-[-8rem] left-[-7rem] h-[20rem] w-[20rem]"
-        style={{ background: "radial-gradient(circle, rgba(191,29,29,0.30), transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, rgba(229,100,90,0.30), transparent 70%)" }}
       />
 
       <header className="relative z-10 grid grid-cols-[44px_1fr_44px] items-center px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
@@ -38,7 +38,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </Link>
         <div className="text-center">
           <div className="wordmark text-[1.15rem]">Frame</div>
-          <div className="eyebrow mt-2 !text-[9px] !text-[#cfc9bf]">MMA · Calibration system</div>
+          <div className="eyebrow mt-2 !text-xs !text-[#cfc9bf]">MMA · Calibration system</div>
         </div>
         <div />
       </header>
@@ -48,7 +48,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </main>
 
       <footer className="relative z-10 px-6 pb-[max(1.6rem,env(safe-area-inset-bottom))] pt-2">
-        <p className="mx-auto max-w-sm text-center text-[11px] leading-relaxed text-muted-foreground">
+        <p className="mx-auto max-w-sm text-center text-xs leading-relaxed text-muted-foreground">
           Sign in with your FRAME email and password.
         </p>
       </footer>

@@ -32,7 +32,7 @@ export function AiConsentModal({
       className={
         mandatory
           ? "frame-ambient fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-0 sm:p-4"
-          : "fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-[#050505]/80 p-0 backdrop-blur-md sm:p-4"
+          : "fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-[#08090B]/80 p-0 backdrop-blur-md sm:p-4"
       }
       role="dialog"
       aria-modal="true"
@@ -110,7 +110,7 @@ export function AiConsentModal({
             href="/api/privacy"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-h-[44px] items-center text-[11px] font-medium uppercase tracking-[0.16em] text-[hsl(var(--primary-light))] hover:underline"
+            className="inline-flex min-h-[44px] items-center text-xs font-medium text-[hsl(var(--primary-light))] hover:underline"
           >
             Read the privacy policy
           </a>
@@ -118,7 +118,7 @@ export function AiConsentModal({
             href="/api/terms"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-h-[44px] items-center text-[11px] font-medium uppercase tracking-[0.16em] text-[hsl(var(--primary-light))] hover:underline"
+            className="inline-flex min-h-[44px] items-center text-xs font-medium text-[hsl(var(--primary-light))] hover:underline"
           >
             Read the terms of service
           </a>
@@ -154,22 +154,22 @@ export function AiConsentModal({
                 type="button"
                 onClick={onSignOut}
                 disabled={busy}
-                className="min-h-[44px] w-full px-4 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                className="min-h-[44px] w-full px-4 py-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
               >
                 Sign out
               </button>
             )}
             {onDeleteAccount && (
               confirmDelete ? (
-                <div className="mt-4 flex flex-col gap-2 rounded-3xl border border-[#E0564E]/40 bg-destructive/10 p-4">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#E0564E] mb-2 text-center">
+                <div className="mt-4 flex flex-col gap-2 rounded-3xl border border-[#E5645A]/40 bg-destructive/10 p-4">
+                  <p className="text-xs font-medium text-[#E5645A] mb-2 text-center">
                     Permanently delete account?
                   </p>
                   <button
                     type="button"
                     onClick={onDeleteAccount}
                     disabled={busy}
-                    className="min-h-[48px] w-full rounded-full bg-destructive px-4 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:cursor-wait disabled:opacity-50"
+                    className="min-h-[48px] w-full rounded-full bg-destructive px-4 py-3 text-xs font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:cursor-wait disabled:opacity-50"
                   >
                     {busy ? "Deleting…" : "Yes, delete"}
                   </button>
@@ -177,7 +177,7 @@ export function AiConsentModal({
                     type="button"
                     onClick={() => setConfirmDelete(false)}
                     disabled={busy}
-                    className="min-h-[44px] w-full px-4 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                    className="min-h-[44px] w-full px-4 py-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -187,7 +187,7 @@ export function AiConsentModal({
                   type="button"
                   onClick={() => setConfirmDelete(true)}
                   disabled={busy}
-                  className="min-h-[44px] w-full px-4 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-[#E0564E] transition-colors hover:text-[#f0786f] disabled:opacity-50"
+                  className="min-h-[44px] w-full px-4 py-3 text-xs font-medium text-[#E5645A] transition-colors hover:text-[#EE7C72] disabled:opacity-50"
                 >
                   Delete account
                 </button>
@@ -200,7 +200,7 @@ export function AiConsentModal({
               type="button"
               onClick={onDecline}
               disabled={busy}
-              className="mt-2 min-h-[44px] w-full px-4 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+              className="mt-2 min-h-[44px] w-full px-4 py-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
             >
               {signup ? "Go back" : "Not now"}
             </button>

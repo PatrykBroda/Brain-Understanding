@@ -22,11 +22,11 @@ function Stat({ label, value }: { label: string; value: string }) {
   const set = value.trim() !== "";
   return (
     <div className="px-3 py-2.5">
-      <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground mb-1">
+      <div className="text-xs tracking-[0.4em] text-muted-foreground mb-1">
         {label}
       </div>
       <div
-        className={`font-mono text-[13px] tracking-wide ${
+        className={`text-[13px] tracking-wide ${
           set ? "text-foreground/90" : "text-muted-foreground"
         }`}
       >
@@ -42,15 +42,15 @@ function AttrBar({ label, value }: { label: string; value: number }) {
   return (
     <div>
       <div className="flex items-baseline justify-between mb-1">
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground truncate">
+        <span className="text-xs text-muted-foreground truncate">
           {label}
         </span>
-        <span className="font-mono text-[10px] tabular-nums text-foreground/75">{pct}</span>
+        <span className="text-xs tabular-nums text-foreground/75">{pct}</span>
       </div>
       <div className="h-[3px] rounded-full overflow-hidden bg-white/10">
         <div
           className="h-full transition-[width] duration-700"
-          style={{ width: `${pct}%`, background: "linear-gradient(90deg, #8a6a2f, #e6d2a3)" }}
+          style={{ width: `${pct}%`, background: "linear-gradient(90deg, #B9A477, #D4C7A3)" }}
         />
       </div>
     </div>
@@ -60,7 +60,7 @@ function AttrBar({ label, value }: { label: string; value: number }) {
 // ─── Section header ──────────────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary/75">
+    <div className="text-xs tracking-[0.4em] text-primary/75">
       {children}
     </div>
   );
@@ -138,7 +138,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
               className="w-full h-full"
               style={{
                 background:
-                  "radial-gradient(120% 90% at 80% 0%, rgba(199,161,90,0.26), transparent 60%), rgba(5,5,5,0.4)",
+                  "radial-gradient(120% 90% at 80% 0%, rgba(185,164,119,0.26), transparent 60%), rgba(8,9,11,0.4)",
               }}
             />
           )}
@@ -146,7 +146,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(180deg, rgba(5,5,5,0.3) 0%, rgba(5,5,5,0.5) 55%, rgba(16,14,12,0.95) 100%)",
+                "linear-gradient(180deg, rgba(8,9,11,0.3) 0%, rgba(8,9,11,0.5) 55%, rgba(16,14,12,0.95) 100%)",
             }}
           />
         </div>
@@ -159,7 +159,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
               onClick={() => removeHero.mutate()}
               disabled={busy}
               aria-label="Remove hero image"
-              className="icon-round bg-[#050505]/40 text-muted-foreground hover:text-foreground hover:border-white/30 transition-colors disabled:opacity-40"
+              className="icon-round bg-[#08090B]/40 text-muted-foreground hover:text-foreground hover:border-white/30 transition-colors disabled:opacity-40"
             >
               <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
             </button>
@@ -169,7 +169,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
             onClick={() => fileRef.current?.click()}
             disabled={busy}
             aria-label={hasHero ? "Change hero image" : "Add hero image"}
-            className="icon-round bg-[#050505]/40 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors disabled:opacity-40"
+            className="icon-round bg-[#08090B]/40 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors disabled:opacity-40"
           >
             {busy ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.5} />
@@ -188,28 +188,28 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
 
         {/* Overlaid identity */}
         <div className="relative z-[1] flex flex-col justify-end h-full min-h-[176px] px-4 pt-8 pb-4">
-          <div className="font-mono text-[10px] uppercase tracking-[0.55em] text-muted-foreground mb-1.5">
+          <div className="text-xs tracking-[0.55em] text-muted-foreground mb-1.5">
             Athlete
           </div>
-          <div className="punch text-5xl text-[#f4f0e9] truncate">
+          <div className="punch text-5xl text-[#F4F4F1] truncate">
             {fighter.name}
           </div>
           {fighter.spiritAnimal && (
             <div
-              className="font-mono text-[10px] uppercase tracking-[0.4em] mt-2"
+              className="text-xs tracking-[0.4em] mt-2"
               style={{ color: "hsl(39,50%,56%)" }}
             >
               {fighter.spiritAnimal}
             </div>
           )}
-          <div className="font-mono text-[11px] text-muted-foreground mt-2">
+          <div className="text-xs text-muted-foreground mt-2">
             hello, {firstName.toLowerCase()}
           </div>
         </div>
       </div>
 
       {uploadError && (
-        <div className="px-4 py-2 font-mono text-[10px] text-destructive border-t border-white/10">
+        <div className="px-4 py-2 text-xs text-destructive border-t border-white/10">
           {uploadError}
         </div>
       )}
@@ -218,7 +218,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
       <div className="px-4 py-4 border-t border-white/10">
         <div className="flex items-center justify-between mb-3">
           <SectionLabel>Fight readiness</SectionLabel>
-          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {latest ? "Last session" : "Locked"}
           </span>
         </div>
@@ -231,10 +231,10 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
                 <span className="text-lg text-muted-foreground">/100</span>
               </div>
               <div className="pb-1 min-w-0">
-                <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/80 truncate">
+                <div className="text-xs text-primary/80 truncate">
                   {latest.styleProfile}
                 </div>
-                <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+                <div className="text-xs text-muted-foreground mt-1">
                   {new Date(latest.createdAt).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
@@ -249,7 +249,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
                 ))}
               </div>
             )}
-            <p className="font-mono text-[10px] text-muted-foreground leading-relaxed mt-3">
+            <p className="text-xs text-muted-foreground leading-relaxed mt-3">
               Measured from your most recent analysed session. Analyse another to update it.
             </p>
           </>
@@ -259,10 +259,10 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
             className="flex items-center justify-between rounded-2xl border border-white/10 hover:border-primary/40 px-4 py-4 group transition-colors"
           >
             <div>
-              <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/80 group-hover:text-primary transition-colors">
+              <div className="text-xs text-foreground/80 group-hover:text-primary transition-colors">
                 Analyse a session to unlock
               </div>
-              <p className="font-mono text-[10px] text-muted-foreground leading-relaxed mt-1.5 max-w-[15rem]">
+              <p className="text-xs text-muted-foreground leading-relaxed mt-1.5 max-w-[15rem]">
                 FRAME reads readiness from real footage — no session, no number. Nothing is estimated.
               </p>
             </div>
@@ -308,18 +308,18 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
           <SectionLabel>Camp</SectionLabel>
           <div className="grid grid-cols-2 gap-4 mt-2.5">
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground mb-1">
+              <div className="text-xs tracking-[0.4em] text-muted-foreground mb-1">
                 Team
               </div>
-              <div className="font-mono text-[12px] text-foreground/90">
+              <div className="text-[12px] text-foreground/90">
                 {fighter.gym.trim() || "—"}
               </div>
             </div>
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground mb-1">
+              <div className="text-xs tracking-[0.4em] text-muted-foreground mb-1">
                 Head coach
               </div>
-              <div className="font-mono text-[12px] text-foreground/90">
+              <div className="text-[12px] text-foreground/90">
                 {fighter.headCoach.trim() || "—"}
               </div>
             </div>
@@ -338,20 +338,20 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
           }}
         >
           <div className="flex items-center justify-between mb-2.5">
-            <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-[#E0564E]">
+            <div className="text-xs tracking-[0.4em] text-[#E5645A]">
               Competition context
             </div>
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#E0564E]">
+            <span className="text-xs text-[#E5645A]">
               {pressure.tierLabel}
             </span>
           </div>
           <div className="flex items-end justify-between gap-3">
             <div className="min-w-0">
-              <div className="font-mono text-[13px] text-foreground/90 truncate">
+              <div className="text-[13px] text-foreground/90 truncate">
                 {pressure.competition.eventName}
               </div>
               {pressure.competition.targetWeight.trim() !== "" && (
-                <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+                <div className="text-xs text-muted-foreground mt-1">
                   Target {pressure.competition.targetWeight}
                   {pressure.competition.currentWeight.trim() !== ""
                     ? ` · now ${pressure.competition.currentWeight}`
@@ -360,10 +360,10 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
               )}
             </div>
             <div className="text-right flex-none">
-              <div className="font-mono text-2xl tabular-nums text-[#E0564E] leading-none">
+              <div className="text-2xl tabular-nums text-[#E5645A] leading-none">
                 {Math.max(0, pressure.daysToEvent)}
               </div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground mt-1">
+              <div className="text-xs text-muted-foreground mt-1">
                 days out
               </div>
             </div>
@@ -385,15 +385,15 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
         </div>
         {plan && plan.items.length > 0 ? (
           <>
-            <div className="font-mono text-[12px] text-foreground/85 leading-snug">
+            <div className="text-[12px] text-foreground/85 leading-snug">
               {plan.items[0].title}
             </div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1.5">
+            <div className="text-xs text-muted-foreground mt-1.5">
               {completions.length}/{plan.items.length} complete
             </div>
           </>
         ) : (
-          <div className="font-mono text-[11px] text-muted-foreground leading-relaxed">
+          <div className="text-xs text-muted-foreground leading-relaxed">
             No active mission yet. Open the planner to generate this week's focus.
           </div>
         )}
@@ -406,21 +406,21 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
           className="flex flex-col items-center gap-1.5 py-3.5 border-r border-white/10 text-muted-foreground hover:text-primary hover:bg-white/[0.02] transition-colors"
         >
           <Target className="w-4 h-4" strokeWidth={1.5} />
-          <span className="font-mono text-[10px] uppercase tracking-[0.25em]">Calibrate</span>
+          <span className="text-xs ">Calibrate</span>
         </Link>
         <Link
           href="/analyse"
           className="flex flex-col items-center gap-1.5 py-3.5 border-r border-white/10 text-muted-foreground hover:text-primary hover:bg-white/[0.02] transition-colors"
         >
           <ClipboardList className="w-4 h-4" strokeWidth={1.5} />
-          <span className="font-mono text-[10px] uppercase tracking-[0.25em]">Log session</span>
+          <span className="text-xs ">Log session</span>
         </Link>
         <Link
           href="/chat"
           className="flex flex-col items-center gap-1.5 py-3.5 text-muted-foreground hover:text-primary hover:bg-white/[0.02] transition-colors"
         >
           <MessageSquare className="w-4 h-4" strokeWidth={1.5} />
-          <span className="font-mono text-[10px] uppercase tracking-[0.25em]">Talk to FRAME</span>
+          <span className="text-xs ">Talk to FRAME</span>
         </Link>
       </div>
     </div>

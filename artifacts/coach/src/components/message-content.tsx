@@ -81,7 +81,7 @@ function Glossable({ term, entry }: { term: string; entry: GlossEntry }) {
           role="tooltip"
           className="absolute left-0 bottom-full z-20 mb-1 w-64 max-w-[78vw] rounded-sm border border-primary/30 bg-popover px-3 py-2.5 text-[0.78rem] leading-snug text-foreground/90 shadow-lg"
         >
-          <span className="block font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A] mb-1">
+          <span className="block text-xs text-[#B9A477] mb-1">
             {term}
           </span>
           <span className="block">{entry.quick}</span>
@@ -97,7 +97,7 @@ function Glossable({ term, entry }: { term: string; entry: GlossEntry }) {
               <button
                 type="button"
                 onClick={() => setShowWhy(true)}
-                className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A] hover:text-[#C7A15A] transition-colors"
+                className="text-xs text-[#B9A477] hover:text-[#B9A477] transition-colors"
               >
                 Why it matters
               </button>
@@ -109,7 +109,7 @@ function Glossable({ term, entry }: { term: string; entry: GlossEntry }) {
                   onTrain(entry.train!);
                   close();
                 }}
-                className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A] hover:text-[#C7A15A] transition-colors"
+                className="text-xs text-[#B9A477] hover:text-[#B9A477] transition-colors"
               >
                 Train this →
               </button>
@@ -175,7 +175,7 @@ function renderText(text: string, baseKey: string) {
     const isList = lines.every((l) => /^\s*[-*]\s+/.test(l));
     if (isList) {
       return (
-        <ul key={key} className="list-disc pl-5 space-y-1.5 marker:text-[#C7A15A]">
+        <ul key={key} className="list-disc pl-5 space-y-1.5 marker:text-[#B9A477]">
           {lines.map((l, j) => (
             <li key={`${key}-li-${j}`} className="leading-relaxed text-[0.95rem]">
               {renderInline(l.replace(/^\s*[-*]\s+/, ""), `${key}-li-${j}`)}

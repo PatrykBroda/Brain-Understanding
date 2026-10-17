@@ -24,7 +24,7 @@ import type { VideoAnalysis } from "@/lib/api";
 // position in frame). A comparison that lacks data for either side isn't shown.
 // ---------------------------------------------------------------------------
 
-const BG = "#0a0908";
+const BG = "#08090B";
 
 function CompareStage({
   lanes,
@@ -169,7 +169,7 @@ function CompareStage({
         {lanes.map((l) => (
           <span
             key={l.label}
-            className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
           >
             <i className="inline-block w-3.5 h-[3px]" style={{ background: l.swatch }} />
             {l.label}
@@ -181,7 +181,7 @@ function CompareStage({
           type="button"
           onClick={() => (playing ? ctlRef.current.stop() : ctlRef.current.start())}
           aria-label={playing ? "Pause comparison" : "Play comparison"}
-          className="flex-none w-9 h-9 flex items-center justify-center border border-primary/50 text-[#C7A15A] hover:border-primary transition-colors rounded-2xl"
+          className="flex-none w-9 h-9 flex items-center justify-center border border-primary/50 text-[#B9A477] hover:border-primary transition-colors rounded-2xl"
         >
           {playing ? <Pause className="w-4 h-4" strokeWidth={1.5} /> : <Play className="w-4 h-4" strokeWidth={1.5} />}
         </button>
@@ -203,13 +203,13 @@ function CompareStage({
           type="button"
           onClick={() => setSlow((s) => !s)}
           aria-pressed={slow}
-          className={`flex-none font-mono text-[10px] uppercase tracking-[0.14em] border px-2 py-2 ${
-            slow ? "border-primary/60 text-[#C7A15A]" : "border-border/50 text-muted-foreground"
+          className={`flex-none text-xs border px-2 py-2 ${
+            slow ? "border-primary/60 text-[#B9A477]" : "border-border/50 text-muted-foreground"
           }`}
         >
           0.5x
         </button>
-        <span ref={timeRef} className="flex-none font-mono text-[10px] text-muted-foreground tabular-nums flex-none text-right whitespace-nowrap">
+        <span ref={timeRef} className="flex-none text-xs text-muted-foreground tabular-nums flex-none text-right whitespace-nowrap">
           0.0s / {fmtSec(duration)}
         </span>
       </div>
@@ -221,8 +221,8 @@ function Block({ title, note, children }: { title: string; note: string; childre
   return (
     <div className="space-y-2.5 border border-border/40 bg-white/[0.025] p-3 rounded-2xl">
       <div className="space-y-0.5">
-        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/85">{title}</div>
-        <p className="font-mono text-[10px] tracking-wide text-muted-foreground/90 leading-relaxed">{note}</p>
+        <div className="text-xs text-foreground/85">{title}</div>
+        <p className="text-xs tracking-wide text-muted-foreground/90 leading-relaxed">{note}</p>
       </div>
       {children}
     </div>

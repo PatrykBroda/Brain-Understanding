@@ -12,7 +12,7 @@ const buttonVariants = cva(
       variant: {
         default:
            // @replit: no hover, and add primary border
-           "bg-gradient-to-br from-[#b38f4b] to-primary text-primary-foreground border border-transparent shadow-[0_10px_28px_-10px_rgba(138,106,47,0.75),inset_0_1px_0_rgba(255,240,200,0.3)]",
+           "bg-gradient-to-br from-[#B9A477] to-primary text-primary-foreground border border-transparent shadow-[0_10px_28px_-10px_rgba(185,164,119,0.75),inset_0_1px_0_rgba(255,240,200,0.3)]",
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm border-destructive-border",
         outline:

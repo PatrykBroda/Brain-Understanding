@@ -81,7 +81,7 @@ function FramePlusModal({
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-[#050505]/75 backdrop-blur-md sm:items-center"
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-[#08090B]/75 backdrop-blur-md sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-label="Upgrade to FRAME+"
@@ -122,7 +122,7 @@ function FramePlusModal({
           {IDENTITY_LINES.map((line) => (
             <li
               key={line}
-              className="flex items-center gap-3 text-[15px] font-light tracking-wide text-foreground/90"
+              className="flex items-center gap-3 text-[15px] font-normal tracking-wide text-foreground/90"
             >
               <span
                 aria-hidden
@@ -139,7 +139,7 @@ function FramePlusModal({
           </div>
         ) : (
           <div className="relative mt-9">
-            <p className="text-sm font-light leading-relaxed tracking-wide text-foreground/70">
+            <p className="text-sm font-normal leading-relaxed tracking-wide text-foreground/70">
               FRAME+ is unlocked in the FRAME iOS app. Open the app on your
               iPhone and subscribe — your FRAME+ access then carries across to
               the web automatically.
@@ -168,7 +168,7 @@ export function FramePlusPill() {
   if (isLoading || !isFramePlus) return null;
 
   return (
-    <span className="chip whitespace-nowrap !border-primary/40 !bg-primary/10 !px-3 !py-1 !text-[10px]">
+    <span className="chip whitespace-nowrap !border-primary/40 !bg-primary/10 !px-3 !py-1 !text-xs">
       FRAME+ active
     </span>
   );

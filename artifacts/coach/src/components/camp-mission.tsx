@@ -30,11 +30,11 @@ const CATEGORY_HINT: Record<PlanCategory, string> = {
 };
 
 const CATEGORY_COLOR: Record<PlanCategory, { bar: string; glow: string; label: string }> = {
-  fix:       { bar: "rgba(224,86,78,0.95)",   glow: "rgba(191,29,29,0.10)",   label: "#E0564E" },
-  goal_step: { bar: "rgba(199,161,90,0.9)",   glow: "rgba(199,161,90,0.09)",  label: "#C7A15A" },
+  fix:       { bar: "rgba(229,100,90,0.95)",   glow: "rgba(229,100,90,0.10)",   label: "#E5645A" },
+  goal_step: { bar: "rgba(185,164,119,0.9)",   glow: "rgba(185,164,119,0.09)",  label: "#B9A477" },
   train:     { bar: "rgba(189,184,175,0.6)",  glow: "rgba(189,184,175,0.06)", label: "#bdb8af" },
-  technique: { bar: "rgba(230,210,163,0.8)",  glow: "rgba(230,210,163,0.07)", label: "#E6D2A3" },
-  regulate:  { bar: "rgba(138,106,47,0.95)",  glow: "rgba(138,106,47,0.12)",  label: "#B8935A" },
+  technique: { bar: "rgba(230,210,163,0.8)",  glow: "rgba(230,210,163,0.07)", label: "#D4C7A3" },
+  regulate:  { bar: "rgba(185,164,119,0.95)",  glow: "rgba(185,164,119,0.12)",  label: "#B8935A" },
 };
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -121,10 +121,10 @@ export function CampMission() {
       {/* Fighter + regenerate row */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground/90">
+          <div className="text-xs text-muted-foreground/90">
             {fighter?.name ?? "Athlete"}
           </div>
-          <div className="font-sans text-[13px] font-light tracking-[0.12em] text-foreground/80 mt-0.5">
+          <div className="font-sans text-[13px] font-normal text-foreground/80 mt-0.5">
             {formatWeekRange(weekStart)}
           </div>
         </div>
@@ -141,7 +141,7 @@ export function CampMission() {
             type="button"
             onClick={() => void requestGenerate()}
             disabled={regen.isPending || !!generationInFlightRef.current}
-            className="font-mono text-[10px] uppercase tracking-[0.14em] border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40 flex items-center gap-1.5 rounded-2xl"
+            className="text-xs border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40 flex items-center gap-1.5 rounded-2xl"
           >
             {regen.isPending ? (
               <>
@@ -169,27 +169,27 @@ export function CampMission() {
               className="relative text-center py-3 rounded-2xl transition-all duration-300"
               style={{
                 background: isToday
-                  ? "rgba(138,106,47,0.22)"
+                  ? "rgba(185,164,119,0.22)"
                   : isPast
                   ? "hsla(0,0%,100%,0.02)"
                   : "hsla(0,0%,100%,0.025)",
-                border: isToday ? "1px solid rgba(199,161,90,0.55)" : "1px solid rgba(255,244,224,0.07)",
+                border: isToday ? "1px solid rgba(185,164,119,0.55)" : "1px solid rgba(255,255,255,0.07)",
               }}
             >
               {isToday && (
                 <div
                   className="absolute inset-0 pointer-events-none"
-                  style={{ boxShadow: "inset 0 0 14px rgba(199,161,90,0.10)", borderRadius: 16 }}
+                  style={{ boxShadow: "inset 0 0 14px rgba(185,164,119,0.10)", borderRadius: 16 }}
                 />
               )}
               <div
-                className="font-mono text-[10px] uppercase tracking-[0.14em]"
-                style={{ color: isToday ? "#E6D2A3" : isPast ? "#8f8b84" : "#bdb8af" }}
+                className="text-xs "
+                style={{ color: isToday ? "#D4C7A3" : isPast ? "#8A8F96" : "#bdb8af" }}
               >
                 {label}
               </div>
               {isToday && (
-                <div className="w-1 h-1 rounded-full bg-[#C7A15A] mx-auto mt-1 animate-pulse motion-reduce:animate-none" />
+                <div className="w-1 h-1 rounded-full bg-[#B9A477] mx-auto mt-1 animate-pulse motion-reduce:animate-none" />
               )}
             </div>
           );
@@ -198,7 +198,7 @@ export function CampMission() {
 
       {regen.isError &&
         !(regen.error instanceof ApiError && regen.error.kind === "upgrade_required") && (
-        <div className="glass glass-red !rounded-2xl px-4 py-3 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive/90">
+        <div className="glass glass-red !rounded-2xl px-4 py-3 text-xs text-destructive/90">
           {(regen.error as Error).message || "generation failed"}
         </div>
       )}
@@ -210,8 +210,8 @@ export function CampMission() {
           className="glass glass-gold w-full text-left px-5 py-4 transition-colors hover:border-primary/60"
         >
           <div className="flex items-center gap-2.5">
-            <Lock className="w-3.5 h-3.5 flex-none text-[#C7A15A]" strokeWidth={1.5} />
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A]">
+            <Lock className="w-3.5 h-3.5 flex-none text-[#B9A477]" strokeWidth={1.5} />
+            <span className="text-xs text-[#B9A477]">
               Mission preview
             </span>
           </div>
@@ -222,7 +222,7 @@ export function CampMission() {
       )}
 
       {planner.isLoading ? (
-        <div className="text-muted-foreground font-mono text-[10px] uppercase tracking-[0.14em] py-16 text-center opacity-60">
+        <div className="text-muted-foreground text-xs py-16 text-center opacity-60">
           Loading
         </div>
       ) : !plan ? (
@@ -248,7 +248,7 @@ export function CampMission() {
               className="glass glass-gold relative mt-1 overflow-hidden">
               <div className="px-5 pt-4 pb-5">
                 <div className="flex items-center gap-2.5 mb-3">
-                  <span className="h-[6px] w-[6px] rounded-full bg-[#C7A15A] animate-pulse motion-reduce:animate-none" />
+                  <span className="h-[6px] w-[6px] rounded-full bg-[#B9A477] animate-pulse motion-reduce:animate-none" />
                   <div className="eyebrow eyebrow-gold">
                     Mission directive
                   </div>
@@ -267,16 +267,16 @@ export function CampMission() {
                   style={{
                     width: `${Math.round((completions.size / plan.items.length) * 100)}%`,
                     background: completions.size === plan.items.length
-                      ? "#E6D2A3"
-                      : "#C7A15A",
+                      ? "#D4C7A3"
+                      : "#B9A477",
                   }}
                 />
               </div>
               <div
-                className="flex-none font-mono text-[10px] uppercase tracking-[0.14em]"
+                className="flex-none text-xs "
                 style={{
                   color: completions.size === plan.items.length
-                    ? "#E6D2A3"
+                    ? "#D4C7A3"
                     : "#bdb8af",
                 }}
               >
@@ -301,7 +301,7 @@ export function CampMission() {
                   <div className="mb-4">
                     <div className="flex items-center gap-3">
                       <span
-                        className="font-mono text-[10px] tracking-[0.14em] px-2 py-0.5"
+                        className="text-xs px-2 py-0.5"
                         style={{
                           color: col.label,
                           borderLeft: `2px solid ${col.bar}`,
@@ -312,7 +312,7 @@ export function CampMission() {
                       </span>
                       <div>
                         <div
-                          className="font-mono text-[12px] uppercase tracking-[0.16em]"
+                          className="text-[12px] "
                           style={{ color: col.label }}
                         >
                           {CATEGORY_LABEL[cat]}
@@ -320,7 +320,7 @@ export function CampMission() {
                       </div>
                       <div className="flex-1 ml-2" style={{ height: 1, background: `linear-gradient(90deg, ${col.bar} 0%, transparent 100%)`, opacity: 0.4 }} />
                     </div>
-                    <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground/90 mt-1.5 pl-10">
+                    <div className="text-xs text-muted-foreground/90 mt-1.5 pl-10">
                       {CATEGORY_HINT[cat]}
                     </div>
                   </div>
@@ -349,7 +349,7 @@ export function CampMission() {
 
           {/* Footer metadata */}
           <div className="flex items-center justify-between pt-4 border-t border-white/[0.10]">
-            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
+            <div className="text-xs text-muted-foreground/90">
               Issued {new Date(plan.createdAt).toLocaleString(undefined, {
                 month: "short",
                 day: "numeric",
@@ -357,7 +357,7 @@ export function CampMission() {
                 minute: "2-digit",
               })}
             </div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
+            <div className="text-xs text-muted-foreground/90">
               {plan.aiProvider}
             </div>
           </div>
@@ -389,7 +389,7 @@ function PlanItemCard({
   onLockedTap: () => void;
 }) {
   const col = CATEGORY_COLOR[cat];
-  const doneBar = "rgba(199,161,90,0.9)";
+  const doneBar = "rgba(185,164,119,0.9)";
 
   if (item.locked) {
     // Free-tier preview stub: title + category only, tap opens the upgrade modal.
@@ -400,19 +400,19 @@ function PlanItemCard({
         className="plan-item w-full text-left rounded-2xl overflow-hidden transition-colors duration-300 hover:bg-white/[0.04]"
         style={{
           borderLeft: `3px solid hsla(0,0%,100%,0.12)`,
-          borderTop: "1px solid rgba(255,244,224,0.10)",
-          borderRight: "1px solid rgba(255,244,224,0.07)",
-          borderBottom: "1px solid rgba(255,244,224,0.07)",
+          borderTop: "1px solid rgba(255,255,255,0.10)",
+          borderRight: "1px solid rgba(255,255,255,0.07)",
+          borderBottom: "1px solid rgba(255,255,255,0.07)",
           animationDelay: `${index * 0.07}s`,
         }}
       >
         <div className="flex items-start gap-3.5 px-5 py-4">
           <Lock className="flex-none mt-0.5 w-[18px] h-[18px] text-muted-foreground/90" strokeWidth={1.5} />
           <div className="flex-1 min-w-0">
-            <div className="text-[0.95rem] leading-snug font-light text-foreground/70 mb-1.5">
+            <div className="text-[0.95rem] leading-snug font-normal text-foreground/70 mb-1.5">
               {item.title}
             </div>
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A] border border-primary/25 px-1.5 py-0.5 rounded-2xl">
+            <span className="text-xs text-[#B9A477] border border-primary/25 px-1.5 py-0.5 rounded-2xl">
               FRAME+ unlocks this
             </span>
           </div>
@@ -426,9 +426,9 @@ function PlanItemCard({
       className="plan-item relative rounded-2xl overflow-hidden transition-all duration-400"
       style={{
         borderLeft: `3px solid ${done ? doneBar : col.bar}`,
-        borderTop: "1px solid rgba(255,244,224,0.10)",
-        borderRight: "1px solid rgba(255,244,224,0.07)",
-        borderBottom: "1px solid rgba(255,244,224,0.07)",
+        borderTop: "1px solid rgba(255,255,255,0.10)",
+        borderRight: "1px solid rgba(255,255,255,0.07)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
         background: done
           ? "linear-gradient(95deg, hsla(39,49%,36%,0.06), transparent 70%)"
           : `linear-gradient(95deg, ${col.glow}, transparent 70%)`,
@@ -437,8 +437,8 @@ function PlanItemCard({
     >
       {/* Background index watermark */}
       <div
-        className="absolute right-4 top-1/2 -translate-y-1/2 font-mono font-bold select-none pointer-events-none"
-        style={{ fontSize: "2.8rem", opacity: 0.04, color: done ? "#C7A15A" : col.label }}
+        className="absolute right-4 top-1/2 -translate-y-1/2 font-semibold select-none pointer-events-none"
+        style={{ fontSize: "2.8rem", opacity: 0.04, color: done ? "#B9A477" : col.label }}
         aria-hidden
       >
         {String(index + 1).padStart(2, "0")}
@@ -457,9 +457,9 @@ function PlanItemCard({
           <span
             className="w-[22px] h-[22px] rounded-full border flex items-center justify-center transition-all duration-300"
             style={{
-              borderColor: done ? "#C7A15A" : col.bar,
-              background: done ? "rgba(199,161,90,0.2)" : "transparent",
-              color: done ? "#E6D2A3" : "transparent",
+              borderColor: done ? "#B9A477" : col.bar,
+              background: done ? "rgba(185,164,119,0.2)" : "transparent",
+              color: done ? "#D4C7A3" : "transparent",
             }}
           >
             <svg viewBox="0 0 20 20" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.8">
@@ -471,7 +471,7 @@ function PlanItemCard({
         <div className="flex-1 min-w-0">
           {/* Directive title */}
           <div
-            className="text-[0.95rem] leading-snug font-light transition-colors duration-300 mb-2"
+            className="text-[0.95rem] leading-snug font-normal transition-colors duration-300 mb-2"
             style={{
               color: done ? "hsla(0,0%,100%,0.6)" : "hsla(0,0%,100%,0.94)",
               textDecoration: done ? "line-through" : "none",
@@ -498,11 +498,11 @@ function PlanItemCard({
           >
             <div className="flex items-center gap-2">
               <span className="flex-none" style={{ display: "inline-block", width: 14, height: 1, background: done ? "hsla(39,49%,36%,0.5)" : col.bar, opacity: 0.7 }} />
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
+              <span className="text-xs text-muted-foreground/90">
                 {item.sourceLabel}
               </span>
             </div>
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
+            <span className="text-xs text-muted-foreground/90">
               {item.suggestedDays}
             </span>
           </div>
@@ -539,7 +539,7 @@ function MissionAnimations() {
 function HelpOverlay({ onClose }: { onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 bg-[#050505]/80 backdrop-blur-xl flex items-end sm:items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-[#08090B]/80 backdrop-blur-xl flex items-end sm:items-center justify-center p-4"
       onClick={onClose}
     >
       <div

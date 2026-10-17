@@ -38,7 +38,7 @@ export const ROLE_COLOR: Record<ReplayMoment["role"], string> = {
 };
 
 const SKELETON_GOLD = "rgba(214,160,90,0.95)";
-const GHOST_BG = "#0a0908";
+const GHOST_BG = "#08090B";
 
 /** Decode the wire track once per object identity. */
 export function useDecodedTrack(wire: PoseTrackWire | null | undefined): DecodedTrack | null {
@@ -54,7 +54,7 @@ export function useDecodedOpponent(wire: PoseTrackWire | null | undefined): Deco
 export function PeopleLegend() {
   return (
     <span
-      className="inline-flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
+      className="inline-flex items-center gap-3 text-xs text-muted-foreground"
       data-testid="people-legend"
     >
       <span className="inline-flex items-center gap-1.5">
@@ -381,9 +381,9 @@ export function GhostPlayer({
 
   return (
     <div className="w-full space-y-2" data-testid="ghost-player">
-      <div className="relative w-full border border-white/10 bg-[#0d0b09] rounded-3xl overflow-hidden" style={{ aspectRatio: String(aspect) }}>
+      <div className="relative w-full border border-white/10 bg-[#08090B] rounded-3xl overflow-hidden" style={{ aspectRatio: String(aspect) }}>
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" data-testid="ghost-canvas" />
-        <div className="absolute left-2 top-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+        <div className="absolute left-2 top-2 text-xs text-muted-foreground">
           Movement replay · footage not stored
         </div>
         {opponent && (
@@ -415,7 +415,7 @@ export function GhostPlayer({
           aria-label="Scrub movement replay"
           className="flex-1 min-w-0 accent-[#d6a05a] h-6"
         />
-        <span ref={timeRef} className="flex-none font-mono text-[10px] text-muted-foreground tabular-nums flex-none text-right whitespace-nowrap">
+        <span ref={timeRef} className="flex-none text-xs text-muted-foreground tabular-nums flex-none text-right whitespace-nowrap">
           {fmtTime(0)} / {fmtTime(endSec)}
         </span>
       </div>
@@ -528,11 +528,11 @@ export function FootageTimeline({
         ))}
         <div
           ref={headRef}
-          className="absolute top-0 bottom-0 w-px bg-[#E6D2A3] pointer-events-none"
+          className="absolute top-0 bottom-0 w-px bg-[#D4C7A3] pointer-events-none"
           style={{ left: 0, boxShadow: "0 0 6px rgba(230,210,163,0.8)" }}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <i className="inline-block w-[3px] h-2.5" style={{ background: SEVERITY_COLOR.high }} /> high
         </span>
@@ -609,7 +609,7 @@ export function FootageBlock({
       ) : null}
       {videoUrl && !track && trackNote && (
         <p
-          className="font-mono text-[10px] leading-relaxed tracking-wide text-[#C7A15A] glass glass-gold !rounded-2xl px-4 py-3"
+          className="text-xs leading-relaxed tracking-wide text-[#B9A477] glass glass-gold !rounded-2xl px-4 py-3"
           data-testid="track-note"
         >
           {trackNote}
@@ -621,7 +621,7 @@ export function FootageBlock({
           {opponent ? (
             <PeopleLegend />
           ) : (
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90 text-right">
+            <span className="text-xs text-muted-foreground/90 text-right">
               measured pose · drawn live
             </span>
           )}

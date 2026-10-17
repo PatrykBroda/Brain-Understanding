@@ -79,7 +79,7 @@ export default function StatePage() {
       <div
         aria-hidden
         className="glow-orb z-0 bottom-[-10rem] left-[-8rem] h-[22rem] w-[22rem]"
-        style={{ background: "radial-gradient(circle, rgba(191,29,29,0.20), transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, rgba(229,100,90,0.20), transparent 70%)" }}
       />
 
       {/* Ultra-fine grain — barely perceptible, kills banding on the dark gradients */}
@@ -140,7 +140,7 @@ export default function StatePage() {
           >
             {frameState.label}
           </div>
-          <div className="frame-state-caption-bottom font-light tracking-wide text-[1rem] leading-snug text-foreground/80 pt-1">
+          <div className="frame-state-caption-bottom font-normal tracking-wide text-[1rem] leading-snug text-foreground/80 pt-1">
             {STATE_CUE[frameState.label]}
           </div>
         </div>
@@ -162,7 +162,7 @@ export default function StatePage() {
                 <span className="text-xs text-muted-foreground">/ 100 · {readinessSource}</span>
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors group-hover:text-[hsl(var(--primary-light))]">
+              <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors group-hover:text-[hsl(var(--primary-light))]">
                 Analyse a session
                 <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.5} />
               </span>

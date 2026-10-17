@@ -53,7 +53,7 @@ export default function OrbPage() {
         // Near-black with a soft bronze glow behind the orb. WebView-embedded,
         // so keep it self-contained (no dependency on the app shell).
         background:
-          "radial-gradient(60% 60% at 50% 48%, rgba(138,106,47,0.16), transparent 70%), #050505",
+          "radial-gradient(60% 60% at 50% 48%, rgba(185,164,119,0.16), transparent 70%), #08090B",
         overflow: "hidden",
       }}
     >

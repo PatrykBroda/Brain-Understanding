@@ -5,11 +5,11 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-const GOLD = "#8A6A2F";
-const GOLD_LIGHT = "#C7A15A";
-const GOLD_PALE = "#E6D2A3";
-const RED = "#BF1D1D";
-const RED_LIGHT = "#E0564E";
+const GOLD = "#B9A477";
+const GOLD_LIGHT = "#B9A477";
+const GOLD_PALE = "#D4C7A3";
+const RED = "#C0392F";
+const RED_LIGHT = "#E5645A";
 
 function polar(cx: number, cy: number, r: number, deg: number) {
   const a = ((deg - 90) * Math.PI) / 180;
@@ -110,19 +110,19 @@ export function ArcGauge({
               y1={a.y}
               x2={b.x}
               y2={b.y}
-              stroke={deg <= valDeg ? GOLD_LIGHT : "rgba(255,244,224,0.20)"}
+              stroke={deg <= valDeg ? GOLD_LIGHT : "rgba(255,255,255,0.20)"}
               strokeWidth={major ? 1.4 : 1}
               strokeLinecap="round"
             />
           );
         })}
-        <path d={arc(c, c, r, START, END)} stroke="rgba(255,244,224,0.09)" strokeWidth={5} fill="none" strokeLinecap="round" />
+        <path d={arc(c, c, r, START, END)} stroke="rgba(255,255,255,0.09)" strokeWidth={5} fill="none" strokeLinecap="round" />
         {p > 0.003 && (
           <path d={arc(c, c, r, START, valDeg)} stroke={`url(#${id})`} strokeWidth={5} fill="none" strokeLinecap="round" />
         )}
         <circle cx={knob.x} cy={knob.y} r={11} fill={lo} opacity={0.22} />
         <circle cx={knob.x} cy={knob.y} r={5.5} fill={hi} />
-        <circle cx={knob.x} cy={knob.y} r={2} fill="#050505" />
+        <circle cx={knob.x} cy={knob.y} r={2} fill="#08090B" />
       </svg>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pb-1.5">
         <span className="numeral" style={{ fontSize: size * 0.3, lineHeight: 1 }}>
@@ -177,7 +177,7 @@ export function TickScale({
             x2={tx}
             y1={height - (major ? 16 : 10)}
             y2={height - 2}
-            stroke={tx <= x ? lit : "rgba(255,244,224,0.20)"}
+            stroke={tx <= x ? lit : "rgba(255,255,255,0.20)"}
             strokeWidth={major ? 1.4 : 1}
             strokeLinecap="round"
           />

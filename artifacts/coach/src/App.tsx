@@ -53,7 +53,7 @@ function GateError({ title, children }: { title: string; children: React.ReactNo
   return (
     <GateShell>
       <div className="glass glass-red frame-rise flex w-full max-w-sm flex-col items-center gap-4 p-8">
-        <div className="eyebrow !text-[#E0564E]">{title}</div>
+        <div className="eyebrow !text-[#E5645A]">{title}</div>
         {children}
       </div>
     </GateShell>
@@ -220,7 +220,7 @@ function Gate({ children }: { children: React.ReactNode }) {
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="min-h-[44px] text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+            className="min-h-[44px] text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
           >
             {isFetching ? "Retrying" : "Retry"}
           </button>

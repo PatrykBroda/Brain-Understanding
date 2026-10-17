@@ -117,7 +117,7 @@ function GroundingCard({ step, onDone }: { step: GroundingStep; onDone: () => vo
           {/* Big count */}
           <div
             className="numeral leading-none select-none"
-            style={{ fontSize: "6.5rem", color: "rgba(199,161,90,0.28)" }}
+            style={{ fontSize: "6.5rem", color: "rgba(185,164,119,0.28)" }}
           >
             {remaining}
           </div>

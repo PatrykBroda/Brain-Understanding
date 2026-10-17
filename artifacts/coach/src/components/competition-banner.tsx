@@ -60,7 +60,7 @@ export function CompetitionBanner() {
         className={`glass relative overflow-hidden px-5 py-3.5 ${style.pulse ? "comp-pulse" : ""}`}
         style={{
           borderColor: style.border,
-          boxShadow: `0 18px 40px -18px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,244,224,0.09)${style.glow !== "none" ? ", " + style.glow : ""}`,
+          boxShadow: `0 18px 40px -18px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.09)${style.glow !== "none" ? ", " + style.glow : ""}`,
         }}
       >
         <div className="flex items-center justify-between gap-4">
@@ -68,7 +68,7 @@ export function CompetitionBanner() {
             <div className="eyebrow" style={{ color: style.fg }}>
               {pressure.tierLabel}
             </div>
-            <div className="mt-1 truncate font-display text-[1rem] leading-tight text-[#f1ede6]">
+            <div className="mt-1 truncate font-display text-[1rem] leading-tight text-[#F4F4F1]">
               {c.eventName}
             </div>
           </div>
@@ -78,14 +78,14 @@ export function CompetitionBanner() {
                 <span className="numeral numeral-m !text-[1.5rem]" style={{ color: style.fg }}>
                   {daysToWeighIn}
                 </span>
-                <span className="eyebrow ml-1.5 !text-[10px]">weigh-in</span>
+                <span className="eyebrow ml-1.5 !text-xs">weigh-in</span>
               </div>
             )}
             <div className="text-right">
               <span className="numeral numeral-m !text-[2.2rem]" style={{ color: style.fg }}>
                 {daysToEvent}
               </span>
-              <span className="eyebrow ml-1.5 !text-[10px]">{dayWord}</span>
+              <span className="eyebrow ml-1.5 !text-xs">{dayWord}</span>
             </div>
           </div>
         </div>

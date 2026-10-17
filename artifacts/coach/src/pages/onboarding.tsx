@@ -133,7 +133,7 @@ export default function OnboardingPage() {
         {/* Wordmark + progress */}
         <div className="mb-10 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-[#C7A15A] shadow-[0_0_12px_rgba(199,161,90,0.7)]" />
+            <div className="w-2 h-2 rounded-full bg-[#B9A477] shadow-[0_0_12px_rgba(185,164,119,0.7)]" />
             <h1 className="display-heading !text-[1.6rem]">
               FRAME
             </h1>
@@ -177,7 +177,7 @@ export default function OnboardingPage() {
                           : "border-border/70 text-foreground/85 hover:border-primary/50"
                       }`}
                     >
-                      <span className="font-mono text-[10px] text-muted-foreground mr-3">
+                      <span className="text-xs text-muted-foreground mr-3">
                         {String.fromCharCode(65 + idx)}
                       </span>
                       {c.label}
@@ -234,7 +234,7 @@ export default function OnboardingPage() {
                   required
                 />
                 {ageFromDob(form.dateOfBirth) != null && (
-                  <p className="mt-1.5 font-mono text-[10px] text-muted-foreground">
+                  <p className="mt-1.5 text-xs text-muted-foreground">
                     {ageFromDob(form.dateOfBirth)} years old
                   </p>
                 )}
@@ -371,7 +371,7 @@ export default function OnboardingPage() {
             </label>
 
             {save.isError && (
-              <div className="text-sm text-destructive font-mono">
+              <div className="text-sm text-destructive ">
                 {(save.error as Error).message}
               </div>
             )}

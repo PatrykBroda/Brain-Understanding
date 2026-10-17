@@ -43,7 +43,7 @@ export function VideoBackdrop({ blur = 3, dim = 0.55 }: { blur?: number; dim?: n
   }, [still]);
 
   return (
-    <div aria-hidden className="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none bg-[#050505]">
+    <div aria-hidden className="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none bg-[#08090B]">
       <img src={poster} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ filter: "saturate(0.8)" }} />
       {!still && !failed && (
         <video
@@ -66,13 +66,13 @@ export function VideoBackdrop({ blur = 3, dim = 0.55 }: { blur?: number; dim?: n
       {/* blur + darken + warm bleed so the form stays legible over fast cuts */}
       <div
         className="absolute inset-0"
-        style={{ WebkitBackdropFilter: `blur(${blur}px)`, backdropFilter: `blur(${blur}px)`, background: `rgba(5,5,5,${dim})` }}
+        style={{ WebkitBackdropFilter: `blur(${blur}px)`, backdropFilter: `blur(${blur}px)`, background: `rgba(8,9,11,${dim})` }}
       />
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(5,5,5,0.7) 0%, rgba(5,5,5,0.0) 28%, rgba(5,5,5,0.2) 52%, rgba(5,5,5,0.92) 100%), radial-gradient(70% 45% at 85% 0%, rgba(214,120,40,0.26), transparent 70%), radial-gradient(60% 40% at 0% 100%, rgba(191,29,29,0.22), transparent 70%)",
+            "linear-gradient(180deg, rgba(8,9,11,0.7) 0%, rgba(8,9,11,0.0) 28%, rgba(8,9,11,0.2) 52%, rgba(8,9,11,0.92) 100%), radial-gradient(70% 45% at 85% 0%, rgba(214,120,40,0.26), transparent 70%), radial-gradient(60% 40% at 0% 100%, rgba(229,100,90,0.22), transparent 70%)",
         }}
       />
     </div>
@@ -127,8 +127,8 @@ export function PhotoBackdrop({
         className="absolute inset-0"
         style={{
           background: fade
-            ? "linear-gradient(180deg, rgba(5,5,5,0.35) 0%, rgba(5,5,5,0.2) 40%, #050505 100%)"
-            : "rgba(5,5,5,0.35)",
+            ? "linear-gradient(180deg, rgba(8,9,11,0.35) 0%, rgba(8,9,11,0.2) 40%, #08090B 100%)"
+            : "rgba(8,9,11,0.35)",
         }}
       />
     </div>
@@ -153,7 +153,7 @@ export function AppBackdrop({ src, position = "center" }: { src: string; positio
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(80% 50% at 100% 0%, rgba(214,120,40,0.30), transparent 70%), radial-gradient(70% 45% at 0% 100%, rgba(191,29,29,0.18), transparent 70%), linear-gradient(180deg, rgba(5,5,5,0.35) 0%, rgba(5,5,5,0.55) 55%, rgba(5,5,5,0.92) 100%)",
+            "radial-gradient(80% 50% at 100% 0%, rgba(214,120,40,0.30), transparent 70%), radial-gradient(70% 45% at 0% 100%, rgba(229,100,90,0.18), transparent 70%), linear-gradient(180deg, rgba(8,9,11,0.35) 0%, rgba(8,9,11,0.55) 55%, rgba(8,9,11,0.92) 100%)",
         }}
       />
     </div>

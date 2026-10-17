@@ -125,7 +125,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
 
   return (
     <form onSubmit={submit} className="space-y-5 border border-border/50 p-4 rounded-2xl">
-      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A]">
+      <div className="text-xs text-[#B9A477]">
         Edit profile
       </div>
 
@@ -150,7 +150,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
             onChange={(e) => set("dateOfBirth", e.target.value)}
           />
           {computedAge != null && (
-            <p className="mt-1.5 font-mono text-[10px] text-muted-foreground">
+            <p className="mt-1.5 text-xs text-muted-foreground">
               {computedAge} years old
             </p>
           )}
@@ -382,7 +382,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
       </label>
 
       {update.isError && (
-        <div className="text-sm text-destructive font-mono">
+        <div className="text-sm text-destructive ">
           {(update.error as Error).message}
         </div>
       )}
@@ -398,7 +398,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
         <Button
           type="submit"
           disabled={update.isPending || !form.name.trim()}
-          className="flex-1 h-11 font-mono text-xs uppercase tracking-[0.14em] bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          className="flex-1 h-11 text-xs bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {update.isPending ? "Saving..." : "Save profile"}
         </Button>

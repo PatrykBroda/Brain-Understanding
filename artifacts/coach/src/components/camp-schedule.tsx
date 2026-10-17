@@ -91,7 +91,7 @@ export function CampSchedule({
               setEditingId(null);
               setAdding(true);
             }}
-            className="flex items-center gap-1.5 text-[#C7A15A] hover:bg-primary/5 btn-quiet btn-quiet-gold btn-quiet-sm"
+            className="flex items-center gap-1.5 text-[#B9A477] hover:bg-primary/5 btn-quiet btn-quiet-gold btn-quiet-sm"
           >
             <Plus className="w-3 h-3" strokeWidth={1.5} />
             Add
@@ -209,10 +209,10 @@ function SessionRow({
     <div
       className="flex items-start gap-3 border rounded-2xl px-4 py-3 transition-colors"
       style={{
-        borderColor: s.completed ? "rgba(199,161,90,0.4)" : "rgba(255,244,224,0.10)",
+        borderColor: s.completed ? "rgba(185,164,119,0.4)" : "rgba(255,255,255,0.10)",
         background: s.completed
-          ? "linear-gradient(95deg, rgba(138,106,47,0.14), rgba(255,246,232,0.03) 70%)"
-          : "rgba(255,246,232,0.04)",
+          ? "linear-gradient(95deg, rgba(185,164,119,0.14), rgba(255,255,255,0.03) 70%)"
+          : "rgba(255,255,255,0.04)",
       }}
     >
       <button
@@ -226,9 +226,9 @@ function SessionRow({
         <span
           className="w-[22px] h-[22px] rounded-full border flex items-center justify-center transition-all duration-300"
           style={{
-            borderColor: s.completed ? "#C7A15A" : "rgba(255,244,224,0.35)",
-            background: s.completed ? "rgba(199,161,90,0.2)" : "transparent",
-            color: s.completed ? "#E6D2A3" : "transparent",
+            borderColor: s.completed ? "#B9A477" : "rgba(255,255,255,0.35)",
+            background: s.completed ? "rgba(185,164,119,0.2)" : "transparent",
+            color: s.completed ? "#D4C7A3" : "transparent",
           }}
         >
           <Check className="w-3 h-3" strokeWidth={2.8} />
@@ -238,7 +238,7 @@ function SessionRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span
-            className="font-mono text-[11px] uppercase tracking-[0.14em]"
+            className="text-xs "
             style={{
               color: s.completed ? "hsla(0,0%,100%,0.6)" : "hsla(0,0%,100%,0.9)",
               textDecoration: s.completed ? "line-through" : "none",
@@ -380,7 +380,7 @@ function SessionForm({
       </Field>
 
       {error && (
-        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[hsl(var(--red-accent))]">
+        <div className="text-xs text-[hsl(var(--red-accent))]">
           Could not save — check the date
         </div>
       )}
@@ -389,7 +389,7 @@ function SessionForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.10] py-3 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/70 hover:text-foreground/85 transition-colors rounded-2xl"
+          className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.10] py-3 text-xs text-foreground/70 hover:text-foreground/85 transition-colors rounded-2xl"
         >
           <X className="w-3 h-3" strokeWidth={1.5} />
           Cancel
@@ -398,7 +398,7 @@ function SessionForm({
           type="button"
           onClick={() => canSubmit && onSubmit(form)}
           disabled={!canSubmit || pending}
-          className="flex-1 text-[#C7A15A] hover:bg-primary/5 disabled:opacity-40 btn-quiet btn-quiet-gold"
+          className="flex-1 text-[#B9A477] hover:bg-primary/5 disabled:opacity-40 btn-quiet btn-quiet-gold"
         >
           {pending ? "Saving" : submitLabel}
         </button>

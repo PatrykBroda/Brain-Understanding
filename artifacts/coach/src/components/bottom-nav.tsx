@@ -42,7 +42,7 @@ export function BottomNav() {
               ) : (
                 <FrameOctagon size={20} glow={false} color="currentColor" />
               )}
-              <span className="text-[10px] font-medium uppercase tracking-[0.12em]">{label}</span>
+              <span className="text-xs font-medium ">{label}</span>
             </Link>
           );
         })}

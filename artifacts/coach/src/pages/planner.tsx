@@ -194,9 +194,9 @@ function CampDashboard({
 
   return (
     <section>
-      <div className="glass px-5 py-7 text-center" style={{ borderColor: `color-mix(in srgb, ${fg} 45%, transparent)`, backgroundImage: `radial-gradient(80% 90% at 50% 0%, color-mix(in srgb, ${fg} 30%, transparent), transparent 72%), linear-gradient(135deg, rgba(255,246,232,0.07), rgba(255,246,232,0.015))` }}>
+      <div className="glass px-5 py-7 text-center" style={{ borderColor: `color-mix(in srgb, ${fg} 45%, transparent)`, backgroundImage: `radial-gradient(80% 90% at 50% 0%, color-mix(in srgb, ${fg} 30%, transparent), transparent 72%), linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015))` }}>
         <div className="flex items-center justify-between">
-          <div className="font-mono text-[10px] uppercase tracking-[0.16em]" style={{ color: fg }}>
+          <div className="text-xs " style={{ color: fg }}>
             {pressure ? pressure.phase : "Camp"}
           </div>
           <button
@@ -213,7 +213,7 @@ function CampDashboard({
         {pressure ? (
           <>
             <div
-              className="font-sans font-extralight tabular-nums leading-none mt-4"
+              className="font-sans font-normal tabular-nums leading-none mt-4"
               style={{ fontSize: "clamp(3rem,18vw,5rem)", color: fg }}
             >
               {pressure.daysToEvent}
@@ -264,7 +264,7 @@ function CampDashboard({
           }
         }}
         disabled={cancel.isPending}
-        className="btn-quiet mt-6 w-full hover:!text-[#E0564E] hover:!border-[#E0564E]/50"
+        className="btn-quiet mt-6 w-full hover:!text-[#E5645A] hover:!border-[#E5645A]/50"
       >
         {cancel.isPending ? "Ending" : "End camp"}
       </button>
@@ -293,7 +293,7 @@ function CampReviewSection({ review }: { review: CampReview }) {
         <div className="px-5 py-6">
           <p className="text-[13px] leading-relaxed text-foreground/80">
             No footage analysed in this camp yet. Upload a round on{" "}
-            <Link href="/analyse" className="text-[#C7A15A] hover:underline">
+            <Link href="/analyse" className="text-[#B9A477] hover:underline">
               Analyse
             </Link>{" "}
             and this camp starts reading your trend, session over session.
@@ -323,20 +323,20 @@ function CampReviewSection({ review }: { review: CampReview }) {
             {biggestImprovement ? (
               <div className="mt-2.5">
                 <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/85">
+                  <span className="text-xs text-foreground/85">
                     {biggestImprovement.label}
                   </span>
                   <span
                     className="numeral numeral-m !text-[1.25rem]"
-                    style={{ color: "#E6D2A3" }}
+                    style={{ color: "#D4C7A3" }}
                   >
                     +{biggestImprovement.delta}
                   </span>
                 </div>
-                <div className="mt-1 font-mono text-[10px] tabular-nums text-foreground/70">
+                <div className="mt-1 text-xs tabular-nums text-foreground/70">
                   {biggestImprovement.from} → {biggestImprovement.to}
                 </div>
-                <div className="mt-1 text-[10px] text-foreground/70">
+                <div className="mt-1 text-xs text-foreground/70">
                   {formatDay(biggestImprovement.fromAt)} → {formatDay(biggestImprovement.toAt)}
                 </div>
               </div>
@@ -359,7 +359,7 @@ function CampReviewSection({ review }: { review: CampReview }) {
                 <div className="font-sans text-[13px] leading-snug text-foreground/85">
                   {mostPersistentLeak.label}
                 </div>
-                <div className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/70">
+                <div className="mt-1.5 text-xs text-foreground/70">
                   Flagged in {mostPersistentLeak.sessions} of {mostPersistentLeak.total} sessions
                 </div>
               </div>
@@ -624,7 +624,7 @@ function CampForm({
       </Field>
 
       {isError && (
-        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[hsl(var(--red-accent))]">
+        <div className="text-xs text-[hsl(var(--red-accent))]">
           Could not save — check the dates
         </div>
       )}
@@ -633,7 +633,7 @@ function CampForm({
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.10] py-3 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/70 hover:text-foreground/85 transition-colors rounded-2xl"
+          className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.10] py-3 text-xs text-foreground/70 hover:text-foreground/85 transition-colors rounded-2xl"
         >
           <X className="w-3 h-3" strokeWidth={1.5} />
           Cancel
@@ -642,7 +642,7 @@ function CampForm({
           type="button"
           onClick={submit}
           disabled={!canSubmit || pending}
-          className="flex-1 text-[#C7A15A] hover:bg-primary/5 disabled:opacity-40 btn-quiet btn-quiet-gold"
+          className="flex-1 text-[#B9A477] hover:bg-primary/5 disabled:opacity-40 btn-quiet btn-quiet-gold"
         >
           {pending ? "Saving" : isEdit ? "Save camp" : "Create camp"}
         </button>

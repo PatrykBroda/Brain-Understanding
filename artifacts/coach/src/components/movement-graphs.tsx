@@ -56,13 +56,13 @@ function SeriesChart({
   return (
     <div className="glass space-y-2 p-4" data-testid={`graph-${def.key}`}>
       <div className="flex items-baseline justify-between gap-3">
-        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground">{def.title}</div>
+        <div className="text-xs text-foreground">{def.title}</div>
         <div className="flex items-center gap-3">
           {def.lines.length > 1 &&
             def.lines.map((l) => (
               <span
                 key={l.key}
-                className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground"
               >
                 <i className="inline-block w-3 h-[2px]" style={{ background: l.color }} />
                 {l.label}
@@ -79,12 +79,12 @@ function SeriesChart({
                 <stop offset="100%" stopColor={def.lines[0]?.color} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid vertical={false} stroke="rgba(255,244,224,0.07)" />
+            <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.07)" />
             <XAxis type="number" dataKey="t" domain={[0, duration]} hide allowDataOverflow />
             <YAxis
               width={Y_AXIS_WIDTH}
               domain={def.domain ?? ["auto", "auto"]}
-              tick={{ fontSize: 10, fill: "#8f8b84", fontFamily: "Outfit Variable, Outfit, system-ui, sans-serif" }}
+              tick={{ fontSize: 10, fill: "#8A8F96", fontFamily: "Outfit Variable, Outfit, system-ui, sans-serif" }}
               tickFormatter={(v: number) => (Math.abs(v) >= 10 ? v.toFixed(0) : v.toFixed(1))}
               axisLine={false}
               tickLine={false}
@@ -152,12 +152,12 @@ function SeriesChart({
         >
           <div
             ref={headRef}
-            className="absolute top-0 bottom-0 w-px bg-[#E6D2A3] pointer-events-none"
+            className="absolute top-0 bottom-0 w-px bg-[#D4C7A3] pointer-events-none"
             style={{ left: 0, boxShadow: "0 0 6px rgba(230,210,163,0.8)" }}
           />
         </div>
       </div>
-      <div className="font-mono text-[10px] tracking-wide text-muted-foreground/90 leading-snug">
+      <div className="text-xs tracking-wide text-muted-foreground/90 leading-snug">
         {def.axis} · {def.hint}
       </div>
     </div>
@@ -188,11 +188,11 @@ export function MovementGraphs({
       {series.map((s) => (
         <SeriesChart key={s.def.key} series={s} events={events} duration={duration} playback={playback} />
       ))}
-      <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
+      <div className="flex items-center justify-between text-xs text-muted-foreground/90">
         <span>0s</span>
         <span>{duration.toFixed(0)}s</span>
       </div>
-      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90 leading-relaxed">
+      <p className="text-xs text-muted-foreground/90 leading-relaxed">
         every line is measured from the tracked pose, same definitions as the scores
         {hasEvents ? " · shaded bands are detected events" : ""} · breaks in a line = pose lock lost, nothing is
         filled in · tap or drag to jump

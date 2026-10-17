@@ -140,7 +140,7 @@ function CheckinForm({
         />
       </div>
       {err && (
-        <p role="alert" className="text-sm text-[#E0564E]">
+        <p role="alert" className="text-sm text-[#E5645A]">
           {err}
         </p>
       )}
@@ -151,7 +151,7 @@ function CheckinForm({
         <button
           type="button"
           onClick={onDone}
-          className="min-h-[44px] px-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
+          className="min-h-[44px] px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           Cancel
         </button>
@@ -204,7 +204,7 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
       >
         <Sparkline data={points.map((p) => p.score)} width={420} height={84} tone={delta < 0 ? "red" : "gold"} />
       </div>
-      <div className="mt-2 flex justify-between text-[11px] tabular-nums text-muted-foreground" aria-hidden>
+      <div className="mt-2 flex justify-between text-xs tabular-nums text-muted-foreground" aria-hidden>
         <span>{shortDay(first.date)}</span>
         <span>{shortDay(last.date)}</span>
       </div>
@@ -391,8 +391,8 @@ export default function DashboardPage() {
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   background: adjusting
-                    ? "linear-gradient(180deg, rgba(5,5,5,0.45) 0%, rgba(5,5,5,0.05) 30%, rgba(5,5,5,0.05) 70%, rgba(5,5,5,0.6) 100%)"
-                    : "linear-gradient(180deg, rgba(5,5,5,0.55) 0%, rgba(5,5,5,0.15) 38%, rgba(5,5,5,0.55) 70%, rgba(5,5,5,0.92) 100%)",
+                    ? "linear-gradient(180deg, rgba(8,9,11,0.45) 0%, rgba(8,9,11,0.05) 30%, rgba(8,9,11,0.05) 70%, rgba(8,9,11,0.6) 100%)"
+                    : "linear-gradient(180deg, rgba(8,9,11,0.55) 0%, rgba(8,9,11,0.15) 38%, rgba(8,9,11,0.55) 70%, rgba(8,9,11,0.92) 100%)",
                 }}
               />
 
@@ -406,7 +406,7 @@ export default function DashboardPage() {
                       type="button"
                       onClick={startAdjust}
                       aria-label="Adjust hero image framing"
-                      className="icon-round bg-[#050505]/40 text-foreground/80 transition-colors hover:text-[hsl(var(--primary-light))]"
+                      className="icon-round bg-[#08090B]/40 text-foreground/80 transition-colors hover:text-[hsl(var(--primary-light))]"
                     >
                       <Move className="w-4 h-4" strokeWidth={1.5} />
                     </button>
@@ -452,7 +452,7 @@ export default function DashboardPage() {
                         onClick={() => setAdjusting(false)}
                         disabled={updateFighter.isPending}
                         onPointerDown={(e) => e.stopPropagation()}
-                        className="min-h-[44px] px-3 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
+                        className="min-h-[44px] px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
                       >
                         Cancel
                       </button>
@@ -465,7 +465,7 @@ export default function DashboardPage() {
               {!adjusting && (
                 <div className="absolute bottom-0 inset-x-0 px-6 pb-6">
                   <div className="eyebrow eyebrow-gold mb-2">Athlete</div>
-                  <h1 className="punch text-[clamp(3.2rem,15vw,5.6rem)] text-[#f4f0e9]">
+                  <h1 className="punch text-[clamp(3.2rem,15vw,5.6rem)] text-[#F4F4F1]">
                     {fighter?.name ?? "—"}
                   </h1>
                   {metaParts.length > 0 && (
@@ -509,7 +509,7 @@ export default function DashboardPage() {
                     {READINESS_BANDS.map((band) => (
                       <span
                         key={band}
-                        className={`chip !px-2.5 !py-1 !text-[10px] ${
+                        className={`chip !px-2.5 !py-1 !text-xs ${
                           band === bandFor(readiness)
                             ? "!border-primary/50 !bg-primary/20 !text-[hsl(var(--primary-pale))]"
                             : "!text-muted-foreground"

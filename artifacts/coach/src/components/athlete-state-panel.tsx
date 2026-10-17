@@ -24,7 +24,7 @@ function Row({
     <div className="px-5 py-4 flex items-start justify-between gap-4" title={title}>
       <div className="eyebrow pt-1.5 flex-none w-28">{label}</div>
       <div className="min-w-0 text-right">
-        <div className="font-display text-[1.05rem] leading-tight text-[#f1ede6] truncate">
+        <div className="font-display text-[1.05rem] leading-tight text-[#F4F4F1] truncate">
           {value}
         </div>
         {sub && (
@@ -67,7 +67,7 @@ export function AthleteStatePanel({
     <div className="glass overflow-hidden">
       <div className="flex items-center justify-between px-5 pt-5 pb-1">
         <div className="eyebrow eyebrow-gold">Athlete state</div>
-        <span className="chip !px-2.5 !py-1 !text-[10px] !text-muted-foreground">Real signal only</span>
+        <span className="chip !px-2.5 !py-1 !text-xs !text-muted-foreground">Real signal only</span>
       </div>
 
       <div className="divide-y divide-white/10">

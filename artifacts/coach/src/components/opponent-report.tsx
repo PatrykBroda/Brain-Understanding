@@ -48,7 +48,7 @@ export function SavedOpponentReport({
   if (isError || !data?.analysis) {
     return (
       <div className="space-y-4">
-        <div className="glass glass-red !rounded-2xl px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive/90">
+        <div className="glass glass-red !rounded-2xl px-3 py-2 text-xs text-destructive/90">
           could not load this scout
         </div>
         <button
@@ -85,7 +85,7 @@ export function OpponentReport({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div
-            className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] px-2 py-1 mb-2"
+            className="inline-flex items-center gap-1.5 text-xs px-2 py-1 mb-2"
             style={{
               color: `hsla(${SCOUT},0.95)`,
               border: `1px solid hsla(${SCOUT},0.35)`,
@@ -119,12 +119,12 @@ export function OpponentReport({
       >
         <div className="flex items-center gap-2.5">
           <Crosshair className="w-4 h-4 flex-none" style={{ color: `hsla(${SCOUT},0.85)` }} strokeWidth={1.5} />
-          <span className="text-base text-foreground/90 font-light truncate">
+          <span className="text-base text-foreground/90 font-normal truncate">
             {name || "Unnamed opponent"}
           </span>
         </div>
         {analysis.styleProfile && (
-          <div className="font-mono text-[10px] uppercase tracking-[0.16em] mt-1.5" style={{ color: `hsla(${SCOUT},0.75)` }}>
+          <div className="text-xs mt-1.5" style={{ color: `hsla(${SCOUT},0.75)` }}>
             {analysis.styleProfile}
           </div>
         )}
@@ -221,7 +221,7 @@ function MatchupPanel({ matchup }: { matchup: Matchup }) {
         className="px-5 py-4 space-y-2"
         style={{ border: `1px solid hsla(${SCOUT},0.2)`, background: `hsla(${SCOUT},0.03)` }}
       >
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em]" style={{ color: `hsla(${SCOUT},0.8)` }}>
+        <div className="flex items-center gap-2 text-xs " style={{ color: `hsla(${SCOUT},0.8)` }}>
           <Target className="w-3.5 h-3.5" strokeWidth={1.5} />
           Matchup
         </div>
@@ -236,7 +236,7 @@ function MatchupPanel({ matchup }: { matchup: Matchup }) {
   }
   return (
     <section className="space-y-3">
-      <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em]" style={{ color: `hsla(${SCOUT},0.85)` }}>
+      <div className="flex items-center gap-2 text-xs " style={{ color: `hsla(${SCOUT},0.85)` }}>
         <Target className="w-3.5 h-3.5" strokeWidth={1.5} />
         Matchup
       </div>
@@ -280,7 +280,7 @@ function MatchupEdgeCard({
       className="px-4 py-3.5 space-y-1.5"
       style={{ borderLeft: `2px solid hsla(${accent},0.7)`, background: `hsla(${accent},0.05)` }}
     >
-      <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em]" style={{ color: `hsla(${accent},0.9)` }}>
+      <div className="flex items-center gap-1.5 text-xs " style={{ color: `hsla(${accent},0.9)` }}>
         {isAdvantage ? <Shield className="w-3 h-3" strokeWidth={1.5} /> : <AlertTriangle className="w-3 h-3" strokeWidth={1.5} />}
         {isAdvantage ? "Your biggest advantage" : "Biggest risk"}
       </div>
@@ -297,13 +297,13 @@ function TendencyCard({ finding }: { finding: AnalysisFinding }) {
     <div className="px-4 py-3 space-y-1.5" style={{ borderLeft: `2px solid hsla(${SCOUT},0.4)`, background: "hsla(0,0%,100%,0.015)" }}>
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-[0.9rem] text-foreground/90 leading-snug">{finding.title}</span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] flex-none" style={{ color: `hsla(${SCOUT},0.75)` }}>
+        <span className="text-xs flex-none" style={{ color: `hsla(${SCOUT},0.75)` }}>
           {SEVERITY_LABEL[finding.severity]}
         </span>
       </div>
       <p className="text-[0.8rem] text-foreground/65 leading-relaxed">{finding.observation}</p>
       {finding.nervousSystemFraming && (
-        <p className="text-[0.78rem] text-foreground/70 leading-relaxed italic">{finding.nervousSystemFraming}</p>
+        <p className="text-[0.78rem] text-foreground/70 leading-relaxed ">{finding.nervousSystemFraming}</p>
       )}
     </div>
   );
@@ -318,7 +318,7 @@ function StyleParallels({ parallels }: { parallels: StyleParallel[] }) {
       <div className="space-y-2">
         {parallels.map((p, i) => (
           <div key={i} className="space-y-0.5">
-            <div className="font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: `hsla(${SCOUT},0.8)` }}>
+            <div className="text-xs " style={{ color: `hsla(${SCOUT},0.8)` }}>
               {p.name}
             </div>
             <p className="text-[0.8rem] text-foreground/65 leading-relaxed">{p.note}</p>
@@ -339,10 +339,10 @@ function SignalTable({ signals }: { signals: AnalysisSignal[] }) {
         {signals.map((s, i) => (
           <div key={i} className="flex items-baseline justify-between gap-4 py-1 border-b border-border/15">
             <div className="min-w-0">
-              <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/75">{s.label}</div>
+              <div className="text-xs text-foreground/75">{s.label}</div>
               <div className="text-[0.76rem] text-foreground/70 leading-snug">{s.detail}</div>
             </div>
-            <div className="font-mono text-[10px] flex-none" style={{ color: `hsla(${SCOUT},0.85)` }}>
+            <div className="text-xs flex-none" style={{ color: `hsla(${SCOUT},0.85)` }}>
               {s.value}
             </div>
           </div>

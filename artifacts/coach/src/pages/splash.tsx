@@ -8,7 +8,7 @@ const HERO_LINES = ["MOST MISTAKES", "ARE NERVOUS SYSTEM", "MISTAKES"] as const;
 
 /**
  * Cinematic splash / loading screen. Brutalist documentary aesthetic:
- * heavy vignette, film grain, condensed uppercase type, FRAME wordmark
+ * heavy vignette, film grain, condensed type, FRAME wordmark
  * with red MMA AI tag. Auto-advances to home after 4.5s; user can SKIP early.
  */
 export default function SplashPage() {
@@ -48,7 +48,7 @@ export default function SplashPage() {
       <div
         aria-hidden
         className="glow-orb z-0 bottom-[-9rem] right-[-6rem] h-[22rem] w-[22rem]"
-        style={{ background: "radial-gradient(circle, rgba(191,29,29,0.22), transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, rgba(229,100,90,0.22), transparent 70%)" }}
       />
       {/* Film grain */}
       <svg
@@ -64,12 +64,12 @@ export default function SplashPage() {
 
       {/* Top status bar */}
       <header className="relative z-10 flex items-center justify-between px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
-        <span className="chip !text-[10px] !text-muted-foreground">
+        <span className="chip !text-xs !text-muted-foreground">
           <span className="mr-2 h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary-light))]" aria-hidden />
           Tuning Frame
         </span>
         <span
-          className="chip !border-primary/30 !bg-primary/10 !text-[10px]" 
+          className="chip !border-primary/30 !bg-primary/10 !text-xs" 
           title={frameState.source}
         >
           {fighter?.name?.split(" ")[0]?.toUpperCase() ?? "KILO"}
@@ -79,7 +79,7 @@ export default function SplashPage() {
       {/* Hero — condensed punch lines over the edit */}
       <main className="relative z-10 min-h-0 grid place-items-center px-6">
         <div className="frame-splash-hero text-center max-w-2xl">
-          <h1 className="punch text-[#f4f0e9]" style={{ fontSize: "clamp(3rem, 14vw, 5.6rem)" }}>
+          <h1 className="punch text-[#F4F4F1]" style={{ fontSize: "clamp(3rem, 14vw, 5.6rem)" }}>
             {HERO_LINES.map((line, i) => (
               <span
                 key={line}
@@ -93,7 +93,7 @@ export default function SplashPage() {
 
           <div
             className="mx-auto mt-10 h-px w-24 frame-splash-line"
-            style={{ animationDelay: "0.5s", background: "linear-gradient(90deg, transparent, rgba(199,161,90,0.7), transparent)" }}
+            style={{ animationDelay: "0.5s", background: "linear-gradient(90deg, transparent, rgba(185,164,119,0.7), transparent)" }}
             role="status" aria-label="Loading"
           />
         </div>
@@ -103,7 +103,7 @@ export default function SplashPage() {
       <section className="relative z-10 flex flex-col items-center text-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] gap-4">
         <div>
           <div className="wordmark text-[clamp(1.5rem,6.5vw,2rem)]">Frame</div>
-          <div className="eyebrow mt-2 !text-[#E0564E]">MMA AI</div>
+          <div className="eyebrow mt-2 !text-[#E5645A]">MMA AI</div>
         </div>
 
         <button

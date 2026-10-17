@@ -69,13 +69,13 @@ export function WeeklyReportOverlay({ open, onClose }: { open: boolean; onClose:
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-[#050505]/80 backdrop-blur-xl"
+      className="fixed inset-0 z-50 flex flex-col bg-[#08090B]/80 backdrop-blur-xl"
       role="dialog"
       aria-modal="true"
       aria-label="FRAME Intelligence Report"
     >
       <div className="flex-none flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3 border-b border-border/30">
-        <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-foreground/90">
+        <div className="text-xs text-foreground/90">
           Intelligence Report
         </div>
         <button
@@ -93,7 +93,7 @@ export function WeeklyReportOverlay({ open, onClose }: { open: boolean; onClose:
           {isLoading && (
             <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.5} />
-              <span className="font-mono text-[10px] uppercase tracking-[0.16em]">Reading the week</span>
+              <span className="text-xs ">Reading the week</span>
             </div>
           )}
 

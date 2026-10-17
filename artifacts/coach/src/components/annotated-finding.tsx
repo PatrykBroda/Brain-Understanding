@@ -89,7 +89,7 @@ export function AnnotatedFindingFrame({
           <button
             type="button"
             onClick={() => onJump(v.keyframe.timestamp)}
-            className="ml-2 underline underline-offset-2 text-[#C7A15A]"
+            className="ml-2 underline underline-offset-2 text-[#B9A477]"
           >
             jump to moment
           </button>

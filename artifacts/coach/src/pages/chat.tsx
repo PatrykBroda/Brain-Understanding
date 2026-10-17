@@ -45,9 +45,9 @@ function AttachmentThumb({
   // header, so load the bytes through an authed object URL instead.
   const url = useAuthedObjectUrl(attachmentFileUrl(att.id));
   return (
-    <div className="relative inline-block border border-white/10 bg-[#0d0b09] overflow-hidden rounded-2xl">
+    <div className="relative inline-block border border-white/10 bg-[#08090B] overflow-hidden rounded-2xl">
       {!url ? (
-        <div className="flex h-24 w-24 items-center justify-center text-muted-foreground/90 font-mono text-[10px] uppercase tracking-[0.14em]">
+        <div className="flex h-24 w-24 items-center justify-center text-muted-foreground/90 text-xs ">
           Loading
         </div>
       ) : att.kind === "image" ? (
@@ -67,7 +67,7 @@ function AttachmentThumb({
         <button
           type="button"
           onClick={onRemove}
-          className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-[#0a0908]/80 hover:bg-[#0a0908] border border-white/15 flex items-center justify-center text-foreground/85 hover:text-destructive transition-colors rounded-2xl"
+          className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-[#08090B]/80 hover:bg-[#08090B] border border-white/15 flex items-center justify-center text-foreground/85 hover:text-destructive transition-colors rounded-2xl"
           aria-label="Remove attachment"
         >
           <X className="w-3.5 h-3.5" strokeWidth={2} />
@@ -240,10 +240,10 @@ export default function ChatPage() {
         />
       )}
       <div className="flex flex-col h-[100dvh] text-foreground font-sans">
-        <header className="flex-none flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-white/[0.07] bg-[#0a0908]/60 backdrop-blur-xl">
+        <header className="flex-none flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-white/[0.07] bg-[#08090B]/60 backdrop-blur-xl">
           <Link href="/home" className="btn-quiet btn-quiet-sm !px-3">
             <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em]">Home</span>
+            <span className="text-xs ">Home</span>
           </Link>
           <div className="flex items-center gap-3">
             <FrameWordmark size={22} />
@@ -253,7 +253,7 @@ export default function ChatPage() {
             variant="ghost"
             size="sm"
             onClick={() => reset()}
-            className="text-muted-foreground hover:text-foreground font-mono text-[10px] uppercase tracking-[0.14em] -mr-2"
+            className="text-muted-foreground hover:text-foreground text-xs -mr-2"
           >
             <RefreshCcw className="w-3 h-3 mr-1.5" />
             Reset
@@ -267,7 +267,7 @@ export default function ChatPage() {
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
             {isLoading ? (
-              <div className="flex justify-center pt-20 text-muted-foreground font-mono text-xs uppercase tracking-[0.14em]">
+              <div className="flex justify-center pt-20 text-muted-foreground text-xs ">
                 Loading state…
               </div>
             ) : messages.length === 0 ? (
@@ -287,7 +287,7 @@ export default function ChatPage() {
                       onClick={() => void requestSend(prompt)}
                       className="glass group text-left p-4 min-h-[56px] hover:border-primary/40 transition-colors text-[0.85rem] leading-snug text-foreground/85 hover:text-foreground"
                     >
-                      <span className="text-[#C7A15A] group-hover:text-[#C7A15A] mr-2 transition-colors">—</span>
+                      <span className="text-[#B9A477] group-hover:text-[#B9A477] mr-2 transition-colors">—</span>
                       {prompt}
                     </button>
                   ))}
@@ -301,8 +301,8 @@ export default function ChatPage() {
                     className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
                   >
                     <div
-                      className={`text-[10px] font-mono uppercase tracking-[0.16em] mb-2.5 px-1 ${
-                        msg.role === "user" ? "text-foreground/70" : "text-[#C7A15A]"
+                      className={`text-xs mb-2.5 px-1 ${
+                        msg.role === "user" ? "text-foreground/70" : "text-[#B9A477]"
                       }`}
                     >
                       {msg.role === "user" ? (fighter?.name ?? "Operator") : "FRAME"}
@@ -341,7 +341,7 @@ export default function ChatPage() {
                   </div>
                 ))}
                 {error && (
-                  <div className="p-4 glass glass-red !rounded-2xl text-destructive/90 font-mono text-xs flex flex-col items-center gap-3 text-center">
+                  <div className="p-4 glass glass-red !rounded-2xl text-destructive/90 text-xs flex flex-col items-center gap-3 text-center">
                     <span>{error}</span>
                     <button
                       type="button"
@@ -379,7 +379,7 @@ export default function ChatPage() {
           </div>
         </main>
 
-        <footer className="flex-none p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-[#0a0908]/60 backdrop-blur-xl border-t border-white/[0.07]">
+        <footer className="flex-none p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-[#08090B]/60 backdrop-blur-xl border-t border-white/[0.07]">
           <div className="max-w-3xl mx-auto space-y-3">
             {messages.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
@@ -409,7 +409,7 @@ export default function ChatPage() {
             )}
 
             {uploadError && (
-              <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive px-1">
+              <div className="text-xs text-destructive px-1">
                 {uploadError}
               </div>
             )}
@@ -482,7 +482,7 @@ export default function ChatPage() {
                       size="icon"
                       variant="ghost"
                       disabled={!canSend}
-                      className="h-9 w-9 text-[#C7A15A] hover:text-[#C7A15A] hover:bg-primary/10"
+                      className="h-9 w-9 text-[#B9A477] hover:text-[#B9A477] hover:bg-primary/10"
                     >
                       <Send className="w-4 h-4" />
                     </Button>

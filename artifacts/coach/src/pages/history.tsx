@@ -191,7 +191,7 @@ export default function HistoryPage() {
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center pt-16 text-muted-foreground font-mono text-xs uppercase tracking-[0.14em]">
+            <div className="flex justify-center pt-16 text-muted-foreground text-xs ">
               Loading record…
             </div>
           ) : isEmpty ? (
@@ -199,7 +199,7 @@ export default function HistoryPage() {
               <div className="eyebrow">
                 No record yet
               </div>
-              <p className="font-sans font-extralight text-lg leading-relaxed text-foreground/70 max-w-sm">
+              <p className="font-sans font-normal text-lg leading-relaxed text-foreground/70 max-w-sm">
                 The timeline fills as you train and FRAME records what it sees.
               </p>
             </div>
@@ -227,7 +227,7 @@ export default function HistoryPage() {
                       <span
                         aria-hidden
                         className="absolute left-[1px] top-[3px] w-[13px] h-[13px] rounded-full border border-primary/50 flex items-center justify-center"
-                        style={{ background: "#0d0b09" }}
+                        style={{ background: "#08090B" }}
                       >
                         <span
                           className="w-1 h-1 rounded-full"
@@ -241,7 +241,7 @@ export default function HistoryPage() {
                         {dayHeader(day.date)}
                       </h2>
                       {dayHeader(day.date) !== explicitDate(day.date) && (
-                        <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/70">
+                        <div className="mt-2 text-xs text-foreground/70">
                           {explicitDate(day.date)}
                         </div>
                       )}
@@ -268,11 +268,11 @@ export default function HistoryPage() {
                             Analysed session
                           </div>
                           <div className="mt-1.5 flex items-baseline justify-between gap-4">
-                            <div className="text-[1.05rem] font-medium leading-snug text-foreground group-hover:text-[#C7A15A] transition-colors">
+                            <div className="text-[1.05rem] font-medium leading-snug text-foreground group-hover:text-[#B9A477] transition-colors">
                               {a.styleProfile}
                             </div>
                             <ChevronRight
-                              className="flex-none w-3.5 h-3.5 text-foreground/70 group-hover:text-[#C7A15A] transition-colors"
+                              className="flex-none w-3.5 h-3.5 text-foreground/70 group-hover:text-[#B9A477] transition-colors"
                               strokeWidth={1.5}
                             />
                           </div>
@@ -280,7 +280,7 @@ export default function HistoryPage() {
                             <span className="eyebrow">
                               Session score
                             </span>
-                            <span className="numeral numeral-m !text-[1.75rem] !text-[#C7A15A]">
+                            <span className="numeral numeral-m !text-[1.75rem] !text-[#B9A477]">
                               {Math.round(a.sessionScore ?? 0)}
                             </span>
                           </div>
@@ -303,7 +303,7 @@ export default function HistoryPage() {
                               FRAME noticed
                             </div>
                             {day.facts.length > 1 && (
-                              <div className="flex-none font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/70">
+                              <div className="flex-none text-xs text-foreground/70">
                                 {day.facts.length} observations
                               </div>
                             )}
@@ -321,7 +321,7 @@ export default function HistoryPage() {
                                   {day.facts.length} observation{day.facts.length === 1 ? "" : "s"} recorded — the full model is FRAME+
                                 </span>
                               </span>
-                              <span className="flex-none font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A] group-hover:text-[#C7A15A] transition-colors">
+                              <span className="flex-none text-xs text-[#B9A477] group-hover:text-[#B9A477] transition-colors">
                                 FRAME+
                               </span>
                             </button>
