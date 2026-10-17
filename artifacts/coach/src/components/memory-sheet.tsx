@@ -60,10 +60,10 @@ export function MemorySheet({
       <div className="relative ml-auto w-full max-w-md h-full bg-background border-l border-border/60 flex flex-col animate-in slide-in-from-right duration-300">
         <header className="flex-none flex items-center justify-between px-5 py-4 border-b border-border/60">
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">
+            <div className="eyebrow mb-1">
               Athlete model
             </div>
-            <div className="font-mono text-sm uppercase tracking-widest text-foreground/90">
+            <div className="font-mono text-sm uppercase tracking-[0.14em] text-foreground/90">
               {facts.length} observation{facts.length === 1 ? "" : "s"}
             </div>
           </div>
@@ -78,12 +78,12 @@ export function MemorySheet({
 
         <div className="flex-1 overflow-y-auto px-5 py-5">
           {loading ? (
-            <div className="text-muted-foreground font-mono text-xs uppercase tracking-widest text-center pt-10">
+            <div className="text-muted-foreground font-mono text-xs uppercase tracking-[0.14em] text-center pt-10">
               Loading model…
             </div>
           ) : facts.length === 0 ? (
             <div className="text-muted-foreground text-sm leading-relaxed">
-              <div className="font-mono text-[10px] uppercase tracking-widest mb-3 text-foreground/70">
+              <div className="font-mono text-[10px] uppercase tracking-[0.14em] mb-3 text-foreground/70">
                 Empty
               </div>
               The model sharpens with use. As you talk, the system records
@@ -95,7 +95,7 @@ export function MemorySheet({
             <div className="space-y-7">
               {CATEGORY_ORDER.filter((c) => (grouped[c]?.length ?? 0) > 0).map((c) => (
                 <section key={c}>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/80 mb-3">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A] mb-3">
                     {CATEGORY_LABELS[c]}
                   </div>
                   <div className="space-y-2.5">
@@ -105,10 +105,10 @@ export function MemorySheet({
                         className="border-l-2 border-border/60 pl-3 py-1"
                       >
                         <div className="flex items-baseline justify-between gap-3 mb-0.5">
-                          <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/80 truncate">
+                          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/80 truncate">
                             {f.topic}
                           </div>
-                          <div className="flex-none font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                          <div className="flex-none font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                             conf {f.confidence}/5 · {f.source}
                           </div>
                         </div>
@@ -124,7 +124,7 @@ export function MemorySheet({
           )}
         </div>
 
-        <footer className="flex-none px-5 py-3 border-t border-border/60 text-[10px] font-mono uppercase tracking-widest text-muted-foreground leading-relaxed">
+        <footer className="flex-none px-5 py-3 border-t border-border/60 text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground leading-relaxed">
           The model updates after each exchange. Superseded observations are hidden.
         </footer>
       </div>

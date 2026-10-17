@@ -37,13 +37,13 @@ export function ModelUpdateCard({ update }: { update: AnalysisModelUpdate }) {
       aria-label="Athlete model updated"
     >
       <div className="flex items-center gap-2.5 px-5 pt-4 pb-3">
-        <Brain className="w-3.5 h-3.5 text-primary/80" strokeWidth={1.5} />
-        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/90">
+        <Brain className="w-3.5 h-3.5 text-[#C7A15A]" strokeWidth={1.5} />
+        <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A]">
           Athlete model updated
         </div>
         {confidencePointsDelta > 0 && (
           <div
-            className="ml-auto flex items-center gap-1 font-mono text-[10px] tabular-nums text-primary/80"
+            className="ml-auto flex items-center gap-1 font-mono text-[10px] tabular-nums text-[#C7A15A]"
             title="Total confidence gained across confirmed observations — recomputed server-side from the evidence trail"
           >
             <TrendingUp className="w-3 h-3" strokeWidth={1.5} />
@@ -55,7 +55,7 @@ export function ModelUpdateCard({ update }: { update: AnalysisModelUpdate }) {
       <div className="px-5 pb-4 space-y-3">
         {confirmed.length > 0 && (
           <div className="space-y-1.5">
-            <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/45">
+            <div className="eyebrow">
               Confirmed by this footage
             </div>
             {confirmed.map((c) => (
@@ -65,11 +65,11 @@ export function ModelUpdateCard({ update }: { update: AnalysisModelUpdate }) {
                 style={{ borderLeft: "1px solid hsla(39,49%,36%,0.35)" }}
               >
                 <div className="min-w-0">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/80 truncate">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/80 truncate">
                     {c.topic || c.content}
                   </div>
                   <div
-                    className="font-mono text-[9px] text-foreground/40 tabular-nums"
+                    className="font-mono text-[10px] text-foreground/70 tabular-nums"
                     title="Independent sightings of this observation across chat, footage and calibration"
                   >
                     seen ×{c.evidenceCount}
@@ -77,11 +77,11 @@ export function ModelUpdateCard({ update }: { update: AnalysisModelUpdate }) {
                 </div>
                 <div className="flex-none font-mono text-[10px] tabular-nums">
                   {c.confidence > c.previousConfidence ? (
-                    <span className="text-primary/90">
+                    <span className="text-[#C7A15A]">
                       conf {c.previousConfidence}→{c.confidence}
                     </span>
                   ) : (
-                    <span className="text-foreground/50">conf {c.confidence}/5</span>
+                    <span className="text-foreground/70">conf {c.confidence}/5</span>
                   )}
                 </div>
               </div>
@@ -91,7 +91,7 @@ export function ModelUpdateCard({ update }: { update: AnalysisModelUpdate }) {
 
         {newObservations.length > 0 && (
           <div className="space-y-1.5">
-            <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/45">
+            <div className="eyebrow">
               New observations
             </div>
             {newObservations.map((o) => {
@@ -104,17 +104,17 @@ export function ModelUpdateCard({ update }: { update: AnalysisModelUpdate }) {
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <Plus className="w-2.5 h-2.5 flex-none text-foreground/40" strokeWidth={2} />
-                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/80 truncate">
+                      <Plus className="w-2.5 h-2.5 flex-none text-foreground/70" strokeWidth={2} />
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/80 truncate">
                         {o.topic || o.content}
                       </span>
                     </div>
-                    <div className="font-mono text-[9px] text-foreground/40 pl-4">
+                    <div className="font-mono text-[10px] text-foreground/70 pl-4">
                       {CATEGORY_LABELS[o.category] ?? o.category}
                       {sub ? ` · ${sub}` : ""}
                     </div>
                   </div>
-                  <div className="flex-none font-mono text-[10px] tabular-nums text-foreground/50">
+                  <div className="flex-none font-mono text-[10px] tabular-nums text-foreground/70">
                     conf {o.confidence}/5
                   </div>
                 </div>
@@ -123,7 +123,7 @@ export function ModelUpdateCard({ update }: { update: AnalysisModelUpdate }) {
           </div>
         )}
 
-        <p className="text-[0.7rem] leading-relaxed text-foreground/45 pt-1">
+        <p className="text-[0.7rem] leading-relaxed text-foreground/70 pt-1">
           Confidence only moves when the same thing shows up again — across chat,
           footage or calibration. Nothing here is estimated.
         </p>

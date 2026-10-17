@@ -43,13 +43,13 @@ function LineItem({
   sub?: string;
 }) {
   return (
-    <div className="px-4 py-3.5 flex items-baseline justify-between gap-4">
-      <div className="flex-none font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground/65 w-20">
+    <div className="px-5 py-4 flex items-baseline justify-between gap-4">
+      <div className="eyebrow flex-none w-20">
         {label}
       </div>
       <div className="min-w-0 text-right">
         <div
-          className="font-mono text-[12px] uppercase tracking-[0.12em] text-foreground/95 truncate"
+          className="text-[0.95rem] font-medium text-foreground truncate"
           title={sub}
         >
           {value}
@@ -125,35 +125,30 @@ export default function ProfilePage() {
   const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-background text-foreground">
-      <header className="flex-none flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3 border-b border-border/40">
-        <Link
-          href="/home"
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
+    <div className="flex flex-col h-[100dvh] text-foreground">
+      <header className="flex-none flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3">
+        <Link href="/home" aria-label="Back to home" className="icon-round text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
         </Link>
         <div className="text-center">
-          <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
+          <div className="eyebrow">
             Athlete
           </div>
-          <div className="font-mono text-sm uppercase tracking-[0.3em] text-foreground/95 mt-0.5">
-            Passport
-          </div>
+          <h1 className="display-heading mt-0.5">Passport</h1>
         </div>
         {fighter && !isEditing ? (
           <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="text-muted-foreground hover:text-primary transition-colors"
+              className="icon-round text-muted-foreground hover:text-[#C7A15A] transition-colors"
               aria-label="Edit profile"
             >
               <Pencil className="w-4 h-4" strokeWidth={1.5} />
             </button>
           </div>
         ) : (
-          <div className="w-5" />
+          <div className="w-11" />
         )}
       </header>
 
@@ -165,8 +160,8 @@ export default function ProfilePage() {
             <>
               {/* ─── IDENTITY BAND ─────────────────────────────────── */}
               <div
-                className="relative overflow-hidden border border-white/[0.08] passport-in"
-                style={{ minHeight: 190 }}
+                className="glass glass-gold relative overflow-hidden passport-in !rounded-[1.75rem]"
+                style={{ minHeight: 210 }}
               >
                 <div className="absolute inset-0 overflow-hidden">
                   {heroSrc ? (
@@ -187,7 +182,7 @@ export default function ProfilePage() {
                       className="w-full h-full"
                       style={{
                         background:
-                          "radial-gradient(120% 90% at 80% 0%, hsla(39,49%,36%,0.16), transparent 60%), hsla(0,0%,0%,0.4)",
+                          "radial-gradient(120% 90% at 80% 0%, hsla(39,49%,36%,0.34), transparent 60%), radial-gradient(90% 80% at 0% 100%, hsla(0,74%,43%,0.14), transparent 65%), hsla(30,14%,6%,0.6)",
                       }}
                     />
                   )}
@@ -195,20 +190,20 @@ export default function ProfilePage() {
                     className="absolute inset-0"
                     style={{
                       background:
-                        "linear-gradient(180deg, hsla(0,0%,4%,0.35) 0%, hsla(0,0%,4%,0.55) 55%, hsl(0,0%,4%) 100%)",
+                        "linear-gradient(180deg, hsla(30,14%,6%,0.25) 0%, hsla(30,14%,6%,0.55) 55%, hsla(30,14%,6%,0.92) 100%)",
                     }}
                   />
                 </div>
 
                 {/* Cover-photo controls */}
-                <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5">
+                <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
                   {hasHero && (
                     <button
                       type="button"
                       onClick={() => removeHero.mutate()}
                       disabled={heroBusy}
                       aria-label="Remove cover photo"
-                      className="w-7 h-7 flex items-center justify-center border border-white/15 bg-black/40 text-muted-foreground/80 hover:text-foreground hover:border-white/30 transition-colors disabled:opacity-40"
+                      className="icon-round !w-11 !h-11 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
                     >
                       <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
                     </button>
@@ -218,7 +213,7 @@ export default function ProfilePage() {
                     onClick={() => fileRef.current?.click()}
                     disabled={heroBusy}
                     aria-label={hasHero ? "Change cover photo" : "Add cover photo"}
-                    className="w-7 h-7 flex items-center justify-center border border-white/15 bg-black/40 text-muted-foreground/80 hover:text-primary hover:border-primary/40 transition-colors disabled:opacity-40"
+                    className="icon-round !w-11 !h-11 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
                   >
                     {heroBusy ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.5} />
@@ -235,17 +230,16 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                <div className="relative z-[1] flex flex-col justify-end h-full min-h-[190px] px-4 pt-8 pb-4">
-                  <div className="font-mono text-[8px] uppercase tracking-[0.55em] text-muted-foreground/60 mb-1.5">
+                <div className="relative z-[1] flex flex-col justify-end h-full min-h-[210px] px-4 pt-8 pb-4">
+                  <div className="eyebrow eyebrow-gold mb-2">
                     Identity
                   </div>
-                  <div className="font-mono text-3xl uppercase tracking-[0.1em] text-foreground leading-none truncate">
+                  <div className="display-title truncate">
                     {fighter.name}
                   </div>
                   {(arch || fighter.spiritAnimal) && (
                     <div
-                      className="font-mono text-[10px] uppercase tracking-[0.4em] mt-2"
-                      style={{ color: "hsl(39,49%,36%)" }}
+                      className="eyebrow eyebrow-gold mt-2"
                     >
                       {arch ? arch.name : fighter.spiritAnimal}
                       {mode ? ` · ${mode.label}` : ""}
@@ -255,19 +249,19 @@ export default function ProfilePage() {
               </div>
 
               {uploadError && (
-                <div className="border-x border-b border-white/[0.08] px-4 py-2 font-mono text-[10px] text-destructive tracking-wide">
+                <div className="glass glass-red mt-3 px-4 py-2 font-mono text-[11px] text-[#E0564E] tracking-wide">
                   {uploadError}
                 </div>
               )}
 
               {isBjjSport(fighter.primarySport) && (
-                <div className="border-x border-b border-white/[0.08] px-4 py-4">
+                <div className="glass mt-3 px-5 py-4">
                   <Belt level={fighter.level} showMeaning />
                 </div>
               )}
 
               {/* ─── FOCUS · STRENGTH ──────────────────────────────── */}
-              <div className="border-x border-b border-white/[0.08] divide-y divide-white/[0.06]">
+              <div className="glass mt-3 divide-y divide-white/[0.07] overflow-hidden">
                 {focus && (
                   <LineItem label="Focus" value={focus.label} sub={focus.source} />
                 )}
@@ -286,12 +280,12 @@ export default function ProfilePage() {
                 ) : null}
                 <Link
                   href="/chat"
-                  className="flex items-center justify-between px-4 py-3.5 hover:bg-white/[0.02] transition-colors group"
+                  className="flex items-center justify-between px-5 min-h-[56px] hover:bg-white/[0.04] transition-colors group"
                 >
-                  <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary/70 group-hover:text-primary transition-colors">
+                  <span className="eyebrow eyebrow-gold">
                     Continue Calibration
                   </span>
-                  <span className="font-mono text-[11px] text-foreground/40 group-hover:text-primary transition-colors">
+                  <span className="font-mono text-[11px] text-foreground/70 group-hover:text-[#C7A15A] transition-colors">
                     →
                   </span>
                 </Link>
@@ -299,7 +293,7 @@ export default function ProfilePage() {
 
               {/* ─── ATHLETE MODEL — what FRAME knows ──────────────── */}
               <div className="pt-6">
-                <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-muted-foreground/65 mb-3">
+                <div className="eyebrow eyebrow-gold mb-3">
                   Athlete Model
                 </div>
                 <AthleteModel variant="mobile" />
@@ -308,14 +302,14 @@ export default function ProfilePage() {
               {/* ─── MEMBERSHIP ────────────────────────────────────── */}
               <div className="pt-6">
                 {sub.isFramePlus ? (
-                  <div className="border border-primary/25 bg-primary/[0.04]">
-                    <div className="flex items-center justify-between px-4 py-3.5">
+                  <div className="glass glass-gold">
+                    <div className="flex items-center justify-between px-5 py-4">
                       <div>
-                        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary">
+                        <div className="eyebrow eyebrow-gold">
                           FRAME+ active
                         </div>
                         {sub.status?.currentPeriodEnd && (
-                          <div className="font-mono text-[9px] tracking-wide text-muted-foreground/70 mt-1">
+                          <div className="font-mono text-[10px] tracking-wide text-muted-foreground mt-1">
                             {sub.status.cancelAtPeriodEnd ? "Ends" : "Renews"}{" "}
                             {new Date(sub.status.currentPeriodEnd).toLocaleDateString(undefined, {
                               month: "short",
@@ -324,7 +318,7 @@ export default function ProfilePage() {
                             })}
                           </div>
                         )}
-                        <div className="font-mono text-[9px] tracking-wide text-muted-foreground/70 mt-1">
+                        <div className="font-mono text-[10px] tracking-wide text-muted-foreground mt-1">
                           Manage or cancel in the iOS app
                         </div>
                       </div>
@@ -334,18 +328,18 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={() => openUpgrade()}
-                    className="w-full flex items-center justify-between border border-border/60 hover:border-primary/40 transition-colors px-4 py-3.5 text-left group"
+                    className="glass w-full flex items-center justify-between hover:border-primary/40 transition-colors px-5 py-4 text-left group"
                   >
                     <div>
-                      <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/85 group-hover:text-primary transition-colors">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/85 group-hover:text-[#C7A15A] transition-colors">
                         FRAME+
                       </div>
-                      <div className="font-mono text-[9px] tracking-wide text-muted-foreground/70 mt-1">
+                      <div className="font-mono text-[10px] tracking-wide text-muted-foreground mt-1">
                         Unlimited coaching · full history · full mission ·
                         subscribe in the iOS app
                       </div>
                     </div>
-                    <span className="font-mono text-[11px] text-foreground/40 group-hover:text-primary transition-colors">
+                    <span className="font-mono text-[11px] text-foreground/70 group-hover:text-[#C7A15A] transition-colors">
                       →
                     </span>
                   </button>
@@ -354,23 +348,23 @@ export default function ProfilePage() {
 
               {/* ─── ACCOUNT ───────────────────────────────────────── */}
               <div className="space-y-2.5 pt-6 pb-2">
-                <div className="flex justify-center gap-4 font-mono text-[9px] uppercase tracking-wider">
-                  <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                <div className="flex justify-center gap-4 font-mono text-[11px] uppercase tracking-[0.12em]">
+                  <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-[#C7A15A] hover:underline">
                     Privacy & AI permissions
                   </a>
-                  <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                  <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-[#C7A15A] hover:underline">
                     Terms
                   </a>
                 </div>
                 {email && (
-                  <div className="font-mono text-[10px] text-muted-foreground/60 tracking-wide text-center">
+                  <div className="font-mono text-[10px] text-muted-foreground/90 tracking-wide text-center">
                     {email}
                   </div>
                 )}
                 <button
                   type="button"
                   onClick={() => { signOut(); setLocation(`${basePath}/sign-in`); }}
-                  className="w-full flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 hover:text-primary text-foreground/75 transition-colors py-2.5 font-mono text-[10px] uppercase tracking-[0.3em]"
+                  className="w-full flex items-center justify-center gap-2 hover:text-[#C7A15A] btn-quiet"
                 >
                   <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
                   Sign out

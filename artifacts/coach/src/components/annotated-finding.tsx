@@ -23,7 +23,7 @@ export function AnnotatedFindingFrame({
   return (
     <figure className="space-y-1.5" data-testid="annotated-finding">
       <div
-        className="relative w-full max-w-[520px] border border-border/40 bg-black overflow-hidden"
+        className="relative w-full max-w-[520px] border border-border/40 bg-black overflow-hidden rounded-2xl"
         style={{ aspectRatio: String(v.vbW / 100) }}
       >
         <img src={v.keyframe.imageBase64} alt={v.keyframe.caption} className="absolute inset-0 w-full h-full" />
@@ -80,7 +80,7 @@ export function AnnotatedFindingFrame({
           </text>
         </svg>
       </div>
-      <figcaption className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/70 leading-relaxed">
+      <figcaption className="eyebrow leading-relaxed">
         {v.keyframe.timestamp.toFixed(1)}s · {v.keyframe.caption}
         {v.arrow && v.lookbackSec != null
           ? ` · arrow = measured travel over the previous ${v.lookbackSec.toFixed(1)}s`
@@ -89,7 +89,7 @@ export function AnnotatedFindingFrame({
           <button
             type="button"
             onClick={() => onJump(v.keyframe.timestamp)}
-            className="ml-2 underline underline-offset-2 text-primary/80"
+            className="ml-2 underline underline-offset-2 text-[#C7A15A]"
           >
             jump to moment
           </button>

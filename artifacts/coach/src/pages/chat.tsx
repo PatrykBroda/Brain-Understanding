@@ -45,9 +45,9 @@ function AttachmentThumb({
   // header, so load the bytes through an authed object URL instead.
   const url = useAuthedObjectUrl(attachmentFileUrl(att.id));
   return (
-    <div className="relative inline-block border border-border/60 bg-black overflow-hidden">
+    <div className="relative inline-block border border-white/10 bg-[#0d0b09] overflow-hidden rounded-2xl">
       {!url ? (
-        <div className="flex h-24 w-24 items-center justify-center text-muted-foreground/60 font-mono text-[9px] uppercase tracking-widest">
+        <div className="flex h-24 w-24 items-center justify-center text-muted-foreground/90 font-mono text-[10px] uppercase tracking-[0.14em]">
           Loading
         </div>
       ) : att.kind === "image" ? (
@@ -67,7 +67,7 @@ function AttachmentThumb({
         <button
           type="button"
           onClick={onRemove}
-          className="absolute top-1 right-1 w-6 h-6 bg-background/80 hover:bg-background border border-border/60 flex items-center justify-center text-foreground/85 hover:text-destructive transition-colors"
+          className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-[#0a0908]/80 hover:bg-[#0a0908] border border-white/15 flex items-center justify-center text-foreground/85 hover:text-destructive transition-colors rounded-2xl"
           aria-label="Remove attachment"
         >
           <X className="w-3.5 h-3.5" strokeWidth={2} />
@@ -239,14 +239,11 @@ export default function ChatPage() {
           onDismiss={() => setEntryActive(false)}
         />
       )}
-      <div className="flex flex-col h-[100dvh] bg-background text-foreground font-sans">
-        <header className="flex-none flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-border/60 bg-background/95 backdrop-blur-sm">
-          <Link
-            href="/home"
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
+      <div className="flex flex-col h-[100dvh] text-foreground font-sans">
+        <header className="flex-none flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-white/[0.07] bg-[#0a0908]/60 backdrop-blur-xl">
+          <Link href="/home" className="btn-quiet btn-quiet-sm !px-3">
             <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
-            <span className="font-mono text-[10px] uppercase tracking-widest">Home</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em]">Home</span>
           </Link>
           <div className="flex items-center gap-3">
             <FrameWordmark size={22} />
@@ -256,7 +253,7 @@ export default function ChatPage() {
             variant="ghost"
             size="sm"
             onClick={() => reset()}
-            className="text-muted-foreground hover:text-foreground font-mono text-[10px] uppercase tracking-widest -mr-2"
+            className="text-muted-foreground hover:text-foreground font-mono text-[10px] uppercase tracking-[0.14em] -mr-2"
           >
             <RefreshCcw className="w-3 h-3 mr-1.5" />
             Reset
@@ -270,27 +267,27 @@ export default function ChatPage() {
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
             {isLoading ? (
-              <div className="flex justify-center pt-20 text-muted-foreground font-mono text-xs uppercase tracking-widest">
+              <div className="flex justify-center pt-20 text-muted-foreground font-mono text-xs uppercase tracking-[0.14em]">
                 Loading state…
               </div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[55vh] gap-10 animate-in fade-in duration-700">
                 <div className="text-center space-y-4">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/45">
+                  <div className="eyebrow">
                     Frame open
                   </div>
-                  <p className="font-sans font-extralight text-lg leading-relaxed text-foreground/70 max-w-sm">
+                  <p className="font-display text-[1.6rem] leading-snug text-foreground/90 max-w-sm">
                     Say what happened. Debrief a session, request a drill, regulate, or reflect.
                   </p>
                 </div>
-                <div className="w-full max-w-xl grid grid-cols-1 sm:grid-cols-2 gap-px bg-white/[0.06] border border-white/[0.06]">
+                <div className="w-full max-w-xl grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {SUGGESTED_PROMPTS.map((prompt) => (
                     <button
                       key={prompt}
                       onClick={() => void requestSend(prompt)}
-                      className="group text-left p-4 bg-background hover:bg-white/[0.02] transition-colors font-mono text-[11px] tracking-wide text-foreground/55 hover:text-foreground"
+                      className="glass group text-left p-4 min-h-[56px] hover:border-primary/40 transition-colors text-[0.85rem] leading-snug text-foreground/85 hover:text-foreground"
                     >
-                      <span className="text-primary/50 group-hover:text-primary mr-2 transition-colors">—</span>
+                      <span className="text-[#C7A15A] group-hover:text-[#C7A15A] mr-2 transition-colors">—</span>
                       {prompt}
                     </button>
                   ))}
@@ -304,8 +301,8 @@ export default function ChatPage() {
                     className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
                   >
                     <div
-                      className={`text-[10px] font-mono uppercase tracking-[0.4em] mb-2.5 px-1 ${
-                        msg.role === "user" ? "text-foreground/40" : "text-primary/70"
+                      className={`text-[10px] font-mono uppercase tracking-[0.16em] mb-2.5 px-1 ${
+                        msg.role === "user" ? "text-foreground/70" : "text-[#C7A15A]"
                       }`}
                     >
                       {msg.role === "user" ? (fighter?.name ?? "Operator") : "FRAME"}
@@ -329,7 +326,7 @@ export default function ChatPage() {
                           <FrameOctagon size={30} spin spinSeconds={4} glow={false} color="#EDEDED" />
                         </div>
                       ) : msg.role === "user" && msg.content ? (
-                        <div className="text-foreground/90 px-4 py-3 border-l-2 border-primary/30 bg-white/[0.015] whitespace-pre-wrap text-[0.95rem] leading-relaxed">
+                        <div className="glass glass-gold !rounded-[1.5rem] !rounded-br-md text-foreground px-4 py-3 whitespace-pre-wrap text-[0.95rem] leading-relaxed">
                           {msg.content}
                         </div>
                       ) : msg.content ? (
@@ -344,7 +341,7 @@ export default function ChatPage() {
                   </div>
                 ))}
                 {error && (
-                  <div className="p-4 border border-destructive/40 bg-destructive/10 text-destructive/90 font-mono text-xs flex flex-col items-center gap-3 text-center">
+                  <div className="p-4 glass glass-red !rounded-2xl text-destructive/90 font-mono text-xs flex flex-col items-center gap-3 text-center">
                     <span>{error}</span>
                     <button
                       type="button"
@@ -369,7 +366,7 @@ export default function ChatPage() {
                           });
                       }}
                       disabled={isStreaming}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-destructive/50 text-destructive/90 hover:bg-destructive/15 uppercase tracking-widest disabled:opacity-40 transition-colors"
+                      className="btn-quiet btn-quiet-red btn-quiet-sm disabled:opacity-40"
                     >
                       <RefreshCcw className="w-3 h-3" />
                       Retry
@@ -382,7 +379,7 @@ export default function ChatPage() {
           </div>
         </main>
 
-        <footer className="flex-none p-3 bg-background border-t border-border/40">
+        <footer className="flex-none p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-[#0a0908]/60 backdrop-blur-xl border-t border-white/[0.07]">
           <div className="max-w-3xl mx-auto space-y-3">
             {messages.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
@@ -395,7 +392,7 @@ export default function ChatPage() {
                       // label to near-invisible, so the chips looked empty.
                       if (!isStreaming) void requestSend(qa.prompt);
                     }}
-                    className="flex-none font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                    className="flex-none hover:text-foreground btn-quiet btn-quiet-sm"
                   >
                     {qa.label}
                   </button>
@@ -412,7 +409,7 @@ export default function ChatPage() {
             )}
 
             {uploadError && (
-              <div className="font-mono text-[10px] uppercase tracking-widest text-destructive px-1">
+              <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive px-1">
                 {uploadError}
               </div>
             )}
@@ -430,7 +427,7 @@ export default function ChatPage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading || isStreaming || !conversationId}
-                className="flex-none h-[52px] w-11 flex items-center justify-center border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-40"
+                className="icon-round flex-none !h-[52px] !w-[52px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
                 aria-label="Attach image or video"
               >
                 {uploading ? (
@@ -445,7 +442,7 @@ export default function ChatPage() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={listening ? "Listening..." : "Enter transmission..."}
-                  className={`w-full bg-transparent border border-border/60 text-foreground placeholder:text-muted-foreground/70 placeholder:font-mono focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 resize-none min-h-[52px] max-h-[200px] py-3.5 pl-4 text-sm ${
+                  className={`field-glass !rounded-[1.5rem] resize-none !min-h-[52px] max-h-[200px] !py-3.5 !pl-5 text-sm placeholder:text-muted-foreground ${
                     voiceSupported ? "pr-[5.25rem]" : "pr-12"
                   }`}
                   rows={1}
@@ -485,7 +482,7 @@ export default function ChatPage() {
                       size="icon"
                       variant="ghost"
                       disabled={!canSend}
-                      className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10"
+                      className="h-9 w-9 text-[#C7A15A] hover:text-[#C7A15A] hover:bg-primary/10"
                     >
                       <Send className="w-4 h-4" />
                     </Button>
@@ -500,7 +497,7 @@ export default function ChatPage() {
                   <button
                     key={qa.label}
                     onClick={() => void requestSend(qa.prompt)}
-                    className="font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                    className="hover:text-foreground btn-quiet btn-quiet-sm"
                   >
                     {qa.label}
                   </button>

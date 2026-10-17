@@ -206,9 +206,9 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
             y={lp.y.toFixed(1)}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize="7"
+            fontSize="8.5"
             fontFamily="monospace"
-            fill="hsla(0,0%,100%,0.45)"
+            fill="hsla(0,0%,100%,0.7)"
             style={{ textTransform: "uppercase", letterSpacing: 1 }}
           >
             {d.label}
@@ -228,7 +228,7 @@ function ConfidenceBar({ pct, segments = 20 }: { pct: number; segments?: number 
       {Array.from({ length: segments }).map((_, i) => (
         <div
           key={i}
-          className="h-[3px] flex-1 transition-colors duration-700"
+          className="h-[4px] flex-1 rounded-full transition-colors duration-700"
           style={{
             background:
               i < filled
@@ -255,10 +255,10 @@ function SectionHead({
   return (
     <div className="flex items-end justify-between gap-4">
       <div>
-        <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 mb-2">
+        <div className="eyebrow mb-2">
           {overline}
         </div>
-        <div className="font-sans font-extralight uppercase text-[0.95rem] tracking-[0.32em] text-foreground/90 leading-none">
+        <div className="font-sans font-extralight uppercase text-[0.95rem] tracking-[0.16em] text-foreground/90 leading-none">
           {title}
         </div>
       </div>
@@ -297,15 +297,7 @@ function Panel({
   className?: string;
 }) {
   return (
-    <div
-      className={`relative overflow-hidden border ${accent ? "border-primary/25" : "border-white/[0.06]"} ${className}`}
-      style={{
-        background: accent
-          ? "linear-gradient(180deg, hsla(39,49%,36%,0.055), transparent 62%)"
-          : "linear-gradient(180deg, hsla(0,0%,100%,0.018), transparent 58%)",
-        boxShadow: "inset 0 1px 0 hsla(0,0%,100%,0.04)",
-      }}
-    >
+    <div className={`glass ${accent ? "glass-gold" : ""} overflow-hidden ${className}`}>
       {children}
     </div>
   );
@@ -338,10 +330,10 @@ function LockedSection({
         style={{ borderTop: "1px solid hsla(0,0%,100%,0.05)" }}
       >
         <span className="flex items-start gap-2.5 min-w-0">
-          <Lock className="h-3.5 w-3.5 flex-none mt-0.5 text-foreground/40" strokeWidth={1.5} />
-          <span className="text-[0.8rem] text-foreground/55 leading-relaxed">{note}</span>
+          <Lock className="h-3.5 w-3.5 flex-none mt-0.5 text-foreground/70" strokeWidth={1.5} />
+          <span className="text-[0.8rem] text-foreground/70 leading-relaxed">{note}</span>
         </span>
-        <span className="flex-none font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 group-hover:text-primary transition-colors">
+        <span className="flex-none font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A] group-hover:text-[#C7A15A] transition-colors">
           FRAME+
         </span>
       </button>
@@ -362,7 +354,7 @@ function FactConfidence({ value }: { value: number }) {
           />
         ))}
       </div>
-      <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/40 tabular-nums">
+      <span className="eyebrow tabular-nums">
         {v}/5
       </span>
     </div>
@@ -380,7 +372,7 @@ function IdentityRow({
 }) {
   return (
     <div className="px-4 py-3 flex items-start justify-between gap-4">
-      <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 pt-0.5 flex-none w-28">
+      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground/90 pt-0.5 flex-none w-28">
         {label}
       </div>
       <div className="min-w-0 text-right">
@@ -388,7 +380,7 @@ function IdentityRow({
           {value}
         </div>
         {sub && (
-          <div className="font-mono text-[9px] tracking-wide text-muted-foreground/45 mt-0.5 normal-case">
+          <div className="font-mono text-[10px] tracking-wide text-muted-foreground/90 mt-0.5 normal-case">
             {sub}
           </div>
         )}
@@ -558,10 +550,10 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
       <NodeDivider />
 
       <div>
-        <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 mb-2">
+        <div className="eyebrow mb-2">
           Athlete model
         </div>
-        <div className="font-sans font-extralight uppercase text-xl tracking-[0.3em] text-foreground/90 leading-none">
+        <div className="font-sans font-extralight uppercase text-xl tracking-[0.16em] text-foreground/90 leading-none">
           What FRAME knows
         </div>
       </div>
@@ -574,7 +566,7 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
             title="Understanding your game"
             aside={
               memoryQuery.isFetching ? (
-                <span className="font-mono text-[9px] uppercase tracking-[0.4em] text-primary/60">
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A]">
                   Syncing
                 </span>
               ) : null
@@ -584,9 +576,9 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
           <div className="flex items-baseline gap-4 mt-6 mb-2">
             <div className="font-sans font-extralight text-[3.25rem] text-foreground/95 tabular-nums leading-[0.85]">
               {computed.frameConfidence}
-              <span className="text-2xl text-primary/70">%</span>
+              <span className="text-2xl text-[#C7A15A]">%</span>
             </div>
-            <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-foreground/50 leading-relaxed pb-1">
+            <div className="eyebrow leading-relaxed pb-1">
               Model
               <br />
               confidence
@@ -594,7 +586,7 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
           </div>
 
           {computed.lastUpdated && (
-            <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/40 mb-4">
+            <div className="font-mono text-[10px] tracking-[0.15em] text-foreground/70 mb-4">
               Updated {formatHeartbeat(computed.lastUpdated)}
             </div>
           )}
@@ -603,10 +595,10 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
             className="flex items-baseline justify-between gap-3 mb-4"
             title={`${computed.maturity.stage.meaning} Derived from ${computed.maturity.factCount} observations across ${computed.maturity.distinctCategories} categories — ${computed.maturity.corroborated} corroborated, ${computed.maturity.crossSource} cross-source.`}
           >
-            <span className="font-mono text-[9px] uppercase tracking-[0.45em] text-foreground/50">
+            <span className="eyebrow">
               Stage
             </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/85">
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A]">
               {computed.maturity.stage.label}
             </span>
           </div>
@@ -622,17 +614,17 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
               }}
             >
               <div className="flex items-baseline justify-between">
-                <span className="font-mono text-[9px] uppercase tracking-[0.45em] text-primary/75">
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A]">
                   Model updated
                 </span>
-                <span className="font-sans font-extralight text-base tabular-nums text-primary">
+                <span className="font-sans font-extralight text-base tabular-nums text-[#C7A15A]">
                   +{changeInfo.delta}%
                 </span>
               </div>
             </div>
           )}
 
-          <p className="text-[0.8rem] text-foreground/50 leading-relaxed mt-4">
+          <p className="text-[0.8rem] text-foreground/70 leading-relaxed mt-4">
             {computed.frameConfidence < 10
               ? "FRAME is still learning how you move under pressure. This percentage is how complete its model of you is."
               : computed.frameConfidence < 25
@@ -648,14 +640,14 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
             className="px-5 pt-4 pb-5"
             style={{ borderTop: "1px solid hsla(0,0%,100%,0.05)" }}
           >
-            <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/40 mb-3">
+            <div className="eyebrow mb-3">
               Lowest confidence
             </div>
             <ul className="space-y-2">
               {computed.lowestCategories.map((c) => (
                 <li key={c} className="flex items-center gap-2.5">
                   <span className="w-1 h-1 rounded-full bg-primary/40 flex-none" />
-                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/65">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/65">
                     {CATEGORY_LABELS[c]}
                   </span>
                 </li>
@@ -669,10 +661,10 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
           className="flex items-center justify-between px-5 py-3.5 hover:bg-white/[0.02] transition-colors group"
           style={{ borderTop: "1px solid hsla(0,0%,100%,0.06)" }}
         >
-          <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary/70 group-hover:text-primary transition-colors">
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A] group-hover:text-[#C7A15A] transition-colors">
             Continue Calibration
           </span>
-          <span className="font-mono text-[11px] text-foreground/40 group-hover:text-primary transition-colors">
+          <span className="font-mono text-[11px] text-foreground/70 group-hover:text-[#C7A15A] transition-colors">
             →
           </span>
         </Link>
@@ -696,7 +688,7 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
           </div>
           <div className="px-4 pt-3 pb-5">
             <RadarChart dims={computed.radarData} />
-            <p className="text-[0.75rem] text-foreground/40 leading-relaxed text-center mt-2">
+            <p className="text-[0.75rem] text-foreground/70 leading-relaxed text-center mt-2">
               Confidence bands — how well FRAME understands each dimension.
               Not scored 1–100.
             </p>
@@ -760,31 +752,31 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
       <Panel>
         <div className="grid grid-cols-3 divide-x divide-white/[0.06]">
           <div className="px-3 py-2.5 text-center">
-            <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/80 mb-1">
+            <div className="eyebrow mb-1">
               Integrity
             </div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/95 leading-tight">
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/95 leading-tight">
               {computed.integrityLabel}
             </div>
           </div>
           <div className="px-3 py-2.5 text-center">
-            <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/80 mb-1">
+            <div className="eyebrow mb-1">
               Cadence
             </div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/95 leading-tight">
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/95 leading-tight">
               {fighter.trainingFrequency}
             </div>
           </div>
           <div className="px-3 py-2.5 text-center">
-            <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/80 mb-1">
+            <div className="eyebrow mb-1">
               Days in frame
             </div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/95 leading-tight">
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/95 leading-tight">
               {computed.sinceDays}
             </div>
           </div>
         </div>
-        <div className="px-4 py-4 border-t border-white/[0.06]">
+        <div className="px-4 py-4 border-t border-white/[0.10]">
           <div className="flex gap-1">
             {[0, 1, 2, 3, 4].map((i) => (
               <div
@@ -795,7 +787,7 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
               />
             ))}
           </div>
-          <div className="text-[10px] text-muted-foreground/80 leading-relaxed mt-2">
+          <div className="text-[10px] text-muted-foreground leading-relaxed mt-2">
             Frame integrity — how much of your structure survives when pressure spikes.
             Composure under fragmentation, not a fitness score.
           </div>
@@ -806,16 +798,16 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
       <section className="model-reveal">
         <div className="flex items-end justify-between gap-4 mb-6 pt-2">
           <div>
-            <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 mb-2">
+            <div className="eyebrow mb-2">
               Full model
             </div>
-            <div className="font-sans font-extralight uppercase text-xl tracking-[0.3em] text-foreground/90 leading-none">
+            <div className="font-sans font-extralight uppercase text-xl tracking-[0.16em] text-foreground/90 leading-none">
               {facts.length} observation{facts.length === 1 ? "" : "s"}
             </div>
           </div>
           <Link
             href="/history"
-            className="flex-none font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/45 hover:text-primary transition-colors"
+            className="flex-none font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/70 hover:text-[#C7A15A] transition-colors"
           >
             View history →
           </Link>
@@ -829,21 +821,21 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
               className="w-full flex items-center justify-between gap-4 px-5 py-5 text-left hover:bg-white/[0.02] transition-colors group"
             >
               <span className="flex items-start gap-2.5 min-w-0">
-                <Lock className="h-3.5 w-3.5 flex-none mt-0.5 text-foreground/40" strokeWidth={1.5} />
-                <span className="text-[0.85rem] text-foreground/55 leading-relaxed">
+                <Lock className="h-3.5 w-3.5 flex-none mt-0.5 text-foreground/70" strokeWidth={1.5} />
+                <span className="text-[0.85rem] text-foreground/70 leading-relaxed">
                   {facts.length === 0
                     ? "FRAME records durable observations as you train and talk. The full model is a FRAME+ feature."
                     : `FRAME holds ${facts.length} recorded observation${facts.length === 1 ? "" : "s"} on you. The full breakdown is a FRAME+ feature.`}
                 </span>
               </span>
-              <span className="flex-none font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 group-hover:text-primary transition-colors">
+              <span className="flex-none font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A] group-hover:text-[#C7A15A] transition-colors">
                 FRAME+
               </span>
             </button>
           </Panel>
         ) : facts.length === 0 ? (
           <Panel className="px-5 py-6">
-            <p className="text-[0.95rem] text-foreground/55 leading-relaxed">
+            <p className="text-[0.95rem] text-foreground/70 leading-relaxed">
               The model sharpens with use. As you talk to the coach, FRAME records durable
               observations and feeds them back into how you're coached.
             </p>
@@ -853,14 +845,14 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
             {CATEGORY_ORDER.filter((c) => (grouped[c]?.length ?? 0) > 0).map((c) => (
               <div key={c}>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="flex-none font-sans font-extralight uppercase text-[0.9rem] tracking-[0.3em] text-primary/90 leading-none">
+                  <div className="flex-none font-sans font-extralight uppercase text-[0.9rem] tracking-[0.16em] text-[#C7A15A] leading-none">
                     {CATEGORY_LABELS[c]}
                   </div>
                   <div
                     className="flex-1 h-px"
                     style={{ background: "linear-gradient(to right, hsla(39,49%,36%,0.22), transparent)" }}
                   />
-                  <div className="flex-none font-mono text-[9px] tabular-nums text-foreground/40">
+                  <div className="flex-none font-mono text-[10px] tabular-nums text-foreground/70">
                     {grouped[c]!.length}
                   </div>
                 </div>
@@ -872,7 +864,7 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
                       style={{ borderLeft: "1px solid hsla(39,49%,36%,0.25)" }}
                     >
                       <div
-                        className="min-w-0 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/75 truncate"
+                        className="min-w-0 font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/75 truncate"
                         title={f.topic || undefined}
                       >
                         {f.topic || f.content}
@@ -880,7 +872,7 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
                       <div className="flex items-baseline gap-2.5 flex-none">
                         {(f.evidenceCount ?? 1) > 1 && (
                           <span
-                            className="font-mono text-[9px] tabular-nums text-primary/70"
+                            className="font-mono text-[10px] tabular-nums text-[#C7A15A]"
                             title={`Seen ${f.evidenceCount} times across chat, footage and calibration`}
                           >
                             ×{f.evidenceCount}

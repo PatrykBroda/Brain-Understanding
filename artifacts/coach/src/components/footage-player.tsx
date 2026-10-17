@@ -54,14 +54,14 @@ export function useDecodedOpponent(wire: PoseTrackWire | null | undefined): Deco
 export function PeopleLegend() {
   return (
     <span
-      className="inline-flex items-center gap-3 font-mono text-[8px] uppercase tracking-widest text-muted-foreground/85"
+      className="inline-flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
       data-testid="people-legend"
     >
       <span className="inline-flex items-center gap-1.5">
         <i className="inline-block w-3.5 h-[3px]" style={{ background: YOU_HEX }} />
         You (blue)
       </span>
-      <span className="text-muted-foreground/40">·</span>
+      <span className="text-muted-foreground/90">·</span>
       <span className="inline-flex items-center gap-1.5">
         <i className="inline-block w-3.5 h-[3px]" style={{ background: OPPONENT_HEX }} />
         Opponent (red)
@@ -252,9 +252,7 @@ export function SkeletonToggle({ on, onChange }: { on: boolean; onChange: (v: bo
       type="button"
       onClick={() => onChange(!on)}
       aria-pressed={on}
-      className={`inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.25em] border px-2.5 py-1.5 transition-colors ${
-        on ? "border-primary/60 text-primary/90" : "border-border/50 text-muted-foreground/70"
-      }`}
+      className={`btn-quiet btn-quiet-sm ${on ? "btn-quiet-gold" : ""}`}
     >
       <ScanLine className="w-3 h-3" strokeWidth={1.5} />
       Skeleton {on ? "on" : "off"}
@@ -383,9 +381,9 @@ export function GhostPlayer({
 
   return (
     <div className="w-full space-y-2" data-testid="ghost-player">
-      <div className="relative w-full border border-border/40 bg-black" style={{ aspectRatio: String(aspect) }}>
+      <div className="relative w-full border border-white/10 bg-[#0d0b09] rounded-3xl overflow-hidden" style={{ aspectRatio: String(aspect) }}>
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" data-testid="ghost-canvas" />
-        <div className="absolute left-2 top-2 font-mono text-[8px] uppercase tracking-[0.3em] text-muted-foreground/70">
+        <div className="absolute left-2 top-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
           Movement replay · footage not stored
         </div>
         {opponent && (
@@ -399,7 +397,7 @@ export function GhostPlayer({
           type="button"
           onClick={() => (playing ? stopRef.current() : startRef.current())}
           aria-label={playing ? "Pause replay" : "Play replay"}
-          className="flex-none w-9 h-9 flex items-center justify-center border border-primary/50 text-primary/90 hover:border-primary transition-colors"
+          className="icon-round icon-round-solid flex-none transition-colors"
         >
           {playing ? <Pause className="w-4 h-4" strokeWidth={1.5} /> : <Play className="w-4 h-4" strokeWidth={1.5} />}
         </button>
@@ -417,7 +415,7 @@ export function GhostPlayer({
           aria-label="Scrub movement replay"
           className="flex-1 min-w-0 accent-[#d6a05a] h-6"
         />
-        <span ref={timeRef} className="flex-none font-mono text-[9px] text-muted-foreground/80 tabular-nums flex-none text-right whitespace-nowrap">
+        <span ref={timeRef} className="flex-none font-mono text-[10px] text-muted-foreground tabular-nums flex-none text-right whitespace-nowrap">
           {fmtTime(0)} / {fmtTime(endSec)}
         </span>
       </div>
@@ -486,7 +484,7 @@ export function FootageTimeline({
         aria-valuemin={0}
         aria-valuemax={Math.round(dur)}
         tabIndex={0}
-        className="relative h-11 bg-black/50 border border-border/40 select-none cursor-pointer"
+        className="relative h-11 bg-white/[0.035] border border-white/10 select-none cursor-pointer rounded-full overflow-hidden"
         style={{ touchAction: "pan-y" }}
         onPointerDown={(e) => {
           (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -530,11 +528,11 @@ export function FootageTimeline({
         ))}
         <div
           ref={headRef}
-          className="absolute top-0 bottom-0 w-px bg-white pointer-events-none"
-          style={{ left: 0, boxShadow: "0 0 4px rgba(255,255,255,0.7)" }}
+          className="absolute top-0 bottom-0 w-px bg-[#E6D2A3] pointer-events-none"
+          style={{ left: 0, boxShadow: "0 0 6px rgba(230,210,163,0.8)" }}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[8px] uppercase tracking-widest text-muted-foreground/70">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <i className="inline-block w-[3px] h-2.5" style={{ background: SEVERITY_COLOR.high }} /> high
         </span>
@@ -549,7 +547,7 @@ export function FootageTimeline({
             <i className="inline-block w-2 h-2 rotate-45" style={{ background: ROLE_COLOR.best_decision }} /> replay moment
           </span>
         )}
-        <span className="text-muted-foreground/45">· tap to jump</span>
+        <span className="text-muted-foreground/90">· tap to jump</span>
       </div>
     </div>
   );
@@ -611,7 +609,7 @@ export function FootageBlock({
       ) : null}
       {videoUrl && !track && trackNote && (
         <p
-          className="font-mono text-[9px] leading-relaxed tracking-wide text-amber-300/90 border border-amber-300/30 bg-amber-300/5 px-3 py-2"
+          className="font-mono text-[10px] leading-relaxed tracking-wide text-[#C7A15A] glass glass-gold !rounded-2xl px-4 py-3"
           data-testid="track-note"
         >
           {trackNote}
@@ -623,7 +621,7 @@ export function FootageBlock({
           {opponent ? (
             <PeopleLegend />
           ) : (
-            <span className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/55 text-right">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90 text-right">
               measured pose · drawn live
             </span>
           )}

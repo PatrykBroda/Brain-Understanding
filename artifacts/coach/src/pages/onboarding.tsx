@@ -12,9 +12,9 @@ import {
   ageFromDob,
 } from "@/lib/fighter-options";
 
-const FIELD_LABEL = "block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2";
+const FIELD_LABEL = "eyebrow block mb-2";
 const INPUT_CLASS =
-  "w-full bg-transparent border border-border/70 text-foreground text-sm px-3 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 placeholder:text-muted-foreground/60 hover:border-border/90 transition-colors duration-150";
+  "field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground";
 
 // Behavioral calibration. Each answer carries a short "read" sentence that gets
 // composed into the personality signal the system uses to assign an archetype.
@@ -128,13 +128,13 @@ export default function OnboardingPage() {
 
   // Shared shell
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground flex justify-center px-4 py-12 md:py-16">
+    <div className="min-h-[100dvh] text-foreground flex justify-center px-4 py-12 md:py-16">
       <div className="w-full max-w-xl">
         {/* Wordmark + progress */}
         <div className="mb-10 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-primary" />
-            <h1 className="font-mono font-bold text-sm tracking-[0.3em] uppercase text-foreground/90">
+            <div className="w-2 h-2 rounded-full bg-[#C7A15A] shadow-[0_0_12px_rgba(199,161,90,0.7)]" />
+            <h1 className="display-heading !text-[1.6rem]">
               FRAME
             </h1>
           </div>
@@ -142,7 +142,7 @@ export default function OnboardingPage() {
             {Array.from({ length: totalSteps }).map((_, i) => (
               <span
                 key={i}
-                className="h-0.5 flex-1 transition-colors duration-500"
+                className="h-0.5 flex-1 rounded-full transition-colors duration-500"
                 style={{ background: i <= step ? "hsl(var(--primary))" : "hsl(var(--border))" }}
               />
             ))}
@@ -156,10 +156,10 @@ export default function OnboardingPage() {
           return (
             <div className="space-y-7">
               <div className="space-y-2">
-                <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/80">
+                <div className="eyebrow eyebrow-gold">
                   Calibration {step + 1} / {QUESTIONS.length}
                 </div>
-                <h2 className="text-xl md:text-2xl text-foreground font-light leading-snug">
+                <h2 className="display-heading !text-[1.9rem] leading-snug">
                   {q.prompt}
                 </h2>
               </div>
@@ -171,7 +171,7 @@ export default function OnboardingPage() {
                       key={idx}
                       type="button"
                       onClick={() => answerQuestion(q, idx)}
-                      className={`w-full text-left px-4 py-3.5 border text-sm transition-colors ${
+                      className={`w-full text-left px-4 py-3.5 min-h-[48px] rounded-2xl border bg-white/[0.04] text-sm transition-colors ${
                         isSel
                           ? "border-primary text-foreground"
                           : "border-border/70 text-foreground/85 hover:border-primary/50"
@@ -189,7 +189,7 @@ export default function OnboardingPage() {
                 <button
                   type="button"
                   onClick={() => setStep((s) => Math.max(0, s - 1))}
-                  className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+                  className="eyebrow hover:text-foreground transition-colors"
                 >
                   ← Back
                 </button>
@@ -202,7 +202,7 @@ export default function OnboardingPage() {
         {step === detailsStep && (
           <form onSubmit={submit} className="space-y-6">
             <div className="space-y-2 mb-2">
-              <h2 className="text-xl md:text-2xl text-foreground font-light leading-snug">
+              <h2 className="display-heading !text-[1.9rem] leading-snug">
                 Tell FRAME about your training.
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -307,7 +307,7 @@ export default function OnboardingPage() {
                       type="button"
                       onClick={() => toggleBackground(label)}
                       aria-pressed={on}
-                      className={`px-3 py-2 border text-xs transition-colors ${
+                      className={`px-4 min-h-[44px] rounded-full border bg-white/[0.04] text-xs transition-colors ${
                         on
                           ? "border-primary text-foreground"
                           : "border-border/70 text-foreground/70 hover:border-primary/50"
@@ -380,14 +380,14 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
-                className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+                className="eyebrow hover:text-foreground transition-colors"
               >
                 ← Back
               </button>
               <Button
                 type="submit"
                 disabled={save.isPending || !form.name.trim()}
-                className="flex-1 h-12 font-mono text-xs uppercase tracking-[0.25em] bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                className="btn-bronze flex-1"
               >
                 {save.isPending ? "Reading you..." : "Enter the frame"}
               </Button>

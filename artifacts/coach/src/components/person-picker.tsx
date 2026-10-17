@@ -64,16 +64,16 @@ export function PersonPicker({
   const title = scout ? "Who are you scouting?" : "Which one is you?";
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4 px-4 py-6 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-[#050505]/80 backdrop-blur-xl flex flex-col items-center justify-center gap-4 px-4 py-6 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-label={title}
       data-testid="person-picker"
     >
       <div className="text-center space-y-1.5 max-w-sm">
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground">Two people in this clip</div>
-        <div className="font-mono text-lg uppercase tracking-[0.25em] text-foreground">{title}</div>
-        <p className="font-mono text-[10px] tracking-wide text-muted-foreground/80 leading-relaxed">
+        <div className="eyebrow">Two people in this clip</div>
+        <h2 className="display-heading">{title}</h2>
+        <p className="text-[13px] text-muted-foreground leading-relaxed">
           {scout
             ? "Tap the fighter to scout, or use the buttons. Only their movement is read; the other person is ignored."
             : "Tap yourself, or use the buttons. Your read is scored on you only; the other fighter is tracked as your opponent."}
@@ -81,7 +81,7 @@ export function PersonPicker({
       </div>
 
       <div
-        className="relative border border-border/40 bg-black"
+        className="relative border border-white/10 bg-[#0d0b09] rounded-3xl overflow-hidden shadow-[0_24px_60px_-20px_rgba(0,0,0,0.9)]"
         style={{ aspectRatio: String(data.aspect), width: `min(100%, calc(52vh * ${data.aspect}))`, maxWidth: 520 }}
         data-testid="person-picker-frame"
       >
@@ -120,7 +120,7 @@ export function PersonPicker({
               }}
             >
               <span
-                className="absolute left-0 bottom-full whitespace-nowrap px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-black"
+                className="absolute left-0 bottom-full whitespace-nowrap rounded-full px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-black"
                 style={{ background: COLORS[i] }}
               >
                 {NAMES[i]}
@@ -138,7 +138,7 @@ export function PersonPicker({
             type="button"
             onClick={() => onPick(i)}
             data-testid={`pick-button-${NAMES[i]!.toLowerCase()}`}
-            className="flex-1 py-3 font-mono text-[11px] uppercase tracking-[0.25em] border text-foreground active:scale-[0.98] transition-transform"
+            className="flex-1 min-h-[52px] rounded-full text-[0.75rem] font-medium uppercase tracking-[0.14em] border text-foreground active:scale-[0.98] transition-transform"
             style={{ borderColor: COLORS[i], background: `${COLORS[i]}22` }}
           >
             {scout ? `Scout ${NAMES[i]}` : `${NAMES[i]} is me`}
@@ -148,7 +148,7 @@ export function PersonPicker({
       <button
         type="button"
         onClick={onCancel}
-        className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/70 hover:text-foreground"
+        className="eyebrow min-h-[44px] px-4 hover:text-foreground"
       >
         Cancel
       </button>

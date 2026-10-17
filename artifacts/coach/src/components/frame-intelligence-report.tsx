@@ -3,13 +3,13 @@ import type { Fighter, WeeklyReport, WeeklyReportLearnedItem } from "@/lib/api";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-// Matte-black + gold editorial language, shared with the session FRAME REPORT.
-const GOLD = "#d6a05a";
-const GOLD_SOFT = "#c9a24b";
+// Smoked-bronze glass + serif editorial language, shared with the session FRAME REPORT.
+const GOLD = "#C7A15A";
+const GOLD_SOFT = "#E6D2A3";
 const INK = "#ece7df";
-const MUTE = "#8c857a";
-const FAINT = "#6f685e";
-const HAIR = "rgba(255,255,255,0.07)";
+const MUTE = "#a8a49d";
+const FAINT = "#8f8b84";
+const HAIR = "rgba(255,244,224,0.09)";
 
 const SOURCE_LABEL: Record<string, string> = {
   chat: "conversation",
@@ -24,7 +24,7 @@ function sourceLabel(t: string): string {
 
 function TinyLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 8, letterSpacing: "0.3em", textTransform: "uppercase", color: MUTE }}>
+    <div style={{ fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: MUTE }}>
       {children}
     </div>
   );
@@ -36,12 +36,13 @@ function LearnedRow({ item, tag, tagColor }: { item: WeeklyReportLearnedItem; ta
       <span
         style={{
           flex: "none",
-          fontSize: 7,
-          letterSpacing: "0.18em",
+          fontSize: 10,
+          letterSpacing: "0.14em",
           textTransform: "uppercase",
           color: tagColor,
           border: `1px solid ${tagColor}44`,
-          padding: "2px 5px",
+          padding: "2px 8px",
+          borderRadius: 999,
           marginTop: 1,
         }}
       >
@@ -50,7 +51,7 @@ function LearnedRow({ item, tag, tagColor }: { item: WeeklyReportLearnedItem; ta
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 11, lineHeight: 1.35, color: INK }}>{item.topic}</div>
         {item.domainLabel && (
-          <div style={{ fontSize: 8, letterSpacing: "0.14em", textTransform: "uppercase", color: FAINT, marginTop: 2 }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: FAINT, marginTop: 2 }}>
             {item.domainLabel}
             {item.evidenceCount > 1 ? ` · seen ×${item.evidenceCount}` : ""}
           </div>
@@ -82,11 +83,13 @@ export const FrameIntelligenceReport = forwardRef<
       ref={ref}
       style={{
         width: 380,
-        background: "radial-gradient(120% 80% at 50% 0%, #161311 0%, #0a0908 60%, #060504 100%)",
+        background:
+          "radial-gradient(90% 55% at 85% 0%, rgba(138,106,47,0.38), transparent 70%), radial-gradient(80% 50% at 0% 100%, rgba(191,29,29,0.16), transparent 70%), linear-gradient(160deg, #15120f 0%, #0a0908 70%)",
+        borderRadius: 28,
         color: INK,
-        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        fontFamily: "'Outfit Variable','Outfit',system-ui,sans-serif",
         padding: "26px 24px 20px",
-        border: "1px solid rgba(255,255,255,0.08)",
+        border: "1px solid rgba(255,244,224,0.13)",
         position: "relative",
         overflow: "hidden",
         boxSizing: "border-box",
@@ -127,12 +130,12 @@ export const FrameIntelligenceReport = forwardRef<
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <TinyLabel>FRAME Intelligence</TinyLabel>
-          <div style={{ fontSize: 15, letterSpacing: "0.18em", textTransform: "uppercase", marginTop: 4, color: "#f3efe7" }}>
+          <div style={{ fontFamily: "'Instrument Serif','Times New Roman',serif", fontStyle: "italic", fontSize: 30, lineHeight: 1.05, marginTop: 4, color: "#f1ede6" }}>
             {fighter?.name ?? "Athlete"}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 8, letterSpacing: "0.3em", textTransform: "uppercase", color: MUTE }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: MUTE }}>
             Week
           </div>
           <div style={{ fontSize: 10, letterSpacing: "0.12em", color: "#b8b0a4", marginTop: 3 }}>
@@ -148,7 +151,7 @@ export const FrameIntelligenceReport = forwardRef<
           <span style={{ fontSize: 22, color: GOLD_SOFT }}>%</span>
         </div>
         <div style={{ marginLeft: "auto", textAlign: "right" }}>
-          <div style={{ fontSize: 8, letterSpacing: "0.3em", textTransform: "uppercase", color: MUTE }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: MUTE }}>
             Model confidence
           </div>
           <div style={{ fontSize: 11, letterSpacing: "0.08em", color: GOLD, marginTop: 3 }}>
@@ -170,7 +173,7 @@ export const FrameIntelligenceReport = forwardRef<
         <>
           {/* This week FRAME learned */}
           <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: GOLD_SOFT }}>
+            <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: GOLD_SOFT }}>
               This week FRAME learned
             </div>
             {report.learned.confirmed.length === 0 &&
@@ -182,7 +185,7 @@ export const FrameIntelligenceReport = forwardRef<
             ) : (
               <div style={{ marginTop: 4 }}>
                 {report.learned.confirmed.map((it) => (
-                  <LearnedRow key={`c-${it.id}`} item={it} tag="Confirmed" tagColor="#6ee7b7" />
+                  <LearnedRow key={`c-${it.id}`} item={it} tag="Confirmed" tagColor="#E6D2A3" />
                 ))}
                 {report.learned.observed.map((it) => (
                   <LearnedRow key={`o-${it.id}`} item={it} tag="Observed" tagColor={GOLD} />
@@ -212,7 +215,7 @@ export const FrameIntelligenceReport = forwardRef<
                 }}
               >
                 <div style={{ fontSize: 22, fontWeight: 600, color: INK, lineHeight: 1 }}>{s.n}</div>
-                <div style={{ fontSize: 7, letterSpacing: "0.2em", textTransform: "uppercase", color: MUTE, marginTop: 6 }}>
+                <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTE, marginTop: 6 }}>
                   {s.l}
                 </div>
               </div>
@@ -226,7 +229,7 @@ export const FrameIntelligenceReport = forwardRef<
               <div style={{ fontSize: 12, letterSpacing: "0.04em", color: INK, marginTop: 5 }}>
                 {report.mostReinforced.topic}
               </div>
-              <div style={{ fontSize: 9, color: FAINT, marginTop: 3, letterSpacing: "0.04em" }}>
+              <div style={{ fontSize: 10, color: FAINT, marginTop: 3, letterSpacing: "0.04em" }}>
                 +{report.mostReinforced.sightingsThisWeek} this week
                 {report.mostReinforced.sourceBreakdown.length > 0
                   ? ` · from ${report.mostReinforced.sourceBreakdown.map((b) => sourceLabel(b.type)).join(", ")}`
@@ -241,7 +244,7 @@ export const FrameIntelligenceReport = forwardRef<
               <TinyLabel>Understanding by area</TinyLabel>
               {report.domains.map((d) => (
                 <div key={d.key}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, letterSpacing: "0.14em", textTransform: "uppercase" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" }}>
                     <span style={{ color: "#aaa298" }}>{d.label}</span>
                     <span style={{ color: GOLD }}>{d.coverage}</span>
                   </div>
@@ -274,7 +277,7 @@ export const FrameIntelligenceReport = forwardRef<
                 {report.biggestOpportunity.topic}
               </div>
               {report.biggestOpportunity.domainLabel && (
-                <div style={{ fontSize: 8, letterSpacing: "0.14em", textTransform: "uppercase", color: FAINT, marginTop: 3 }}>
+                <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: FAINT, marginTop: 3 }}>
                   {report.biggestOpportunity.domainLabel}
                 </div>
               )}
@@ -284,7 +287,7 @@ export const FrameIntelligenceReport = forwardRef<
       ) : (
         /* honest empty state — never invent a busy week */
         <div style={{ marginTop: 22, marginBottom: 6 }}>
-          <div style={{ fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: GOLD_SOFT }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: GOLD_SOFT }}>
             Quiet week
           </div>
           <div style={{ fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.55, color: "#d8d2c8", marginTop: 8 }}>
@@ -305,7 +308,7 @@ export const FrameIntelligenceReport = forwardRef<
           </div>
           <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 7, letterSpacing: "0.2em", textTransform: "uppercase", color: GOLD_SOFT }}>
+              <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: GOLD_SOFT }}>
                 Gift
               </div>
               <div style={{ fontSize: 10, lineHeight: 1.45, color: "#b8b0a4", marginTop: 3 }}>
@@ -313,7 +316,7 @@ export const FrameIntelligenceReport = forwardRef<
               </div>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 7, letterSpacing: "0.2em", textTransform: "uppercase", color: MUTE }}>
+              <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTE }}>
                 Shadow
               </div>
               <div style={{ fontSize: 10, lineHeight: 1.45, color: "#9aa0a6", marginTop: 3 }}>
@@ -332,8 +335,8 @@ export const FrameIntelligenceReport = forwardRef<
           borderTop: `1px solid ${HAIR}`,
           display: "flex",
           justifyContent: "space-between",
-          fontSize: 8,
-          letterSpacing: "0.25em",
+          fontSize: 9, gap: 8,
+          letterSpacing: "0.1em",
           textTransform: "uppercase",
           color: FAINT,
         }}

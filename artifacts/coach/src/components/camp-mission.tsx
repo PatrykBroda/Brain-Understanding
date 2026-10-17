@@ -30,11 +30,11 @@ const CATEGORY_HINT: Record<PlanCategory, string> = {
 };
 
 const CATEGORY_COLOR: Record<PlanCategory, { bar: string; glow: string; label: string }> = {
-  fix:       { bar: "hsla(0,68%,46%,0.95)",    glow: "hsla(0,68%,46%,0.07)",   label: "hsl(0,55%,62%)" },
-  goal_step: { bar: "hsla(39,49%,36%,0.9)",    glow: "hsla(39,49%,36%,0.07)",  label: "hsl(39,49%,36%)" },
-  train:     { bar: "hsla(0,0%,55%,0.7)",      glow: "hsla(0,0%,55%,0.04)",    label: "hsl(0,0%,70%)" },
-  technique: { bar: "hsla(210,38%,52%,0.8)",   glow: "hsla(210,38%,52%,0.06)", label: "hsl(210,35%,68%)" },
-  regulate:  { bar: "hsla(160,28%,38%,0.8)",   glow: "hsla(160,28%,38%,0.06)", label: "hsl(160,28%,56%)" },
+  fix:       { bar: "rgba(224,86,78,0.95)",   glow: "rgba(191,29,29,0.10)",   label: "#E0564E" },
+  goal_step: { bar: "rgba(199,161,90,0.9)",   glow: "rgba(199,161,90,0.09)",  label: "#C7A15A" },
+  train:     { bar: "rgba(189,184,175,0.6)",  glow: "rgba(189,184,175,0.06)", label: "#bdb8af" },
+  technique: { bar: "rgba(230,210,163,0.8)",  glow: "rgba(230,210,163,0.07)", label: "#E6D2A3" },
+  regulate:  { bar: "rgba(138,106,47,0.95)",  glow: "rgba(138,106,47,0.12)",  label: "#B8935A" },
 };
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -121,7 +121,7 @@ export function CampMission() {
       {/* Fighter + regenerate row */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/60">
+          <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground/90">
             {fighter?.name ?? "Athlete"}
           </div>
           <div className="font-sans text-[13px] font-light tracking-[0.12em] text-foreground/80 mt-0.5">
@@ -141,7 +141,7 @@ export function CampMission() {
             type="button"
             onClick={() => void requestGenerate()}
             disabled={regen.isPending || !!generationInFlightRef.current}
-            className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40 flex items-center gap-1.5"
+            className="font-mono text-[10px] uppercase tracking-[0.14em] border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40 flex items-center gap-1.5 rounded-2xl"
           >
             {regen.isPending ? (
               <>
@@ -159,39 +159,37 @@ export function CampMission() {
       </div>
 
       {/* Day grid — operational timeline */}
-      <section aria-label="This week's days, today highlighted" className="grid grid-cols-7 gap-[3px]">
+      <section aria-label="This week's days, today highlighted" className="grid grid-cols-7 gap-1.5">
         {DAY_LABELS.map((label, idx) => {
           const isToday = idx === todayIdx;
           const isPast = todayIdx >= 0 && idx < todayIdx;
           return (
             <div
               key={label}
-              className="relative text-center py-2.5 transition-all duration-300"
+              className="relative text-center py-3 rounded-2xl transition-all duration-300"
               style={{
                 background: isToday
-                  ? "hsla(0,68%,46%,0.12)"
+                  ? "rgba(138,106,47,0.22)"
                   : isPast
                   ? "hsla(0,0%,100%,0.02)"
                   : "hsla(0,0%,100%,0.025)",
-                borderBottom: isToday
-                  ? "2px solid hsla(0,68%,46%,0.8)"
-                  : "2px solid hsla(0,0%,100%,0.07)",
+                border: isToday ? "1px solid rgba(199,161,90,0.55)" : "1px solid rgba(255,244,224,0.07)",
               }}
             >
               {isToday && (
                 <div
                   className="absolute inset-0 pointer-events-none"
-                  style={{ boxShadow: "inset 0 0 12px hsla(0,68%,46%,0.08)" }}
+                  style={{ boxShadow: "inset 0 0 14px rgba(199,161,90,0.10)", borderRadius: 16 }}
                 />
               )}
               <div
-                className="font-mono text-[9px] uppercase tracking-widest"
-                style={{ color: isToday ? "hsl(0,55%,62%)" : isPast ? "hsla(0,0%,100%,0.25)" : "hsla(0,0%,100%,0.45)" }}
+                className="font-mono text-[10px] uppercase tracking-[0.14em]"
+                style={{ color: isToday ? "#E6D2A3" : isPast ? "#8f8b84" : "#bdb8af" }}
               >
                 {label}
               </div>
               {isToday && (
-                <div className="w-1 h-1 rounded-full bg-destructive/80 mx-auto mt-1 animate-pulse" />
+                <div className="w-1 h-1 rounded-full bg-[#C7A15A] mx-auto mt-1 animate-pulse motion-reduce:animate-none" />
               )}
             </div>
           );
@@ -200,7 +198,7 @@ export function CampMission() {
 
       {regen.isError &&
         !(regen.error instanceof ApiError && regen.error.kind === "upgrade_required") && (
-        <div className="border-l-2 border-destructive/70 bg-destructive/8 px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+        <div className="glass glass-red !rounded-2xl px-4 py-3 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive/90">
           {(regen.error as Error).message || "generation failed"}
         </div>
       )}
@@ -209,11 +207,11 @@ export function CampMission() {
         <button
           type="button"
           onClick={() => openUpgrade("weekly_mission")}
-          className="w-full text-left border-l-2 border-primary/60 bg-primary/[0.06] px-4 py-3 transition-colors hover:bg-primary/[0.1]"
+          className="glass glass-gold w-full text-left px-5 py-4 transition-colors hover:border-primary/60"
         >
           <div className="flex items-center gap-2.5">
-            <Lock className="w-3.5 h-3.5 flex-none text-primary/80" strokeWidth={1.5} />
-            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/90">
+            <Lock className="w-3.5 h-3.5 flex-none text-[#C7A15A]" strokeWidth={1.5} />
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A]">
               Mission preview
             </span>
           </div>
@@ -224,20 +222,13 @@ export function CampMission() {
       )}
 
       {planner.isLoading ? (
-        <div className="text-muted-foreground font-mono text-[10px] uppercase tracking-widest py-16 text-center opacity-60">
+        <div className="text-muted-foreground font-mono text-[10px] uppercase tracking-[0.14em] py-16 text-center opacity-60">
           Loading
         </div>
       ) : !plan ? (
         /* Empty state — dramatic */
         <div
-          className="relative border border-border/30 p-6 space-y-4 mt-4"
-          style={{ background: "linear-gradient(160deg, hsla(0,60%,30%,0.04), transparent 60%)" }}
-        >
-          <span className="absolute left-0 top-0 h-3 w-3 border-l-2 border-t-2 border-destructive/40" />
-          <span className="absolute right-0 top-0 h-3 w-3 border-r-2 border-t-2 border-destructive/40" />
-          <span className="absolute left-0 bottom-0 h-3 w-3 border-l-2 border-b-2 border-destructive/40" />
-          <span className="absolute right-0 bottom-0 h-3 w-3 border-r-2 border-b-2 border-destructive/40" />
-          <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/70">
+          className="glass p-6 space-y-4 mt-4"><div className="eyebrow eyebrow-gold">
             No directive issued
           </div>
           <p className="text-sm text-foreground/80 leading-relaxed">
@@ -245,7 +236,7 @@ export function CampMission() {
             then builds 5-7 actions for the week. Every item is anchored to a real recorded signal.
             No padding, no streaks, no invented work.
           </p>
-          <p className="text-sm text-muted-foreground/70 leading-relaxed">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             Generate when you're ready.
           </p>
         </div>
@@ -254,23 +245,15 @@ export function CampMission() {
           {/* Mission directive card */}
           {plan.rationale && (
             <div
-              className="relative mt-1"
-              style={{
-                background: "linear-gradient(170deg, hsla(0,60%,30%,0.1) 0%, hsla(0,0%,0%,0) 55%)",
-                borderLeft: "2px solid hsla(0,68%,46%,0.6)",
-                borderTop: "1px solid hsla(0,68%,46%,0.2)",
-                borderRight: "1px solid hsla(0,0%,100%,0.05)",
-                borderBottom: "1px solid hsla(0,0%,100%,0.05)",
-              }}
-            >
-              <div className="px-4 pt-3 pb-4">
+              className="glass glass-gold relative mt-1 overflow-hidden">
+              <div className="px-5 pt-4 pb-5">
                 <div className="flex items-center gap-2.5 mb-3">
-                  <span className="h-[5px] w-[5px] rounded-full bg-destructive animate-pulse" />
-                  <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/80">
+                  <span className="h-[6px] w-[6px] rounded-full bg-[#C7A15A] animate-pulse motion-reduce:animate-none" />
+                  <div className="eyebrow eyebrow-gold">
                     Mission directive
                   </div>
                 </div>
-                <p className="text-[0.9rem] text-foreground/90 leading-relaxed font-light">{plan.rationale}</p>
+                <p className="text-[0.95rem] text-foreground/90 leading-relaxed">{plan.rationale}</p>
               </div>
             </div>
           )}
@@ -278,23 +261,23 @@ export function CampMission() {
           {/* Completion tracker */}
           {plan.items.length > 0 && (
             <div className="flex items-center gap-3 py-1">
-              <div className="flex-1 relative h-[1px] bg-white/8 overflow-hidden">
+              <div className="flex-1 relative h-[3px] rounded-full bg-white/10 overflow-hidden">
                 <div
                   className="absolute top-0 left-0 h-full transition-all duration-700"
                   style={{
                     width: `${Math.round((completions.size / plan.items.length) * 100)}%`,
                     background: completions.size === plan.items.length
-                      ? "hsl(39,49%,36%)"
-                      : "hsl(0,68%,46%)",
+                      ? "#E6D2A3"
+                      : "#C7A15A",
                   }}
                 />
               </div>
               <div
-                className="flex-none font-mono text-[9px] uppercase tracking-widest"
+                className="flex-none font-mono text-[10px] uppercase tracking-[0.14em]"
                 style={{
                   color: completions.size === plan.items.length
-                    ? "hsl(39,49%,36%)"
-                    : "hsla(0,0%,100%,0.45)",
+                    ? "#E6D2A3"
+                    : "#bdb8af",
                 }}
               >
                 {completions.size}/{plan.items.length}
@@ -318,7 +301,7 @@ export function CampMission() {
                   <div className="mb-4">
                     <div className="flex items-center gap-3">
                       <span
-                        className="font-mono text-[9px] tracking-widest px-2 py-0.5"
+                        className="font-mono text-[10px] tracking-[0.14em] px-2 py-0.5"
                         style={{
                           color: col.label,
                           borderLeft: `2px solid ${col.bar}`,
@@ -329,7 +312,7 @@ export function CampMission() {
                       </span>
                       <div>
                         <div
-                          className="font-mono text-[12px] uppercase tracking-[0.35em]"
+                          className="font-mono text-[12px] uppercase tracking-[0.16em]"
                           style={{ color: col.label }}
                         >
                           {CATEGORY_LABEL[cat]}
@@ -337,7 +320,7 @@ export function CampMission() {
                       </div>
                       <div className="flex-1 ml-2" style={{ height: 1, background: `linear-gradient(90deg, ${col.bar} 0%, transparent 100%)`, opacity: 0.4 }} />
                     </div>
-                    <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/45 mt-1.5 pl-10">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground/90 mt-1.5 pl-10">
                       {CATEGORY_HINT[cat]}
                     </div>
                   </div>
@@ -365,8 +348,8 @@ export function CampMission() {
           </div>
 
           {/* Footer metadata */}
-          <div className="flex items-center justify-between pt-4 border-t border-white/5">
-            <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40">
+          <div className="flex items-center justify-between pt-4 border-t border-white/[0.10]">
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
               Issued {new Date(plan.createdAt).toLocaleString(undefined, {
                 month: "short",
                 day: "numeric",
@@ -374,7 +357,7 @@ export function CampMission() {
                 minute: "2-digit",
               })}
             </div>
-            <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/30">
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
               {plan.aiProvider}
             </div>
           </div>
@@ -406,7 +389,7 @@ function PlanItemCard({
   onLockedTap: () => void;
 }) {
   const col = CATEGORY_COLOR[cat];
-  const doneBar = "hsla(39,49%,36%,0.85)";
+  const doneBar = "rgba(199,161,90,0.9)";
 
   if (item.locked) {
     // Free-tier preview stub: title + category only, tap opens the upgrade modal.
@@ -414,22 +397,22 @@ function PlanItemCard({
       <button
         type="button"
         onClick={onLockedTap}
-        className="plan-item w-full text-left transition-colors duration-300 hover:bg-white/[0.02]"
+        className="plan-item w-full text-left rounded-2xl overflow-hidden transition-colors duration-300 hover:bg-white/[0.04]"
         style={{
           borderLeft: `3px solid hsla(0,0%,100%,0.12)`,
-          borderTop: "1px solid hsla(0,0%,100%,0.07)",
-          borderRight: "1px solid hsla(0,0%,100%,0.04)",
-          borderBottom: "1px solid hsla(0,0%,100%,0.04)",
+          borderTop: "1px solid rgba(255,244,224,0.10)",
+          borderRight: "1px solid rgba(255,244,224,0.07)",
+          borderBottom: "1px solid rgba(255,244,224,0.07)",
           animationDelay: `${index * 0.07}s`,
         }}
       >
         <div className="flex items-start gap-3.5 px-5 py-4">
-          <Lock className="flex-none mt-0.5 w-[18px] h-[18px] text-muted-foreground/40" strokeWidth={1.5} />
+          <Lock className="flex-none mt-0.5 w-[18px] h-[18px] text-muted-foreground/90" strokeWidth={1.5} />
           <div className="flex-1 min-w-0">
-            <div className="text-[0.95rem] leading-snug font-light text-foreground/45 mb-1.5">
+            <div className="text-[0.95rem] leading-snug font-light text-foreground/70 mb-1.5">
               {item.title}
             </div>
-            <span className="font-mono text-[9px] uppercase tracking-widest text-primary/60 border border-primary/25 px-1.5 py-0.5">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A] border border-primary/25 px-1.5 py-0.5 rounded-2xl">
               FRAME+ unlocks this
             </span>
           </div>
@@ -440,12 +423,12 @@ function PlanItemCard({
 
   return (
     <div
-      className="plan-item relative transition-all duration-400"
+      className="plan-item relative rounded-2xl overflow-hidden transition-all duration-400"
       style={{
         borderLeft: `3px solid ${done ? doneBar : col.bar}`,
-        borderTop: "1px solid hsla(0,0%,100%,0.07)",
-        borderRight: "1px solid hsla(0,0%,100%,0.04)",
-        borderBottom: "1px solid hsla(0,0%,100%,0.04)",
+        borderTop: "1px solid rgba(255,244,224,0.10)",
+        borderRight: "1px solid rgba(255,244,224,0.07)",
+        borderBottom: "1px solid rgba(255,244,224,0.07)",
         background: done
           ? "linear-gradient(95deg, hsla(39,49%,36%,0.06), transparent 70%)"
           : `linear-gradient(95deg, ${col.glow}, transparent 70%)`,
@@ -455,7 +438,7 @@ function PlanItemCard({
       {/* Background index watermark */}
       <div
         className="absolute right-4 top-1/2 -translate-y-1/2 font-mono font-bold select-none pointer-events-none"
-        style={{ fontSize: "2.8rem", opacity: 0.04, color: done ? "hsl(39,49%,36%)" : col.label }}
+        style={{ fontSize: "2.8rem", opacity: 0.04, color: done ? "#C7A15A" : col.label }}
         aria-hidden
       >
         {String(index + 1).padStart(2, "0")}
@@ -469,16 +452,20 @@ function PlanItemCard({
           disabled={disabled}
           aria-pressed={done}
           aria-label={done ? "Mark not done" : "Mark done"}
-          className="flex-none mt-0.5 w-[18px] h-[18px] border flex items-center justify-center transition-all duration-300"
-          style={{
-            borderColor: done ? "hsl(39,49%,36%)" : col.bar,
-            background: done ? "hsla(39,49%,36%,0.15)" : "transparent",
-            color: done ? "hsl(39,49%,36%)" : "transparent",
-          }}
+          className="flex-none -ml-2.5 -mt-2 w-11 h-11 flex items-center justify-center"
         >
-          <svg viewBox="0 0 20 20" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.8">
-            <path d="M4 10.5 L8 14.5 L16 6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <span
+            className="w-[22px] h-[22px] rounded-full border flex items-center justify-center transition-all duration-300"
+            style={{
+              borderColor: done ? "#C7A15A" : col.bar,
+              background: done ? "rgba(199,161,90,0.2)" : "transparent",
+              color: done ? "#E6D2A3" : "transparent",
+            }}
+          >
+            <svg viewBox="0 0 20 20" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.8">
+              <path d="M4 10.5 L8 14.5 L16 6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
         </button>
 
         <div className="flex-1 min-w-0">
@@ -486,7 +473,7 @@ function PlanItemCard({
           <div
             className="text-[0.95rem] leading-snug font-light transition-colors duration-300 mb-2"
             style={{
-              color: done ? "hsla(0,0%,100%,0.32)" : "hsla(0,0%,100%,0.94)",
+              color: done ? "hsla(0,0%,100%,0.6)" : "hsla(0,0%,100%,0.94)",
               textDecoration: done ? "line-through" : "none",
             }}
           >
@@ -496,7 +483,7 @@ function PlanItemCard({
           {/* Execution detail */}
           <p
             className="text-[0.82rem] leading-relaxed transition-colors duration-300"
-            style={{ color: done ? "hsla(0,0%,100%,0.28)" : "hsla(0,0%,100%,0.60)" }}
+            style={{ color: done ? "hsla(0,0%,100%,0.55)" : "hsla(0,0%,100%,0.72)" }}
           >
             {item.detail}
           </p>
@@ -511,11 +498,11 @@ function PlanItemCard({
           >
             <div className="flex items-center gap-2">
               <span className="flex-none" style={{ display: "inline-block", width: 14, height: 1, background: done ? "hsla(39,49%,36%,0.5)" : col.bar, opacity: 0.7 }} />
-              <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/55">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
                 {item.sourceLabel}
               </span>
             </div>
-            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
               {item.suggestedDays}
             </span>
           </div>
@@ -552,11 +539,11 @@ function MissionAnimations() {
 function HelpOverlay({ onClose }: { onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-[#050505]/80 backdrop-blur-xl flex items-end sm:items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="relative max-w-md w-full bg-background border border-border/60 p-6 space-y-4"
+        className="relative max-w-md w-full bg-background border border-border/60 p-6 space-y-4 rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -567,7 +554,7 @@ function HelpOverlay({ onClose }: { onClose: () => void }) {
         >
           <X className="w-4 h-4" strokeWidth={1.5} />
         </button>
-        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
+        <div className="eyebrow">
           How the mission works
         </div>
         <div className="space-y-3 text-sm text-foreground/85 leading-relaxed">

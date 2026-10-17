@@ -15,9 +15,9 @@ import {
   ageFromDob,
 } from "@/lib/fighter-options";
 
-const FIELD_LABEL = "block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2";
+const FIELD_LABEL = "eyebrow block mb-2";
 const INPUT_CLASS =
-  "w-full bg-transparent border border-border/70 text-foreground text-sm px-3 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 placeholder:text-muted-foreground/60";
+  "field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground";
 
 type FormState = {
   name: string;
@@ -124,8 +124,8 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
   })();
 
   return (
-    <form onSubmit={submit} className="space-y-5 border border-border/50 p-4">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/85">
+    <form onSubmit={submit} className="space-y-5 border border-border/50 p-4 rounded-2xl">
+      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A]">
         Edit profile
       </div>
 
@@ -391,14 +391,14 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
         <button
           type="button"
           onClick={onClose}
-          className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+          className="eyebrow hover:text-foreground transition-colors"
         >
           Cancel
         </button>
         <Button
           type="submit"
           disabled={update.isPending || !form.name.trim()}
-          className="flex-1 h-11 font-mono text-xs uppercase tracking-[0.25em] bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          className="flex-1 h-11 font-mono text-xs uppercase tracking-[0.14em] bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {update.isPending ? "Saving..." : "Save profile"}
         </Button>

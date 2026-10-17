@@ -83,10 +83,10 @@ const LOAD_LABEL: Record<NervousSystemLoad, string> = {
 };
 
 const LOAD_COLOR: Record<NervousSystemLoad, string> = {
-  low: "text-emerald-300/90 border-emerald-300/40",
-  moderate: "text-primary border-primary/40",
-  elevated: "text-amber-300/90 border-amber-300/40",
-  high: "text-red-400/90 border-red-400/40",
+  low: "text-[#E6D2A3] border-emerald-300/40",
+  moderate: "text-[#C7A15A] border-primary/40",
+  elevated: "text-[#C7A15A] border-[#C7A15A]/40",
+  high: "text-[#E0564E] border-[#E0564E]/40",
 };
 
 type Phase =
@@ -491,26 +491,14 @@ export default function AnalysePage() {
   const showingReport = selfResult != null || openId != null;
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-background text-foreground">
-      <header className="flex-none flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3 border-b border-border/40">
+    <div className="flex flex-col h-[100dvh] text-foreground">
+      <header className="flex-none flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3">
         <div className="flex-1 flex justify-start">
-          <Link href="/home" className="text-muted-foreground hover:text-foreground transition-colors">
+          <Link href="/home" className="icon-round text-muted-foreground hover:text-foreground transition-colors">
             <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
           </Link>
         </div>
-        <div className="text-center flex flex-col items-center gap-1.5">
-          <img
-            src={`${basePath}/frame-logo.png`}
-            alt=""
-            aria-hidden
-            width={22}
-            height={22}
-            className="object-contain opacity-75"
-          />
-          <div className="font-mono text-[11px] uppercase tracking-[0.4em] text-foreground/90">
-            Analyse
-          </div>
-        </div>
+        <h1 className="display-heading text-center">Analyse</h1>
         <div className="flex-1 flex justify-end">
           <FramePlusPill />
         </div>
@@ -575,7 +563,7 @@ export default function AnalysePage() {
               <button
                 type="button"
                 onClick={() => setWeeklyReportOpen(true)}
-                className="w-full inline-flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/40 hover:border-primary/70 px-4 py-3 text-foreground/90 transition-colors"
+                className="w-full inline-flex items-center justify-center gap-2 btn-quiet btn-quiet-gold"
               >
                 <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
                 Weekly intelligence report
@@ -611,7 +599,7 @@ export default function AnalysePage() {
         ) : showingReport ? (
           <>
             {/* LEFT — video player + filmstrip */}
-            <div className="flex flex-col w-[46%] min-w-0 overflow-y-auto bg-black/20" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
+            <div className="flex flex-col w-[46%] min-w-0 overflow-y-auto bg-white/[0.025]" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
               {result ? (
                 <WorkstationLeft
                   analysis={result}
@@ -642,19 +630,9 @@ export default function AnalysePage() {
             {/* LEFT — description + upload zone */}
             <div className="flex flex-col justify-center items-center w-[46%] min-w-0 px-10 py-10 gap-8">
               <div className="w-full max-w-sm space-y-3">
-                <div
-                  className="pl-4 py-1"
-                  style={{
-                    borderLeft: `2px solid ${subject === "opponent" ? "hsla(199,84%,56%,0.5)" : "hsla(0,68%,46%,0.5)"}`,
-                    background:
-                      subject === "opponent"
-                        ? "linear-gradient(90deg, hsla(199,84%,56%,0.05), transparent 80%)"
-                        : "linear-gradient(90deg, hsla(0,68%,46%,0.05), transparent 80%)",
-                  }}
-                >
+                <div className="glass p-5">
                   <div
-                    className="font-mono text-[9px] uppercase tracking-[0.45em] mb-1.5"
-                    style={{ color: subject === "opponent" ? "hsla(199,84%,56%,0.85)" : "hsla(0,68%,46%,0.7)" }}
+                    className="eyebrow eyebrow-gold mb-2"
                   >
                     {subject === "opponent" ? "Opponent scout" : "Analyst Workstation"}
                   </div>
@@ -663,7 +641,7 @@ export default function AnalysePage() {
                       ? "Upload footage of your opponent. The system reads their movement — guard, base, output rhythm — builds a categorical scouting model, and contrasts it against your own recorded model for the matchup."
                       : "Upload a clip. The system reads your movement directly — guard, base, shoulders, output rhythm — scores it against itself, and tells you what your nervous system is doing under load."}
                   </p>
-                  <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45 mt-2">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90 mt-2">
                     Processed on device · only the read is kept
                   </p>
                 </div>
@@ -676,20 +654,13 @@ export default function AnalysePage() {
                     type="button"
                     onClick={() => fileRef.current?.click()}
                     disabled={busy}
-                    className="relative w-full overflow-hidden transition-all duration-300 disabled:opacity-50 py-16 flex flex-col items-center justify-center gap-4"
-                    style={{ border: "1px solid hsla(0,68%,46%,0.25)", background: "linear-gradient(160deg, hsla(0,68%,46%,0.04) 0%, transparent 60%)" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.55)"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.25)"; }}
-                  >
-                    <span className="absolute left-0 top-0 h-3 w-3 border-l border-t border-destructive/40" />
-                    <span className="absolute right-0 top-0 h-3 w-3 border-r border-t border-destructive/40" />
-                    <span className="absolute left-0 bottom-0 h-3 w-3 border-l border-b border-destructive/40" />
-                    <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-destructive/40" />
-                    <Upload className="w-10 h-10" strokeWidth={1} style={{ color: "hsla(0,68%,46%,0.6)" }} />
-                    <div className="font-mono text-[11px] uppercase tracking-[0.45em] text-foreground/80">
+                    className="dropzone w-full transition-all duration-300 disabled:opacity-50 py-16 flex flex-col items-center justify-center gap-4"
+>
+<span className="dz-icon"><Upload className="w-6 h-6" strokeWidth={1.25} /></span>
+                    <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-foreground/80">
                       Drop footage
                     </div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
                       mp4 · mov · first 75s processed
                     </div>
                   </button>
@@ -709,9 +680,9 @@ export default function AnalysePage() {
               <SubjectToggle subject={subject} setSubject={setSubject} disabled={busy} />
               {subject === "opponent" && (
                 <section className="space-y-2">
-                  <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+                  <div className="eyebrow">
                     Opponent name{" "}
-                    <span className="font-sans normal-case tracking-normal text-muted-foreground/40 text-[11px]">optional</span>
+                    <span className="font-sans normal-case tracking-normal text-muted-foreground/90 text-[11px]">optional</span>
                   </div>
                   <input
                     type="text"
@@ -719,31 +690,23 @@ export default function AnalysePage() {
                     onChange={(e) => setOpponentName(e.target.value.slice(0, 80))}
                     disabled={busy}
                     placeholder="who are you scouting?"
-                    className="w-full bg-transparent border border-border/50 focus:border-primary/50 outline-none px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/50 transition-colors disabled:opacity-40"
+                    className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground disabled:opacity-40"
                   />
                 </section>
               )}
               <section className="space-y-2">
-                <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+                <div className="eyebrow">
                   Clip type
                 </div>
-                <div className="grid grid-cols-3 gap-[3px]">
+                <div className="grid grid-cols-3 gap-2">
                   {KINDS.map((k) => (
                     <button
                       key={k.value}
                       type="button"
                       onClick={() => setKind(k.value)}
                       disabled={busy}
-                      className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
-                      style={{
-                        borderLeft: `2px solid ${kind === k.value ? "hsla(0,68%,46%,0.9)" : "hsla(0,0%,100%,0.1)"}`,
-                        borderTop: `1px solid ${kind === k.value ? "hsla(0,68%,46%,0.2)" : "hsla(0,0%,100%,0.06)"}`,
-                        borderRight: "1px solid hsla(0,0%,100%,0.04)",
-                        borderBottom: "1px solid hsla(0,0%,100%,0.04)",
-                        background: kind === k.value ? "hsla(0,68%,46%,0.08)" : "transparent",
-                        color: kind === k.value ? "hsl(0,55%,65%)" : "hsla(0,0%,100%,0.55)",
-                      }}
-                    >
+                      className="pill !px-2 disabled:opacity-40" data-active={kind === k.value}
+>
                       {k.label}
                     </button>
                   ))}
@@ -751,9 +714,9 @@ export default function AnalysePage() {
               </section>
 
               <section className="space-y-2">
-                <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                <div className="eyebrow">
                   Anything to focus on{" "}
-                  <span className="text-muted-foreground/50 normal-case tracking-normal">(optional)</span>
+                  <span className="text-muted-foreground/90 normal-case tracking-normal">(optional)</span>
                 </div>
                 <input
                   type="text"
@@ -761,14 +724,14 @@ export default function AnalysePage() {
                   onChange={(e) => setFocus(e.target.value.slice(0, 200))}
                   disabled={busy}
                   placeholder="e.g. my guard when I get tired, left-side pressure…"
-                  className="w-full bg-transparent border border-border/50 focus:border-primary/50 outline-none px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/50 transition-colors disabled:opacity-40"
+                  className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground disabled:opacity-40"
                 />
                 <FocusPresets focus={focus} setFocus={setFocus} disabled={busy} />
               </section>
 
               {phase.stage === "error" && (
-                <div data-testid="analyse-error" role="alert" className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+                <div data-testid="analyse-error" role="alert" className="glass glass-red !rounded-2xl px-4 py-3 space-y-2">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive/90">
                     {phase.title}
                   </div>
                   {phase.causes.length > 0 && (
@@ -787,7 +750,7 @@ export default function AnalysePage() {
                     <button
                       type="button"
                       onClick={retry}
-                      className="mt-1 font-mono text-[10px] uppercase tracking-widest border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
+                      className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5 rounded-2xl"
                     >
                       Retry
                     </button>
@@ -814,7 +777,7 @@ export default function AnalysePage() {
               <button
                 type="button"
                 onClick={() => setWeeklyReportOpen(true)}
-                className="w-full inline-flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/40 hover:border-primary/70 px-4 py-3 text-foreground/90 transition-colors"
+                className="w-full inline-flex items-center justify-center gap-2 btn-quiet btn-quiet-gold"
               >
                 <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
                 Weekly intelligence report
@@ -879,7 +842,7 @@ function FocusPresets({
 }) {
   const current = focus.trim();
   return (
-    <div className="flex flex-wrap gap-[3px]">
+    <div className="flex flex-wrap gap-2">
       {FOCUS_PRESETS.map((p) => {
         const active = current === p.value;
         return (
@@ -888,13 +851,8 @@ function FocusPresets({
             type="button"
             onClick={() => setFocus(p.value)}
             disabled={disabled}
-            className="font-mono text-[9px] uppercase tracking-widest px-2.5 py-1.5 transition-all duration-200 disabled:opacity-40"
-            style={{
-              border: `1px solid ${active ? "hsla(0,68%,46%,0.55)" : "hsla(0,0%,100%,0.09)"}`,
-              background: active ? "hsla(0,68%,46%,0.1)" : "transparent",
-              color: active ? "hsl(0,55%,68%)" : "hsla(0,0%,100%,0.5)",
-            }}
-          >
+            className="pill !min-h-9 !px-3.5 disabled:opacity-40" data-active={active}
+>
             {p.label}
           </button>
         );
@@ -917,7 +875,7 @@ function SourceToggle({
     { value: "link", label: "Paste link" },
   ];
   return (
-    <div className="grid grid-cols-2 gap-[3px]">
+    <div className="grid grid-cols-2 gap-2">
       {opts.map((o) => {
         const active = mode === o.value;
         return (
@@ -926,16 +884,8 @@ function SourceToggle({
             type="button"
             onClick={() => setMode(o.value)}
             disabled={disabled}
-            className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
-            style={{
-              borderLeft: `2px solid ${active ? "hsla(0,68%,46%,0.9)" : "hsla(0,0%,100%,0.1)"}`,
-              borderTop: `1px solid ${active ? "hsla(0,68%,46%,0.2)" : "hsla(0,0%,100%,0.06)"}`,
-              borderRight: "1px solid hsla(0,0%,100%,0.04)",
-              borderBottom: "1px solid hsla(0,0%,100%,0.04)",
-              background: active ? "hsla(0,68%,46%,0.08)" : "transparent",
-              color: active ? "hsl(0,55%,65%)" : "hsla(0,0%,100%,0.55)",
-            }}
-          >
+            className="pill !px-2 disabled:opacity-40" data-active={active}
+>
             {o.label}
           </button>
         );
@@ -957,20 +907,9 @@ function LinkInput({
 }) {
   return (
     <div className="w-full space-y-3">
-      <div
-        className="relative flex flex-col gap-4 p-5"
-        style={{
-          border: "1px solid hsla(0,68%,46%,0.25)",
-          background: "linear-gradient(160deg, hsla(0,68%,46%,0.04) 0%, transparent 60%)",
-        }}
-      >
-        <span className="absolute left-0 top-0 h-3 w-3 border-l border-t border-destructive/40" />
-        <span className="absolute right-0 top-0 h-3 w-3 border-r border-t border-destructive/40" />
-        <span className="absolute left-0 bottom-0 h-3 w-3 border-l border-b border-destructive/40" />
-        <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-destructive/40" />
-
-        <div className="flex items-center gap-2.5">
-          <Link2 className="w-4 h-4 flex-none" strokeWidth={1.5} style={{ color: "hsla(0,68%,46%,0.6)" }} />
+      <div className="dropzone flex flex-col gap-4 p-5" style={{ borderStyle: "solid" }}>
+<div className="flex items-center gap-2.5">
+          <Link2 className="w-4 h-4 flex-none text-primary-light" strokeWidth={1.5} />
           <input
             type="url"
             inputMode="url"
@@ -984,24 +923,19 @@ function LinkInput({
             }}
             disabled={disabled}
             placeholder="https://…"
-            className="flex-1 min-w-0 bg-transparent border-b border-border/40 focus:border-destructive/40 outline-none py-1.5 text-sm text-foreground/85 placeholder:text-muted-foreground/35 transition-colors disabled:opacity-40"
+            className="field-glass flex-1 min-w-0 !min-h-[44px] !py-0 !text-sm placeholder:text-muted-foreground disabled:opacity-40"
           />
         </div>
         <button
           type="button"
           onClick={onSubmit}
           disabled={disabled || !value.trim()}
-          className="w-full font-mono text-[11px] uppercase tracking-[0.35em] py-3 transition-colors disabled:opacity-40 hover:bg-destructive/10"
-          style={{
-            border: "1px solid hsla(0,68%,46%,0.45)",
-            color: "hsl(0,55%,68%)",
-            background: "hsla(0,68%,46%,0.06)",
-          }}
-        >
+          className="btn-quiet btn-quiet-gold w-full disabled:opacity-40"
+>
           Fetch and analyse
         </button>
       </div>
-      <p className="font-mono text-[9px] leading-relaxed tracking-wide text-muted-foreground/45">
+      <p className="font-mono text-[10px] leading-relaxed tracking-wide text-muted-foreground/90">
         Direct video links (.mp4 / .mov), Google Drive and Dropbox share links work best. YouTube is
         best-effort — use your own footage; some links won&apos;t pull. The clip is fetched and read on
         this device, nothing else is stored.
@@ -1073,18 +1007,10 @@ function UploadControls({
 
       {/* Atmospheric intro block */}
       <section
-        className="relative pl-4 py-1"
-        style={{
-          borderLeft: `2px solid ${subject === "opponent" ? "hsla(199,84%,56%,0.5)" : "hsla(0,68%,46%,0.5)"}`,
-          background:
-            subject === "opponent"
-              ? "linear-gradient(90deg, hsla(199,84%,56%,0.05), transparent 80%)"
-              : "linear-gradient(90deg, hsla(0,68%,46%,0.05), transparent 80%)",
-        }}
-      >
+        className="glass relative p-5"
+        >
         <div
-          className="font-mono text-[9px] uppercase tracking-[0.45em] mb-2"
-          style={{ color: subject === "opponent" ? "hsla(199,84%,56%,0.85)" : "hsla(0,68%,46%,0.7)" }}
+          className="eyebrow eyebrow-gold mb-2"
         >
           {subject === "opponent" ? "Opponent scout" : "Movement read"}
         </div>
@@ -1093,16 +1019,16 @@ function UploadControls({
             ? "Upload footage of your opponent. The system builds a categorical scouting model and contrasts it against your own recorded model for the matchup."
             : "Upload a clip. The system reads your movement directly — guard, base, shoulders, output rhythm — scores it against itself, and tells you what your nervous system is doing under load."}
         </p>
-        <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45 mt-2">
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90 mt-2">
           Processed on device · only the read is kept
         </p>
       </section>
 
       {subject === "opponent" && (
         <section className="space-y-2">
-          <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+          <div className="eyebrow">
             Opponent name{" "}
-            <span className="font-sans normal-case tracking-normal text-muted-foreground/40 text-[11px]">optional</span>
+            <span className="font-sans normal-case tracking-normal text-muted-foreground/90 text-[11px]">optional</span>
           </div>
           <input
             type="text"
@@ -1110,33 +1036,25 @@ function UploadControls({
             onChange={(e) => setOpponentName(e.target.value.slice(0, 80))}
             disabled={busy}
             placeholder="who are you scouting?"
-            className="w-full bg-transparent border-b border-border/40 focus:border-primary/40 outline-none py-2.5 text-sm text-foreground/85 placeholder:text-muted-foreground/35 transition-colors disabled:opacity-40"
+            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground disabled:opacity-40"
           />
         </section>
       )}
 
       {/* Clip type selector */}
       <section className="space-y-2">
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+        <div className="eyebrow">
           Clip type
         </div>
-        <div className="grid grid-cols-3 gap-[3px]">
+        <div className="grid grid-cols-3 gap-2">
           {KINDS.map((k) => (
             <button
               key={k.value}
               type="button"
               onClick={() => setKind(k.value)}
               disabled={busy}
-              className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
-              style={{
-                borderLeft: `2px solid ${kind === k.value ? "hsla(0,68%,46%,0.9)" : "hsla(0,0%,100%,0.1)"}`,
-                borderTop: `1px solid ${kind === k.value ? "hsla(0,68%,46%,0.2)" : "hsla(0,0%,100%,0.06)"}`,
-                borderRight: `1px solid hsla(0,0%,100%,0.04)`,
-                borderBottom: `1px solid hsla(0,0%,100%,0.04)`,
-                background: kind === k.value ? "hsla(0,68%,46%,0.08)" : "transparent",
-                color: kind === k.value ? "hsl(0,55%,65%)" : "hsla(0,0%,100%,0.55)",
-              }}
-            >
+              className="pill !px-2 disabled:opacity-40" data-active={kind === k.value}
+>
               {k.label}
             </button>
           ))}
@@ -1145,9 +1063,9 @@ function UploadControls({
 
       {/* Focus input */}
       <section className="space-y-2">
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+        <div className="eyebrow">
           Focus area{" "}
-          <span className="font-sans normal-case tracking-normal text-muted-foreground/40 text-[11px]">optional</span>
+          <span className="font-sans normal-case tracking-normal text-muted-foreground/90 text-[11px]">optional</span>
         </div>
         <input
           type="text"
@@ -1155,7 +1073,7 @@ function UploadControls({
           onChange={(e) => setFocus(e.target.value.slice(0, 200))}
           disabled={busy}
           placeholder="guard under fatigue, left shoulder, pressure after a miss…"
-          className="w-full bg-transparent border-b border-border/40 focus:border-destructive/40 outline-none py-2.5 text-sm text-foreground/85 placeholder:text-muted-foreground/35 transition-colors disabled:opacity-40"
+          className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground disabled:opacity-40"
         />
         <FocusPresets focus={focus} setFocus={setFocus} disabled={busy} />
       </section>
@@ -1168,25 +1086,12 @@ function UploadControls({
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="group w-full relative overflow-hidden transition-all duration-300 disabled:opacity-50 py-12 flex flex-col items-center justify-center gap-4"
-            style={{
-              border: "1px solid hsla(0,68%,46%,0.25)",
-              background: "linear-gradient(160deg, hsla(0,68%,46%,0.04) 0%, transparent 60%)",
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.55)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "hsla(0,68%,46%,0.25)"; }}
-          >
-            {/* Subtle corner brackets */}
-            <span className="absolute left-0 top-0 h-3 w-3 border-l border-t border-destructive/40" />
-            <span className="absolute right-0 top-0 h-3 w-3 border-r border-t border-destructive/40" />
-            <span className="absolute left-0 bottom-0 h-3 w-3 border-l border-b border-destructive/40" />
-            <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-destructive/40" />
-
-            <Upload className="w-8 h-8" strokeWidth={1} style={{ color: "hsla(0,68%,46%,0.6)" }} />
-            <div className="font-mono text-[11px] uppercase tracking-[0.45em] text-foreground/80">
+            className="dropzone w-full transition-all duration-300 disabled:opacity-50 py-12 flex flex-col items-center justify-center gap-4"
+><span className="dz-icon"><Upload className="w-6 h-6" strokeWidth={1.25} /></span>
+            <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-foreground/80">
               Drop footage
             </div>
-            <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45">
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
               mp4 · mov · first 75s processed
             </div>
           </button>
@@ -1196,8 +1101,8 @@ function UploadControls({
       </section>
 
       {phase.stage === "error" && (
-        <div data-testid="analyse-error" role="alert" className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
-          <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+        <div data-testid="analyse-error" role="alert" className="glass glass-red !rounded-2xl px-4 py-3 space-y-2">
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive/90">
             {phase.title}
           </div>
           {phase.causes.length > 0 && (
@@ -1216,7 +1121,7 @@ function UploadControls({
             <button
               type="button"
               onClick={retry}
-              className="mt-1 font-mono text-[10px] uppercase tracking-widest border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
+              className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5 rounded-2xl"
             >
               Retry
             </button>
@@ -1282,11 +1187,11 @@ function WorkstationLeft({
   return (
     <div className="flex flex-col h-full">
       {/* meta bar */}
-      <div className="flex-none flex items-center justify-between px-5 py-3 border-b border-border/30 bg-black/30">
-        <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
+      <div className="flex-none flex items-center justify-between px-5 py-3 border-b border-border/30 bg-white/[0.025]">
+        <div className="eyebrow">
           {analysis.kind} · {analysis.durationSec.toFixed(0)}s read
           {analysis.focus && (
-            <span className="ml-2 normal-case tracking-normal text-muted-foreground/70">
+            <span className="ml-2 normal-case tracking-normal text-muted-foreground">
               · {analysis.focus}
             </span>
           )}
@@ -1295,7 +1200,7 @@ function WorkstationLeft({
           type="button"
           onClick={onClose}
           aria-label="New analysis"
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="icon-round flex-none text-muted-foreground hover:text-foreground transition-colors"
         >
           <X className="w-4 h-4" strokeWidth={1.5} />
         </button>
@@ -1319,25 +1224,25 @@ function WorkstationLeft({
             />
           </div>
         ) : (
-          <div className="flex-1 min-h-0 flex items-center justify-center p-4 bg-black/40">
+          <div className="flex-1 min-h-0 flex items-center justify-center p-4 bg-white/[0.025]">
             {kf ? (
               <figure className="w-full space-y-2">
                 <img
                   src={kf.imageBase64}
                   alt={kf.caption}
-                  className="w-full border border-border/40 object-contain max-h-[50vh]"
+                  className="w-full border border-border/40 object-contain max-h-[50vh] rounded-2xl"
                 />
-                <figcaption className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/85 px-1">
+                <figcaption className="eyebrow px-1">
                   {kf.timestamp.toFixed(1)}s · {kf.caption}
                 </figcaption>
                 {localNotes[activeKf] && (
-                  <div className="font-mono text-[9px] text-primary/85 px-1 leading-snug">
+                  <div className="font-mono text-[10px] text-[#C7A15A] px-1 leading-snug">
                     {localNotes[activeKf]}
                   </div>
                 )}
               </figure>
             ) : (
-              <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
+              <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
                 No keyframes
               </div>
             )}
@@ -1347,16 +1252,16 @@ function WorkstationLeft({
 
       {/* filmstrip — click to seek + annotate */}
       {analysis.keyframes.length > 0 && (
-        <div className="flex-none border-t border-border/30 bg-black/60 px-4 py-3 space-y-2">
-          <div className="font-mono text-[8px] uppercase tracking-[0.35em] text-muted-foreground/70">
+        <div className="flex-none border-t border-border/30 bg-white/[0.025] px-4 py-3 space-y-2">
+          <div className="eyebrow">
             Detected events
             {hasFootage && (
-              <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
+              <span className="ml-2 normal-case tracking-normal text-muted-foreground/90">
                 · click to seek · click again to annotate
               </span>
             )}
             {!hasFootage && (
-              <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
+              <span className="ml-2 normal-case tracking-normal text-muted-foreground/90">
                 · click to annotate
               </span>
             )}
@@ -1367,21 +1272,21 @@ function WorkstationLeft({
                 key={i}
                 type="button"
                 onClick={() => seekTo(k.timestamp, i)}
-                className={`flex-none flex flex-col border transition-colors ${
+                className={`flex-none flex flex-col overflow-hidden rounded-xl border transition-colors ${
                   i === activeKf ? "border-primary/70" : "border-border/40 hover:border-primary/40"
                 }`}
                 style={{ width: 88 }}
                 title={`${k.timestamp.toFixed(1)}s — ${k.caption}`}
               >
                 <img src={k.imageBase64} alt={k.caption} className="w-full" />
-                <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/80 px-1 py-1 truncate bg-black/60">
+                <div className="eyebrow px-1 py-1 truncate bg-white/[0.025]">
                   {k.timestamp.toFixed(1)}s
                 </div>
-                <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/70 px-1 pb-1 truncate">
+                <div className="eyebrow px-1 pb-1 truncate">
                   {k.caption}
                 </div>
                 {localNotes[i] && (
-                  <div className="font-mono text-[7px] text-primary/80 px-1 pb-1 truncate leading-tight border-t border-border/20 pt-0.5">
+                  <div className="font-mono text-[10px] text-[#C7A15A] px-1 pb-1 truncate leading-tight border-t border-border/20 pt-0.5">
                     {localNotes[i]}
                   </div>
                 )}
@@ -1390,7 +1295,7 @@ function WorkstationLeft({
           </div>
           {/* inline note editor for the active keyframe */}
           <div className="flex items-center gap-2 pt-1">
-            <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/60 flex-none">
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90 flex-none">
               Note
             </div>
             <input
@@ -1409,7 +1314,7 @@ function WorkstationLeft({
                 if (e.key === "Enter") (e.target as HTMLInputElement).blur();
               }}
               placeholder={`Add a note for frame ${activeKf + 1}…`}
-              className="flex-1 bg-transparent border-b border-border/40 focus:border-primary/50 outline-none font-mono text-[10px] text-foreground/90 placeholder:text-muted-foreground/35 py-0.5 pb-1 transition-colors"
+              className="field-glass flex-1 !min-h-[44px] !py-0 !text-xs placeholder:text-muted-foreground"
             />
           </div>
         </div>
@@ -1417,7 +1322,7 @@ function WorkstationLeft({
 
       {/* FRAME Replay — curated moments, click to seek the footage */}
       {analysis.replayMoments.length > 0 && (
-        <div className="flex-none border-t border-border/30 bg-black/40 px-4 py-3 max-h-[42%] overflow-y-auto">
+        <div className="flex-none border-t border-border/30 bg-white/[0.025] px-4 py-3 max-h-[42%] overflow-y-auto">
           <ReplaySection analysis={analysis} onSeek={seekTo} />
         </div>
       )}
@@ -1474,7 +1379,7 @@ function WorkstationRight({
           type="button"
           onClick={saveCard}
           disabled={saving}
-          className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 px-4 py-2.5 text-foreground/80 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-2 disabled:opacity-50 btn-quiet"
         >
           <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
           {saving ? "Rendering…" : "Save card"}
@@ -1482,7 +1387,7 @@ function WorkstationRight({
       </div>
 
       {/* summary */}
-      <p className="text-[0.95rem] text-foreground/90 leading-relaxed border-l-2 border-primary/60 pl-4">
+      <p className="glass glass-gold font-display not-italic text-[1.2rem] text-[#f1ede6] leading-snug p-5">
         {analysis.summary}
       </p>
 
@@ -1536,7 +1441,7 @@ function WorkstationRight({
       <button
         type="button"
         onClick={onClose}
-        className="w-full font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 py-3 text-foreground/80 transition-colors"
+        className="w-full btn-quiet"
       >
         Analyse another
       </button>
@@ -1558,7 +1463,7 @@ function SavedWorkstationLeft({
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 py-16">
         <FrameOctagon size={56} spin spinSeconds={4} glow={false} />
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+        <div className="eyebrow">
           Loading read
         </div>
       </div>
@@ -1567,10 +1472,10 @@ function SavedWorkstationLeft({
   if (isError || !data?.analysis) {
     return (
       <div className="p-6 space-y-4">
-        <div className="border border-destructive/40 bg-destructive/10 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+        <div className="glass glass-red !rounded-2xl px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive/90">
           could not load this read
         </div>
-        <button type="button" onClick={onClose} className="w-full font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 py-3 text-foreground/80">
+        <button type="button" onClick={onClose} className="w-full btn-quiet">
           Back
         </button>
       </div>
@@ -1616,20 +1521,20 @@ function FindingsTable({
 }) {
   return (
     <section className="space-y-3">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+      <div className="section-title">
         What the body is doing
       </div>
-      <div className="w-full border border-border/40 overflow-hidden">
+      <div className="glass glass-table w-full">
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="border-b border-border/40">
-              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[90px]">
+              <th className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground text-left px-3 py-2 w-[90px]">
                 Area
               </th>
-              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2">
+              <th className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground text-left px-3 py-2">
                 Finding
               </th>
-              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[72px]">
+              <th className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground text-left px-3 py-2 w-[72px]">
                 Signal
               </th>
             </tr>
@@ -1642,11 +1547,11 @@ function FindingsTable({
               >
                 <td className="px-3 py-2.5 align-top">
                   <span
-                    className={`font-mono text-[8px] uppercase tracking-widest px-1.5 py-0.5 border inline-block ${
+                    className={`font-mono text-[10px] uppercase tracking-[0.14em] px-2.5 py-0.5 border rounded-full inline-block ${
                       f.severity === "high"
-                        ? "text-red-400/90 border-red-400/40"
+                        ? "text-[#E0564E] border-[#E0564E]/40"
                         : f.severity === "medium"
-                          ? "text-amber-300/90 border-amber-300/40"
+                          ? "text-[#C7A15A] border-[#C7A15A]/40"
                           : "text-muted-foreground border-border/50"
                     }`}
                   >
@@ -1661,19 +1566,19 @@ function FindingsTable({
                     {f.observation}
                   </div>
                   {f.nervousSystemFraming && (
-                    <div className="text-xs text-primary/80 leading-relaxed italic">
+                    <div className="text-xs text-[#C7A15A] leading-relaxed italic">
                       {f.nervousSystemFraming}
                     </div>
                   )}
                 </td>
                 <td className="px-3 py-2.5 align-top">
                   <span
-                    className={`font-mono text-[8px] uppercase tracking-widest ${
+                    className={`font-mono text-[10px] uppercase tracking-[0.14em] ${
                       f.severity === "high"
-                        ? "text-red-400/80"
+                        ? "text-[#E0564E]"
                         : f.severity === "medium"
-                          ? "text-amber-300/80"
-                          : "text-muted-foreground/70"
+                          ? "text-[#C7A15A]"
+                          : "text-muted-foreground"
                     }`}
                   >
                     {f.severity}
@@ -1731,28 +1636,28 @@ function SignalDeltaBadge({
   if (dir === "same") {
     return (
       <span title="No change vs last session">
-        <Minus className="w-3 h-3 text-muted-foreground/50 inline-block" strokeWidth={2} />
+        <Minus className="w-3 h-3 text-muted-foreground/90 inline-block" strokeWidth={2} />
       </span>
     );
   }
   if (dir === "up") {
     return (
       <span title={`Improved — was: ${prevValue}`}>
-        <ArrowUpRight className="w-3.5 h-3.5 text-emerald-300/90 inline-block" strokeWidth={2} />
+        <ArrowUpRight className="w-3.5 h-3.5 text-[#E6D2A3] inline-block" strokeWidth={2} />
       </span>
     );
   }
   if (dir === "down") {
     return (
       <span title={`Declined — was: ${prevValue}`}>
-        <ArrowDownRight className="w-3.5 h-3.5 text-red-400/90 inline-block" strokeWidth={2} />
+        <ArrowDownRight className="w-3.5 h-3.5 text-[#E0564E] inline-block" strokeWidth={2} />
       </span>
     );
   }
   // changed but no known ordering
   return (
     <span
-      className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/60"
+      className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90"
       title={`Changed — was: ${prevValue}`}
     >
       ~
@@ -1807,29 +1712,29 @@ function SignalHistoryTrail({
         const dir = i > 0 && prev != null ? signalDelta(signalKey, step.value, prev.value) : null;
         const arrowColor =
           dir === "up"
-            ? "text-emerald-300/60"
+            ? "text-[#E6D2A3]"
             : dir === "down"
-              ? "text-red-400/60"
-              : "text-muted-foreground/30";
+              ? "text-[#E0564E]"
+              : "text-muted-foreground/90";
         const tappable = !isCurrent && step.id != null && onSelectSession != null;
         return (
           <span key={i} className="flex items-center gap-x-0.5">
             {i > 0 && (
-              <span className={`font-mono text-[8px] leading-none select-none ${arrowColor}`}>›</span>
+              <span className={`font-mono text-[10px] leading-none select-none ${arrowColor}`}>›</span>
             )}
             {tappable ? (
               <button
                 type="button"
                 onClick={() => onSelectSession!(step.id!)}
                 title="View this session's full read"
-                className={`font-mono text-[8px] uppercase tracking-wider leading-none text-muted-foreground/45 underline decoration-dotted underline-offset-2 hover:text-foreground/70 active:text-foreground/90 transition-colors cursor-pointer`}
+                className={`font-mono text-[10px] uppercase tracking-wider leading-none text-muted-foreground/90 underline decoration-dotted underline-offset-2 hover:text-foreground/70 active:text-foreground/90 transition-colors cursor-pointer`}
               >
                 {step.value}
               </button>
             ) : (
               <span
-                className={`font-mono text-[8px] uppercase tracking-wider leading-none ${
-                  isCurrent ? "text-foreground/80" : "text-muted-foreground/45"
+                className={`font-mono text-[10px] uppercase tracking-wider leading-none ${
+                  isCurrent ? "text-foreground/80" : "text-muted-foreground/90"
                 }`}
               >
                 {step.value}
@@ -1864,32 +1769,32 @@ function RawSignalsTable({
 
   return (
     <section className="space-y-3">
-      <div className="flex items-baseline gap-2 border-b border-border/40 pb-1.5">
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+      <div className="flex items-baseline gap-3">
+        <span className="section-title">
           Raw signals
         </span>
         {hasPrev && hasCustomCompare && (
-          <span className="font-mono text-[8px] uppercase tracking-widest text-primary/60">
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A]">
             vs selected baseline
           </span>
         )}
       </div>
-      <div className="w-full border border-border/40 overflow-hidden">
+      <div className="glass glass-table w-full">
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="border-b border-border/40 bg-secondary/20">
-              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[130px]">
+              <th className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground text-left px-3 py-2 w-[130px]">
                 Signal
               </th>
-              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[80px]">
+              <th className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground text-left px-3 py-2 w-[80px]">
                 Value
               </th>
               {hasPrev && (
-                <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[28px]" title={hasCustomCompare ? "Change vs selected baseline" : "Change vs previous session"}>
+                <th className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground text-left px-3 py-2 w-[28px]" title={hasCustomCompare ? "Change vs selected baseline" : "Change vs previous session"}>
                   vs
                 </th>
               )}
-              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2">
+              <th className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground text-left px-3 py-2">
                 Detail
               </th>
             </tr>
@@ -1908,7 +1813,7 @@ function RawSignalsTable({
                   }`}
                 >
                   <td className="px-3 py-2 align-top">
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-foreground/80">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/80">
                       {s.label}
                     </span>
                   </td>
@@ -1925,7 +1830,7 @@ function RawSignalsTable({
                       />
                     ) : (
                       prev && dir !== "same" && (
-                        <div className="font-mono text-[9px] text-muted-foreground/50 mt-0.5 leading-snug">
+                        <div className="font-mono text-[10px] text-muted-foreground/90 mt-0.5 leading-snug">
                           was: {prev.value}
                         </div>
                       )
@@ -1936,12 +1841,12 @@ function RawSignalsTable({
                       {dir != null ? (
                         <SignalDeltaBadge dir={dir} prevValue={prev?.value ?? ""} />
                       ) : (
-                        <span className="font-mono text-[8px] text-muted-foreground/30">—</span>
+                        <span className="font-mono text-[10px] text-muted-foreground/90">—</span>
                       )}
                     </td>
                   )}
                   <td className="px-3 py-2 align-top">
-                    <span className="text-xs text-muted-foreground/80 leading-relaxed">
+                    <span className="text-xs text-muted-foreground leading-relaxed">
                       {s.detail}
                     </span>
                   </td>
@@ -1964,12 +1869,12 @@ function ComparisonSection({
 }) {
   return (
     <section className="space-y-3">
-      <div className="flex items-baseline gap-2 border-b border-border/40 pb-1.5">
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+      <div className="flex items-baseline gap-3">
+        <span className="section-title">
           What changed
         </span>
         {isCustomBaseline && (
-          <span className="font-mono text-[8px] uppercase tracking-widest text-primary/60">
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A]">
             vs selected baseline
           </span>
         )}
@@ -1978,9 +1883,9 @@ function ComparisonSection({
         {comparison.deltas.map((d) => (
           <div
             key={d.key}
-            className="flex items-center justify-between gap-2 border border-border/50 px-3 py-2"
+            className="flex items-center justify-between gap-2 border border-border/50 px-3 py-2 rounded-2xl"
           >
-            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
+            <span className="eyebrow">
               {d.label}
             </span>
             <span className="flex items-center gap-1 font-mono text-[11px] text-foreground/90">
@@ -1991,7 +1896,7 @@ function ComparisonSection({
         ))}
       </div>
       {comparison.note && (
-        <p className="text-sm text-primary/85 leading-relaxed italic">
+        <p className="text-sm text-[#C7A15A] leading-relaxed italic">
           {comparison.note}
         </p>
       )}
@@ -2002,20 +1907,20 @@ function ComparisonSection({
 function ScoreProvenance({ analysis }: { analysis: VideoAnalysis }) {
   return (
     <section className="space-y-2 pt-1">
-      <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/80">
+      <div className="eyebrow">
         How these scores were derived
       </div>
       <div className="space-y-1.5">
         {analysis.scores.map((s) => (
-          <div key={s.key} className="font-mono text-[9px] tracking-wide" title={s.basis}>
-            <span className="uppercase tracking-widest text-foreground/85">
+          <div key={s.key} className="font-mono text-[10px] tracking-wide" title={s.basis}>
+            <span className="uppercase tracking-[0.14em] text-foreground/85">
               {s.label} {s.value}
             </span>
-            <span className="text-muted-foreground/70"> — {s.basis}</span>
+            <span className="text-muted-foreground"> — {s.basis}</span>
           </div>
         ))}
       </div>
-      <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/60 pt-2 leading-relaxed">
+      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90 pt-2 leading-relaxed">
         {analysis.metrics.poseFrames} of {analysis.metrics.framesAnalysed} frames locked a pose ·
         every number derived from measured movement, never invented
       </div>
@@ -2028,11 +1933,11 @@ function ScoreProvenance({ analysis }: { analysis: VideoAnalysis }) {
 // ---------------------------------------------------------------------------
 
 const REPLAY_ROLE_META: Record<ReplayMoment["role"], { label: string; accent: string }> = {
-  best_decision: { label: "Best decision", accent: "text-emerald-400/90 border-emerald-400/40" },
+  best_decision: { label: "Best decision", accent: "text-[#E6D2A3] border-[#E6D2A3]/40" },
   worst_habit: { label: "Worst habit", accent: "text-destructive/90 border-destructive/40" },
   biggest_opportunity: {
     label: "Biggest opportunity",
-    accent: "text-primary/90 border-primary/40",
+    accent: "text-[#C7A15A] border-primary/40",
   },
 };
 
@@ -2055,16 +1960,16 @@ function ReplayMomentRow({
         <img
           src={keyframe.imageBase64}
           alt={keyframe.caption}
-          className="flex-none w-20 h-14 object-cover border border-border/40"
+          className="flex-none w-20 h-14 object-cover rounded-xl border border-white/10"
         />
       )}
       <div className="flex-1 min-w-0 space-y-1">
         <div
-          className={`inline-block font-mono text-[8px] uppercase tracking-[0.25em] border px-1.5 py-0.5 ${meta.accent}`}
+          className={`inline-block font-mono text-[10px] uppercase tracking-[0.14em] border rounded-full px-2.5 py-0.5 ${meta.accent}`}
         >
           {meta.label}
         </div>
-        <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
+        <div className="eyebrow">
           {moment.timestamp.toFixed(1)}s{moment.label ? ` · ${moment.label}` : ""}
         </div>
         <p className="text-[0.85rem] text-foreground/90 leading-snug">{moment.note}</p>
@@ -2076,14 +1981,14 @@ function ReplayMomentRow({
       <button
         type="button"
         onClick={() => onSeek!(moment.timestamp, index)}
-        className="w-full flex gap-3 items-stretch text-left border border-border/40 bg-black/20 p-2 transition-colors hover:border-primary/50"
+        className="glass w-full flex gap-3 items-stretch text-left p-2.5 transition-colors hover:border-primary/40"
       >
         {inner}
       </button>
     );
   }
   return (
-    <div className="w-full flex gap-3 items-stretch text-left border border-border/40 bg-black/20 p-2">
+    <div className="glass w-full flex gap-3 items-stretch text-left p-2.5">
       {inner}
     </div>
   );
@@ -2101,7 +2006,7 @@ function ReplaySection({
 
   return (
     <section className="space-y-3">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+      <div className="section-title">
         FRAME Replay
       </div>
       <div className="space-y-2">
@@ -2121,7 +2026,7 @@ function ReplaySection({
         })}
       </div>
       {onSeek && (
-        <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/50">
+        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
           tap a moment to jump to that frame
         </div>
       )}
@@ -2143,18 +2048,18 @@ function FeedbackCard({ analysis }: { analysis: VideoAnalysis }) {
   const recorded = answerMutation.data?.analysis.reviewAnswer || analysis.reviewAnswer;
 
   return (
-    <section className="space-y-3 border border-primary/30 bg-primary/[0.03] p-4">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/80">
+    <section className="glass space-y-3 p-5">
+      <div className="eyebrow eyebrow-gold">
         FRAME asks
       </div>
       <p className="text-[0.95rem] text-foreground/90 leading-relaxed">{question}</p>
 
       {recorded ? (
         <div className="space-y-1.5">
-          <div className="border-l-2 border-primary/60 pl-3 text-[0.9rem] text-foreground/85 leading-relaxed">
+          <div className="border-l-2 border-primary-light/70 pl-3 text-[0.9rem] text-foreground/90 leading-relaxed">
             {recorded}
           </div>
-          <div className="font-mono text-[8px] uppercase tracking-widest text-primary/70">
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A]">
             Recorded — FRAME will hold this
           </div>
         </div>
@@ -2166,23 +2071,23 @@ function FeedbackCard({ analysis }: { analysis: VideoAnalysis }) {
             maxLength={500}
             rows={3}
             placeholder="Answer honestly — one or two lines is enough."
-            className="w-full bg-black/30 border border-border/40 focus:border-primary/50 outline-none text-[0.9rem] text-foreground/90 placeholder:text-muted-foreground/35 p-2.5 resize-none transition-colors"
+            className="field-glass !min-h-0 !py-3 !text-[0.9rem] placeholder:text-muted-foreground resize-none"
           />
           <div className="flex items-center justify-between gap-3">
-            <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/50">
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90">
               {draft.trim().length}/500
             </div>
             <button
               type="button"
               disabled={!draft.trim() || answerMutation.isPending}
               onClick={() => answerMutation.mutate(draft.trim())}
-              className="font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/50 hover:border-primary px-4 py-2 text-foreground/85 transition-colors disabled:opacity-40"
+              className="btn-quiet btn-quiet-gold disabled:opacity-40"
             >
               {answerMutation.isPending ? "Recording…" : "Record"}
             </button>
           </div>
           {answerMutation.isError && (
-            <div className="font-mono text-[9px] uppercase tracking-widest text-destructive/80">
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive/80">
               could not record — try again
             </div>
           )}
@@ -2263,10 +2168,10 @@ function Report({
   return (
     <div className="space-y-7">
       <div className="flex items-start justify-between gap-4">
-        <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
+        <div className="eyebrow">
           {analysis.kind} · {analysis.durationSec.toFixed(0)}s read
           {analysis.focus && (
-            <span className="block normal-case tracking-normal text-muted-foreground/70 mt-1">
+            <span className="block normal-case tracking-normal text-muted-foreground mt-1">
               focus: {analysis.focus}
             </span>
           )}
@@ -2275,7 +2180,7 @@ function Report({
           type="button"
           onClick={onClose}
           aria-label="New analysis"
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="icon-round flex-none text-muted-foreground hover:text-foreground transition-colors"
         >
           <X className="w-5 h-5" strokeWidth={1.5} />
         </button>
@@ -2288,14 +2193,14 @@ function Report({
           type="button"
           onClick={saveCard}
           disabled={saving}
-          className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 px-4 py-2.5 text-foreground/80 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-2 disabled:opacity-50 btn-quiet"
         >
           <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
           {saving ? "Rendering…" : "Save card"}
         </button>
       </div>
 
-      <p className="text-[0.95rem] text-foreground/90 leading-relaxed border-l-2 border-primary/60 pl-4">
+      <p className="glass glass-gold font-display not-italic text-[1.2rem] text-[#f1ede6] leading-snug p-5">
         {analysis.summary}
       </p>
 
@@ -2334,7 +2239,7 @@ function Report({
       {/* detected events — clickable keyframes + note annotation */}
       {analysis.keyframes.length > 0 && (
         <section className="space-y-3">
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+          <div className="section-title">
             Detected events
           </div>
           {kf && (
@@ -2344,11 +2249,11 @@ function Report({
                 alt={kf.caption}
                 className="w-full rounded border border-border/50"
               />
-              <figcaption className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/85">
+              <figcaption className="eyebrow">
                 {kf.timestamp.toFixed(1)}s · {kf.caption}
               </figcaption>
               {localNotes[activeKf] && (
-                <div className="font-mono text-[9px] text-primary/85 leading-snug">
+                <div className="font-mono text-[10px] text-[#C7A15A] leading-snug">
                   {localNotes[activeKf]}
                 </div>
               )}
@@ -2360,16 +2265,16 @@ function Report({
                 key={i}
                 type="button"
                 onClick={() => seekTo(k.timestamp, i)}
-                className={`flex-none w-20 border transition-colors ${
+                className={`flex-none w-20 overflow-hidden rounded-xl border transition-colors ${
                   i === activeKf ? "border-primary/70" : "border-border/40 hover:border-primary/40"
                 }`}
               >
                 <img src={k.imageBase64} alt={k.caption} className="w-full" />
-                <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/80 px-1 py-1 truncate">
+                <div className="eyebrow px-1 py-1 truncate">
                   {k.caption}
                 </div>
                 {localNotes[i] && (
-                  <div className="font-mono text-[7px] text-primary/75 px-1 pb-1 truncate leading-tight border-t border-border/20 pt-0.5">
+                  <div className="font-mono text-[10px] text-[#C7A15A] px-1 pb-1 truncate leading-tight border-t border-border/20 pt-0.5">
                     {localNotes[i]}
                   </div>
                 )}
@@ -2378,7 +2283,7 @@ function Report({
           </div>
           {/* inline note editor for active keyframe */}
           <div className="flex items-center gap-2">
-            <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/60 flex-none">
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90 flex-none">
               Note
             </div>
             <input
@@ -2397,7 +2302,7 @@ function Report({
                 if (e.key === "Enter") (e.target as HTMLInputElement).blur();
               }}
               placeholder={`Add a note for frame ${activeKf + 1}…`}
-              className="flex-1 bg-transparent border-b border-border/40 focus:border-primary/50 outline-none font-mono text-[10px] text-foreground/90 placeholder:text-muted-foreground/35 py-0.5 pb-1 transition-colors"
+              className="field-glass flex-1 !min-h-[44px] !py-0 !text-xs placeholder:text-muted-foreground"
             />
           </div>
         </section>
@@ -2440,7 +2345,7 @@ function Report({
       <button
         type="button"
         onClick={onClose}
-        className="w-full font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 py-3 text-foreground/80 transition-colors"
+        className="w-full btn-quiet"
       >
         Analyse another
       </button>
@@ -2466,7 +2371,7 @@ function SavedReport({
     return (
       <div className="py-16 flex flex-col items-center gap-4">
         <FrameOctagon size={56} spin spinSeconds={4} glow={false} />
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+        <div className="eyebrow">
           Loading read
         </div>
       </div>
@@ -2475,13 +2380,13 @@ function SavedReport({
   if (isError || !data?.analysis) {
     return (
       <div className="space-y-4">
-        <div className="border border-destructive/40 bg-destructive/10 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+        <div className="glass glass-red !rounded-2xl px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive/90">
           could not load this read
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="w-full font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 py-3 text-foreground/80"
+          className="w-full btn-quiet"
         >
           Back
         </button>
@@ -2530,9 +2435,9 @@ function TrendSection({
 
   return (
     <section className="space-y-3">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+      <div className="section-title">
         Trend
-        <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
+        <span className="ml-2 normal-case tracking-normal text-muted-foreground/90">
           · {chartData.length} sessions
         </span>
       </div>
@@ -2543,11 +2448,11 @@ function TrendSection({
           return (
             <div key={key} className="space-y-1.5">
               <div className="flex items-baseline justify-between">
-                <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
+                <span className="eyebrow">
                   {label}
                 </span>
                 {hasData && (
-                  <span className="font-mono text-[9px] text-foreground/60">
+                  <span className="font-mono text-[10px] text-foreground/60">
                     {values[values.length - 1]}
                   </span>
                 )}
@@ -2561,7 +2466,7 @@ function TrendSection({
                         if (!active || !payload?.length) return null;
                         const val = payload[0]?.value as number | undefined;
                         return (
-                          <div className="bg-background/95 border border-border/60 px-2 py-1 font-mono text-[9px] text-foreground/90">
+                          <div className="glass px-3 py-1.5 font-mono text-[11px] text-foreground !rounded-xl">
                             {lbl} · {val ?? "—"}
                           </div>
                         );
@@ -2596,7 +2501,7 @@ function TrendSection({
                 </ResponsiveContainer>
               ) : (
                 <div
-                  className="flex items-center justify-center font-mono text-[8px] uppercase tracking-widest text-muted-foreground/40 border border-border/20"
+                  className="flex items-center justify-center font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90 border border-border/20 rounded-2xl"
                   style={{ height: 44 }}
                 >
                   No data
@@ -2642,15 +2547,16 @@ function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: strin
       : null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center px-8 overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-[#050505]/95 backdrop-blur-xl flex flex-col items-center justify-center px-8 overflow-hidden">
       <div className="pointer-events-none absolute inset-0 frame-scanlines" />
       <div className="pointer-events-none absolute inset-x-0 h-24 frame-scan-sweep" />
 
-      <div className="relative flex items-center justify-center w-32 h-32">
+      <div className="pointer-events-none absolute left-1/2 top-[34%] h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ background: "radial-gradient(closest-side, rgba(138,106,47,0.42), rgba(191,29,29,0.10) 60%, transparent)", filter: "blur(30px)" }} />
+      <div className="glass relative flex items-center justify-center w-32 h-32 !rounded-full">
         <img
           src={`${import.meta.env.BASE_URL.replace(/\/$/, "")}frame-logo.png`}
           alt="FRAME"
-          className="w-20 h-20 object-contain"
+          className="w-20 h-20 object-contain rounded-full mix-blend-screen"
           style={{ animation: "frame-logo-pulse 2.4s ease-in-out infinite", opacity: 0.92 }}
           draggable={false}
         />
@@ -2659,17 +2565,18 @@ function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: strin
             0%, 100% { opacity: 0.6; transform: scale(0.97); }
             50% { opacity: 0.95; transform: scale(1.03); }
           }
+          @media (prefers-reduced-motion: reduce) { img[alt="FRAME"] { animation: none !important; } }
         `}</style>
       </div>
 
       <div className="mt-10 text-center space-y-2 relative">
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
+        <div className="eyebrow">
           {kindLabel}
         </div>
-        <div className="font-mono text-base uppercase tracking-[0.3em] text-foreground/95">
+        <div className="font-mono text-base uppercase tracking-[0.16em] text-foreground/95">
           {PHASE_TITLE[key]}
         </div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/80 h-4 transition-opacity">
+        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A] h-4 transition-opacity">
           {phrases[phraseIdx]}
           {pct != null ? ` · ${pct}%` : ""}
         </div>
@@ -2679,8 +2586,8 @@ function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: strin
         {steps.map((s, i) => (
           <div
             key={s}
-            className={`h-px transition-all duration-500 ${
-              i <= activeIdx ? "w-10 bg-primary/80" : "w-6 bg-border/50"
+            className={`h-1 rounded-full transition-all duration-500 ${
+              i <= activeIdx ? "w-10 bg-[#C7A15A]" : "w-6 bg-white/15"
             }`}
           />
         ))}
@@ -2690,9 +2597,9 @@ function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: strin
 }
 
 function deltaIcon(d: number) {
-  if (d > 1) return <ArrowUpRight className="w-3.5 h-3.5 text-emerald-300/90" strokeWidth={2} />;
-  if (d < -1) return <ArrowDownRight className="w-3.5 h-3.5 text-red-400/90" strokeWidth={2} />;
-  return <Minus className="w-3.5 h-3.5 text-muted-foreground/70" strokeWidth={2} />;
+  if (d > 1) return <ArrowUpRight className="w-3.5 h-3.5 text-[#E6D2A3]" strokeWidth={2} />;
+  if (d < -1) return <ArrowDownRight className="w-3.5 h-3.5 text-[#E0564E]" strokeWidth={2} />;
+  return <Minus className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={2} />;
 }
 
 function SubjectToggle({
@@ -2710,10 +2617,10 @@ function SubjectToggle({
   ];
   return (
     <section className="space-y-2">
-      <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+      <div className="eyebrow">
         Mode
       </div>
-      <div className="grid grid-cols-2 gap-[3px]">
+      <div className="grid grid-cols-2 gap-2">
         {opts.map((o) => {
           const active = subject === o.value;
           return (
@@ -2722,16 +2629,8 @@ function SubjectToggle({
               type="button"
               onClick={() => setSubject(o.value)}
               disabled={disabled}
-              className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
-              style={{
-                borderLeft: `2px solid ${active ? `hsla(${o.accent},0.9)` : "hsla(0,0%,100%,0.1)"}`,
-                borderTop: `1px solid ${active ? `hsla(${o.accent},0.2)` : "hsla(0,0%,100%,0.06)"}`,
-                borderRight: "1px solid hsla(0,0%,100%,0.04)",
-                borderBottom: "1px solid hsla(0,0%,100%,0.04)",
-                background: active ? `hsla(${o.accent},0.08)` : "transparent",
-                color: active ? o.text : "hsla(0,0%,100%,0.55)",
-              }}
-            >
+              className="pill !px-2 disabled:opacity-40" data-active={active}
+>
               {o.label}
             </button>
           );
@@ -2755,31 +2654,23 @@ function OpponentHistory({
   const SCOUT = "199,84%,56%";
   return (
     <section className="space-y-3 pt-2">
-      <div
-        className="flex items-center gap-3 pb-1.5"
-        style={{ borderBottom: "1px solid hsla(0,0%,100%,0.07)" }}
-      >
+      <div className="flex items-center gap-3 pb-1">
         <span
           className="h-[5px] w-[5px] rounded-full flex-none"
           style={{ background: `hsla(${SCOUT},0.7)` }}
         />
-        <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-muted-foreground/70">
+        <div className="section-title">
           Scouting reads
         </div>
       </div>
-      <div className="space-y-[3px]">
+      <div className="space-y-2.5">
         {items.map((a, idx) => (
           <button
             key={a.id}
             type="button"
             onClick={() => onOpen(a.id)}
-            className="w-full text-left transition-all duration-200 px-4 py-3.5"
-            style={{
-              borderLeft: `2px solid hsla(${SCOUT},0.35)`,
-              borderTop: "1px solid hsla(0,0%,100%,0.05)",
-              background: idx % 2 === 0 ? "hsla(0,0%,100%,0.015)" : "transparent",
-            }}
-          >
+            className="glass w-full text-left px-5 py-4 transition-colors hover:border-primary/40"
+>
             <div className="flex items-start gap-3">
               <Crosshair
                 className="w-[14px] h-[14px] mt-0.5 flex-none"
@@ -2788,14 +2679,14 @@ function OpponentHistory({
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-3 mb-1">
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/80 truncate">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/80 truncate">
                     {a.opponentName || "Unnamed"}
-                    <span className="text-muted-foreground/50"> · {a.kind}</span>
+                    <span className="text-muted-foreground/90"> · {a.kind}</span>
                   </span>
                   <span className="flex items-baseline gap-2 flex-none">
                     {a.hasMatchup && (
                       <span
-                        className="font-mono text-[8px] uppercase tracking-widest px-1.5 py-0.5"
+                        className="font-mono text-[10px] uppercase tracking-[0.14em] px-1.5 py-0.5"
                         style={{ color: `hsla(${SCOUT},0.85)`, border: `1px solid hsla(${SCOUT},0.3)` }}
                       >
                         matchup
@@ -2803,14 +2694,14 @@ function OpponentHistory({
                     )}
                     {a.nervousSystemLoad != null && (
                       <span
-                        className={`font-mono text-[9px] uppercase tracking-widest ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}
+                        className={`font-mono text-[10px] uppercase tracking-[0.14em] ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}
                       >
                         {LOAD_LABEL[a.nervousSystemLoad]}
                       </span>
                     )}
                   </span>
                 </div>
-                <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/35 mt-1.5">
+                <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90 mt-1.5">
                   {new Date(a.createdAt).toLocaleString(undefined, {
                     month: "short",
                     day: "numeric",
@@ -2848,23 +2739,23 @@ function History({
 
   return (
     <section className="space-y-3 pt-2">
-      <div className="flex items-center justify-between gap-3 pb-1.5" style={{ borderBottom: "1px solid hsla(0,0%,100%,0.07)" }}>
+      <div className="flex items-center justify-between gap-3 pb-1">
         <div className="flex items-center gap-3">
-          <span className="h-[5px] w-[5px] rounded-full bg-destructive/60 flex-none" />
-          <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-muted-foreground/70">
+          <span className="h-[6px] w-[6px] rounded-full bg-[#C7A15A] flex-none" />
+          <div className="section-title">
             Session log
           </div>
         </div>
         {baselineItem && (
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[8px] uppercase tracking-widest text-primary/70">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A]">
               Baseline: {baselineItem.kind} ·{" "}
               {new Date(baselineItem.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
             </span>
             <button
               type="button"
               onClick={() => onSetCompare(compareId!)}
-              className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/50 hover:text-foreground/70 transition-colors"
+              className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90 hover:text-foreground/70 transition-colors"
               title="Clear baseline"
             >
               <X className="w-3 h-3" strokeWidth={1.5} />
@@ -2872,7 +2763,7 @@ function History({
           </div>
         )}
       </div>
-      <div className="space-y-[3px]">
+      <div className="space-y-2.5">
         {items.map((a, idx) => {
           const isBaseline = a.id === compareId;
           if (a.locked) {
@@ -2882,25 +2773,20 @@ function History({
                 key={a.id}
                 type="button"
                 onClick={() => openUpgrade("analysis_history")}
-                className="w-full text-left px-4 py-3.5 transition-colors duration-200 hover:bg-white/[0.02]"
-                style={{
-                  borderLeft: "2px solid hsla(0,0%,100%,0.08)",
-                  borderTop: "1px solid hsla(0,0%,100%,0.05)",
-                  background: idx % 2 === 0 ? "hsla(0,0%,100%,0.015)" : "transparent",
-                }}
-              >
+                className="glass w-full text-left px-5 py-4 opacity-85 transition-colors hover:border-primary/40"
+>
                 <div className="flex items-center gap-3">
-                  <Lock className="w-[14px] h-[14px] flex-none text-muted-foreground/40" strokeWidth={1.5} />
+                  <Lock className="w-[14px] h-[14px] flex-none text-muted-foreground/90" strokeWidth={1.5} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/45">
+                      <span className="eyebrow">
                         {a.kind}
                       </span>
-                      <span className="font-mono text-[8px] uppercase tracking-widest text-primary/60 border border-primary/25 px-1.5 py-0.5">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A] border border-primary/25 px-1.5 py-0.5 rounded-2xl">
                         FRAME+
                       </span>
                     </div>
-                    <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/35 mt-1.5">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90 mt-1.5">
                       {new Date(a.createdAt).toLocaleString(undefined, {
                         month: "short",
                         day: "numeric",
@@ -2921,57 +2807,36 @@ function History({
               <button
                 type="button"
                 onClick={() => onOpen(a.id)}
-                className="w-full text-left transition-all duration-200 px-4 py-3.5 pr-16"
-                style={{
-                  borderLeft: isBaseline ? "2px solid hsla(var(--primary)/0.7)" : "2px solid hsla(0,0%,100%,0.08)",
-                  borderTop: "1px solid hsla(0,0%,100%,0.05)",
-                  borderRight: "1px solid transparent",
-                  borderBottom: "1px solid transparent",
-                  background: isBaseline
-                    ? "hsla(var(--primary)/0.06)"
-                    : idx % 2 === 0 ? "hsla(0,0%,100%,0.015)" : "transparent",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isBaseline) {
-                    (e.currentTarget as HTMLElement).style.borderLeftColor = "hsla(0,68%,46%,0.5)";
-                    (e.currentTarget as HTMLElement).style.background = "hsla(0,68%,46%,0.04)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isBaseline) {
-                    (e.currentTarget as HTMLElement).style.borderLeftColor = "hsla(0,0%,100%,0.08)";
-                    (e.currentTarget as HTMLElement).style.background = idx % 2 === 0 ? "hsla(0,0%,100%,0.015)" : "transparent";
-                  }
-                }}
-              >
+                className={`glass w-full text-left px-5 py-4 pr-16 transition-colors hover:border-primary/40 ${isBaseline ? "glass-gold" : ""}`}
+>
                 <div className="flex items-start gap-3">
-                  <Film className="w-[14px] h-[14px] mt-0.5 flex-none" style={{ color: isBaseline ? "hsl(var(--primary))" : "hsla(0,68%,46%,0.55)" }} strokeWidth={1.5} />
+                  <Film className="w-[14px] h-[14px] mt-0.5 flex-none" style={{ color: isBaseline ? "#E6D2A3" : "#C7A15A" }} strokeWidth={1.5} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3 mb-1">
-                      <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/80">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/80">
                         {a.kind}
-                        {a.styleProfile ? <span className="text-muted-foreground/50"> · {a.styleProfile}</span> : null}
+                        {a.styleProfile ? <span className="text-muted-foreground/90"> · {a.styleProfile}</span> : null}
                         {isBaseline && (
-                          <span className="ml-2 font-mono text-[8px] uppercase tracking-widest text-primary/70 border border-primary/30 px-1 py-0.5">
+                          <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A] border border-primary/30 px-1 py-0.5 rounded-2xl">
                             baseline
                           </span>
                         )}
                       </span>
                       <span className="flex items-baseline gap-2">
                         {(a.sessionScore ?? 0) > 0 && (
-                          <span className="font-mono text-[12px] font-light text-foreground/90">{a.sessionScore}</span>
+                          <span className="numeral numeral-m !text-[1.5rem]">{a.sessionScore}</span>
                         )}
                         {a.nervousSystemLoad != null && (
-                          <span className={`font-mono text-[9px] uppercase tracking-widest ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}>
+                          <span className={`font-mono text-[10px] uppercase tracking-[0.14em] ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}>
                             {LOAD_LABEL[a.nervousSystemLoad]}
                           </span>
                         )}
                       </span>
                     </div>
-                    <p className="text-[0.78rem] text-foreground/55 leading-snug line-clamp-2">
+                    <p className="text-[0.8rem] text-foreground/70 leading-snug line-clamp-2">
                       {a.summary}
                     </p>
-                    <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/35 mt-1.5">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/90 mt-1.5">
                       {new Date(a.createdAt).toLocaleString(undefined, {
                         month: "short",
                         day: "numeric",
@@ -2988,10 +2853,10 @@ function History({
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onSetCompare(a.id); }}
                 title={isBaseline ? "Clear baseline" : "Set as comparison baseline"}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[8px] uppercase tracking-widest px-1.5 py-1 border transition-all duration-150 ${
+                className={`absolute right-3 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] rounded-full font-mono text-[10px] uppercase tracking-[0.14em] border transition-all duration-150 ${
                   isBaseline
-                    ? "opacity-100 border-primary/40 text-primary/70 bg-primary/5 hover:bg-primary/10"
-                    : "opacity-0 group-hover:opacity-100 border-border/40 text-muted-foreground/60 hover:border-primary/40 hover:text-primary/70"
+                    ? "opacity-100 border-primary-light/40 text-[#C7A15A] bg-primary/10 hover:bg-primary/20"
+                    : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 border-border/60 text-muted-foreground hover:border-primary/40 hover:text-[#C7A15A]"
                 }`}
               >
                 vs

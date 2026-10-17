@@ -160,7 +160,7 @@ function CompareStage({
   return (
     <div className="space-y-2" data-testid={testId}>
       <div
-        className="relative w-full border border-border/40 bg-black"
+        className="relative w-full border border-border/40 bg-black rounded-2xl"
         style={{ aspectRatio: layout === "side" ? "16 / 9" : "4 / 3" }}
       >
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
@@ -169,7 +169,7 @@ function CompareStage({
         {lanes.map((l) => (
           <span
             key={l.label}
-            className="inline-flex items-center gap-1.5 font-mono text-[8px] uppercase tracking-widest text-muted-foreground/85"
+            className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
           >
             <i className="inline-block w-3.5 h-[3px]" style={{ background: l.swatch }} />
             {l.label}
@@ -181,7 +181,7 @@ function CompareStage({
           type="button"
           onClick={() => (playing ? ctlRef.current.stop() : ctlRef.current.start())}
           aria-label={playing ? "Pause comparison" : "Play comparison"}
-          className="flex-none w-9 h-9 flex items-center justify-center border border-primary/50 text-primary/90 hover:border-primary transition-colors"
+          className="flex-none w-9 h-9 flex items-center justify-center border border-primary/50 text-[#C7A15A] hover:border-primary transition-colors rounded-2xl"
         >
           {playing ? <Pause className="w-4 h-4" strokeWidth={1.5} /> : <Play className="w-4 h-4" strokeWidth={1.5} />}
         </button>
@@ -203,13 +203,13 @@ function CompareStage({
           type="button"
           onClick={() => setSlow((s) => !s)}
           aria-pressed={slow}
-          className={`flex-none font-mono text-[9px] uppercase tracking-widest border px-2 py-2 ${
-            slow ? "border-primary/60 text-primary/90" : "border-border/50 text-muted-foreground/70"
+          className={`flex-none font-mono text-[10px] uppercase tracking-[0.14em] border px-2 py-2 ${
+            slow ? "border-primary/60 text-[#C7A15A]" : "border-border/50 text-muted-foreground"
           }`}
         >
           0.5x
         </button>
-        <span ref={timeRef} className="flex-none font-mono text-[9px] text-muted-foreground/80 tabular-nums flex-none text-right whitespace-nowrap">
+        <span ref={timeRef} className="flex-none font-mono text-[10px] text-muted-foreground tabular-nums flex-none text-right whitespace-nowrap">
           0.0s / {fmtSec(duration)}
         </span>
       </div>
@@ -219,10 +219,10 @@ function CompareStage({
 
 function Block({ title, note, children }: { title: string; note: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-2.5 border border-border/40 bg-black/20 p-3">
+    <div className="space-y-2.5 border border-border/40 bg-white/[0.025] p-3 rounded-2xl">
       <div className="space-y-0.5">
-        <div className="font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/85">{title}</div>
-        <p className="font-mono text-[8px] tracking-wide text-muted-foreground/60 leading-relaxed">{note}</p>
+        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/85">{title}</div>
+        <p className="font-mono text-[10px] tracking-wide text-muted-foreground/90 leading-relaxed">{note}</p>
       </div>
       {children}
     </div>

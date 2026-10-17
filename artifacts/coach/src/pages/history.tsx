@@ -125,19 +125,7 @@ export default function HistoryPage() {
   const isEmpty = !isLoading && days.length === 0;
 
   return (
-    <div
-      className="relative flex flex-col h-[100dvh] text-foreground font-sans overflow-hidden"
-      style={{ background: "#000" }}
-    >
-      {/* Page-wide vignette — matches the flagship home atmosphere */}
-      <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 95% 60% at 50% 30%, transparent 45%, rgba(0,0,0,0.55) 95%)",
-        }}
-      />
-
+    <div className="relative flex flex-col h-[100dvh] text-foreground font-sans overflow-hidden">
       {/* Ultra-fine grain — kills banding on the OLED black */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.04] mix-blend-overlay z-0"
@@ -155,28 +143,26 @@ export default function HistoryPage() {
         <rect width="100%" height="100%" filter="url(#frame-history-grain)" />
       </svg>
 
-      <header className="relative z-10 flex-none flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-border/60 bg-background/95 backdrop-blur-sm">
+      <header className="relative z-10 flex-none flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
         <Link
           href="/home"
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Back to Frame"
+          className="icon-round text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
-          <span className="font-mono text-[10px] uppercase tracking-widest">Frame</span>
         </Link>
-        <div className="font-sans font-extralight text-[13px] uppercase tracking-[0.45em] text-foreground/90">
-          History
-        </div>
-        <div className="w-[74px]" aria-hidden />
+        <h1 className="display-heading">History</h1>
+        <div className="w-11" aria-hidden />
       </header>
 
       <main className="relative z-10 flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-6 py-9">
           {/* Editorial intro */}
-          <div className="mb-11 text-center">
-            <div className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/45">
+          <div className="mb-10 text-center">
+            <div className="eyebrow">
               The record
             </div>
-            <p className="mt-3 font-sans font-extralight text-[0.95rem] leading-relaxed text-foreground/60">
+            <p className="mt-3 text-[0.95rem] leading-relaxed text-foreground/75">
               Your sessions and what FRAME holds now, newest first.
             </p>
             <div
@@ -205,12 +191,12 @@ export default function HistoryPage() {
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center pt-16 text-muted-foreground font-mono text-xs uppercase tracking-widest">
+            <div className="flex justify-center pt-16 text-muted-foreground font-mono text-xs uppercase tracking-[0.14em]">
               Loading record…
             </div>
           ) : isEmpty ? (
             <div className="flex flex-col items-center justify-center min-h-[45vh] gap-6 text-center px-4">
-              <div className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/45">
+              <div className="eyebrow">
                 No record yet
               </div>
               <p className="font-sans font-extralight text-lg leading-relaxed text-foreground/70 max-w-sm">
@@ -241,7 +227,7 @@ export default function HistoryPage() {
                       <span
                         aria-hidden
                         className="absolute left-[1px] top-[3px] w-[13px] h-[13px] rounded-full border border-primary/50 flex items-center justify-center"
-                        style={{ background: "#000" }}
+                        style={{ background: "#0d0b09" }}
                       >
                         <span
                           className="w-1 h-1 rounded-full"
@@ -251,11 +237,11 @@ export default function HistoryPage() {
                           }}
                         />
                       </span>
-                      <h2 className="font-sans font-extralight uppercase text-[1.35rem] tracking-[0.3em] leading-none text-foreground/90">
+                      <h2 className="display-heading leading-none">
                         {dayHeader(day.date)}
                       </h2>
                       {dayHeader(day.date) !== explicitDate(day.date) && (
-                        <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/40">
+                        <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/70">
                           {explicitDate(day.date)}
                         </div>
                       )}
@@ -267,34 +253,34 @@ export default function HistoryPage() {
                         <Link
                           key={`a-${a.id}`}
                           href="/analyse"
-                          className="group relative block pl-8 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-md"
+                          className="glass group relative block ml-8 p-5 outline-none transition-colors hover:border-primary/40 focus-visible:ring-1 focus-visible:ring-primary/50"
                           aria-label={`View session analysis · ${a.styleProfile}`}
                         >
                           <span
                             aria-hidden
-                            className="absolute left-[3px] top-[6px] w-[9px] h-[9px] rounded-full"
+                            className="absolute -left-[30px] top-[24px] w-[9px] h-[9px] rounded-full"
                             style={{
                               background: "hsla(39,49%,36%,0.85)",
                               boxShadow: "0 0 8px hsla(39,49%,36%,0.4)",
                             }}
                           />
-                          <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45">
+                          <div className="eyebrow">
                             Analysed session
                           </div>
                           <div className="mt-1.5 flex items-baseline justify-between gap-4">
-                            <div className="font-sans font-extralight text-[1.05rem] tracking-wide leading-snug text-foreground/90 group-hover:text-primary/90 transition-colors">
+                            <div className="text-[1.05rem] font-medium leading-snug text-foreground group-hover:text-[#C7A15A] transition-colors">
                               {a.styleProfile}
                             </div>
                             <ChevronRight
-                              className="flex-none w-3.5 h-3.5 text-foreground/30 group-hover:text-primary/80 transition-colors"
+                              className="flex-none w-3.5 h-3.5 text-foreground/70 group-hover:text-[#C7A15A] transition-colors"
                               strokeWidth={1.5}
                             />
                           </div>
                           <div className="mt-2 flex items-baseline gap-2">
-                            <span className="font-mono text-[9px] uppercase tracking-[0.4em] text-foreground/45">
+                            <span className="eyebrow">
                               Session score
                             </span>
-                            <span className="font-sans font-light text-[17px] tabular-nums leading-none text-primary/90">
+                            <span className="numeral numeral-m !text-[1.75rem] !text-[#C7A15A]">
                               {Math.round(a.sessionScore ?? 0)}
                             </span>
                           </div>
@@ -303,21 +289,21 @@ export default function HistoryPage() {
 
                       {/* FRAME noticed — facts recorded that day */}
                       {day.facts.length > 0 && (
-                        <div className="relative pl-8">
+                        <div className="glass relative ml-8 p-5">
                           <span
                             aria-hidden
-                            className="absolute left-[3px] top-[6px] w-[9px] h-[9px] rounded-full"
+                            className="absolute -left-[30px] top-[24px] w-[9px] h-[9px] rounded-full"
                             style={{
                               background: "hsla(39,49%,36%,0.85)",
                               boxShadow: "0 0 8px hsla(39,49%,36%,0.4)",
                             }}
                           />
                           <div className="flex items-baseline justify-between gap-3">
-                            <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-primary/70">
+                            <div className="eyebrow eyebrow-gold">
                               FRAME noticed
                             </div>
                             {day.facts.length > 1 && (
-                              <div className="flex-none font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/40">
+                              <div className="flex-none font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/70">
                                 {day.facts.length} observations
                               </div>
                             )}
@@ -327,15 +313,15 @@ export default function HistoryPage() {
                             <button
                               type="button"
                               onClick={() => openUpgrade("athlete_model")}
-                              className="mt-4 w-full flex items-center justify-between gap-3 border-l border-white/[0.08] pl-3.5 py-2 text-left group"
+                              className="mt-4 w-full min-h-[44px] flex items-center justify-between gap-3 text-left group"
                             >
                               <span className="flex items-center gap-2.5 min-w-0">
-                                <Lock className="h-3.5 w-3.5 flex-none text-foreground/40" strokeWidth={1.5} />
-                                <span className="text-[0.85rem] text-foreground/55 leading-relaxed">
+                                <Lock className="h-3.5 w-3.5 flex-none text-foreground/70" strokeWidth={1.5} />
+                                <span className="text-[0.85rem] text-foreground/70 leading-relaxed">
                                   {day.facts.length} observation{day.facts.length === 1 ? "" : "s"} recorded — the full model is FRAME+
                                 </span>
                               </span>
-                              <span className="flex-none font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 group-hover:text-primary transition-colors">
+                              <span className="flex-none font-mono text-[10px] uppercase tracking-[0.16em] text-[#C7A15A] group-hover:text-[#C7A15A] transition-colors">
                                 FRAME+
                               </span>
                             </button>
@@ -344,10 +330,10 @@ export default function HistoryPage() {
                               {day.facts.map((f) => (
                                 <div
                                   key={`f-${f.id}`}
-                                  className="border-l border-white/[0.08] pl-3.5"
+                                  className="row-hair pb-4"
                                 >
                                   <div className="flex items-baseline justify-between gap-3 mb-1">
-                                    <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 truncate">
+                                    <div className="eyebrow eyebrow-gold truncate">
                                       {CATEGORY_LABELS[f.category]}
                                     </div>
                                     <ConfidenceDots value={f.confidence} source={f.source} />

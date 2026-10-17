@@ -69,13 +69,13 @@ export function WeeklyReportOverlay({ open, onClose }: { open: boolean; onClose:
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex flex-col bg-[#050505]/80 backdrop-blur-xl"
       role="dialog"
       aria-modal="true"
       aria-label="FRAME Intelligence Report"
     >
       <div className="flex-none flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3 border-b border-border/30">
-        <div className="font-mono text-[11px] uppercase tracking-[0.4em] text-foreground/90">
+        <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-foreground/90">
           Intelligence Report
         </div>
         <button
@@ -93,7 +93,7 @@ export function WeeklyReportOverlay({ open, onClose }: { open: boolean; onClose:
           {isLoading && (
             <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.5} />
-              <span className="font-mono text-[10px] uppercase tracking-[0.3em]">Reading the week</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.16em]">Reading the week</span>
             </div>
           )}
 
@@ -103,7 +103,7 @@ export function WeeklyReportOverlay({ open, onClose }: { open: boolean; onClose:
               <button
                 type="button"
                 onClick={() => void refetch()}
-                className="font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 px-4 py-2.5 text-foreground/80 transition-colors"
+                className="btn-quiet"
               >
                 Try again
               </button>
@@ -118,7 +118,7 @@ export function WeeklyReportOverlay({ open, onClose }: { open: boolean; onClose:
                   type="button"
                   onClick={download}
                   disabled={busy}
-                  className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 px-4 py-2.5 text-foreground/80 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 disabled:opacity-50 btn-quiet"
                 >
                   <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
                   {busy ? "Rendering…" : "Save"}
@@ -127,7 +127,7 @@ export function WeeklyReportOverlay({ open, onClose }: { open: boolean; onClose:
                   type="button"
                   onClick={share}
                   disabled={busy}
-                  className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/40 hover:border-primary/70 px-4 py-2.5 text-foreground/90 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 disabled:opacity-50 btn-quiet btn-quiet-gold"
                 >
                   <Share2 className="w-3.5 h-3.5" strokeWidth={1.5} />
                   Share

@@ -22,16 +22,55 @@ const RISK_LABEL: Record<NervousSystemLoad, string> = {
 };
 
 const RISK_COLOR: Record<NervousSystemLoad, string> = {
-  low: "#6ee7b7",
-  moderate: "#d6a05a",
-  elevated: "#f0b955",
-  high: "#f0594f",
+  low: "#E6D2A3",
+  moderate: "#C7A15A",
+  elevated: "#E8A06A",
+  high: "#E0564E",
 };
 
 function scoreColor(v: number): string {
-  if (v >= 70) return "#6ee7b7";
-  if (v >= 45) return "#d6a05a";
-  return "#f0594f";
+  if (v >= 70) return "#E6D2A3";
+  if (v >= 45) return "#C7A15A";
+  return "#E0564E";
+}
+
+const SANS = "'Outfit Variable','Outfit',system-ui,-apple-system,sans-serif";
+const SERIF = "'Instrument Serif','Times New Roman',serif";
+
+function polar(cx: number, cy: number, r: number, deg: number) {
+  const a = ((deg - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+}
+function arcPath(cx: number, cy: number, r: number, from: number, to: number) {
+  const s = polar(cx, cy, r, from);
+  const e = polar(cx, cy, r, to);
+  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${to - from > 180 ? 1 : 0} 1 ${e.x} ${e.y}`;
+}
+
+// Static 240deg dial (inline SVG so html-to-image renders it exactly).
+function ScoreDial({ value, color }: { value: number; color: string }) {
+  const size = 150;
+  const c = size / 2;
+  const start = -120;
+  const end = 120;
+  const v = Math.max(0, Math.min(100, value));
+  const valEnd = start + ((end - start) * v) / 100;
+  const ticks = Array.from({ length: 41 }, (_, i) => i);
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: "block" }}>
+      {ticks.map((i) => {
+        const deg = start + ((end - start) * i) / 40;
+        const major = i % 5 === 0;
+        const p1 = polar(c, c, c - 4, deg);
+        const p2 = polar(c, c, c - (major ? 11 : 8), deg);
+        return (
+          <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="rgba(255,244,224,0.22)" strokeWidth={major ? 1.2 : 0.8} />
+        );
+      })}
+      <path d={arcPath(c, c, c - 20, start, end)} stroke="rgba(255,244,224,0.09)" strokeWidth={4} fill="none" strokeLinecap="round" />
+      <path d={arcPath(c, c, c - 20, start, Math.max(start + 0.5, valEnd))} stroke={color} strokeWidth={4} fill="none" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 // The shareable FRAME REPORT. Pure inline styles (no Tailwind tokens) so html-to-image
@@ -42,7 +81,7 @@ export const FrameReportCard = forwardRef<
   { analysis: VideoAnalysis; fighter: Fighter | null }
 >(function FrameReportCard({ analysis, fighter }, ref) {
   const key = fighter && isBjjSport(fighter.primarySport) ? beltKey(fighter.level) : null;
-  const accent = key ? BELT_ACCENT[key] : "#c4382e";
+  const accent = key ? BELT_ACCENT[key] : "#C7A15A";
   const spirit = fighter?.spiritAnimal ? `${basePath}/spirit/${fighter.spiritAnimal}.png` : null;
 
   return (
@@ -52,7 +91,7 @@ export const FrameReportCard = forwardRef<
         width: 380,
         background: "radial-gradient(120% 80% at 50% 0%, #161311 0%, #0a0908 60%, #060504 100%)",
         color: "#ece7df",
-        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        fontFamily: SANS,
         padding: "26px 24px 22px",
         border: "1px solid rgba(255,255,255,0.08)",
         position: "relative",
@@ -97,32 +136,37 @@ export const FrameReportCard = forwardRef<
           <div style={{ fontSize: 9, letterSpacing: "0.4em", textTransform: "uppercase", color: "#8c857a" }}>
             FRAME Report
           </div>
-          <div style={{ fontSize: 15, letterSpacing: "0.18em", textTransform: "uppercase", marginTop: 4, color: "#f3efe7" }}>
+          <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 30, lineHeight: 1.05, marginTop: 4, color: "#f1ede6" }}>
             {fighter?.name ?? "Athlete"}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 8, letterSpacing: "0.3em", textTransform: "uppercase", color: "#8c857a" }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "#a8a49d" }}>
             {analysis.kind}
           </div>
-          <div style={{ fontSize: 8, letterSpacing: "0.2em", color: "#6f685e", marginTop: 3 }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.06em", color: "#a8a49d", marginTop: 3 }}>
             {analysis.durationSec.toFixed(0)}s read
           </div>
         </div>
       </div>
 
       {/* session score */}
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 18 }}>
-        <div style={{ fontSize: 52, lineHeight: 1, fontWeight: 600, color: scoreColor(analysis.sessionScore) }}>
-          {analysis.sessionScore}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 16 }}>
+        <div style={{ position: "relative", width: 150, height: 150, flex: "none" }}>
+          <ScoreDial value={analysis.sessionScore} color={scoreColor(analysis.sessionScore)} />
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ fontSize: 54, lineHeight: 1, fontWeight: 200, letterSpacing: "-0.04em", color: "#f1ede6" }}>
+              {analysis.sessionScore}
+            </div>
+            <div style={{ fontSize: 10, letterSpacing: "0.16em", color: "#a8a49d", marginTop: 2 }}>/100</div>
+          </div>
         </div>
-        <div style={{ fontSize: 14, color: "#6f685e" }}>/100</div>
-        <div style={{ marginLeft: "auto", textAlign: "right" }}>
-          <div style={{ fontSize: 8, letterSpacing: "0.3em", textTransform: "uppercase", color: "#8c857a" }}>
+        <div style={{ marginLeft: "auto", textAlign: "right", minWidth: 0 }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "#a8a49d" }}>
             Session score
           </div>
           {analysis.styleProfile && (
-            <div style={{ fontSize: 12, letterSpacing: "0.08em", color: accent, marginTop: 3 }}>
+            <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 19, lineHeight: 1.15, color: accent, marginTop: 6 }}>
               {analysis.styleProfile}
             </div>
           )}
@@ -137,7 +181,7 @@ export const FrameReportCard = forwardRef<
               <span style={{ color: "#aaa298" }}>{s.label}</span>
               <span style={{ color: scoreColor(s.value) }}>{s.value}</span>
             </div>
-            <div style={{ height: 5, background: "rgba(255,255,255,0.07)", marginTop: 5, borderRadius: 2 }}>
+            <div style={{ height: 3, background: "rgba(255,244,224,0.09)", marginTop: 6, borderRadius: 3 }}>
               <div
                 style={{
                   width: `${s.value}%`,
@@ -163,7 +207,8 @@ export const FrameReportCard = forwardRef<
             textTransform: "uppercase",
             color: RISK_COLOR[analysis.fragmentationRisk],
             border: `1px solid ${RISK_COLOR[analysis.fragmentationRisk]}55`,
-            padding: "3px 10px",
+            padding: "5px 14px",
+            borderRadius: 999,
           }}
         >
           {RISK_LABEL[analysis.fragmentationRisk]}
@@ -175,7 +220,7 @@ export const FrameReportCard = forwardRef<
         <div
           style={{
             marginTop: 18,
-            fontFamily: "Georgia, serif",
+            fontFamily: SERIF,
             fontSize: 13,
             lineHeight: 1.5,
             color: "#d8d2c8",
@@ -190,14 +235,14 @@ export const FrameReportCard = forwardRef<
       {/* style parallels */}
       {analysis.styleParallels.length > 0 && (
         <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 8, letterSpacing: "0.3em", textTransform: "uppercase", color: "#8c857a" }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "#a8a49d" }}>
             Resembles
           </div>
           {analysis.styleParallels.map((p, i) => (
             <div key={i} style={{ marginTop: 6 }}>
-              <span style={{ fontSize: 11, letterSpacing: "0.05em", color: "#e6e0d6" }}>{p.name}</span>
+              <span style={{ fontSize: 13, color: "#f1ede6" }}>{p.name}</span>
               {p.note && (
-                <div style={{ fontSize: 10, lineHeight: 1.45, color: "#8c857a", marginTop: 2 }}>{p.note}</div>
+                <div style={{ fontSize: 12, lineHeight: 1.45, color: "#a8a49d", marginTop: 2 }}>{p.note}</div>
               )}
             </div>
           ))}
@@ -209,7 +254,7 @@ export const FrameReportCard = forwardRef<
         style={{
           marginTop: 20,
           paddingTop: 12,
-          borderTop: "1px solid rgba(255,255,255,0.07)",
+          borderTop: "1px solid rgba(255,244,224,0.09)",
           display: "flex",
           justifyContent: "space-between",
           fontSize: 8,

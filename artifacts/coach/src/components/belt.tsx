@@ -160,7 +160,7 @@ function BeltLadder({ currentIndex }: { currentIndex: number }) {
               title={`${rung.label} belt`}
             />
             <span
-              className="font-mono text-[7px] uppercase tracking-[0.15em]"
+              className="font-mono text-[10px] uppercase tracking-[0.15em]"
               style={{ color: isCurrent ? "hsl(var(--primary))" : earned ? "hsl(var(--foreground)/0.6)" : "hsl(var(--muted-foreground)/0.5)" }}
             >
               {rung.label.slice(0, 3)}
@@ -181,8 +181,8 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
   if (!info) {
     return (
       <div>
-        <div className="h-[68px] w-full border border-border/50 flex items-center justify-center">
-          <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
+        <div className="h-[68px] w-full border border-border/50 flex items-center justify-center rounded-2xl">
+          <span className="eyebrow">
             Unranked / other
           </span>
         </div>
@@ -198,15 +198,15 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
       <RealisticBelt cloth={rung.cloth} ink={rung.ink} label={rung.label} />
 
       <div className="flex items-baseline justify-between">
-        <div className="font-mono text-[11px] uppercase tracking-[0.35em] text-foreground/95">
+        <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-foreground/95">
           {rung.label} belt
         </div>
         {next ? (
-          <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/70">
+          <div className="eyebrow">
             Next · {next.label}
           </div>
         ) : (
-          <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-primary/70">
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A]">
             Apex
           </div>
         )}
@@ -216,7 +216,7 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
 
       {showMeaning && meaning && (
         <div className="border-l border-primary/40 pl-3 pt-0.5">
-          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/90">
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C7A15A]">
             {meaning.state}
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed mt-1">{meaning.meaning}</p>

@@ -24,7 +24,7 @@ import type {
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const TIER_FG: Record<PressureTier, string> = {
-  base: "hsl(39 49% 36%)",
+  base: "hsl(39 50% 62%)",
   build: "hsl(28 70% 58%)",
   sharpen: "hsl(14 78% 56%)",
   peak: "hsl(2 80% 58%)",
@@ -65,32 +65,14 @@ export default function CampPage() {
   const [editing, setEditing] = useState(false);
 
   return (
-    <div className="flex flex-col h-[100dvh]" style={{ background: "#000" }}>
-      <header className="flex-none flex items-center gap-3 px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3 border-b border-white/[0.06]">
-        <Link
-          href="/home"
-          aria-label="Back to home"
-          className="text-foreground/50 hover:text-foreground/90 transition-colors"
-        >
+    <div className="flex flex-col h-[100dvh]">
+      <header className="flex-none flex items-center gap-3 px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3">
+        <Link href="/home" aria-label="Back to home" className="icon-round flex-none text-foreground/80 hover:text-foreground transition-colors">
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
         </Link>
-        <div className="flex items-center gap-2.5">
-          <img
-            src={`${basePath}/frame-logo.png`}
-            alt=""
-            aria-hidden
-            width={22}
-            height={22}
-            className="object-contain opacity-80"
-          />
-          <div>
-            <div className="font-sans font-extralight text-[13px] tracking-[0.45em] text-foreground/95 leading-none">
-              CAMP
-            </div>
-            <div className="font-mono text-[9px] tracking-[0.45em] text-foreground/50 mt-1.5">
-              FIGHT CAMP
-            </div>
-          </div>
+        <div className="min-w-0">
+          <h1 className="display-heading leading-none">Camp</h1>
+          <div className="eyebrow mt-1.5">Fight camp</div>
         </div>
         <div className="ml-auto">
           <FramePlusPill />
@@ -100,7 +82,7 @@ export default function CampPage() {
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
           {isLoading ? (
-            <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+            <div className="eyebrow">
               Loading
             </div>
           ) : !competition ? (
@@ -178,12 +160,7 @@ function ViewTab({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="py-2.5 font-mono text-[10px] uppercase tracking-[0.3em] border transition-colors"
-      style={{
-        borderColor: active ? "hsla(39,49%,36%,0.5)" : "hsla(0,0%,100%,0.08)",
-        color: active ? "hsl(var(--primary))" : "hsla(0,0%,100%,0.5)",
-        background: active ? "hsla(39,49%,36%,0.06)" : "transparent",
-      }}
+      className="pill" data-active={active}
     >
       {label}
     </button>
@@ -217,16 +194,16 @@ function CampDashboard({
 
   return (
     <section>
-      <div className="border px-5 py-6 text-center" style={{ borderColor: `${fg}55` }}>
+      <div className="glass px-5 py-7 text-center" style={{ borderColor: `color-mix(in srgb, ${fg} 45%, transparent)`, backgroundImage: `radial-gradient(80% 90% at 50% 0%, color-mix(in srgb, ${fg} 30%, transparent), transparent 72%), linear-gradient(135deg, rgba(255,246,232,0.07), rgba(255,246,232,0.015))` }}>
         <div className="flex items-center justify-between">
-          <div className="font-mono text-[9px] uppercase tracking-[0.45em]" style={{ color: fg }}>
+          <div className="font-mono text-[10px] uppercase tracking-[0.16em]" style={{ color: fg }}>
             {pressure ? pressure.phase : "Camp"}
           </div>
           <button
             type="button"
             onClick={onEdit}
             aria-label="Edit camp"
-            className="flex items-center gap-1.5 text-foreground/45 hover:text-foreground/85 transition-colors font-mono text-[9px] uppercase tracking-[0.3em]"
+            className="btn-quiet btn-quiet-sm"
           >
             <Pencil className="w-3 h-3" strokeWidth={1.5} />
             Edit
@@ -241,21 +218,21 @@ function CampDashboard({
             >
               {pressure.daysToEvent}
             </div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/55 mt-2">
+            <div className="eyebrow mt-2">
               {pressure.daysToEvent === 1 ? "day until" : "days until"} {c.eventName}
             </div>
-            <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/40 mt-2">
+            <div className="eyebrow mt-2">
               {pressure.tierLabel}
             </div>
             {pressure.daysToWeighIn !== null && (
-              <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/45 mt-3">
+              <div className="eyebrow mt-3">
                 Weigh-in: {pressure.daysToWeighIn}{" "}
                 {pressure.daysToWeighIn === 1 ? "day" : "days"}
               </div>
             )}
           </>
         ) : (
-          <div className="font-sans text-[15px] tracking-[0.1em] text-foreground/80 mt-4">
+          <div className="display-heading mt-4">
             {c.eventName}
           </div>
         )}
@@ -287,7 +264,7 @@ function CampDashboard({
           }
         }}
         disabled={cancel.isPending}
-        className="mt-6 w-full border border-white/[0.1] py-3 font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/60 hover:text-[hsl(var(--red-accent))] hover:border-[hsl(var(--red-accent))]/50 transition-colors disabled:opacity-50"
+        className="btn-quiet mt-6 w-full hover:!text-[#E0564E] hover:!border-[#E0564E]/50"
       >
         {cancel.isPending ? "Ending" : "End camp"}
       </button>
@@ -302,36 +279,36 @@ function CampReviewSection({ review }: { review: CampReview }) {
   const { totalAnalyses, countsByKind, biggestImprovement, mostPersistentLeak } = review;
 
   return (
-    <section className="border border-white/[0.08]">
-      <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-foreground/70">
+    <section className="glass">
+      <div className="px-5 py-4 row-hair flex items-center justify-between">
+        <div className="eyebrow">
           Camp review
         </div>
-        <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/40">
+        <div className="eyebrow">
           {totalAnalyses === 1 ? "1 analysis" : `${totalAnalyses} analyses`}
         </div>
       </div>
 
       {totalAnalyses === 0 ? (
-        <div className="px-4 py-6">
-          <p className="text-[12px] leading-relaxed text-foreground/50">
+        <div className="px-5 py-6">
+          <p className="text-[13px] leading-relaxed text-foreground/80">
             No footage analysed in this camp yet. Upload a round on{" "}
-            <Link href="/analyse" className="text-primary hover:underline">
+            <Link href="/analyse" className="text-[#C7A15A] hover:underline">
               Analyse
             </Link>{" "}
             and this camp starts reading your trend, session over session.
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-white/[0.06]">
+        <div className="divide-y divide-white/[0.07]">
           {/* Session mix — a real count per kind */}
-          <div className="px-4 py-3 flex flex-wrap gap-x-4 gap-y-1.5">
+          <div className="px-5 py-4 flex flex-wrap gap-x-5 gap-y-2">
             {countsByKind.map((c) => (
               <div key={c.kind} className="flex items-baseline gap-1.5">
-                <span className="font-sans font-extralight tabular-nums text-[15px] text-foreground/90">
+                <span className="numeral numeral-m !text-[1.6rem]">
                   {c.count}
                 </span>
-                <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/45">
+                <span className="eyebrow">
                   {c.label}
                 </span>
               </div>
@@ -339,32 +316,32 @@ function CampReviewSection({ review }: { review: CampReview }) {
           </div>
 
           {/* Biggest real improvement — two recorded endpoint values + dates */}
-          <div className="px-4 py-4">
-            <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/45">
+          <div className="px-5 py-5">
+            <div className="eyebrow">
               Biggest improvement
             </div>
             {biggestImprovement ? (
               <div className="mt-2.5">
                 <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/85">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/85">
                     {biggestImprovement.label}
                   </span>
                   <span
-                    className="font-sans font-extralight tabular-nums text-[13px]"
-                    style={{ color: "hsl(140 55% 55%)" }}
+                    className="numeral numeral-m !text-[1.25rem]"
+                    style={{ color: "#E6D2A3" }}
                   >
                     +{biggestImprovement.delta}
                   </span>
                 </div>
-                <div className="mt-1 font-mono text-[10px] tabular-nums text-foreground/55">
+                <div className="mt-1 font-mono text-[10px] tabular-nums text-foreground/70">
                   {biggestImprovement.from} → {biggestImprovement.to}
                 </div>
-                <div className="mt-1 text-[10px] text-foreground/40">
+                <div className="mt-1 text-[10px] text-foreground/70">
                   {formatDay(biggestImprovement.fromAt)} → {formatDay(biggestImprovement.toAt)}
                 </div>
               </div>
             ) : (
-              <p className="mt-2 text-[11px] leading-relaxed text-foreground/45">
+              <p className="mt-2 text-[12px] leading-relaxed text-foreground/80">
                 {totalAnalyses < 2
                   ? "One session in — log a second analysis and the trend appears here."
                   : "No attribute rose between your first and latest session this camp. Held or dipped — no gain to claim yet."}
@@ -373,8 +350,8 @@ function CampReviewSection({ review }: { review: CampReview }) {
           </div>
 
           {/* Most persistent real leak — a real recurrence count */}
-          <div className="px-4 py-4">
-            <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/45">
+          <div className="px-5 py-5">
+            <div className="eyebrow">
               Most persistent leak
             </div>
             {mostPersistentLeak ? (
@@ -382,12 +359,12 @@ function CampReviewSection({ review }: { review: CampReview }) {
                 <div className="font-sans text-[13px] leading-snug text-foreground/85">
                   {mostPersistentLeak.label}
                 </div>
-                <div className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/50">
+                <div className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-foreground/70">
                   Flagged in {mostPersistentLeak.sessions} of {mostPersistentLeak.total} sessions
                 </div>
               </div>
             ) : (
-              <p className="mt-2 text-[11px] leading-relaxed text-foreground/45">
+              <p className="mt-2 text-[12px] leading-relaxed text-foreground/80">
                 {totalAnalyses < 2
                   ? "A leak has to recur across sessions to count. One session in, nothing to call persistent."
                   : "No single leak has recurred across your sessions this camp."}
@@ -404,15 +381,15 @@ function CampReviewSection({ review }: { review: CampReview }) {
 // FRAME+ capability. Honest teaser — no fabricated preview numbers.
 function CampReviewLocked() {
   return (
-    <section className="border border-white/[0.08]">
-      <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-foreground/70">
+    <section className="glass">
+      <div className="px-5 py-4 row-hair flex items-center justify-between">
+        <div className="eyebrow">
           Camp review
         </div>
         <FramePlusPill />
       </div>
-      <div className="px-4 py-6">
-        <p className="text-[12px] leading-relaxed text-foreground/50">
+      <div className="px-5 py-6">
+        <p className="text-[13px] leading-relaxed text-foreground/80">
           Camp review reads across every analysis in this camp to surface your biggest real gain
           and the leak that keeps recurring — grounded in your recorded sessions, never invented.
           Part of FRAME+.
@@ -434,11 +411,9 @@ function NoCampState({
   if (showCreate) return <CampForm onClose={onClose} />;
   return (
     <section>
-      <div className="border border-white/[0.08] px-5 py-8 text-center">
-        <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/55">
-          No camp scheduled
-        </div>
-        <p className="mt-3 text-[12px] leading-relaxed text-foreground/50">
+      <div className="glass px-5 py-10 text-center">
+        <div className="display-heading">No camp scheduled</div>
+        <p className="mt-3 text-[13px] leading-relaxed text-foreground/80">
           Create a camp to enter the tunnel. A persistent countdown appears, the interface
           tightens toward the date, the coach shifts into camp register, and you can build a
           session-by-session schedule through to fight day.
@@ -447,7 +422,7 @@ function NoCampState({
       <button
         type="button"
         onClick={onOpen}
-        className="mt-5 w-full border border-primary/40 py-3 font-mono text-[11px] uppercase tracking-[0.35em] text-primary hover:bg-primary/5 transition-colors"
+        className="btn-bronze mt-5 w-full"
       >
         Create your camp
       </button>
@@ -530,7 +505,7 @@ function CampForm({
 
   return (
     <section className="space-y-4">
-      <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/70">
+      <div className="eyebrow">
         {isEdit ? "Edit camp" : "Create camp"}
       </div>
 
@@ -539,7 +514,7 @@ function CampForm({
           value={form.eventName}
           onChange={(e) => set({ eventName: e.target.value })}
           placeholder="ADCC Trials"
-          className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+          className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
         />
       </Field>
 
@@ -549,7 +524,7 @@ function CampForm({
             type="date"
             value={form.eventDate}
             onChange={(e) => set({ eventDate: e.target.value })}
-            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50"
+            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
           />
         </Field>
         <Field label="Weigh-in date">
@@ -557,7 +532,7 @@ function CampForm({
             type="date"
             value={form.weighInDate}
             onChange={(e) => set({ weighInDate: e.target.value })}
-            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50"
+            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
           />
         </Field>
       </div>
@@ -567,7 +542,7 @@ function CampForm({
           value={form.discipline}
           onChange={(e) => set({ discipline: e.target.value })}
           placeholder="No-gi / MMA / BJJ"
-          className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+          className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
         />
       </Field>
 
@@ -577,7 +552,7 @@ function CampForm({
             value={form.opponent}
             onChange={(e) => set({ opponent: e.target.value })}
             placeholder="Optional"
-            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
           />
         </Field>
         <Field label="Promotion">
@@ -585,7 +560,7 @@ function CampForm({
             value={form.promotion}
             onChange={(e) => set({ promotion: e.target.value })}
             placeholder="Optional"
-            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
           />
         </Field>
       </div>
@@ -596,7 +571,7 @@ function CampForm({
             value={form.weightClass}
             onChange={(e) => set({ weightClass: e.target.value })}
             placeholder="Optional"
-            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
           />
         </Field>
         <Field label="Rounds">
@@ -605,7 +580,7 @@ function CampForm({
             value={form.rounds}
             onChange={(e) => set({ rounds: e.target.value.replace(/[^0-9]/g, "") })}
             placeholder="Optional"
-            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
           />
         </Field>
       </div>
@@ -615,7 +590,7 @@ function CampForm({
           value={form.location}
           onChange={(e) => set({ location: e.target.value })}
           placeholder="Optional"
-          className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+          className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
         />
       </Field>
 
@@ -625,7 +600,7 @@ function CampForm({
             value={form.currentWeight}
             onChange={(e) => set({ currentWeight: e.target.value })}
             placeholder="78kg"
-            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
           />
         </Field>
         <Field label="Target weight">
@@ -633,7 +608,7 @@ function CampForm({
             value={form.targetWeight}
             onChange={(e) => set({ targetWeight: e.target.value })}
             placeholder="74kg"
-            className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50"
+            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
           />
         </Field>
       </div>
@@ -644,12 +619,12 @@ function CampForm({
           onChange={(e) => set({ notes: e.target.value })}
           rows={3}
           placeholder="Bracket, weaknesses to close, anything the coach should hold you to."
-          className="w-full bg-[hsl(0,0%,8%)] border border-white/[0.1] px-3 py-2.5 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/50 resize-none"
+          className="field-glass !text-sm placeholder:text-muted-foreground resize-none !min-h-0 !py-3"
         />
       </Field>
 
       {isError && (
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[hsl(var(--red-accent))]">
+        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[hsl(var(--red-accent))]">
           Could not save — check the dates
         </div>
       )}
@@ -658,7 +633,7 @@ function CampForm({
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.1] py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/55 hover:text-foreground/85 transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.10] py-3 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/70 hover:text-foreground/85 transition-colors rounded-2xl"
         >
           <X className="w-3 h-3" strokeWidth={1.5} />
           Cancel
@@ -667,7 +642,7 @@ function CampForm({
           type="button"
           onClick={submit}
           disabled={!canSubmit || pending}
-          className="flex-1 border border-primary/40 py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-primary hover:bg-primary/5 transition-colors disabled:opacity-40"
+          className="flex-1 text-[#C7A15A] hover:bg-primary/5 disabled:opacity-40 btn-quiet btn-quiet-gold"
         >
           {pending ? "Saving" : isEdit ? "Save camp" : "Create camp"}
         </button>
@@ -678,8 +653,8 @@ function CampForm({
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-white/[0.05] pb-2.5">
-      <dt className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/45 pt-0.5">
+    <div className="flex items-start justify-between gap-4 row-hair pb-2.5">
+      <dt className="eyebrow pt-0.5">
         {label}
       </dt>
       <dd className="text-[13px] text-foreground/85 text-right max-w-[60%]">{value}</dd>
@@ -690,7 +665,7 @@ function Row({ label, value }: { label: string; value: string }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/55 block mb-1.5">
+      <span className="eyebrow block mb-1.5">
         {label}
       </span>
       {children}
