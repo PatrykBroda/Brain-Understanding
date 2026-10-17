@@ -10,9 +10,12 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { Screen } from "@/components/ui";
+import { fonts, palette } from "@/constants/theme";
+
 /**
  * Branded boot / loading surface matching the web hub's "Booting system"
- * gate (coach App.tsx Gate) — a mono uppercase label over a track with a
+ * gate (coach App.tsx Gate) — an uppercase label over a track with a
  * sweeping bar, instead of a bare spinner. Shares the #050505 base so there
  * is no flash against the native splash or SystemUI background.
  */
@@ -38,13 +41,15 @@ export function BootLoader({ label = "BOOTING SYSTEM" }: { label?: string }) {
   }));
 
   return (
-    <View style={s.root}>
-      <Text style={s.wordmark}>FRAME</Text>
-      <Text style={s.label}>{label}</Text>
-      <View style={s.track}>
-        <Animated.View style={[s.bar, barStyle]} />
+    <Screen>
+      <View style={s.root}>
+        <Text style={s.wordmark}>Frame</Text>
+        <Text style={s.label}>{label}</Text>
+        <View style={s.track}>
+          <Animated.View style={[s.bar, barStyle]} />
+        </View>
       </View>
-    </View>
+    </Screen>
   );
 }
 
@@ -53,31 +58,33 @@ const s = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#050505",
   },
   wordmark: {
-    fontFamily: "SpaceMono",
-    fontSize: 18,
-    letterSpacing: 10,
-    color: "#e0e0e0",
-    marginBottom: 28,
+    fontFamily: fonts.displayItalic,
+    fontSize: 54,
+    lineHeight: 58,
+    letterSpacing: -1,
+    color: palette.textHi,
+    marginBottom: 20,
   },
   label: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3.2,
-    color: "#8A8A8A",
-    marginBottom: 16,
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 2.2,
+    color: palette.textMid,
+    marginBottom: 18,
   },
   track: {
     width: TRACK_WIDTH,
-    height: 2,
-    backgroundColor: "#1a1a1a",
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,244,224,0.10)",
     overflow: "hidden",
   },
   bar: {
     width: BAR_WIDTH,
-    height: 2,
-    backgroundColor: "#8A6A2F",
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: palette.goldLight,
   },
 });

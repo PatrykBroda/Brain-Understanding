@@ -13,6 +13,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { OrbGL } from "@/components/OrbGL";
+import { Body, Button, Display, Eyebrow, FadeIn, GlassCard, IconButton, ArcGauge, Screen } from "@/components/ui";
+import { fonts, palette } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { useTodayCheckin } from "@/hooks/useCheckin";
@@ -153,101 +155,104 @@ export default function StateScreen() {
   // devices (iPhone SE) or when the state text wraps to a second line.
   const { width } = useWindowDimensions();
   const [centerHeight, setCenterHeight] = useState(0);
-  const TEXT_AND_GAPS = 160; // stateCaption + stateLabel + stateCue + gaps (readinessRow now lives outside center)
+  const TEXT_AND_GAPS = 150; // stateCaption + stateLabel + stateCue + gaps (readinessRow now lives outside center)
   const orbSize =
     centerHeight > 0
-      ? Math.round(Math.min(width, centerHeight - TEXT_AND_GAPS, 400))
+      ? Math.round(Math.min(width * 0.9, centerHeight - TEXT_AND_GAPS, 380))
       : Math.round(Math.min(width * 0.75, 300)); // safe fallback before first layout
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   return (
-    <View style={[styles.root, { paddingTop: topPad }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.brand}>
-          <Image
-            source={require("../../assets/images/frame-logo.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <View>
+    <Screen>
+      <View style={[styles.root, { paddingTop: topPad }]}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.brand}>
             <Image
-              source={require("../../assets/images/frame-wordmark.png")}
-              style={styles.wordmarkImg}
+              source={require("../../assets/images/frame-logo.png")}
+              style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.subline}>STATE · CALIBRATION SYSTEM</Text>
-          </View>
-        </View>
-        <Pressable
-          onPress={() => router.push("/(tabs)/profile")}
-          style={styles.profileBtn}
-          hitSlop={12}
-          accessibilityLabel="Open profile"
-        >
-          <Feather name="shield" size={18} color="#666" />
-        </Pressable>
-      </View>
-
-      {/* Orb */}
-      <View style={styles.center} onLayout={(e) => setCenterHeight(e.nativeEvent.layout.height)}>
-        <OrbGL state={state} size={orbSize} />
-
-        <Text style={styles.stateCaption}>STATE</Text>
-        <Text style={styles.stateLabel}>{state.toUpperCase()}</Text>
-        <Text style={styles.stateCue}>{STATE_CUE[state]}</Text>
-      </View>
-
-      {/* Fight readiness — sits between the orb block and the button so it
-          reads as visually centred in the gap rather than glued to the text */}
-      <View style={styles.readinessMiddle}>
-        <Pressable
-          style={styles.readinessRow}
-          hitSlop={8}
-          onPress={() =>
-            router.push(
-              "/(tabs)/home",
-            )
-          }
-          accessibilityLabel={
-            readiness != null ? "View readiness detail" : "Open home"
-          }
-        >
-          <Text style={styles.readinessLabel}>FIGHT READINESS</Text>
-          <View style={styles.readinessDivider} />
-          {readiness != null ? (
-            <Text style={styles.readinessValue}>
-              {readiness}
-              <Text style={styles.readinessUnit}> / 100 · {readinessSource}</Text>
-            </Text>
-          ) : (
-            <View style={styles.readinessCta}>
-              <Text style={styles.readinessCtaText}>Open training dashboard</Text>
-              <Feather name="chevron-right" size={12} color="#8A6A2F" />
+            <View>
+              <Image
+                source={require("../../assets/images/frame-wordmark.png")}
+                style={styles.wordmarkImg}
+                resizeMode="contain"
+              />
+              <Eyebrow style={styles.subline}>State · calibration system</Eyebrow>
             </View>
-          )}
-        </Pressable>
-      </View>
+          </View>
+          <IconButton
+            icon="shield"
+            label="Open profile"
+            onPress={() => router.push("/(tabs)/profile")}
+          />
+        </View>
 
-      {/* Enter CTA */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 90 }]}>
-        <Pressable
-          style={({ pressed }) => [styles.enterBtn, pressed && styles.enterPressed]}
-          onPress={() => router.push("/(tabs)/chat")}
-        >
-          <Text style={styles.enterText}>{hasSession ? "CONTINUE" : "ENTER"}</Text>
-        </Pressable>
+        {/* Orb */}
+        <View style={styles.center} onLayout={(e) => setCenterHeight(e.nativeEvent.layout.height)}>
+          <OrbGL state={state} size={orbSize} />
+
+          <FadeIn style={styles.stateBlock}>
+            <Eyebrow style={{ color: palette.goldLight }}>State</Eyebrow>
+            <Display size="title" style={styles.stateLabel}>
+              {state}
+            </Display>
+            <Body small style={styles.stateCue}>
+              {STATE_CUE[state]}
+            </Body>
+          </FadeIn>
+        </View>
+
+        {/* Fight readiness — glass dial card between the orb block and the CTA */}
+        <FadeIn index={1} style={styles.readinessMiddle}>
+          <Pressable
+            hitSlop={8}
+            onPress={() => router.push("/(tabs)/home")}
+            accessibilityLabel={readiness != null ? "View readiness detail" : "Open home"}
+            style={styles.readinessPress}
+          >
+            <GlassCard radius={28} padding={16} tone="gold">
+              <View style={styles.readinessRow}>
+                {readiness != null ? (
+                  <View style={styles.gaugeWrap}>
+                    <ArcGauge value={readiness} size={116} label="" />
+                  </View>
+                ) : null}
+                <View style={styles.readinessText}>
+                  <Eyebrow>Fight readiness</Eyebrow>
+                  {readiness != null ? (
+                    <Text style={styles.readinessUnit}>
+                      {readiness} / 100 · {readinessSource}
+                    </Text>
+                  ) : (
+                    <View style={styles.readinessCta}>
+                      <Text style={styles.readinessCtaText}>Open training dashboard</Text>
+                      <Feather name="chevron-right" size={14} color={palette.goldLight} />
+                    </View>
+                  )}
+                </View>
+              </View>
+            </GlassCard>
+          </Pressable>
+        </FadeIn>
+
+        {/* Enter CTA */}
+        <View style={[styles.footer, { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 90 }]}>
+          <Button
+            title={hasSession ? "Continue" : "Enter"}
+            onPress={() => router.push("/(tabs)/chat")}
+            style={styles.enterBtn}
+          />
+        </View>
       </View>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#050505",
-  },
+  root: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -255,126 +260,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
   },
-  brand: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  logo: {
-    width: 34,
-    height: 34,
-    opacity: 0.9,
-  },
-  wordmarkImg: {
-    width: 92,
-    height: 26,
-    tintColor: "#e0e0e0",
-  },
-  subline: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 4,
-    color: "#555",
-    marginTop: 4,
-  },
-  profileBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-  },
-  stateCaption: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 6,
-    color: "#666",
-    marginTop: 8,
-  },
-  stateLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 22,
-    letterSpacing: 8,
-    color: "#8A6A2F",
-  },
-  stateCue: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#666",
-    textAlign: "center",
-    paddingHorizontal: 32,
-    lineHeight: 16,
-  },
-  readinessMiddle: {
-    alignItems: "center",
-    paddingVertical: 20,
-  },
-  readinessRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 6,
-  },
-  readinessLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 4,
-    color: "#555",
-  },
-  readinessDivider: {
-    width: 1,
-    height: 12,
-    backgroundColor: "#1a1a1a",
-  },
-  readinessValue: {
-    fontFamily: "SpaceMono",
-    fontSize: 16,
-    color: "#8A6A2F",
-  },
-  readinessUnit: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1,
-    color: "#555",
-  },
-  readinessCta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  readinessCtaText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#8A6A2F",
-  },
-  footer: {
-    alignItems: "center",
-    paddingBottom: 32,
-  },
-  enterBtn: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#e0e0e0",
-    paddingHorizontal: 48,
-    paddingVertical: 14,
-  },
-  enterPressed: {
-    borderColor: "#8A6A2F",
-  },
-  enterText: {
-    fontFamily: "SpaceMono",
-    fontSize: 13,
-    letterSpacing: 6,
-    color: "#e0e0e0",
-  },
+  brand: { flexDirection: "row", alignItems: "center", gap: 12 },
+  logo: { width: 34, height: 34, opacity: 0.9 },
+  wordmarkImg: { width: 92, height: 26, tintColor: palette.text },
+  subline: { marginTop: 4, fontSize: 9.5 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
+  stateBlock: { alignItems: "center", gap: 2 },
+  stateLabel: { textAlign: "center" },
+  stateCue: { textAlign: "center", paddingHorizontal: 32, marginTop: 4 },
+  readinessMiddle: { paddingHorizontal: 24, paddingVertical: 8 },
+  readinessPress: { alignSelf: "stretch" },
+  readinessRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  gaugeWrap: { width: 116, height: 100, overflow: "hidden" },
+  readinessText: { flex: 1, gap: 8 },
+  readinessValue: { fontFamily: fonts.numeral, fontSize: 30, color: palette.goldPale, letterSpacing: -1 },
+  readinessUnit: { fontFamily: fonts.textMedium, fontSize: 15, color: palette.goldPale },
+  readinessCta: { flexDirection: "row", alignItems: "center", gap: 4, minHeight: 44 },
+  readinessCtaText: { fontFamily: fonts.textMedium, fontSize: 14, color: palette.goldLight },
+  footer: { alignItems: "center", paddingTop: 12 },
+  enterBtn: { minWidth: 220 },
 });

@@ -20,6 +20,8 @@ import Svg, { Circle, Line, Path, Polygon, Text as SvgText } from "react-native-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { ArcGauge, Display, Eyebrow, FadeIn, Screen } from "@/components/ui";
+import { fonts, palette, radius, shadow } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter, type Fighter } from "@/context/FighterContext";
 import { apiDelete, apiGet, apiPatch, apiUrl, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
@@ -43,7 +45,7 @@ import {
   type ModelFact,
 } from "@/lib/athleteModel";
 
-const ACCENT = "#8A6A2F";
+const ACCENT = palette.goldLight;
 
 // 12MB ceiling mirrors the web upload guard; base64 is ~4/3 the byte size.
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
@@ -62,33 +64,6 @@ function FactConfidence({ value }: { value: number }) {
     </View>
   );
 }
-const cd = StyleSheet.create({
-  wrap: { flexDirection: "row", alignItems: "center", gap: 6 },
-  row: { flexDirection: "row", gap: 3 },
-  pip: { width: 3, height: 9 },
-  active: { backgroundColor: "#d29a4d" },
-  inactive: { backgroundColor: "rgba(255,255,255,0.1)" },
-  count: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 1.5, color: "rgba(255,255,255,0.4)" },
-});
-
-// ─── Segmented confidence bar (20 segments, matches web ConfidenceBar) ────────
-function ConfidenceBar({ pct, segments = 20 }: { pct: number; segments?: number }) {
-  const filled = Math.round((pct / 100) * segments);
-  return (
-    <View style={s.barRow}>
-      {Array.from({ length: segments }).map((_, i) => (
-        <View
-          key={i}
-          style={[
-            s.barSeg,
-            { backgroundColor: i < filled ? `hsl(32,54%,${50 - (i / segments) * 8}%)` : "rgba(255,255,255,0.08)" },
-          ]}
-        />
-      ))}
-    </View>
-  );
-}
-
 // ─── Editorial section header (overline + title) ──────────────────────────────
 function SectionHead({ overline, title }: { overline: string; title: string }) {
   return (
@@ -122,7 +97,7 @@ function DataRow({ label, value, sub }: { label: string; value: string; sub?: st
 function LockedBody({ note, onTap }: { note: string; onTap: () => void }) {
   return (
     <Pressable style={s.lockRow} onPress={onTap}>
-      <Feather name="lock" size={14} color="rgba(255,255,255,0.4)" style={{ marginTop: 1 }} />
+      <Feather name="lock" size={14} color={palette.textLow} style={{ marginTop: 1 }} />
       <Text style={s.lockNote}>{note}</Text>
       <Text style={s.lockBadge}>FRAME+</Text>
     </Pressable>
@@ -148,7 +123,7 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
       .join(" ") + " Z";
 
   return (
-    <Svg viewBox="0 0 190 190" width="100%" height={200} style={{ alignSelf: "center", maxWidth: 220 }}>
+    <Svg viewBox="-18 0 226 190" width="100%" height={210} style={{ alignSelf: "center", maxWidth: 260 }}>
       {gridLevels.map((level) => (
         <Polygon
           key={level}
@@ -157,7 +132,7 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
             return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
           }).join(" ")}
           fill="none"
-          stroke="rgba(255,255,255,0.07)"
+          stroke="rgba(255,244,224,0.10)"
           strokeWidth={1}
         />
       ))}
@@ -170,12 +145,12 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
             y1={cy}
             x2={end.x.toFixed(1)}
             y2={end.y.toFixed(1)}
-            stroke="rgba(255,255,255,0.07)"
+            stroke="rgba(255,244,224,0.10)"
             strokeWidth={1}
           />
         );
       })}
-      <Path d={filledPath} fill="rgba(138,106,47,0.12)" stroke="rgba(138,106,47,0.55)" strokeWidth={1.5} strokeLinejoin="round" />
+      <Path d={filledPath} fill="rgba(199,161,90,0.16)" stroke="#C7A15A" strokeWidth={1.2} strokeLinejoin="round" />
       {filledPoints.map((p, i) => (
         <Circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={2.5} fill={ACCENT} />
       ))}
@@ -187,9 +162,9 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
             x={lp.x.toFixed(1)}
             y={lp.y.toFixed(1)}
             textAnchor="middle"
-            fontSize={7}
-            fontFamily="SpaceMono"
-            fill="rgba(255,255,255,0.45)"
+            fontSize={8}
+            fontFamily="Outfit"
+            fill="#a8a49d"
           >
             {d.label.toUpperCase()}
           </SvgText>
@@ -279,12 +254,12 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
           />
         ) : (
           <LinearGradient
-            colors={["rgba(138,106,47,0.14)", "rgba(0,0,0,0.4)"]}
+            colors={["rgba(138,106,47,0.30)", "rgba(5,5,5,0.4)"]}
             style={StyleSheet.absoluteFill}
           />
         )}
         <LinearGradient
-          colors={["rgba(10,10,10,0.35)", "rgba(10,10,10,0.55)", "#0a0a0a"]}
+          colors={["rgba(5,5,5,0.15)", "rgba(5,5,5,0.4)", "rgba(5,5,5,0.92)"]}
           locations={[0, 0.55, 1]}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
@@ -299,7 +274,7 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
               hitSlop={8}
               accessibilityLabel="Remove cover photo"
             >
-              <Feather name="trash-2" size={14} color="#bbb" />
+              <Feather name="trash-2" size={16} color={palette.text} />
             </Pressable>
           )}
           <Pressable
@@ -312,16 +287,16 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
             {busy ? (
               <ActivityIndicator size="small" color={ACCENT} />
             ) : (
-              <Feather name="camera" size={14} color={ACCENT} />
+              <Feather name="camera" size={16} color={ACCENT} />
             )}
           </Pressable>
         </View>
 
         <View style={s.bandBody}>
-          <Text style={s.bandKicker}>IDENTITY</Text>
-          <Text style={s.bandName} numberOfLines={1}>
-            {fighter.name.toUpperCase()}
-          </Text>
+          <Eyebrow style={s.bandKicker}>IDENTITY</Eyebrow>
+          <Display size="title" style={s.bandName} numberOfLines={2}>
+            {fighter.name}
+          </Display>
           {subtitle ? <Text style={s.bandArchetype}>{subtitle.toUpperCase()}</Text> : null}
         </View>
       </View>
@@ -514,13 +489,16 @@ export default function ProfileScreen() {
 
   if (isLoading && !fighter) {
     return (
-      <View style={[s.root, { paddingTop: topPad }]}>
-        <ActivityIndicator color={ACCENT} style={{ marginTop: 60 }} />
-      </View>
+      <Screen>
+        <View style={[s.root, { paddingTop: topPad }]}>
+          <ActivityIndicator color={ACCENT} style={{ marginTop: 60 }} />
+        </View>
+      </Screen>
     );
   }
 
   return (
+    <Screen>
     <ScrollView
       style={s.root}
       contentContainerStyle={[s.content, { paddingTop: topPad + 12, paddingBottom: bottomPad + 32 }]}
@@ -530,8 +508,8 @@ export default function ProfileScreen() {
     >
       {/* PASSPORT HEADER */}
       <View style={s.passportHead}>
-        <Text style={s.passportKicker}>ATHLETE</Text>
-        <Text style={s.passportTitle}>PASSPORT</Text>
+        <Eyebrow style={s.passportKicker}>ATHLETE</Eyebrow>
+        <Display size="title" style={s.passportTitle}>Passport</Display>
       </View>
 
       {!fighter ? (
@@ -539,7 +517,7 @@ export default function ProfileScreen() {
       ) : (
         <>
           {/* IDENTITY BAND + cover photo (site leads with this) */}
-          <View style={s.identityWrap}>
+          <FadeIn style={s.identityWrap}>
             <IdentityBand
               fighter={fighter}
               subtitle={
@@ -554,9 +532,9 @@ export default function ProfileScreen() {
               hitSlop={10}
               accessibilityLabel="Edit profile"
             >
-              <Feather name="edit-2" size={14} color="#888" />
+              <Feather name="edit-2" size={16} color={palette.text} />
             </Pressable>
-          </View>
+          </FadeIn>
 
           {/* BJJ rank is shown only to BJJ athletes. */}
           {fighter.level && isBjjSport(fighter.primarySport) ? (
@@ -568,22 +546,23 @@ export default function ProfileScreen() {
           {/* ─── 1. ATHLETE MODEL — WHAT FRAME KNOWS ─────────────── */}
           <View style={s.sectionHeader}>
             <Text style={s.sectionOverline}>ATHLETE MODEL</Text>
-            <Text style={s.sectionTitle}>WHAT FRAME KNOWS</Text>
+            <Text style={s.sectionTitle}>What FRAME knows</Text>
           </View>
 
           <View style={s.panel}>
             <View style={s.panelPad}>
               <View style={s.headRow}>
-                <SectionHead overline="DOSSIER · MODEL CONFIDENCE" title="UNDERSTANDING YOUR GAME" />
+                <SectionHead overline="DOSSIER · MODEL CONFIDENCE" title="Understanding your game" />
                 {factsFetching ? <Text style={s.syncing}>SYNCING</Text> : null}
               </View>
 
-              <View style={s.confRow}>
-                <Text style={s.confBig}>
-                  {model.frameConfidence}
-                  <Text style={s.confPct}>%</Text>
-                </Text>
-                <Text style={s.confCaption}>MODEL{"\n"}CONFIDENCE</Text>
+              <View style={s.gaugeRow}>
+                <ArcGauge
+                  value={model.frameConfidence}
+                  size={220}
+                  display={`${model.frameConfidence}%`}
+                  label="Model confidence"
+                />
               </View>
 
               {model.lastUpdated ? (
@@ -594,8 +573,6 @@ export default function ProfileScreen() {
                 <Text style={s.stageLabel}>STAGE</Text>
                 <Text style={s.stageValue}>{model.maturity.stage.label.toUpperCase()}</Text>
               </View>
-
-              <ConfidenceBar pct={model.frameConfidence} segments={20} />
 
               <Text style={s.bodyCopy}>{confidenceCopy(model.frameConfidence)}</Text>
             </View>
@@ -639,7 +616,7 @@ export default function ProfileScreen() {
           {/* ─── 3. MODEL COVERAGE — ATHLETE DNA ─────────────────── */}
           <View style={s.panel}>
             <View style={s.panelPad}>
-              <SectionHead overline="MODEL COVERAGE" title="ATHLETE DNA" />
+              <SectionHead overline="MODEL COVERAGE" title="Athlete DNA" />
             </View>
             {isFramePlus ? (
               <View style={s.radarWrap}>
@@ -659,7 +636,7 @@ export default function ProfileScreen() {
           {/* ─── 4. DERIVED READ — ATHLETE IDENTITY ──────────────── */}
           <View style={s.panel}>
             <View style={s.panelPad}>
-              <SectionHead overline="DERIVED READ" title="ATHLETE IDENTITY" />
+              <SectionHead overline="DERIVED READ" title="Athlete identity" />
             </View>
             <View style={s.rowDivided}>
               <DataRow
@@ -724,7 +701,7 @@ export default function ProfileScreen() {
             <View>
               <Text style={s.sectionOverline}>FULL MODEL</Text>
               <Text style={s.sectionTitle}>
-                {activeFacts.length} OBSERVATION{activeFacts.length === 1 ? "" : "S"}
+                {activeFacts.length} observation{activeFacts.length === 1 ? "" : "s"}
               </Text>
             </View>
             <Pressable onPress={() => router.push("/history")} hitSlop={8}>
@@ -802,7 +779,7 @@ export default function ProfileScreen() {
             )}
             <Pressable style={s.restoreLink} onPress={handleRestore} disabled={restoring}>
               {restoring ? (
-                <ActivityIndicator color="#666" size="small" />
+                <ActivityIndicator color={palette.textMid} size="small" />
               ) : (
                 <Text style={s.restoreLinkText}>RESTORE PURCHASES</Text>
               )}
@@ -854,7 +831,7 @@ export default function ProfileScreen() {
               accessibilityLabel="Withdraw AI permission"
             >
               {withdrawingAi ? (
-                <ActivityIndicator size="small" color="#888" />
+                <ActivityIndicator size="small" color={palette.textMid} />
               ) : (
                 <Text style={s.withdrawAiText}>WITHDRAW AI PERMISSION</Text>
               )}
@@ -877,7 +854,7 @@ export default function ProfileScreen() {
               onPress={handleSignOut}
               disabled={deletingAccount}
             >
-              <Feather name="log-out" size={14} color="#666" style={{ marginRight: 6 }} />
+              <Feather name="log-out" size={14} color={palette.textMid} style={{ marginRight: 6 }} />
               <Text style={s.signOutText}>SIGN OUT</Text>
             </Pressable>
             <Pressable
@@ -892,10 +869,10 @@ export default function ProfileScreen() {
               accessibilityLabel="Delete account permanently"
             >
               {deletingAccount ? (
-                <ActivityIndicator size="small" color="#b05245" />
+                <ActivityIndicator size="small" color={palette.redLight} />
               ) : (
                 <>
-                  <Feather name="trash-2" size={14} color="#b05245" style={{ marginRight: 6 }} />
+                  <Feather name="trash-2" size={14} color={palette.redLight} style={{ marginRight: 6 }} />
                   <Text style={s.deleteAccountText}>DELETE ACCOUNT</Text>
                 </>
               )}
@@ -913,74 +890,83 @@ export default function ProfileScreen() {
         </>
       )}
     </ScrollView>
+    </Screen>
   );
 }
 
+const cd = StyleSheet.create({
+  wrap: { flexDirection: "row", alignItems: "center", gap: 6 },
+  row: { flexDirection: "row", gap: 3 },
+  pip: { width: 3, height: 10, borderRadius: 2 },
+  active: { backgroundColor: palette.goldLight },
+  inactive: { backgroundColor: "rgba(255,255,255,0.1)" },
+  count: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.5, color: palette.textLow },
+});
+
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#050505" },
+  root: { flex: 1, backgroundColor: "transparent" },
   content: { paddingHorizontal: 20 },
   section: { marginBottom: 32 },
-  privacyHeading: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 2, color: "#aaa", marginBottom: 10 },
-  privacyCopy: { fontFamily: "Outfit", fontSize: 13, lineHeight: 20, color: "#777", marginBottom: 12 },
-  privacyLink: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
-  privacyLinkText: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 1.5, color: ACCENT },
+  privacyHeading: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textMid, marginBottom: 10 },
+  privacyCopy: { fontFamily: fonts.text, fontSize: 13, lineHeight: 20, color: palette.textMid, marginBottom: 12 },
+  privacyLink: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 },
+  privacyLinkText: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.5, color: palette.goldLight },
   emptyState: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 14,
-    color: "#666",
+    color: palette.textLow,
     textAlign: "center",
     paddingVertical: 48,
   },
 
   // Passport header
-  passportHead: { alignItems: "center", marginBottom: 16 },
-  passportKicker: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 5, color: "#666" },
-  passportTitle: { fontFamily: "SpaceMono", fontSize: 13, letterSpacing: 6, color: "#e0e0e0", marginTop: 4 },
+  passportHead: { alignItems: "center", marginBottom: 18, gap: 2 },
+  passportKicker: { color: palette.goldLight },
+  passportTitle: { textAlign: "center" },
 
   // Identity band
   identityWrap: { position: "relative", marginBottom: 16 },
   band: {
-    minHeight: 190,
+    minHeight: 230,
+    borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: palette.glassEdge,
+    backgroundColor: palette.graphite1,
     overflow: "hidden",
     justifyContent: "flex-end",
   },
   bandControls: { position: "absolute", top: 10, right: 10, flexDirection: "row", gap: 6, zIndex: 10 },
   bandBtn: {
-    width: 30,
-    height: 30,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
-    backgroundColor: "rgba(0,0,0,0.4)",
+    borderColor: palette.glassEdge,
+    backgroundColor: "rgba(5,5,5,0.55)",
   },
   bandBody: { paddingHorizontal: 16, paddingTop: 32, paddingBottom: 16 },
-  bandKicker: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 6, color: "#888", marginBottom: 6 },
-  bandName: { fontFamily: "Outfit_600SemiBold", fontSize: 30, letterSpacing: 2, color: "#f2f2f2" },
-  bandArchetype: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: ACCENT, marginTop: 8 },
+  bandKicker: { color: palette.goldLight, marginBottom: 4 },
+  bandName: { color: palette.textHi },
+  bandArchetype: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.4, color: palette.goldLight, marginTop: 8 },
   bandError: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 1,
-    color: "#d2553f",
-    borderWidth: 1,
-    borderTopWidth: 0,
-    borderColor: "rgba(255,255,255,0.08)",
+    fontFamily: fonts.text,
+    fontSize: 13,
+    color: palette.redLight,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   editFab: {
     position: "absolute",
-    bottom: 12,
-    right: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    bottom: 14,
+    right: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: "#222",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    borderColor: palette.glassEdge,
+    backgroundColor: "rgba(5,5,5,0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -988,11 +974,13 @@ const s = StyleSheet.create({
   // Belt
   beltCard: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    borderTopWidth: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    marginBottom: 32,
+    borderColor: palette.glassEdge,
+    borderRadius: radius.lg,
+    backgroundColor: palette.graphite1,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    marginBottom: 24,
+    ...shadow.card,
   },
 
   // Big editorial section header (numbered sections 1 & 5)
@@ -1004,17 +992,19 @@ const s = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
-  sectionOverline: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 5, color: "rgba(255,255,255,0.45)", marginBottom: 6 },
-  sectionTitle: { fontFamily: "Outfit", fontSize: 18, letterSpacing: 3, color: "rgba(255,255,255,0.9)" },
-  viewHistory: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 3, color: "rgba(255,255,255,0.45)" },
+  sectionOverline: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 6 },
+  sectionTitle: { fontFamily: fonts.displayItalic, fontSize: 28, lineHeight: 32, color: palette.textHi },
+  viewHistory: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.8, color: palette.textLow },
 
   // Panel shell
   panel: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    backgroundColor: "rgba(255,255,255,0.018)",
+    borderColor: palette.glassEdge,
+    borderRadius: radius.lg,
+    backgroundColor: palette.graphite1,
     marginBottom: 20,
     overflow: "hidden",
+    ...shadow.card,
   },
   panelPad: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 },
   panelDivided: {
@@ -1022,34 +1012,29 @@ const s = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 20,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.05)",
+    borderTopColor: palette.hairline,
   },
 
   // Section head (overline + title, inside panels)
   headBlock: {},
-  headOverline: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 4, color: "rgba(255,255,255,0.45)", marginBottom: 8 },
-  headTitle: { fontFamily: "Outfit", fontSize: 15, letterSpacing: 3, color: "rgba(255,255,255,0.9)" },
+  headOverline: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 8 },
+  headTitle: { fontFamily: fonts.displayItalic, fontSize: 22, lineHeight: 26, color: palette.textHi },
   headRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
-  syncing: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "rgba(138,106,47,0.6)" },
+  syncing: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.goldLight },
 
   // Model confidence
-  confRow: { flexDirection: "row", alignItems: "baseline", gap: 14, marginTop: 24, marginBottom: 8 },
-  confBig: { fontFamily: "Outfit", fontSize: 52, color: "rgba(255,255,255,0.95)", lineHeight: 52 },
-  confPct: { fontSize: 24, color: "rgba(138,106,47,0.7)" },
-  confCaption: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 4, color: "rgba(255,255,255,0.5)", lineHeight: 14 },
-  updated: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 1.5, color: "rgba(255,255,255,0.4)", marginBottom: 16 },
+  gaugeRow: { alignItems: "center", marginTop: 12, marginBottom: 4 },
+  updated: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.5, color: palette.textLow, marginBottom: 16 },
   stageRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14 },
-  stageLabel: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 4, color: "rgba(255,255,255,0.5)" },
-  stageValue: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 3, color: "rgba(138,106,47,0.85)" },
-  barRow: { flexDirection: "row", gap: 2 },
-  barSeg: { height: 3, flex: 1 },
-  bodyCopy: { fontFamily: "Outfit", fontSize: 13, lineHeight: 20, color: "rgba(255,255,255,0.5)", marginTop: 16 },
+  stageLabel: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textMid },
+  stageValue: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.8, color: palette.goldLight },
+    bodyCopy: { fontFamily: fonts.text, fontSize: 13, lineHeight: 20, color: palette.textMid, marginTop: 16 },
 
   // Lowest confidence bullets
-  subOverline: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 5, color: "rgba(255,255,255,0.4)", marginBottom: 12 },
+  subOverline: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 12 },
   bulletRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
-  bulletDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(138,106,47,0.4)" },
-  bulletText: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 2, color: "rgba(255,255,255,0.65)" },
+  bulletDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: palette.goldLight },
+  bulletText: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.8, color: palette.textMid },
 
   // CTA row
   ctaRow: {
@@ -1059,9 +1044,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
+    borderTopColor: palette.hairline,
   },
-  ctaText: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: "rgba(138,106,47,0.75)" },
+  ctaText: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.8, color: palette.goldLight },
 
   // Athlete state top
   stateTop: {
@@ -1072,8 +1057,8 @@ const s = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 4,
   },
-  stateTopLabel: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: "rgba(138,106,47,0.85)" },
-  stateTopAside: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 3, color: "rgba(255,255,255,0.5)" },
+  stateTopLabel: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.8, color: palette.goldLight },
+  stateTopAside: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textMid },
 
   // Data rows
   rowDivided: {},
@@ -1085,12 +1070,12 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.05)",
+    borderTopColor: palette.hairline,
   },
-  dataLabel: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "rgba(255,255,255,0.55)", width: 108, paddingTop: 1 },
+  dataLabel: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.4, color: palette.textMid, width: 112, paddingTop: 2 },
   dataValueWrap: { flex: 1, alignItems: "flex-end" },
-  dataValue: { fontFamily: "SpaceMono", fontSize: 11, letterSpacing: 1, color: "rgba(255,255,255,0.95)", textAlign: "right" },
-  dataSub: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(255,255,255,0.45)", marginTop: 3, textAlign: "right" },
+  dataValue: { fontFamily: fonts.textMedium, fontSize: 13, letterSpacing: 0.6, color: palette.textHi, textAlign: "right" },
+  dataSub: { fontFamily: fonts.text, fontSize: 12, color: palette.textMid, marginTop: 3, textAlign: "right" },
 
   // Locked FRAME+ body
   lockRow: {
@@ -1100,42 +1085,42 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.05)",
+    borderTopColor: palette.hairline,
   },
-  lockNote: { flex: 1, fontFamily: "Outfit", fontSize: 13, lineHeight: 19, color: "rgba(255,255,255,0.55)" },
-  lockBadge: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "rgba(138,106,47,0.8)" },
+  lockNote: { flex: 1, fontFamily: fonts.text, fontSize: 13, lineHeight: 19, color: palette.textMid },
+  lockBadge: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.goldLight },
 
   // Radar
   radarWrap: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20 },
-  radarCaption: { fontFamily: "Outfit", fontSize: 12, lineHeight: 17, color: "rgba(255,255,255,0.4)", textAlign: "center", marginTop: 8 },
+  radarCaption: { fontFamily: fonts.text, fontSize: 12, lineHeight: 17, color: palette.textLow, textAlign: "center", marginTop: 8 },
 
   // Integrity triple strip
   tripleStrip: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
+    borderTopColor: palette.hairline,
   },
   tripleCell: { flex: 1, paddingHorizontal: 12, paddingVertical: 12, alignItems: "center" },
-  tripleBorder: { borderLeftWidth: 1, borderLeftColor: "rgba(255,255,255,0.06)" },
-  tripleLabel: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 2, color: "rgba(255,255,255,0.55)", marginBottom: 5 },
-  tripleValue: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 2, color: "rgba(255,255,255,0.95)", textAlign: "center" },
+  tripleBorder: { borderLeftWidth: 1, borderLeftColor: palette.hairline },
+  tripleLabel: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textMid, marginBottom: 5 },
+  tripleValue: { fontFamily: fonts.numeral, fontSize: 18, letterSpacing: 0, color: palette.textHi, textAlign: "center" },
   integrityBarWrap: {
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
+    borderTopColor: palette.hairline,
   },
   integrityBar: { flexDirection: "row", gap: 4 },
-  integritySeg: { height: 4, flex: 1 },
+  integritySeg: { height: 4, flex: 1, borderRadius: 2 },
   integrityOn: { backgroundColor: ACCENT },
-  integrityOff: { backgroundColor: "rgba(255,255,255,0.12)" },
-  integrityCaption: { fontFamily: "Outfit", fontSize: 11, lineHeight: 16, color: "rgba(255,255,255,0.5)", marginTop: 10 },
+  integrityOff: { backgroundColor: "rgba(255,244,224,0.14)" },
+  integrityCaption: { fontFamily: fonts.text, fontSize: 11, lineHeight: 16, color: palette.textMid, marginTop: 10 },
 
   // Full model fact list
   catHeadRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
-  catHeadLabel: { fontFamily: "Outfit", fontSize: 13, letterSpacing: 3, color: "rgba(138,106,47,0.9)" },
-  catHeadLine: { flex: 1, height: 1, backgroundColor: "rgba(138,106,47,0.22)" },
-  catHeadCount: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(255,255,255,0.4)" },
+  catHeadLabel: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.6, color: palette.goldLight },
+  catHeadLine: { flex: 1, height: 1, backgroundColor: palette.goldHair },
+  catHeadCount: { fontFamily: fonts.textMedium, fontSize: 11.5, color: palette.textLow },
   factItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -1144,83 +1129,92 @@ const s = StyleSheet.create({
     paddingLeft: 14,
     paddingVertical: 4,
     borderLeftWidth: 1,
-    borderLeftColor: "rgba(138,106,47,0.25)",
+    borderLeftColor: palette.goldHair,
   },
-  factText: { flex: 1, fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 2, color: "rgba(255,255,255,0.75)" },
+  factText: { flex: 1, fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 0.8, color: palette.text },
   factMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
-  factEvidence: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(138,106,47,0.7)" },
+  factEvidence: { fontFamily: fonts.textMedium, fontSize: 11.5, color: palette.goldLight },
 
   // Membership
   memberRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 52,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: ACCENT,
-    paddingVertical: 13,
-    paddingHorizontal: 16,
+    borderColor: palette.goldHair,
+    backgroundColor: palette.goldWash,
+    paddingHorizontal: 20,
   },
-  memberText: { fontFamily: "SpaceMono", fontSize: 10, color: ACCENT, letterSpacing: 3 },
+  memberText: { fontFamily: fonts.textMedium, fontSize: 11, color: palette.goldLight, letterSpacing: 1.8 },
   upgradeCard: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    borderColor: palette.goldHair,
+    borderRadius: radius.lg,
+    backgroundColor: palette.goldWash,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    minHeight: 64,
   },
-  upgradeTitle: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: "rgba(255,255,255,0.85)" },
-  upgradeSub: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 1, color: "rgba(255,255,255,0.45)", marginTop: 6, lineHeight: 14 },
-  restoreLink: { alignItems: "center", paddingVertical: 14 },
-  restoreLinkText: { fontFamily: "SpaceMono", fontSize: 9, color: "#555", letterSpacing: 3 },
+  upgradeTitle: { fontFamily: fonts.displayItalic, fontSize: 24, lineHeight: 28, color: palette.goldPale },
+  upgradeSub: { fontFamily: fonts.text, fontSize: 12.5, color: palette.textMid, marginTop: 6, lineHeight: 18 },
+  restoreLink: { alignItems: "center", justifyContent: "center", minHeight: 48 },
+  restoreLinkText: { fontFamily: fonts.textMedium, fontSize: 11.5, color: palette.textLow, letterSpacing: 1.8 },
 
   // Account
-  emailText: { fontFamily: "Outfit", fontSize: 13, color: "#666", marginBottom: 12, textAlign: "center" },
+  emailText: { fontFamily: fonts.text, fontSize: 13, color: palette.textLow, marginBottom: 12, textAlign: "center" },
   withdrawAiBtn: {
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#242424",
-    paddingVertical: 12,
+    borderColor: palette.glassEdge,
+    minHeight: 48,
+    borderRadius: radius.pill,
     paddingHorizontal: 20,
     marginTop: 8,
     marginBottom: 16,
   },
   withdrawAiText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    color: "#888",
-    letterSpacing: 2,
+    fontFamily: fonts.textMedium,
+    fontSize: 11.5,
+    color: palette.textMid,
+    letterSpacing: 1.8,
   },
   signOutBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#1a1a1a",
-    paddingVertical: 12,
+    borderColor: palette.glassEdge,
+    minHeight: 48,
+    borderRadius: radius.pill,
     paddingHorizontal: 20,
   },
-  signOutText: { fontFamily: "SpaceMono", fontSize: 10, color: "#666", letterSpacing: 3 },
+  signOutText: { fontFamily: fonts.textMedium, fontSize: 11, color: palette.textLow, letterSpacing: 1.8 },
   deleteAccountBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(176,82,69,0.35)",
-    paddingVertical: 12,
+    borderColor: "rgba(224,86,78,0.35)",
+    minHeight: 48,
+    borderRadius: radius.pill,
     paddingHorizontal: 20,
     marginTop: 12,
   },
   deleteAccountText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    color: "#b05245",
-    letterSpacing: 2,
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    color: palette.redLight,
+    letterSpacing: 1.8,
   },
   deleteAccountNote: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 11,
-    color: "#555",
+    color: palette.textLow,
     textAlign: "center",
     marginTop: 8,
   },

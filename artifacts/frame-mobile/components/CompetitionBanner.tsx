@@ -5,16 +5,17 @@ import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import type { PressureTier } from "@/lib/competition";
+import { fonts, palette, radius } from "@/constants/theme";
 
 // Visual pressure scales with the camp phase: calm amber far out, hard red in
 // fight week. Ported to match the web banner (coach/competition-banner.tsx):
 // top/bottom rules, uppercase event name, and a weigh-in + days-out readout.
 const TIER_STYLE: Record<PressureTier, { border: string; accent: string; pulse: boolean }> = {
-  base: { border: "rgba(138,106,47,0.30)", accent: "#8A6A2F", pulse: false },
-  build: { border: "rgba(138,106,47,0.40)", accent: "#8A6A2F", pulse: false },
-  sharpen: { border: "rgba(210,85,63,0.50)", accent: "#d2553f", pulse: false },
-  peak: { border: "rgba(224,96,74,0.65)", accent: "#e0604a", pulse: true },
-  fight_week: { border: "rgba(255,106,77,0.85)", accent: "#ff6a4d", pulse: true },
+  base: { border: palette.goldHair, accent: palette.goldLight, pulse: false },
+  build: { border: "rgba(199,161,90,0.40)", accent: palette.goldLight, pulse: false },
+  sharpen: { border: "rgba(224,86,78,0.40)", accent: palette.redLight, pulse: false },
+  peak: { border: "rgba(224,86,78,0.55)", accent: palette.redLight, pulse: true },
+  fight_week: { border: "rgba(240,118,107,0.75)", accent: "#F0766B", pulse: true },
 };
 
 export function CompetitionBanner() {
@@ -51,6 +52,8 @@ export function CompetitionBanner() {
 
   return (
     <Pressable
+      accessibilityRole="button"
+      style={styles.press}
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         router.push("/competition");
@@ -59,11 +62,13 @@ export function CompetitionBanner() {
       <Animated.View
         style={[
           styles.banner,
-          { borderTopColor: tier.border, borderBottomColor: tier.border, opacity: pulse },
+          { borderColor: tier.border, opacity: pulse },
         ]}
       >
         <LinearGradient
-          colors={["rgba(0,0,0,0.4)", "rgba(0,0,0,0)"]}
+          colors={[palette.goldWash, "rgba(255,246,232,0.02)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
@@ -72,8 +77,8 @@ export function CompetitionBanner() {
             <Text style={[styles.tierLabel, { color: tier.accent }]} numberOfLines={1}>
               {pressure.tierLabel.toUpperCase()}
             </Text>
-            <Text style={styles.event} numberOfLines={1}>
-              {competition.eventName.toUpperCase()}
+            <Text style={styles.event} numberOfLines={2}>
+              {competition.eventName}
             </Text>
           </View>
           <View style={styles.right}>
@@ -99,13 +104,19 @@ export function CompetitionBanner() {
 }
 
 const styles = StyleSheet.create({
+  press: {
+    marginHorizontal: 20,
+    marginTop: 12,
+  },
   banner: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginTop: 10,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    minHeight: 64,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    justifyContent: "center",
     overflow: "hidden",
+    backgroundColor: palette.graphite1,
   },
   row: {
     flexDirection: "row",
@@ -116,43 +127,43 @@ const styles = StyleSheet.create({
   left: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    gap: 3,
   },
   tierLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3.6,
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.8,
   },
   event: {
-    fontFamily: "Outfit",
-    fontSize: 12,
-    letterSpacing: 0.7,
-    color: "rgba(224,224,224,0.9)",
+    fontFamily: fonts.displayItalic,
+    fontSize: 18,
+    lineHeight: 21,
+    color: palette.textHi,
   },
   right: {
     flexDirection: "row",
     alignItems: "baseline",
-    gap: 10,
+    gap: 14,
   },
   metric: {
     flexDirection: "row",
     alignItems: "baseline",
   },
   weighNum: {
-    fontFamily: "Outfit",
-    fontWeight: "300",
-    fontSize: 15,
+    fontFamily: fonts.numeral,
+    fontSize: 20,
   },
   daysNum: {
-    fontFamily: "Outfit",
-    fontWeight: "300",
-    fontSize: 22,
+    fontFamily: fonts.numeralXL,
+    fontSize: 34,
+    lineHeight: 38,
+    letterSpacing: -1,
   },
   metricLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2.4,
-    color: "rgba(224,224,224,0.55)",
-    marginLeft: 4,
+    fontFamily: fonts.textMedium,
+    fontSize: 9.5,
+    letterSpacing: 1.4,
+    color: palette.textMid,
+    marginLeft: 5,
   },
 });

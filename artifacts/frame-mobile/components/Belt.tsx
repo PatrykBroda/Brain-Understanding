@@ -3,6 +3,8 @@ import { StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Defs, RadialGradient as SvgRadialGradient, Rect, Stop } from "react-native-svg";
 
+import { fonts, palette, radius } from "@/constants/theme";
+
 // BJJ belt psychology — ported verbatim from @workspace/archetypes (the web's
 // source of truth). This component is rendered only for BJJ athletes.
 const BELT_PSYCHOLOGY = [
@@ -180,7 +182,7 @@ function BeltLadder({ currentIndex }: { currentIndex: number }) {
             <Text
               style={[
                 beltStyles.rungLabel,
-                { color: isCurrent ? "#8A6A2F" : earned ? "#999" : "#555" },
+                { color: isCurrent ? palette.goldLight : earned ? palette.textMid : palette.textLow },
               ]}
             >
               {rung.label.slice(0, 3).toUpperCase()}
@@ -401,9 +403,9 @@ const beltStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
   },
   rungLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 7,
-    letterSpacing: 1,
+    fontFamily: fonts.textMedium,
+    fontSize: 9.5,
+    letterSpacing: 1.2,
   },
   headRow: {
     flexDirection: "row",
@@ -411,53 +413,55 @@ const beltStyles = StyleSheet.create({
     justifyContent: "space-between",
   },
   rankLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 4,
-    color: "#e0e0e0",
+    fontFamily: fonts.displayItalic,
+    fontSize: 24,
+    lineHeight: 28,
+    color: palette.textHi,
   },
   nextLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#777",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.4,
+    color: palette.textMid,
   },
   apexLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#8A6A2F",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.4,
+    color: palette.goldLight,
   },
   meaning: {
     borderLeftWidth: 1,
-    borderLeftColor: "rgba(138,106,47,0.4)",
-    paddingLeft: 12,
+    borderLeftColor: palette.goldHair,
+    paddingLeft: 14,
     paddingTop: 2,
   },
   meaningState: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#8A6A2F",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.6,
+    color: palette.goldLight,
   },
   meaningText: {
-    fontFamily: "Outfit",
-    fontSize: 12,
-    color: "#888",
-    lineHeight: 18,
+    fontFamily: fonts.text,
+    fontSize: 13,
+    color: palette.textMid,
+    lineHeight: 19,
     marginTop: 4,
   },
   unranked: {
     height: 56,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: "#1a1a1a",
+    borderColor: palette.glassEdge,
+    backgroundColor: palette.glass,
     alignItems: "center",
     justifyContent: "center",
   },
   unrankedText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "#666",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.8,
+    color: palette.textMid,
   },
 });

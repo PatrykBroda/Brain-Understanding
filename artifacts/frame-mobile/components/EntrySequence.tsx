@@ -1,3 +1,4 @@
+import { fonts, palette } from "@/constants/theme";
 import React, { useEffect, useMemo, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -140,14 +141,14 @@ export function EntrySequence({
       {/* spotlight + vignette via SVG radial gradients (RN has no CSS radial) */}
       <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
-          <RadialGradient id="spot" cx="50%" cy="8%" rx="80%" ry="45%">
-            <Stop offset="0%" stopColor="#FFFAF0" stopOpacity={0.05} />
-            <Stop offset="60%" stopColor="#FFFAF0" stopOpacity={0} />
+          <RadialGradient id="spot" cx="50%" cy="6%" rx="90%" ry="50%">
+            <Stop offset="0%" stopColor="#C7A15A" stopOpacity={0.22} />
+            <Stop offset="60%" stopColor="#8A6A2F" stopOpacity={0} />
           </RadialGradient>
           <RadialGradient id="vig" cx="50%" cy="50%" rx="110%" ry="80%">
-            <Stop offset="35%" stopColor="#000000" stopOpacity={0} />
-            <Stop offset="90%" stopColor="#000000" stopOpacity={0.7} />
-            <Stop offset="100%" stopColor="#000000" stopOpacity={1} />
+            <Stop offset="35%" stopColor="#050505" stopOpacity={0} />
+            <Stop offset="90%" stopColor="#050505" stopOpacity={0.7} />
+            <Stop offset="100%" stopColor="#050505" stopOpacity={1} />
           </RadialGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill="url(#spot)" />
@@ -194,14 +195,14 @@ export function EntrySequence({
 const s = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#000",
+    backgroundColor: "#050505",
     zIndex: 50,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 8,
   },
   headerLeft: {
@@ -210,22 +211,22 @@ const s = StyleSheet.create({
     gap: 8,
   },
   headerDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "rgba(216,156,79,0.85)",
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: palette.goldLight,
   },
   headerText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3.2,
-    color: "rgba(224,224,224,0.55)",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 2,
+    color: palette.textMid,
   },
   callsign: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3.2,
-    color: "rgba(138,106,47,0.85)",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 2,
+    color: palette.goldLight,
   },
   hero: {
     flex: 1,
@@ -237,12 +238,12 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   heroLine: {
-    fontFamily: "SpaceMono",
-    fontSize: 30,
-    lineHeight: 38,
-    letterSpacing: 2,
+    fontFamily: fonts.displayItalic,
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: 0.5,
     textAlign: "center",
-    color: "rgba(224,224,224,0.95)",
+    color: palette.textHi,
   },
   loaderRow: {
     flexDirection: "row",
@@ -251,40 +252,41 @@ const s = StyleSheet.create({
     marginTop: 40,
   },
   dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "rgba(224,224,224,0.4)",
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: palette.goldLight,
   },
   footer: {
     alignItems: "center",
-    gap: 20,
+    gap: 16,
     paddingHorizontal: 24,
   },
   wordmarkBlock: {
     alignItems: "center",
   },
   wordmark: {
-    fontFamily: "SpaceMono",
-    fontSize: 26,
-    letterSpacing: 12,
-    paddingLeft: 12,
-    color: "rgba(224,224,224,0.95)",
+    fontFamily: fonts.displayItalic,
+    fontSize: 40,
+    lineHeight: 44,
+    color: palette.textHi,
   },
   mmaTag: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 6,
-    paddingLeft: 6,
-    marginTop: 8,
-    color: "rgba(217,58,58,0.78)",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 3,
+    paddingLeft: 3,
+    marginTop: 4,
+    color: palette.redLight,
   },
   skip: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 5.5,
-    color: "rgba(224,224,224,0.55)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 2.4,
+    color: palette.textMid,
+    paddingHorizontal: 20,
+    minHeight: 44,
+    textAlignVertical: "center",
+    lineHeight: 44,
   },
 });

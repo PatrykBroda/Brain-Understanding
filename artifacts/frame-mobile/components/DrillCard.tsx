@@ -1,6 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { fonts, palette, radius } from "@/constants/theme";
+
 export type Drill = {
   title?: string;
   objective?: string;
@@ -46,59 +48,62 @@ const s = StyleSheet.create({
   card: {
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: "rgba(138,106,47,0.30)",
-    backgroundColor: "rgba(138,106,47,0.05)",
+    borderColor: palette.goldHair,
+    borderRadius: radius.md,
+    backgroundColor: "rgba(138,106,47,0.10)",
+    overflow: "hidden",
   },
   head: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(138,106,47,0.20)",
-    backgroundColor: "rgba(138,106,47,0.10)",
+    borderBottomColor: palette.hairline,
+    backgroundColor: palette.goldWash,
   },
   headLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "rgba(138,106,47,0.85)",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.8,
+    color: palette.goldLight,
   },
   headKind: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1,
-    color: "rgba(138,106,47,0.6)",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.4,
+    color: palette.textMid,
   },
   title: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 4,
-    fontFamily: "SpaceMono",
-    fontSize: 13,
-    letterSpacing: 1,
-    color: "#e0e0e0",
+    fontFamily: fonts.displayItalic,
+    fontSize: 24,
+    lineHeight: 28,
+    color: palette.textHi,
   },
   body: {
-    paddingHorizontal: 14,
-    paddingTop: 6,
-    paddingBottom: 14,
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+    gap: 12,
   },
   fieldRow: {
-    gap: 2,
+    gap: 3,
   },
   fieldLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#666",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.6,
+    color: palette.goldLight,
+    textTransform: "uppercase",
   },
   fieldValue: {
-    fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#cdcdcd",
-    lineHeight: 20,
+    fontFamily: fonts.text,
+    fontSize: 14.5,
+    color: palette.text,
+    lineHeight: 21,
   },
 });

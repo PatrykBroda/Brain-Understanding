@@ -39,6 +39,8 @@ import { CompetitionBanner } from "@/components/CompetitionBanner";
 import { OctagonSpinner } from "@/components/OctagonSpinner";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
+import { Display, Eyebrow, FadeIn, Screen } from "@/components/ui";
+import { fonts, palette, radius } from "@/constants/theme";
 
 const FRAME_WORDMARK = require("@/assets/images/frame-wordmark.png");
 
@@ -116,7 +118,7 @@ function AttachmentThumb({
     <View style={mb.thumb}>
       {att.kind === "video" ? (
         <View style={mb.videoThumb}>
-          <Feather name="video" size={20} color="#888" />
+          <Feather name="video" size={20} color={palette.textMid} />
           <Text style={mb.videoName} numberOfLines={1}>
             {att.filename}
           </Text>
@@ -125,8 +127,14 @@ function AttachmentThumb({
         <Image source={{ uri: src }} style={mb.thumbImg} resizeMode="cover" />
       )}
       {onRemove && (
-        <Pressable style={mb.thumbRemove} onPress={onRemove} hitSlop={6}>
-          <Feather name="x" size={12} color="#e0e0e0" />
+        <Pressable
+          style={mb.thumbRemove}
+          onPress={onRemove}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Remove attachment"
+        >
+          <Feather name="x" size={12} color={palette.text} />
         </Pressable>
       )}
     </View>
@@ -150,7 +158,6 @@ function MessageBubble({
         {isUser ? userLabel : "FRAME"}
       </Text>
       <View style={[mb.row, isUser ? mb.userRow : mb.assistantRow]}>
-        {!isUser && <View style={mb.dot} />}
         <View style={[mb.bubble, isUser ? mb.userBubble : mb.assistantBubble]}>
           {hasAttachments && (
             <View style={mb.attachGrid}>
@@ -174,7 +181,7 @@ function MessageBubble({
 
 const mb = StyleSheet.create({
   wrap: {
-    marginVertical: 10,
+    marginVertical: 8,
   },
   wrapUser: {
     alignItems: "flex-end",
@@ -183,58 +190,56 @@ const mb = StyleSheet.create({
     alignItems: "flex-start",
   },
   senderLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 4,
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.6,
     textTransform: "uppercase",
     marginBottom: 6,
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
   },
   senderLabelUser: {
-    color: "rgba(224,224,224,0.4)",
+    color: palette.textLow,
   },
   senderLabelFrame: {
-    color: "rgba(138,106,47,0.7)",
+    color: palette.goldLight,
   },
   row: {
     flexDirection: "row",
-    marginVertical: 4,
+    marginVertical: 2,
     paddingHorizontal: 16,
     alignItems: "flex-end",
     gap: 8,
   },
   userRow: { justifyContent: "flex-end" },
   assistantRow: { justifyContent: "flex-start" },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#8A6A2F",
-    marginBottom: 6,
-  },
   bubble: {
-    maxWidth: "80%",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  userBubble: {
-    backgroundColor: "#1a1a1a",
+    maxWidth: "84%",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: "#2a2a2a",
   },
+  // user = bronze-tinted glass
+  userBubble: {
+    backgroundColor: "rgba(138,106,47,0.20)",
+    borderColor: palette.goldHair,
+    borderRadius: 22,
+    borderBottomRightRadius: 6,
+  },
+  // coach = graphite glass
   assistantBubble: {
     maxWidth: "94%",
-    backgroundColor: "transparent",
-    paddingHorizontal: 0,
-    paddingVertical: 0,
+    backgroundColor: palette.graphite2,
+    borderColor: palette.glassEdge,
+    borderRadius: 22,
+    borderBottomLeftRadius: 6,
   },
   text: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 15,
     lineHeight: 22,
   },
-  userText: { color: "#e0e0e0" },
-  assistantText: { color: "#c0c0c0" },
+  userText: { color: palette.textHi },
+  assistantText: { color: palette.text },
   attachGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -244,9 +249,10 @@ const mb = StyleSheet.create({
   thumb: {
     width: 120,
     height: 120,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#2a2a2a",
-    backgroundColor: "#000",
+    borderColor: palette.glassEdge,
+    backgroundColor: palette.graphite0,
     overflow: "hidden",
   },
   thumbImg: {
@@ -261,21 +267,21 @@ const mb = StyleSheet.create({
     paddingHorizontal: 8,
   },
   videoName: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 1,
-    color: "#888",
+    fontFamily: fonts.text,
+    fontSize: 10,
+    color: palette.textMid,
     textAlign: "center",
   },
   thumbRemove: {
     position: "absolute",
-    top: 4,
-    right: 4,
-    width: 22,
-    height: 22,
-    backgroundColor: "rgba(5,5,5,0.85)",
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(5,5,5,0.8)",
     borderWidth: 1,
-    borderColor: "#2a2a2a",
+    borderColor: palette.glassEdge,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -284,13 +290,13 @@ const mb = StyleSheet.create({
 function TypingIndicator() {
   return (
     <View style={[mb.row, mb.assistantRow]}>
-      <View style={mb.dot} />
       <View style={[mb.bubble, mb.assistantBubble]}>
-        <OctagonSpinner size={30} color="#EDEDED" />
+        <OctagonSpinner size={26} color={palette.goldPale} />
       </View>
     </View>
   );
 }
+
 
 interface ConversationResponse {
   conversation: { id: number } | null;
@@ -362,7 +368,7 @@ export default function ChatScreen() {
   // clearance would just open a dead gap above the keyboard. Collapse it then.
   const keyboardVisible = useKeyboardState((s) => s.isVisible);
   const bottomPad =
-    Platform.OS === "web" ? 34 : keyboardVisible ? 0 : 50;
+    Platform.OS === "web" ? 84 : keyboardVisible ? 0 : 56;
   const inputBottomInset = keyboardVisible ? 8 : insets.bottom + bottomPad + 8;
 
   useEffect(() => {
@@ -711,6 +717,7 @@ export default function ChatScreen() {
       }}
       onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
     />
+    <Screen>
     <KeyboardAvoidingView
       style={[styles.root, { paddingTop: topPad }]}
       behavior="padding"
@@ -719,26 +726,30 @@ export default function ChatScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable
-          style={styles.headerBack}
+          style={styles.headerPill}
           onPress={() => router.push("/(tabs)/home")}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Back to home"
         >
-          <Feather name="chevron-left" size={20} color="#888" />
-          <Text style={styles.headerBackText}>HOME</Text>
+          <Feather name="chevron-left" size={18} color={palette.text} />
+          <Text style={styles.headerPillText}>Home</Text>
         </Pressable>
         <Image source={FRAME_WORDMARK} style={styles.headerWordmark} resizeMode="contain" />
         <Pressable
-          style={styles.headerReset}
+          style={[styles.headerPill, styles.headerReset]}
           onPress={resetConversation}
           disabled={isStreaming || resetting}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Reset conversation"
         >
           {resetting ? (
-            <OctagonSpinner size={14} color="#888" />
+            <OctagonSpinner size={14} color={palette.textMid} />
           ) : (
             <>
-              <Feather name="refresh-ccw" size={12} color="#888" />
-              <Text style={styles.headerResetText}>RESET</Text>
+              <Feather name="refresh-ccw" size={13} color={palette.text} />
+              <Text style={styles.headerPillText}>Reset</Text>
             </>
           )}
         </Pressable>
@@ -749,7 +760,7 @@ export default function ChatScreen() {
       {/* Messages */}
       {isLoadingHistory ? (
         <View style={styles.loadingState}>
-          <OctagonSpinner size={30} color="#EDEDED" />
+          <OctagonSpinner size={30} color={palette.goldPale} />
         </View>
       ) : (
         <FlatList
@@ -764,8 +775,11 @@ export default function ChatScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyOpen}>FRAME OPEN</Text>
+            <FadeIn style={styles.emptyState}>
+              <Eyebrow style={styles.emptyOpen}>Frame open</Eyebrow>
+              <Display size="title" style={styles.emptyTitle}>
+                What are we working on?
+              </Display>
               <Text style={styles.emptyText}>
                 Say what happened. Debrief a session, request a drill, regulate, or reflect.
               </Text>
@@ -780,12 +794,12 @@ export default function ChatScreen() {
                     onPress={() => sendQuick(prompt)}
                     disabled={isStreaming || isLoadingHistory}
                   >
-                    <Text style={styles.suggestDash}>—</Text>
                     <Text style={styles.suggestText}>{prompt}</Text>
+                    <Feather name="arrow-up-right" size={16} color={palette.goldLight} />
                   </Pressable>
                 ))}
               </View>
-            </View>
+            </FadeIn>
           }
         />
       )}
@@ -866,56 +880,64 @@ export default function ChatScreen() {
           )}
           {uploading && (
             <View style={styles.draftStatus}>
-              <OctagonSpinner size={16} color="#8A6A2F" />
-              <Text style={styles.draftStatusText}>UPLOADING…</Text>
+              <OctagonSpinner size={16} color={palette.goldLight} />
+              <Text style={styles.draftStatusText}>Uploading…</Text>
             </View>
           )}
           {uploadError && <Text style={styles.draftError}>{uploadError}</Text>}
         </View>
       )}
 
-      {/* Input */}
+      {/* Input — glass pill composer with a round send button */}
       <View style={[styles.inputRow, { paddingBottom: inputBottomInset }]}>
         <Pressable
           style={({ pressed }) => [
-            styles.attachBtn,
+            styles.roundBtn,
             (!conversationId || uploading || isStreaming) && styles.attachBtnDisabled,
             pressed && styles.sendBtnPressed,
           ]}
           onPress={pickAttachment}
           disabled={!conversationId || uploading || isStreaming}
           hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel="Attach a file"
         >
           <Feather
             name="plus"
             size={20}
-            color={!conversationId || uploading || isStreaming ? "#333" : "#888"}
+            color={!conversationId || uploading || isStreaming ? palette.textLow : palette.text}
           />
         </Pressable>
-        <TextInput
-          ref={inputRef}
-          style={styles.input}
-          value={input}
-          onChangeText={setInput}
-          placeholder={listening ? "Listening..." : "Enter transmission..."}
-          placeholderTextColor="#444"
-          multiline
-          maxLength={2000}
-          blurOnSubmit={false}
-        />
-        {voiceSupported && !isStreaming && (
-          <Pressable
-            style={({ pressed }) => [
-              styles.micBtn,
-              listening && styles.micBtnLive,
-              pressed && styles.sendBtnPressed,
-            ]}
-            onPress={toggleVoice}
-            hitSlop={6}
-          >
-            <Feather name="mic" size={18} color={listening ? "#d2553f" : "#888"} />
-          </Pressable>
-        )}
+        <View style={styles.composer}>
+          <TextInput
+            ref={inputRef}
+            style={styles.input}
+            value={input}
+            onChangeText={setInput}
+            placeholder={listening ? "Listening..." : "Enter transmission..."}
+            placeholderTextColor={palette.textLow}
+            selectionColor={palette.goldLight}
+            accessibilityLabel="Message"
+            multiline
+            maxLength={2000}
+            blurOnSubmit={false}
+          />
+          {voiceSupported && !isStreaming && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.micBtn,
+                listening && styles.micBtnLive,
+                pressed && styles.sendBtnPressed,
+              ]}
+              onPress={toggleVoice}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel={listening ? "Stop voice input" : "Start voice input"}
+            >
+              <Feather name="mic" size={18} color={listening ? palette.redLight : palette.textMid} />
+            </Pressable>
+          )}
+        </View>
         <Pressable
           style={({ pressed }) => [
             styles.sendBtn,
@@ -924,15 +946,18 @@ export default function ChatScreen() {
           ]}
           onPress={doSend}
           disabled={!canSend}
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
         >
           {isStreaming ? (
-            <OctagonSpinner size={20} color="#666" />
+            <OctagonSpinner size={20} color={palette.textMid} />
           ) : (
-            <Feather name="arrow-up" size={18} color={canSend ? "#050505" : "#444"} />
+            <Feather name="arrow-up" size={19} color={canSend ? "#050505" : palette.textLow} />
           )}
         </Pressable>
       </View>
     </KeyboardAvoidingView>
+    </Screen>
     </>
   );
 }
@@ -940,45 +965,40 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#050505",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#1a1a1a",
+    paddingVertical: 10,
   },
-  headerBack: {
+  headerPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    minWidth: 76,
+    justifyContent: "center",
+    gap: 6,
+    minHeight: 44,
+    minWidth: 44,
+    paddingHorizontal: 14,
+    borderRadius: radius.pill,
+    backgroundColor: palette.glass,
+    borderWidth: 1,
+    borderColor: palette.glassEdge,
   },
-  headerBackText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#888",
+  headerReset: {
+    paddingHorizontal: 16,
+  },
+  headerPillText: {
+    fontFamily: fonts.textMedium,
+    fontSize: 12,
+    letterSpacing: 0.6,
+    color: palette.text,
   },
   headerWordmark: {
     width: 96,
     height: 22,
-  },
-  headerReset: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 6,
-    minWidth: 76,
-  },
-  headerResetText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#888",
+    tintColor: palette.text,
   },
   listContent: {
     paddingVertical: 12,
@@ -988,59 +1008,57 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 60,
-    paddingHorizontal: 28,
+    paddingVertical: 40,
+    paddingHorizontal: 24,
   },
   emptyOpen: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 8,
-    color: "rgba(224,224,224,0.45)",
-    marginBottom: 16,
+    color: palette.goldLight,
+    marginBottom: 10,
+  },
+  emptyTitle: {
+    textAlign: "center",
+    marginBottom: 12,
   },
   emptyText: {
-    fontFamily: "Outfit",
-    fontSize: 16,
-    color: "rgba(224,224,224,0.7)",
+    fontFamily: fonts.text,
+    fontSize: 15,
+    color: palette.textMid,
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 23,
     maxWidth: 320,
     marginBottom: 28,
   },
   suggestGrid: {
     width: "100%",
     maxWidth: 420,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
+    gap: 10,
   },
   suggestBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.10)",
+    justifyContent: "space-between",
+    gap: 12,
+    minHeight: 56,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 28,
+    backgroundColor: palette.glass,
+    borderWidth: 1,
+    borderColor: palette.glassEdge,
   },
   suggestBtnPressed: {
-    backgroundColor: "rgba(255,255,255,0.04)",
-  },
-  suggestDash: {
-    fontFamily: "SpaceMono",
-    fontSize: 12,
-    color: "rgba(138,106,47,0.9)",
+    backgroundColor: palette.goldWash,
+    borderColor: palette.goldHair,
   },
   suggestText: {
-    fontFamily: "SpaceMono",
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0.5,
-    color: "rgba(224,224,224,0.85)",
+    fontFamily: fonts.text,
+    fontSize: 14.5,
+    lineHeight: 20,
+    color: palette.text,
     flexShrink: 1,
   },
   quickRow: {
-    borderTopWidth: 1,
-    borderTopColor: "#2a2a2a",
-    height: 46,
+    height: 56,
     // Never let the KeyboardAvoidingView flex math compress this row —
     // vertical squash clips the chip text into flat empty strips.
     flexGrow: 0,
@@ -1048,28 +1066,31 @@ const styles = StyleSheet.create({
   },
   quickContent: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 6,
     gap: 8,
+    alignItems: "center",
   },
   quickChip: {
+    minHeight: 44,
+    borderRadius: radius.pill,
+    backgroundColor: palette.glass,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.20)",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    borderColor: palette.glassEdge,
+    paddingHorizontal: 18,
     alignSelf: "center",
     justifyContent: "center",
   },
   quickChipPressed: {
-    borderColor: "#8A6A2F",
+    backgroundColor: palette.goldWash,
+    borderColor: palette.goldHair,
   },
   quickText: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    // Explicit lineHeight: SpaceMono metrics without one can measure
-    // zero/near-zero text height on iOS, rendering the label invisible.
-    lineHeight: 14,
-    color: "#d0d0d0",
-    letterSpacing: 0.5,
+    fontFamily: fonts.textMedium,
+    fontSize: 11.5,
+    // Explicit lineHeight so the label can never measure as zero height.
+    lineHeight: 15,
+    color: palette.goldPale,
+    letterSpacing: 1.2,
   },
   inputRow: {
     flexDirection: "row",
@@ -1077,28 +1098,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     gap: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#1a1a1a",
+  },
+  composer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    minHeight: 48,
+    borderRadius: 26,
+    backgroundColor: palette.graphite2,
+    borderWidth: 1,
+    borderColor: palette.glassEdge,
+    paddingLeft: 18,
+    paddingRight: 4,
   },
   input: {
     flex: 1,
-    backgroundColor: "#0a0a0a",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    color: "#e0e0e0",
-    fontFamily: "Outfit",
+    color: palette.textHi,
+    fontFamily: fonts.text,
     fontSize: 15,
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingTop: 13,
+    paddingBottom: 13,
     maxHeight: 120,
   },
-  attachBtn: {
-    width: 44,
-    height: 44,
+  roundBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: palette.glassStrong,
     borderWidth: 1,
-    borderColor: "#1a1a1a",
-    backgroundColor: "#0a0a0a",
+    borderColor: palette.glassEdge,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1108,22 +1136,18 @@ const styles = StyleSheet.create({
   micBtn: {
     width: 44,
     height: 44,
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    backgroundColor: "#0a0a0a",
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 2,
   },
   micBtnLive: {
-    borderColor: "#d2553f",
-    backgroundColor: "rgba(210,85,63,0.12)",
+    backgroundColor: palette.redWash,
   },
   draftRow: {
     paddingHorizontal: 16,
     paddingTop: 10,
     gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#1a1a1a",
   },
   draftStrip: {
     gap: 8,
@@ -1135,25 +1159,32 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   draftStatusText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#8A6A2F",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.4,
+    color: palette.goldLight,
+    textTransform: "uppercase",
   },
   draftError: {
-    fontFamily: "Outfit",
-    fontSize: 12,
-    color: "#d2553f",
+    fontFamily: fonts.text,
+    fontSize: 12.5,
+    color: palette.redLight,
   },
   sendBtn: {
-    width: 44,
-    height: 44,
-    backgroundColor: "#8A6A2F",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#B38F4B",
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#8A6A2F",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
   },
   sendBtnDisabled: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: palette.graphite3,
+    shadowOpacity: 0,
   },
   sendBtnPressed: {
     opacity: 0.85,

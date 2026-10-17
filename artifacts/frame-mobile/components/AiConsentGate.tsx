@@ -6,6 +6,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPatch, apiDelete, apiUrl } from "@/lib/api";
 import { AiConsentStatus } from "@/lib/aiConsent";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
+import { Button, Display, Eyebrow, GlassCard, Screen } from "@/components/ui";
+import { fonts, palette } from "@/constants/theme";
 
 export function AiConsentGate({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, signOut } = useAuth();
@@ -94,65 +96,86 @@ export function AiConsentGate({ children }: { children: React.ReactNode }) {
   // 1. Loading
   if (isLoading || !isLoaded) {
     return (
-      <View style={s.fullscreen}>
-        <Text style={s.wordmark}>FRAME</Text>
-        <ActivityIndicator size="small" color="#8A6A2F" style={{ marginTop: 28 }} />
-      </View>
+      <Screen>
+        <View style={s.fullscreen}>
+          <Text style={s.wordmark}>FRAME</Text>
+          <ActivityIndicator size="small" color={palette.goldLight} style={{ marginTop: 28 }} />
+        </View>
+      </Screen>
     );
   }
 
   // 2. Errored
   if (isError) {
     return (
-      <View style={s.fullscreen}>
-        <Text style={s.errorTitle}>CONNECTION ERROR</Text>
-        <Text style={s.errorBody}>Could not load your permissions. Please check your connection and try again.</Text>
+      <Screen tone="red">
+        <View style={s.fullscreen}>
+          <View style={s.cardWrap}>
+            <GlassCard tone="red" radius={32} padding={28}>
+              <Eyebrow style={{ color: palette.redLight, textAlign: "center" }}>
+                CONNECTION ERROR
+              </Eyebrow>
+              <Display size="heading" style={s.errorTitle}>
+                We can't reach FRAME.
+              </Display>
+              <Text style={s.errorBody}>
+                Could not load your permissions. Please check your connection and try again.
+              </Text>
 
-        <Pressable style={s.btnPrimary} onPress={() => refetch()}>
-          <Text style={s.btnPrimaryText}>RETRY</Text>
-        </Pressable>
+              <Button title="RETRY" onPress={() => refetch()} />
 
-        <View style={s.linksRow}>
-          <Pressable onPress={() => void Linking.openURL(apiUrl("/privacy"))}>
-            <Text style={s.link}>PRIVACY POLICY</Text>
-          </Pressable>
-          <Pressable onPress={() => void Linking.openURL(apiUrl("/terms"))}>
-            <Text style={s.link}>TERMS OF SERVICE</Text>
-          </Pressable>
+              <View style={s.linksRow}>
+                <Pressable
+                  style={s.linkBtn}
+                  accessibilityRole="link"
+                  onPress={() => void Linking.openURL(apiUrl("/privacy"))}
+                >
+                  <Text style={s.link}>PRIVACY POLICY</Text>
+                </Pressable>
+                <Pressable
+                  style={s.linkBtn}
+                  accessibilityRole="link"
+                  onPress={() => void Linking.openURL(apiUrl("/terms"))}
+                >
+                  <Text style={s.link}>TERMS OF SERVICE</Text>
+                </Pressable>
+              </View>
+
+              <Button title="SIGN OUT" variant="glass" onPress={() => void handleSignOut()} />
+
+              <Button
+                title="DELETE ACCOUNT"
+                variant="danger"
+                style={{ marginTop: 12 }}
+                loading={deletingAccount}
+                onPress={() => void handleDeleteAccount()}
+              />
+            </GlassCard>
+          </View>
         </View>
-
-        <Pressable style={s.btnGhost} onPress={() => void handleSignOut()}>
-          <Text style={s.btnGhostText}>SIGN OUT</Text>
-        </Pressable>
-
-        <Pressable style={s.btnDanger} onPress={() => void handleDeleteAccount()} disabled={deletingAccount}>
-          {deletingAccount ? (
-            <ActivityIndicator size="small" color="#bf4040" />
-          ) : (
-            <Text style={s.btnDangerText}>DELETE ACCOUNT</Text>
-          )}
-        </Pressable>
-      </View>
+      </Screen>
     );
   }
 
   // 3. Loaded but not accepted (including absent status due to parsing issues but success response, etc)
   if (!status?.accepted) {
     return (
-      <View style={s.fullscreen}>
-        {/* We mount Modal on top of a black background so there's no underlying app visible */}
-        <AiConsentModal
-          visible={true}
-          mandatory={true}
-          status={status ?? null}
-          busy={accept.isPending || deletingAccount}
-          onAccept={() => accept.mutate()}
-          onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
-          onTerms={() => void Linking.openURL(apiUrl("/terms"))}
-          onSignOut={() => void handleSignOut()}
-          onDeleteAccount={() => void handleDeleteAccount()}
-        />
-      </View>
+      <Screen>
+        <View style={s.fullscreen}>
+          {/* The modal mounts over the brand backdrop so no underlying app is visible */}
+          <AiConsentModal
+            visible={true}
+            mandatory={true}
+            status={status ?? null}
+            busy={accept.isPending || deletingAccount}
+            onAccept={() => accept.mutate()}
+            onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
+            onTerms={() => void Linking.openURL(apiUrl("/terms"))}
+            onSignOut={() => void handleSignOut()}
+            onDeleteAccount={() => void handleDeleteAccount()}
+          />
+        </View>
+      </Screen>
     );
   }
 
@@ -163,79 +186,38 @@ export function AiConsentGate({ children }: { children: React.ReactNode }) {
 const s = StyleSheet.create({
   fullscreen: {
     flex: 1,
-    backgroundColor: "#050505",
     alignItems: "center",
     justifyContent: "center",
-    padding: 32,
+    padding: 24,
   },
+  cardWrap: { width: "100%", maxWidth: 420 },
   wordmark: {
-    fontFamily: "SpaceMono",
-    fontSize: 18,
+    fontFamily: fonts.numeralXL,
+    fontSize: 26,
     letterSpacing: 10,
-    color: "#e0e0e0",
+    color: palette.textHi,
   },
-  errorTitle: {
-    fontFamily: "Outfit_600SemiBold",
-    fontSize: 20,
-    color: "#f2f2f2",
-    marginBottom: 12,
-    textAlign: "center",
-  },
+  errorTitle: { textAlign: "center", marginTop: 8, marginBottom: 12 },
   errorBody: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 14,
     lineHeight: 21,
-    color: "#aaa",
+    color: palette.textMid,
     textAlign: "center",
-    marginBottom: 32,
-  },
-  btnPrimary: {
-    backgroundColor: "#8A6A2F",
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    marginBottom: 24,
-  },
-  btnPrimaryText: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 2,
-    color: "#050505",
+    marginBottom: 28,
   },
   linksRow: {
     flexDirection: "row",
-    gap: 24,
-    marginBottom: 32,
+    flexWrap: "wrap",
+    justifyContent: "center",
+    columnGap: 20,
+    marginVertical: 8,
   },
+  linkBtn: { minHeight: 44, justifyContent: "center" },
   link: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: "#b99250",
-  },
-  btnGhost: {
-    paddingVertical: 12,
-    width: "100%",
-    alignItems: "center",
-  },
-  btnGhostText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#777",
-  },
-  btnDanger: {
-    paddingVertical: 12,
-    width: "100%",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  btnDangerText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#bf4040",
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    letterSpacing: 1.4,
+    color: palette.goldLight,
   },
 });

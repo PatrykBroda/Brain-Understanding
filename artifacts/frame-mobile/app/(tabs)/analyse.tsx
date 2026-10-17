@@ -1,9 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Platform, StyleSheet, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { Body, Button, Display, FadeIn, GlassCard, Screen } from "@/components/ui";
+import { palette } from "@/constants/theme";
 
 import { useAuth } from "@/context/AuthContext";
 import { useEntitlement } from "@/hooks/useEntitlement";
@@ -44,56 +47,49 @@ export default function AnalyseScreen() {
 
   const loading = isPending || (entitlement?.plan === "frame_plus" && !tokenChecked);
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator color="#8A6A2F" /></View>;
+    return <Screen><View style={styles.center}><ActivityIndicator color={palette.goldLight} /></View></Screen>;
   }
   if (isError || !entitlement || !url || (entitlement.plan === "frame_plus" && !token)) {
     return (
-      <View style={[styles.center, { paddingTop: insets.top }]}>
-        <Text style={styles.title}>ANALYSE UNAVAILABLE</Text>
-        <Text style={styles.body}>We couldn't verify your access or load the analysis screen. Check your connection and try again.</Text>
-        <Pressable style={styles.button} onPress={() => { setLoadError(false); void refetch(); }}>
-          <Text style={styles.buttonText}>RETRY</Text>
-        </Pressable>
-      </View>
+      <Notice top={insets.top}>
+        <Display size="heading" style={styles.title}>Analyse unavailable</Display>
+        <Body style={styles.body}>We couldn't verify your access or load the analysis screen. Check your connection and try again.</Body>
+        <Button title="Retry" onPress={() => { setLoadError(false); void refetch(); }} />
+      </Notice>
     );
   }
   if (entitlement.plan === "free") {
     return (
-      <View style={[styles.center, { paddingTop: insets.top, paddingBottom: insets.bottom + 48 }]}>
-        <Feather name="film" size={30} color="#8A6A2F" />
-        <Text style={styles.title}>VIDEO ANALYSIS</Text>
-        <Text style={styles.body}>Analyse your footage and uncover movement patterns with FRAME+.</Text>
-        <Pressable
-          style={styles.button}
-          accessibilityRole="button"
+      <Notice top={insets.top} bottom={insets.bottom + 48}>
+        <View style={styles.iconDisc}>
+          <Feather name="film" size={26} color={palette.goldLight} />
+        </View>
+        <Display size="heading" style={styles.title}>Video analysis</Display>
+        <Body style={styles.body}>Analyse your footage and uncover movement patterns with FRAME+.</Body>
+        <Button
+          title="Unlock with FRAME+"
           accessibilityLabel="Unlock video analysis with FRAME Plus"
           onPress={() => router.push("/paywall")}
-        >
-          <Text style={styles.buttonText}>UNLOCK WITH FRAME+</Text>
-        </Pressable>
-      </View>
+        />
+      </Notice>
     );
   }
   if (loadError) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.title}>CAN'T LOAD ANALYSE</Text>
-        <Text style={styles.body}>The analysis screen needs a connection. Your footage has not been uploaded.</Text>
-        <Pressable style={styles.button} onPress={() => setLoadError(false)}>
-          <Text style={styles.buttonText}>TRY AGAIN</Text>
-        </Pressable>
-      </View>
+      <Notice top={insets.top}>
+        <Display size="heading" style={styles.title}>Can't load Analyse</Display>
+        <Body style={styles.body}>The analysis screen needs a connection. Your footage has not been uploaded.</Body>
+        <Button title="Try again" onPress={() => setLoadError(false)} />
+      </Notice>
     );
   }
   // A WebView cannot display in the static browser preview. The iPhone uses
   // WKWebView; the browser opens the same on-device pose page in its own tab.
   if (Platform.OS === "web") {
     return (
-      <View style={styles.center}>
-        <Pressable style={styles.button} onPress={() => void Linking.openURL(url)}>
-          <Text style={styles.buttonText}>OPEN ANALYSE</Text>
-        </Pressable>
-      </View>
+      <Notice top={insets.top}>
+        <Button title="Open Analyse" onPress={() => void Linking.openURL(url)} />
+      </Notice>
     );
   }
 
@@ -125,12 +121,38 @@ export default function AnalyseScreen() {
   );
 }
 
+/** Glass notice card on the Smoked Bronze backdrop — loading/error/consent chrome. */
+function Notice({ children, top = 0, bottom = 0 }: { children: React.ReactNode; top?: number; bottom?: number }) {
+  return (
+    <Screen>
+      <View style={[styles.center, { paddingTop: top, paddingBottom: bottom }]}>
+        <FadeIn style={styles.fade}>
+          <GlassCard tone="gold" radius={28} padding={28} style={styles.card}>
+            <View style={styles.stack}>{children}</View>
+          </GlassCard>
+        </FadeIn>
+      </View>
+    </Screen>
+  );
+}
+
 const styles = StyleSheet.create({
   webHost: { flex: 1, backgroundColor: "#050505" },
   webview: { flex: 1, backgroundColor: "#050505" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, backgroundColor: "#050505", gap: 20 },
-  title: { fontFamily: "SpaceMono", fontSize: 16, color: "#e0e0e0", letterSpacing: 3, textAlign: "center" },
-  body: { fontFamily: "Outfit", fontSize: 15, lineHeight: 23, color: "#999", textAlign: "center" },
-  button: { borderColor: "#8A6A2F", borderWidth: 1, paddingVertical: 15, paddingHorizontal: 26, marginTop: 12 },
-  buttonText: { fontFamily: "SpaceMono", fontSize: 11, letterSpacing: 2, color: "#d9bc84", textAlign: "center" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
+  fade: { alignSelf: "stretch" },
+  card: { alignSelf: "stretch" },
+  stack: { alignItems: "center", gap: 16 },
+  iconDisc: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: palette.goldWash,
+    borderWidth: 1,
+    borderColor: palette.goldHair,
+  },
+  title: { textAlign: "center" },
+  body: { textAlign: "center", marginBottom: 4 },
 });

@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { Feather } from "@expo/vector-icons";
-import { useColors } from "@/hooks/useColors";
+import { fonts, palette, radius } from "@/constants/theme";
 import { SESSION_TYPES, type SessionType } from "@/lib/competition";
 import {
   localTimeZone,
@@ -37,10 +37,21 @@ function nextType(t: SessionType): SessionType {
   return SESSION_TYPES[(i + 1) % SESSION_TYPES.length];
 }
 
+// Smoked Bronze colour roles (previously the themed useColors() palette).
+const c = {
+  border: palette.glassEdge,
+  card: palette.graphite1,
+  mutedForeground: palette.textMid,
+  primary: palette.goldLight,
+  primaryForeground: "#0a0806",
+  foreground: palette.textHi,
+  secondaryForeground: palette.text,
+  destructive: palette.redLight,
+};
+
 type Draft = GoogleImportItem & { selected: boolean; sessionType: SessionType };
 
 export function GoogleCalendarSync({ campId }: { campId: number }) {
-  const c = useColors();
   const tz = useMemo(() => localTimeZone(), []);
 
   const statusQ = useGoogleStatus();
@@ -336,14 +347,15 @@ function needsReconnect(msg: string): boolean {
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    padding: 14,
+    borderRadius: radius.lg,
+    padding: 20,
     marginHorizontal: 16,
     marginBottom: 14,
-    gap: 10,
+    gap: 12,
   },
-  headerRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  title: { fontSize: 13, fontWeight: "600", letterSpacing: 0.5 },
-  sub: { fontSize: 12, lineHeight: 17 },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  title: { fontFamily: fonts.displayItalic, fontSize: 22, lineHeight: 26 },
+  sub: { fontFamily: fonts.text, fontSize: 13, lineHeight: 19 },
   btnRow: { flexDirection: "row", gap: 8, marginTop: 2 },
   btn: {
     flexDirection: "row",
@@ -351,41 +363,46 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     borderWidth: 1,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
+    minHeight: 46,
+    borderRadius: radius.pill,
+    paddingHorizontal: 18,
     flex: 1,
   },
   btnSolid: { borderWidth: 0 },
-  btnText: { fontSize: 12, fontWeight: "600" },
+  btnText: { fontFamily: fonts.textMedium, fontSize: 13, letterSpacing: 0.4 },
   previewWrap: { gap: 8, marginTop: 4 },
-  previewHead: { fontSize: 11, letterSpacing: 0.4, textTransform: "uppercase" },
+  previewHead: { fontFamily: fonts.textMedium, fontSize: 10.5, letterSpacing: 1.4, textTransform: "uppercase" },
   eventRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     borderWidth: 1,
-    padding: 9,
+    borderRadius: radius.md,
+    backgroundColor: palette.glass,
+    padding: 12,
   },
   checkbox: {
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
+    borderRadius: 8,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   eventBody: { flex: 1, gap: 2 },
-  eventTitle: { fontSize: 12, fontWeight: "500" },
-  eventMeta: { fontSize: 11 },
+  eventTitle: { fontFamily: fonts.textMedium, fontSize: 13.5 },
+  eventMeta: { fontFamily: fonts.text, fontSize: 12 },
   typeChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
     borderWidth: 1,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    borderRadius: radius.pill,
+    minHeight: 36,
+    paddingHorizontal: 12,
   },
-  typeText: { fontSize: 11, fontWeight: "500" },
-  toggleRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 2 },
-  toggleText: { fontSize: 12, flex: 1 },
-  err: { fontSize: 12, marginTop: 2 },
+  typeText: { fontFamily: fonts.textMedium, fontSize: 12 },
+  toggleRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 },
+  toggleText: { fontFamily: fonts.text, fontSize: 13, flex: 1 },
+  err: { fontFamily: fonts.text, fontSize: 13, marginTop: 2 },
 });

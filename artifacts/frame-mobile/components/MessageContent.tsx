@@ -4,6 +4,7 @@ import { DrillCard, type Drill } from "@/components/DrillCard";
 import { BreathCard, type Breath } from "@/components/BreathCard";
 import { RegulateSequence, type RegulateSequenceData } from "@/components/RegulateSequence";
 import { GLOSSARY, GLOSSARY_KEYS, type GlossEntry } from "@/lib/glossary";
+import { fonts, palette, radius } from "@/constants/theme";
 
 // ─── Block parsing ──────────────────────────────────────────────────────────
 const BLOCK_RE = /```(drill|breath|regulate)\s*\n([\s\S]*?)\n?```/g;
@@ -180,11 +181,11 @@ export function MessageContent({
                 {active.entry.why ? (
                   showWhy ? (
                     <View style={s.whyBlock}>
-                      <Text style={s.whyLabel}>WHY IT MATTERS</Text>
+                      <Text style={s.whyLabel}>Why it matters</Text>
                       <Text style={s.whyText}>{active.entry.why}</Text>
                     </View>
                   ) : (
-                    <Pressable onPress={() => setShowWhy(true)}>
+                    <Pressable onPress={() => setShowWhy(true)} style={s.linkBtn}>
                       <Text style={s.linkText}>Why it matters →</Text>
                     </Pressable>
                   )
@@ -217,26 +218,28 @@ export function MessageContent({
 
 const s = StyleSheet.create({
   paragraph: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 15,
-    lineHeight: 22,
-    color: "#c0c0c0",
+    lineHeight: 23,
+    color: palette.text,
   },
   paragraphGap: {
     marginTop: 10,
   },
   bold: {
-    color: "#e8e8e8",
-    fontWeight: "600",
+    color: palette.textHi,
+    fontFamily: fonts.textSemi,
   },
   concept: {
-    color: "#8A6A2F",
+    color: palette.goldLight,
+    fontFamily: fonts.displayItalic,
+    fontSize: 16.5,
   },
   gloss: {
-    color: "#d9b27a",
+    color: palette.goldPale,
     textDecorationLine: "underline",
     textDecorationStyle: "dotted",
-    textDecorationColor: "rgba(138,106,47,0.55)",
+    textDecorationColor: palette.goldHair,
   },
   list: {
     marginTop: 6,
@@ -247,90 +250,100 @@ const s = StyleSheet.create({
     gap: 8,
   },
   bullet: {
-    color: "#8A6A2F",
+    color: palette.goldLight,
     fontSize: 15,
-    lineHeight: 22,
+    lineHeight: 23,
   },
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: palette.scrim,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 28,
+    paddingHorizontal: 24,
   },
   sheet: {
     width: "100%",
     maxWidth: 420,
-    backgroundColor: "#0c0c0c",
+    backgroundColor: palette.graphite2,
     borderWidth: 1,
-    borderColor: "rgba(138,106,47,0.35)",
-    padding: 20,
+    borderColor: palette.goldHair,
+    borderRadius: radius.lg,
+    padding: 24,
   },
   sheetTerm: {
-    fontFamily: "SpaceMono",
-    fontSize: 13,
-    letterSpacing: 2,
-    color: "#8A6A2F",
-    textTransform: "uppercase",
+    fontFamily: fonts.displayItalic,
+    fontSize: 26,
+    lineHeight: 30,
+    color: palette.goldPale,
     marginBottom: 10,
   },
   sheetQuick: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 15,
-    color: "#d8d8d8",
-    lineHeight: 22,
+    color: palette.text,
+    lineHeight: 23,
   },
   whyBlock: {
     marginTop: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#1a1a1a",
+    borderTopColor: palette.hairline,
   },
   whyLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#666",
+    fontFamily: fonts.textMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.6,
+    color: palette.goldLight,
+    textTransform: "uppercase",
     marginBottom: 6,
   },
   whyText: {
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 14,
-    color: "#a8a8a8",
+    color: palette.textMid,
     lineHeight: 21,
   },
+  linkBtn: {
+    marginTop: 8,
+    minHeight: 44,
+    justifyContent: "center",
+  },
   linkText: {
-    marginTop: 14,
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: "rgba(138,106,47,0.85)",
-    textTransform: "uppercase",
+    fontFamily: fonts.textMedium,
+    fontSize: 13,
+    letterSpacing: 0.4,
+    color: palette.goldLight,
   },
   trainBtn: {
-    marginTop: 16,
+    marginTop: 10,
     alignSelf: "flex-start",
+    minHeight: 44,
+    justifyContent: "center",
+    borderRadius: radius.pill,
+    backgroundColor: palette.goldWash,
     borderWidth: 1,
-    borderColor: "rgba(138,106,47,0.5)",
-    paddingHorizontal: 18,
-    paddingVertical: 8,
+    borderColor: palette.goldHair,
+    paddingHorizontal: 22,
   },
   trainText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#8A6A2F",
+    fontFamily: fonts.textMedium,
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: palette.goldPale,
     textTransform: "uppercase",
   },
   closeBtn: {
-    marginTop: 18,
+    marginTop: 12,
     alignSelf: "flex-end",
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 8,
   },
   closeText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#555",
+    fontFamily: fonts.textMedium,
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: palette.textMid,
     textTransform: "uppercase",
   },
 });

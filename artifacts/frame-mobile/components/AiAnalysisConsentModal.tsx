@@ -13,6 +13,8 @@ import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
 import { formatProviderList, type AiConsentDisclosure } from "@workspace/ai-consent";
 import type { AiConsentStatus } from "@/lib/aiConsent";
+import { Button, Display, Eyebrow, GlassCard, Screen } from "@/components/ui";
+import { fonts, palette } from "@/constants/theme";
 
 export function AiConsentModal({
   visible,
@@ -70,7 +72,7 @@ export function AiConsentModal({
       presentationStyle={mandatory ? "fullScreen" : "pageSheet"}
       onRequestClose={busy || mandatory ? () => {} : onDecline}
     >
-      <View style={s.root}>
+      <Screen>
         <ScrollView
           style={s.scroll}
           contentContainerStyle={[
@@ -88,10 +90,12 @@ export function AiConsentModal({
               contentFit="contain"
               accessibilityLabel="FRAME"
             />
-            <Text style={s.tagline}>TRAIN SMARTER. FIGHT FURTHER.</Text>
+            <Eyebrow>TRAIN SMARTER. FIGHT FURTHER.</Eyebrow>
           </View>
 
-          <Text style={s.title}>AI Data & Privacy</Text>
+          <Display size="title" style={s.title}>
+            AI Data & Privacy
+          </Display>
 
           <Text style={s.intro}>
             {disclosure
@@ -101,59 +105,75 @@ export function AiConsentModal({
 
           {!disclosure ? (
             <View style={s.loadingContainer}>
-              <ActivityIndicator color="#2563EB" size="large" />
+              <ActivityIndicator color={palette.goldLight} size="large" />
             </View>
           ) : (
             <View style={s.cards}>
-              <View style={s.card}>
-                <Feather name="video" size={24} color="#D1D5DB" style={s.cardIcon} />
-                <View style={s.cardContent}>
-                  <Text style={s.cardTitle}>What data is sent?</Text>
-                  {disclosure.sharedData.map((item) => (
-                    <View key={item} style={s.bulletRow}>
-                      <Text style={s.bullet}>•</Text>
-                      <Text style={s.cardBody}>{toSentenceCase(item)}</Text>
-                    </View>
-                  ))}
+              <GlassCard radius={24} padding={18}>
+                <View style={s.cardRow}>
+                  <View style={s.cardIcon}>
+                    <Feather name="video" size={18} color={palette.goldPale} />
+                  </View>
+                  <View style={s.cardContent}>
+                    <Text style={s.cardTitle}>What data is sent?</Text>
+                    {disclosure.sharedData.map((item) => (
+                      <View key={item} style={s.bulletRow}>
+                        <Text style={s.bullet}>•</Text>
+                        <Text style={s.cardBody}>{toSentenceCase(item)}</Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
-              </View>
+              </GlassCard>
 
-              <View style={s.card}>
-                <Feather name="cloud" size={24} color="#D1D5DB" style={s.cardIcon} />
-                <View style={s.cardContent}>
-                  <Text style={s.cardTitle}>Who receives it?</Text>
-                  <Text style={s.cardBody}>{disclosure.use}</Text>
+              <GlassCard radius={24} padding={18}>
+                <View style={s.cardRow}>
+                  <View style={s.cardIcon}>
+                    <Feather name="cloud" size={18} color={palette.goldPale} />
+                  </View>
+                  <View style={s.cardContent}>
+                    <Text style={s.cardTitle}>Who receives it?</Text>
+                    <Text style={s.cardBody}>{disclosure.use}</Text>
+                  </View>
                 </View>
-              </View>
+              </GlassCard>
 
-              <View style={s.card}>
-                <Feather name="bar-chart-2" size={24} color="#D1D5DB" style={s.cardIcon} />
-                <View style={s.cardContent}>
-                  <Text style={s.cardTitle}>Why is it sent?</Text>
-                  <Text style={s.cardBody}>
-                    {toSentenceCase(disclosure.purpose)}.
-                  </Text>
+              <GlassCard radius={24} padding={18}>
+                <View style={s.cardRow}>
+                  <View style={s.cardIcon}>
+                    <Feather name="bar-chart-2" size={18} color={palette.goldPale} />
+                  </View>
+                  <View style={s.cardContent}>
+                    <Text style={s.cardTitle}>Why is it sent?</Text>
+                    <Text style={s.cardBody}>
+                      {toSentenceCase(disclosure.purpose)}.
+                    </Text>
+                  </View>
                 </View>
-              </View>
+              </GlassCard>
 
-              <View style={s.card}>
-                <Feather name="lock" size={24} color="#D1D5DB" style={s.cardIcon} />
-                <View style={s.cardContent}>
-                  <Text style={s.cardTitle}>Your control</Text>
-                  {disclosure.notShared.map((item) => (
-                    <View key={item} style={s.bulletRow}>
-                      <Text style={s.bullet}>•</Text>
-                      <Text style={s.cardBody}>Not sent: {item}</Text>
-                    </View>
-                  ))}
-                  <Text style={[s.cardBody, s.controlNote]}>
-                     You can withdraw AI permission from Profile. Withdrawal pauses
-                     authenticated FRAME use and future AI requests until you accept
-                     the current disclosure again. You can also permanently delete
-                     your account.
-                  </Text>
+              <GlassCard radius={24} padding={18}>
+                <View style={s.cardRow}>
+                  <View style={s.cardIcon}>
+                    <Feather name="lock" size={18} color={palette.goldPale} />
+                  </View>
+                  <View style={s.cardContent}>
+                    <Text style={s.cardTitle}>Your control</Text>
+                    {disclosure.notShared.map((item) => (
+                      <View key={item} style={s.bulletRow}>
+                        <Text style={s.bullet}>•</Text>
+                        <Text style={s.cardBody}>Not sent: {item}</Text>
+                      </View>
+                    ))}
+                    <Text style={[s.cardBody, s.controlNote]}>
+                      You can withdraw AI permission from Profile. Withdrawal pauses
+                      authenticated FRAME use and future AI requests until you accept
+                      the current disclosure again. You can also permanently delete
+                      your account.
+                    </Text>
+                  </View>
                 </View>
-              </View>
+              </GlassCard>
             </View>
           )}
 
@@ -167,7 +187,7 @@ export function AiConsentModal({
             accessibilityState={{ checked, disabled: !disclosure || busy }}
           >
             <View style={[s.checkbox, checked && s.checkboxChecked]}>
-              {checked && <Feather name="check" size={16} color="#FFFFFF" />}
+              {checked && <Feather name="check" size={16} color="#050505" />}
             </View>
             <Text style={s.checkboxLabel}>
               I understand and agree to the sending of my data to{" "}
@@ -183,9 +203,9 @@ export function AiConsentModal({
               accessibilityRole="link"
               accessibilityLabel="Read our Privacy Policy"
             >
-              <Feather name="file-text" size={20} color="#9CA3AF" />
+              <Feather name="file-text" size={20} color={palette.goldLight} />
               <Text style={s.linkText}>Read our Privacy Policy</Text>
-              <Feather name="chevron-right" size={20} color="#6B7280" />
+              <Feather name="chevron-right" size={20} color={palette.textLow} />
             </Pressable>
             {(mandatory || signup) && onTerms && (
               <Pressable
@@ -194,35 +214,29 @@ export function AiConsentModal({
                 accessibilityRole="link"
                 accessibilityLabel="Read our Terms of Service"
               >
-                <Feather name="file-text" size={20} color="#9CA3AF" />
+                <Feather name="file-text" size={20} color={palette.goldLight} />
                 <Text style={s.linkText}>Read our Terms of Service</Text>
-                <Feather name="chevron-right" size={20} color="#6B7280" />
+                <Feather name="chevron-right" size={20} color={palette.textLow} />
               </Pressable>
             )}
           </View>
 
-          <Pressable
-            style={[s.acceptButton, !canAccept && s.acceptButtonDisabled]}
+          <Button
+            title="Agree & Continue"
+            accessibilityLabel="Agree and continue"
             onPress={handleAccept}
             disabled={!canAccept}
-            accessibilityRole="button"
-            accessibilityLabel="Agree and continue"
-            accessibilityHint={
-              checked
-                ? "Accepts the current AI disclosure and continues into FRAME"
-                : "Select the acknowledgement checkbox first"
-            }
-            accessibilityState={{ disabled: !canAccept, busy }}
-          >
-            {busy ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={s.acceptButtonText}>Agree & Continue</Text>
-            )}
-          </Pressable>
+            loading={busy}
+            style={{ marginBottom: 16 }}
+          />
 
           {!mandatory && onDecline ? (
-            <Pressable style={s.declineButton} onPress={onDecline} disabled={busy}>
+            <Pressable
+              style={s.declineButton}
+              onPress={onDecline}
+              disabled={busy}
+              accessibilityRole="button"
+            >
               <Text style={s.declineButtonText}>{signup ? "Go Back" : "Not Now"}</Text>
             </Pressable>
           ) : null}
@@ -230,19 +244,29 @@ export function AiConsentModal({
           {mandatory && (
             <View style={s.mandatoryActions}>
               {onSignOut && (
-                <Pressable style={s.ghostButton} onPress={onSignOut} disabled={busy}>
+                <Pressable
+                  style={s.ghostButton}
+                  onPress={onSignOut}
+                  disabled={busy}
+                  accessibilityRole="button"
+                >
                   <Text style={s.ghostButtonText}>Sign Out</Text>
                 </Pressable>
               )}
               {onDeleteAccount && (
-                <Pressable style={s.ghostButton} onPress={onDeleteAccount} disabled={busy}>
+                <Pressable
+                  style={s.ghostButton}
+                  onPress={onDeleteAccount}
+                  disabled={busy}
+                  accessibilityRole="button"
+                >
                   <Text style={s.deleteButtonText}>Delete Account</Text>
                 </Pressable>
               )}
             </View>
           )}
         </ScrollView>
-      </View>
+      </Screen>
     </Modal>
   );
 }
@@ -250,94 +274,93 @@ export function AiConsentModal({
 export const AiAnalysisConsentModal = AiConsentModal;
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#050505" },
   scroll: { flex: 1 },
   content: { padding: 24, paddingTop: 64, paddingBottom: 48 },
 
-  header: { alignItems: "center", marginBottom: 32 },
-  logo: { width: 120, height: 28, marginBottom: 8 },
-  tagline: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 2, color: "#9CA3AF" },
+  header: { alignItems: "center", marginBottom: 32, gap: 10 },
+  logo: { width: 120, height: 28 },
 
-  title: { fontFamily: "Outfit_600SemiBold", fontSize: 28, color: "#FFFFFF", textAlign: "center", marginBottom: 16 },
-  intro: { fontFamily: "Outfit", fontSize: 15, lineHeight: 22, color: "#D1D5DB", textAlign: "center", marginBottom: 32 },
+  title: { textAlign: "center", marginBottom: 16 },
+  intro: {
+    fontFamily: fonts.text,
+    fontSize: 15,
+    lineHeight: 23,
+    color: palette.textMid,
+    textAlign: "center",
+    marginBottom: 32,
+  },
 
   loadingContainer: { paddingVertical: 48, alignItems: "center", justifyContent: "center" },
 
-  cards: { gap: 12, marginBottom: 32 },
-  card: {
-    flexDirection: "row",
-    backgroundColor: "#111111",
-    borderRadius: 16,
-    padding: 16,
-    gap: 16,
+  cards: { gap: 14, marginBottom: 32 },
+  cardRow: { flexDirection: "row", gap: 14 },
+  cardIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: palette.goldWash,
+    borderWidth: 1,
+    borderColor: palette.goldHair,
   },
-  cardIcon: { marginTop: 2 },
   cardContent: { flex: 1 },
-  cardTitle: { fontFamily: "Outfit_500Medium", fontSize: 16, color: "#FFFFFF", marginBottom: 4 },
-  cardBody: { fontFamily: "Outfit", fontSize: 14, lineHeight: 20, color: "#9CA3AF" },
-  bulletRow: { flexDirection: "row", gap: 7, marginTop: 4 },
-  bullet: { color: "#6B7280", fontSize: 14, lineHeight: 20 },
+  cardTitle: { fontFamily: fonts.textMedium, fontSize: 16, color: palette.textHi, marginBottom: 4 },
+  cardBody: { fontFamily: fonts.text, fontSize: 14, lineHeight: 21, color: palette.textMid, flexShrink: 1 },
+  bulletRow: { flexDirection: "row", gap: 8, marginTop: 4 },
+  bullet: { color: palette.goldLight, fontSize: 14, lineHeight: 21 },
   controlNote: { marginTop: 8 },
 
   checkboxRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
-    marginBottom: 32,
+    gap: 14,
+    marginBottom: 28,
     paddingHorizontal: 4,
+    minHeight: 44,
   },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: "#4B5563",
+    width: 26,
+    height: 26,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: palette.glassEdgeHi,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "transparent",
-    marginTop: 2,
+    backgroundColor: palette.glass,
+    marginTop: 1,
   },
   checkboxChecked: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
+    backgroundColor: palette.goldSoft,
+    borderColor: palette.goldLight,
   },
   checkboxLabel: {
     flex: 1,
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 14,
-    lineHeight: 20,
-    color: "#E5E7EB",
+    lineHeight: 21,
+    color: palette.text,
   },
 
-  links: { gap: 16, marginBottom: 32 },
+  links: { gap: 4, marginBottom: 32 },
   linkRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    minHeight: 48,
   },
   linkText: {
     flex: 1,
-    fontFamily: "Outfit",
+    fontFamily: fonts.text,
     fontSize: 15,
-    color: "#D1D5DB",
+    color: palette.text,
   },
-
-  acceptButton: {
-    minHeight: 56,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#2563EB",
-    marginBottom: 16,
-  },
-  acceptButtonDisabled: { opacity: 0.5 },
-  acceptButtonText: { fontFamily: "Outfit_600SemiBold", fontSize: 16, color: "#FFFFFF" },
 
   declineButton: { minHeight: 48, alignItems: "center", justifyContent: "center" },
-  declineButtonText: { fontFamily: "Outfit_500Medium", fontSize: 15, color: "#9CA3AF" },
+  declineButtonText: { fontFamily: fonts.textMedium, fontSize: 15, color: palette.textMid },
 
   mandatoryActions: { gap: 8, marginTop: 8 },
   ghostButton: { minHeight: 48, alignItems: "center", justifyContent: "center" },
-  ghostButtonText: { fontFamily: "Outfit_500Medium", fontSize: 14, color: "#9CA3AF" },
-  deleteButtonText: { fontFamily: "Outfit_500Medium", fontSize: 14, color: "#EF4444" },
+  ghostButtonText: { fontFamily: fonts.textMedium, fontSize: 14, color: palette.textMid },
+  deleteButtonText: { fontFamily: fonts.textMedium, fontSize: 14, color: palette.redLight },
 });

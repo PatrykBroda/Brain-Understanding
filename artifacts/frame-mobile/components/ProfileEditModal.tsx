@@ -8,12 +8,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiPatch } from "@/lib/api";
+import { Button, Display, Eyebrow, Field, Screen } from "@/components/ui";
+import { fonts, palette, radius } from "@/constants/theme";
 import type { Fighter } from "@/context/FighterContext";
 import {
   SPORTS,
@@ -48,6 +49,8 @@ function ChipSelector({
           key={o.key}
           style={[chip.item, value === o.key && chip.selected]}
           onPress={() => onSelect(o.key)}
+          accessibilityRole="button"
+          accessibilityState={{ selected: value === o.key }}
         >
           <Text style={[chip.text, value === o.key && chip.selectedText]}>
             {o.label}
@@ -61,17 +64,20 @@ function ChipSelector({
 const chip = StyleSheet.create({
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   item: {
+    minHeight: 44,
+    justifyContent: "center",
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: "#1a1a1a",
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    borderColor: palette.hairline,
+    backgroundColor: palette.glass,
+    paddingHorizontal: 18,
   },
   selected: {
-    borderColor: "#8A6A2F",
-    backgroundColor: "rgba(138,106,47,0.1)",
+    borderColor: palette.goldHair,
+    backgroundColor: palette.goldWash,
   },
-  text: { fontFamily: "Outfit", fontSize: 13, color: "#666" },
-  selectedText: { color: "#8A6A2F" },
+  text: { fontFamily: fonts.textMedium, fontSize: 13, color: palette.textMid },
+  selectedText: { color: palette.goldPale },
 });
 
 interface FormState {
@@ -146,15 +152,18 @@ export function ProfileEditModal({
         style={{ flex: 1, backgroundColor: "#050505" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
+        <Screen>
         <View
           style={[
             styles.sheetHeader,
             { paddingTop: Platform.OS === "ios" ? insets.top + 12 : 16 },
           ]}
         >
-          <Text style={styles.sheetTitle}>EDIT PROFILE</Text>
-          <Pressable onPress={onClose} hitSlop={12}>
-            <Text style={styles.cancelText}>CANCEL</Text>
+          <Display size="heading" style={styles.sheetTitle}>
+            Edit profile
+          </Display>
+          <Pressable onPress={onClose} hitSlop={12} style={styles.cancelBtn} accessibilityRole="button">
+            <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
         </View>
 
@@ -167,7 +176,7 @@ export function ProfileEditModal({
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.field}>
-            <Text style={styles.label}>COMBAT SPORT</Text>
+            <Eyebrow style={styles.label}>Combat sport</Eyebrow>
             <ChipSelector
               options={PROFILE_SPORTS}
               value={form.primarySport}
@@ -183,7 +192,7 @@ export function ProfileEditModal({
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>{levelLabelForSport(form.primarySport)}</Text>
+            <Eyebrow style={styles.label}>{levelLabelForSport(form.primarySport)}</Eyebrow>
             <ChipSelector
               options={levelsForSport(form.primarySport)}
               value={form.level}
@@ -192,7 +201,7 @@ export function ProfileEditModal({
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>TRAINING FREQUENCY</Text>
+            <Eyebrow style={styles.label}>Training frequency</Eyebrow>
             <ChipSelector
               options={FREQS}
               value={form.trainingFrequency}
@@ -201,13 +210,12 @@ export function ProfileEditModal({
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>GOALS</Text>
-            <TextInput
+            <Field
+              label="Goals"
               style={styles.textArea}
               value={form.goals}
               onChangeText={(t) => set("goals", t)}
               placeholder="What are you working toward?"
-              placeholderTextColor="#333"
               multiline
               numberOfLines={3}
               textAlignVertical="top"
@@ -215,13 +223,12 @@ export function ProfileEditModal({
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>ACKNOWLEDGED WEAKNESSES</Text>
-            <TextInput
+            <Field
+              label="Acknowledged weaknesses"
               style={styles.textArea}
               value={form.weaknesses}
               onChangeText={(t) => set("weaknesses", t)}
               placeholder="What do you know needs work?"
-              placeholderTextColor="#333"
               multiline
               numberOfLines={3}
               textAlignVertical="top"
@@ -230,22 +237,14 @@ export function ProfileEditModal({
 
           {error && <Text style={styles.errorText}>{error}</Text>}
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.saveBtn,
-              pressed && { opacity: 0.8 },
-              saving && { opacity: 0.5 },
-            ]}
+          <Button
+            title="Save changes"
             onPress={handleSave}
-            disabled={saving}
-          >
-            {saving ? (
-              <ActivityIndicator color="#050505" size="small" />
-            ) : (
-              <Text style={styles.saveBtnText}>SAVE CHANGES</Text>
-            )}
-          </Pressable>
+            loading={saving}
+            style={styles.saveBtn}
+          />
         </ScrollView>
+        </Screen>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -256,64 +255,49 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#1a1a1a",
-    backgroundColor: "#050505",
+    paddingHorizontal: 24,
+    paddingBottom: 12,
   },
-  sheetTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 5,
-    color: "#e0e0e0",
+  sheetTitle: {},
+  cancelBtn: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    borderRadius: radius.pill,
+    backgroundColor: palette.glass,
+    borderWidth: 1,
+    borderColor: palette.glassEdge,
   },
   cancelText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#666",
+    fontFamily: fonts.textMedium,
+    fontSize: 12,
+    letterSpacing: 0.6,
+    color: palette.text,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    gap: 28,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    gap: 26,
   },
   field: {
     gap: 12,
   },
   label: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 4,
-    color: "#444",
+    color: palette.goldLight,
   },
   textArea: {
-    fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#c0c0c0",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    backgroundColor: "#0a0a0a",
-    padding: 12,
-    minHeight: 80,
-    lineHeight: 20,
+    minHeight: 96,
+    paddingTop: 14,
+    paddingBottom: 14,
+    lineHeight: 22,
+    fontSize: 15,
   },
   errorText: {
-    fontFamily: "Outfit",
-    fontSize: 13,
-    color: "#c0392b",
+    fontFamily: fonts.text,
+    fontSize: 13.5,
+    color: palette.redLight,
   },
   saveBtn: {
-    backgroundColor: "#8A6A2F",
-    paddingVertical: 16,
-    alignItems: "center",
     marginTop: 8,
-  },
-  saveBtnText: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 4,
-    color: "#050505",
   },
 });

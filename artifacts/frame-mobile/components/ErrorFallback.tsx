@@ -12,7 +12,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useColors } from "@/hooks/useColors";
+import { Button, Display, Body, GlassCard, Screen } from "@/components/ui";
+import { fonts, palette } from "@/constants/theme";
 
 export type ErrorFallbackProps = {
   error: Error;
@@ -20,7 +21,6 @@ export type ErrorFallbackProps = {
 };
 
 export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -49,7 +49,8 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <Screen tone="red">
+    <View style={styles.container}>
       {__DEV__ ? (
         <Pressable
           onPress={() => setIsModalVisible(true)}
@@ -59,44 +60,27 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
             styles.topButton,
             {
               top: insets.top + 16,
-              backgroundColor: colors.card,
               opacity: pressed ? 0.8 : 1,
             },
           ]}
         >
-          <Feather name="alert-circle" size={20} color={colors.foreground} />
+          <Feather name="alert-circle" size={20} color={palette.text} />
         </Pressable>
       ) : null}
 
       <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.foreground }]}>
-          Something went wrong
-        </Text>
-
-        <Text style={[styles.message, { color: colors.mutedForeground }]}>
-          Please reload the app to continue.
-        </Text>
-
-        <Pressable
-          onPress={handleRestart}
-          style={({ pressed }) => [
-            styles.button,
-            {
-              backgroundColor: colors.primary,
-              opacity: pressed ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.98 : 1 }],
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.buttonText,
-              { color: colors.primaryForeground },
-            ]}
-          >
-            Try Again
-          </Text>
-        </Pressable>
+        <GlassCard tone="red" radius={32} padding={28} style={styles.card}>
+          <View style={styles.cardStack}>
+            <View style={styles.iconDisc}>
+              <Feather name="alert-triangle" size={24} color={palette.redLight} />
+            </View>
+            <Display size="title" style={styles.title}>
+              Something went wrong
+            </Display>
+            <Body style={styles.message}>Please reload the app to continue.</Body>
+            <Button title="Try Again" onPress={handleRestart} style={styles.button} />
+          </View>
+        </GlassCard>
       </View>
 
       {__DEV__ ? (
@@ -110,16 +94,16 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
             <View
               style={[
                 styles.modalContainer,
-                { backgroundColor: colors.background },
+                { backgroundColor: palette.graphite1 },
               ]}
             >
               <View
                 style={[
                   styles.modalHeader,
-                  { borderBottomColor: colors.border },
+                  { borderBottomColor: palette.hairline },
                 ]}
               >
-                <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                <Text style={[styles.modalTitle, { color: palette.textHi }]}>
                   Error Details
                 </Text>
                 <Pressable
@@ -131,7 +115,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
                     { opacity: pressed ? 0.6 : 1 },
                   ]}
                 >
-                  <Feather name="x" size={24} color={colors.foreground} />
+                  <Feather name="x" size={24} color={palette.text} />
                 </Pressable>
               </View>
 
@@ -146,14 +130,14 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
                 <View
                   style={[
                     styles.errorContainer,
-                    { backgroundColor: colors.card },
+                    { backgroundColor: palette.graphite2 },
                   ]}
                 >
                   <Text
                     style={[
                       styles.errorText,
                       {
-                        color: colors.foreground,
+                        color: palette.text,
                         fontFamily: monoFont,
                       },
                     ]}
@@ -168,6 +152,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
         </Modal>
       ) : null}
     </View>
+    </Screen>
   );
 }
 
@@ -183,61 +168,55 @@ const styles = StyleSheet.create({
   content: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 16,
     width: "100%",
     maxWidth: 600,
   },
+  card: { alignSelf: "stretch" },
+  cardStack: { alignItems: "center", gap: 16 },
+  iconDisc: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: palette.redWash,
+    borderWidth: 1,
+    borderColor: "rgba(224,86,78,0.30)",
+  },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
     textAlign: "center",
-    lineHeight: 40,
   },
   message: {
-    fontSize: 16,
     textAlign: "center",
-    lineHeight: 24,
+    marginBottom: 4,
   },
   topButton: {
     position: "absolute",
     right: 16,
     width: 44,
     height: 44,
-    borderRadius: 8,
+    borderRadius: 22,
+    backgroundColor: palette.glassStrong,
+    borderWidth: 1,
+    borderColor: palette.glassEdge,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 10,
   },
   button: {
-    paddingVertical: 16,
-    borderRadius: 8,
-    paddingHorizontal: 24,
     minWidth: 200,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  buttonText: {
-    fontWeight: "600",
-    textAlign: "center",
-    fontSize: 16,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: palette.scrim,
     justifyContent: "flex-end",
   },
   modalContainer: {
     width: "100%",
     height: "90%",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
   },
   modalHeader: {
     flexDirection: "row",
@@ -249,8 +228,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: 24,
+    fontFamily: fonts.displayItalic,
   },
   closeButton: {
     width: 44,
@@ -266,7 +245,7 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     width: "100%",
-    borderRadius: 8,
+    borderRadius: 18,
     overflow: "hidden",
     padding: 16,
   },
