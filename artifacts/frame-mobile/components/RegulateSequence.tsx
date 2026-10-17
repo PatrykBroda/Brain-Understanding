@@ -173,7 +173,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.goldHair,
     borderRadius: radius.md,
-    backgroundColor: "rgba(138,106,47,0.10)",
+    backgroundColor: "rgba(185,164,119,0.10)",
     overflow: "hidden",
   },
   head: {
@@ -188,16 +188,15 @@ const s = StyleSheet.create({
   },
   headLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.8,
     color: palette.goldLight,
   },
   headKind: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.4,
     color: palette.textMid,
-    textTransform: "uppercase",
   },
   stepPad: {
     paddingHorizontal: 16,
@@ -231,7 +230,6 @@ const s = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 1.4,
     color: palette.goldPale,
-    textTransform: "uppercase",
   },
   groundWrap: {
     alignItems: "center",
@@ -240,11 +238,10 @@ const s = StyleSheet.create({
   },
   groundTitle: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.8,
     color: palette.textMid,
     marginBottom: 18,
-    textTransform: "uppercase",
   },
   groundDone: {
     alignItems: "center",
@@ -287,7 +284,7 @@ const s = StyleSheet.create({
   },
   dotActive: { width: 18, height: 6, backgroundColor: palette.goldLight },
   dotPast: { width: 6, height: 6, backgroundColor: palette.goldHair },
-  dotFuture: { width: 6, height: 6, backgroundColor: "rgba(255,244,224,0.18)" },
+  dotFuture: { width: 6, height: 6, backgroundColor: "rgba(255,255,255,0.18)" },
   finishedPad: {
     paddingHorizontal: 16,
     paddingVertical: 28,
@@ -295,10 +292,9 @@ const s = StyleSheet.create({
   },
   finishedText: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.8,
     color: palette.goldLight,
-    textTransform: "uppercase",
   },
   seqDots: {
     flexDirection: "row",
@@ -312,5 +308,5 @@ const s = StyleSheet.create({
   },
   seqDotActive: { width: 22, height: 4, backgroundColor: palette.goldLight },
   seqDotPast: { width: 8, height: 4, backgroundColor: palette.goldHair },
-  seqDotFuture: { width: 8, height: 4, backgroundColor: "rgba(255,244,224,0.18)" },
+  seqDotFuture: { width: 8, height: 4, backgroundColor: "rgba(255,255,255,0.18)" },
 });

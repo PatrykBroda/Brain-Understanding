@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.goldSoft,
     borderColor: palette.goldLight,
   },
-  checkmark: { color: "#050505", fontSize: 14, fontWeight: "700" },
+  checkmark: { color: "#08090B", fontSize: 14, fontWeight: "700" },
   legalCopy: {
     flex: 1,
     color: palette.textMid,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   policyLink: {
     color: palette.goldLight,
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.4,
   },
   errorText: {

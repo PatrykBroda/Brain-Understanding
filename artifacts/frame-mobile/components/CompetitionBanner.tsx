@@ -12,9 +12,9 @@ import { fonts, palette, radius } from "@/constants/theme";
 // top/bottom rules, uppercase event name, and a weigh-in + days-out readout.
 const TIER_STYLE: Record<PressureTier, { border: string; accent: string; pulse: boolean }> = {
   base: { border: palette.goldHair, accent: palette.goldLight, pulse: false },
-  build: { border: "rgba(199,161,90,0.40)", accent: palette.goldLight, pulse: false },
-  sharpen: { border: "rgba(224,86,78,0.40)", accent: palette.redLight, pulse: false },
-  peak: { border: "rgba(224,86,78,0.55)", accent: palette.redLight, pulse: true },
+  build: { border: "rgba(185,164,119,0.40)", accent: palette.goldLight, pulse: false },
+  sharpen: { border: "rgba(229,100,90,0.40)", accent: palette.redLight, pulse: false },
+  peak: { border: "rgba(229,100,90,0.55)", accent: palette.redLight, pulse: true },
   fight_week: { border: "rgba(240,118,107,0.75)", accent: "#F0766B", pulse: true },
 };
 
@@ -66,7 +66,7 @@ export function CompetitionBanner() {
         ]}
       >
         <LinearGradient
-          colors={[palette.goldWash, "rgba(255,246,232,0.02)"]}
+          colors={[palette.goldWash, "rgba(255,255,255,0.02)"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   },
   tierLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.8,
   },
   event: {
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 9.5,
+    fontSize: 12.5,
     letterSpacing: 1.4,
     color: palette.textMid,
     marginLeft: 5,

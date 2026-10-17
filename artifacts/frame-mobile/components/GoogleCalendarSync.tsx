@@ -43,7 +43,7 @@ const c = {
   card: palette.graphite1,
   mutedForeground: palette.textMid,
   primary: palette.goldLight,
-  primaryForeground: "#0a0806",
+  primaryForeground: "#0B0C0E",
   foreground: palette.textHi,
   secondaryForeground: palette.text,
   destructive: palette.redLight,
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   btnSolid: { borderWidth: 0 },
   btnText: { fontFamily: fonts.textMedium, fontSize: 13, letterSpacing: 0.4 },
   previewWrap: { gap: 8, marginTop: 4 },
-  previewHead: { fontFamily: fonts.textMedium, fontSize: 10.5, letterSpacing: 1.4, textTransform: "uppercase" },
+  previewHead: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.4, textTransform: "uppercase" },
   eventRow: {
     flexDirection: "row",
     alignItems: "center",

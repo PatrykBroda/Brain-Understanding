@@ -216,7 +216,7 @@ const s = StyleSheet.create({
   linkBtn: { minHeight: 44, justifyContent: "center" },
   link: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.4,
     color: palette.goldLight,
   },

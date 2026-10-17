@@ -187,7 +187,7 @@ export function AiConsentModal({
             accessibilityState={{ checked, disabled: !disclosure || busy }}
           >
             <View style={[s.checkbox, checked && s.checkboxChecked]}>
-              {checked && <Feather name="check" size={16} color="#050505" />}
+              {checked && <Feather name="check" size={16} color="#08090B" />}
             </View>
             <Text style={s.checkboxLabel}>
               I understand and agree to the sending of my data to{" "}

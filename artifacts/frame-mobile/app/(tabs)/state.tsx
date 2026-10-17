@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   brand: { flexDirection: "row", alignItems: "center", gap: 12 },
   logo: { width: 34, height: 34, opacity: 0.9 },
   wordmarkImg: { width: 92, height: 26, tintColor: palette.text },
-  subline: { marginTop: 4, fontSize: 9.5 },
+  subline: { marginTop: 4, fontSize: 12.5 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   stateBlock: { alignItems: "center", gap: 2 },
   stateLabel: { textAlign: "center", fontSize: 76, lineHeight: 74 },

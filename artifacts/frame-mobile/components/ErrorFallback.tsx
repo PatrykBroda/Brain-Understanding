@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: palette.redWash,
     borderWidth: 1,
-    borderColor: "rgba(224,86,78,0.30)",
+    borderColor: "rgba(229,100,90,0.30)",
   },
   title: {
     textAlign: "center",

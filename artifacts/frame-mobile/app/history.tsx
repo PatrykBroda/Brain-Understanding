@@ -233,7 +233,7 @@ const s = StyleSheet.create({
   },
   unlockLink: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.6,
     color: palette.goldLight,
     marginTop: 16,
@@ -244,7 +244,7 @@ const s = StyleSheet.create({
   dayHeadRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
   dayHeadLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.6,
     color: palette.goldLight,
   },
@@ -259,7 +259,7 @@ const s = StyleSheet.create({
   },
   factCat: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.4,
     color: palette.goldLight,
     marginBottom: 4,
@@ -280,5 +280,5 @@ const cd = StyleSheet.create({
   pip: { width: 5, height: 5, borderRadius: 3 },
   active: { backgroundColor: palette.goldLight },
   inactive: { backgroundColor: palette.glassStrong },
-  count: { fontFamily: fonts.numeral, fontSize: 11, color: palette.textLow },
+  count: { fontFamily: fonts.numeral, fontSize: 12, color: palette.textLow },
 });

@@ -473,7 +473,7 @@ export default function HomeScreen() {
                   contentPosition={{ top: 0, left: "45%" }}
                 />
                 <LinearGradient
-                  colors={["rgba(214,120,40,0.36)", "rgba(214,120,40,0)"]}
+                  colors={["rgba(255,255,255,0.36)", "rgba(255,255,255,0)"]}
                   start={{ x: 0.9, y: 0 }}
                   end={{ x: 0.2, y: 1 }}
                   style={StyleSheet.absoluteFill}
@@ -481,7 +481,7 @@ export default function HomeScreen() {
               </>
             )}
             <LinearGradient
-              colors={["rgba(5,5,5,0.15)", "rgba(5,5,5,0.35)", "rgba(5,5,5,0.92)"]}
+              colors={["rgba(8,9,11,0.15)", "rgba(8,9,11,0.35)", "rgba(8,9,11,0.92)"]}
               locations={[0, 0.45, 1]}
               style={StyleSheet.absoluteFill}
               pointerEvents="none"
@@ -669,19 +669,17 @@ const styles = StyleSheet.create({
   heroName: { fontSize: 58, lineHeight: 56, color: palette.textHi },
   heroMeta: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.4,
     color: palette.textMid,
     marginTop: 6,
-    textTransform: "uppercase",
   },
   sectionHeadRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   sectionMeta: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.2,
     color: palette.goldLight,
-    textTransform: "uppercase",
   },
   gaugeBox: { alignItems: "center", marginTop: 14 },
   emptyGauge: { alignItems: "center", paddingVertical: 28, gap: 8 },
@@ -747,34 +745,31 @@ const styles = StyleSheet.create({
   trendHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
   trendMeta: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.2,
     color: palette.goldLight,
-    textTransform: "uppercase",
   },
   trendAxis: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
-  trendAxisLabel: { fontFamily: fonts.text, fontSize: 11, color: palette.textLow },
+  trendAxisLabel: { fontFamily: fonts.text, fontSize: 12, color: palette.textLow },
   lockedRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 },
   lockedLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  lockedPlus: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.6, color: palette.goldLight },
+  lockedPlus: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.6, color: palette.goldLight },
   // Competition
   compRow: { flexDirection: "row", alignItems: "center", paddingTop: 14, gap: 16, minHeight: 44 },
   compPhase: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.4,
     color: palette.textMid,
     marginTop: 6,
-    textTransform: "uppercase",
   },
   compRight: { alignItems: "flex-end" },
   compDays: { fontFamily: fonts.numeralXL, fontSize: 52, lineHeight: 54, letterSpacing: -2, color: palette.goldPale },
   compDaysLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.4,
     color: palette.textMid,
-    textTransform: "uppercase",
   },
   compEmpty: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 10 },
   compEmptyCta: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 },
@@ -789,7 +784,7 @@ const sliderStyles = StyleSheet.create({
     right: 0,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "rgba(255,244,224,0.12)",
+    backgroundColor: "rgba(255,255,255,0.12)",
   },
   trackFill: { position: "absolute", left: 0, height: 3, borderRadius: 2, backgroundColor: palette.goldLight },
   thumb: {
@@ -799,7 +794,7 @@ const sliderStyles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: palette.goldPale,
     borderWidth: 5,
-    borderColor: "rgba(199,161,90,0.35)",
+    borderColor: "rgba(185,164,119,0.35)",
     top: 11,
   },
 });

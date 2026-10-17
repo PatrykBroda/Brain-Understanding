@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   },
   tierLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.8,
     textAlign: "center",
   },
@@ -522,9 +522,8 @@ const styles = StyleSheet.create({
   },
   activeDiscipline: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.6,
-    textTransform: "uppercase",
     color: palette.textMid,
     textAlign: "center",
     marginTop: 6,
@@ -541,7 +540,7 @@ const styles = StyleSheet.create({
   metaItem: { minWidth: "40%", flexGrow: 1, gap: 4 },
   metaLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.6,
     color: palette.textLow,
   },
@@ -604,7 +603,7 @@ const styles = StyleSheet.create({
   compRowDate: { fontFamily: fonts.text, fontSize: 12.5, color: palette.textLow, marginTop: 3 },
   compStatus: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.4,
     color: palette.textLow,
   },

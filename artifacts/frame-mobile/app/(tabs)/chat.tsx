@@ -191,9 +191,8 @@ const mb = StyleSheet.create({
   },
   senderLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.6,
-    textTransform: "uppercase",
     marginBottom: 6,
     paddingHorizontal: 22,
   },
@@ -220,7 +219,7 @@ const mb = StyleSheet.create({
   },
   // user = bronze-tinted glass
   userBubble: {
-    backgroundColor: "rgba(138,106,47,0.20)",
+    backgroundColor: "rgba(185,164,119,0.20)",
     borderColor: palette.goldHair,
     borderRadius: 22,
     borderBottomRightRadius: 6,
@@ -268,7 +267,7 @@ const mb = StyleSheet.create({
   },
   videoName: {
     fontFamily: fonts.text,
-    fontSize: 10,
+    fontSize: 12,
     color: palette.textMid,
     textAlign: "center",
   },
@@ -279,7 +278,7 @@ const mb = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "rgba(5,5,5,0.8)",
+    backgroundColor: "rgba(8,9,11,0.8)",
     borderWidth: 1,
     borderColor: palette.glassEdge,
     alignItems: "center",
@@ -952,7 +951,7 @@ export default function ChatScreen() {
           {isStreaming ? (
             <OctagonSpinner size={20} color={palette.textMid} />
           ) : (
-            <Feather name="arrow-up" size={19} color={canSend ? "#050505" : palette.textLow} />
+            <Feather name="arrow-up" size={19} color={canSend ? "#08090B" : palette.textLow} />
           )}
         </Pressable>
       </View>
@@ -1086,7 +1085,7 @@ const styles = StyleSheet.create({
   },
   quickText: {
     fontFamily: fonts.textMedium,
-    fontSize: 11.5,
+    fontSize: 12.5,
     // Explicit lineHeight so the label can never measure as zero height.
     lineHeight: 15,
     color: palette.goldPale,
@@ -1160,10 +1159,9 @@ const styles = StyleSheet.create({
   },
   draftStatusText: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.4,
     color: palette.goldLight,
-    textTransform: "uppercase",
   },
   draftError: {
     fontFamily: fonts.text,
@@ -1174,10 +1172,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#B38F4B",
+    backgroundColor: "#B9A477",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#8A6A2F",
+    shadowColor: "#B9A477",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 14,

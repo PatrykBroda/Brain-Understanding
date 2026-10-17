@@ -263,7 +263,7 @@ export default function PaywallScreen() {
                       onPress={() => onBuy(pkg)}
                     >
                       <LinearGradient
-                        colors={["rgba(199,161,90,0.38)", "rgba(138,106,47,0.16)"]}
+                        colors={["rgba(185,164,119,0.38)", "rgba(185,164,119,0.16)"]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={StyleSheet.absoluteFill}
@@ -281,9 +281,9 @@ export default function PaywallScreen() {
                       </View>
                       <View style={s.planAction}>
                         {busy ? (
-                          <ActivityIndicator color="#050505" />
+                          <ActivityIndicator color="#08090B" />
                         ) : (
-                          <Feather name="arrow-right" size={18} color="#050505" />
+                          <Feather name="arrow-right" size={18} color="#08090B" />
                         )}
                       </View>
                     </Pressable>
@@ -393,14 +393,13 @@ const s = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#B38F4B",
+    backgroundColor: "#B9A477",
     marginLeft: 14,
   },
   planTitle: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.6,
-    textTransform: "uppercase",
     color: palette.goldPale,
     flexShrink: 1,
   },
@@ -432,7 +431,7 @@ const s = StyleSheet.create({
   unavailableWrap: { alignItems: "center" },
   diagnostic: {
     fontFamily: fonts.text,
-    fontSize: 11,
+    fontSize: 12,
     color: palette.textLow,
     textAlign: "center",
     lineHeight: 15,
@@ -441,7 +440,7 @@ const s = StyleSheet.create({
   restoreBtn: { marginTop: 20 },
   legal: {
     fontFamily: fonts.text,
-    fontSize: 11.5,
+    fontSize: 12.5,
     color: palette.textLow,
     textAlign: "center",
     lineHeight: 17,
@@ -459,7 +458,7 @@ const s = StyleSheet.create({
   legalBtn: { minHeight: 44, justifyContent: "center", paddingHorizontal: 4 },
   legalLink: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     color: palette.goldLight,
     letterSpacing: 1.2,
     textDecorationLine: "underline",

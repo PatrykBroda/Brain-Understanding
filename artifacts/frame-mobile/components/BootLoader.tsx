@@ -16,7 +16,7 @@ import { fonts, palette } from "@/constants/theme";
 /**
  * Branded boot / loading surface matching the web hub's "Booting system"
  * gate (coach App.tsx Gate) — an uppercase label over a track with a
- * sweeping bar, instead of a bare spinner. Shares the #050505 base so there
+ * sweeping bar, instead of a bare spinner. Shares the #08090B base so there
  * is no flash against the native splash or SystemUI background.
  */
 
@@ -69,7 +69,7 @@ const s = StyleSheet.create({
   },
   label: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 2.2,
     color: palette.textMid,
     marginBottom: 18,
@@ -78,7 +78,7 @@ const s = StyleSheet.create({
     width: TRACK_WIDTH,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "rgba(255,244,224,0.10)",
+    backgroundColor: "rgba(255,255,255,0.10)",
     overflow: "hidden",
   },
   bar: {

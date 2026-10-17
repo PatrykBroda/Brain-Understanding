@@ -35,7 +35,7 @@ function octagonPoints(radius: number, rotationDeg = 22.5): string {
  */
 export function OctagonSpinner({
   size = 20,
-  color = "#E6D2A3",
+  color = "#D4C7A3",
   durationMs = 4000,
 }: Props) {
   const spin = useSharedValue(0);

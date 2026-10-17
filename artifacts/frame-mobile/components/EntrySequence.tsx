@@ -144,13 +144,13 @@ export function EntrySequence({
       <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
           <RadialGradient id="spot" cx="50%" cy="6%" rx="90%" ry="50%">
-            <Stop offset="0%" stopColor="#C7A15A" stopOpacity={0.22} />
-            <Stop offset="60%" stopColor="#8A6A2F" stopOpacity={0} />
+            <Stop offset="0%" stopColor="#B9A477" stopOpacity={0.22} />
+            <Stop offset="60%" stopColor="#B9A477" stopOpacity={0} />
           </RadialGradient>
           <RadialGradient id="vig" cx="50%" cy="50%" rx="110%" ry="80%">
-            <Stop offset="35%" stopColor="#050505" stopOpacity={0} />
-            <Stop offset="90%" stopColor="#050505" stopOpacity={0.7} />
-            <Stop offset="100%" stopColor="#050505" stopOpacity={1} />
+            <Stop offset="35%" stopColor="#08090B" stopOpacity={0} />
+            <Stop offset="90%" stopColor="#08090B" stopOpacity={0.7} />
+            <Stop offset="100%" stopColor="#08090B" stopOpacity={1} />
           </RadialGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill="url(#spot)" />
@@ -197,7 +197,7 @@ export function EntrySequence({
 const s = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#050505",
+    backgroundColor: "#08090B",
     zIndex: 50,
   },
   header: {
@@ -220,13 +220,13 @@ const s = StyleSheet.create({
   },
   headerText: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 2,
     color: palette.textMid,
   },
   callsign: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 2,
     color: palette.goldLight,
   },
@@ -244,7 +244,6 @@ const s = StyleSheet.create({
     fontSize: 60,
     lineHeight: 58,
     letterSpacing: 0.5,
-    textTransform: "uppercase",
     textAlign: "center",
     color: palette.textHi,
   },
@@ -274,12 +273,11 @@ const s = StyleSheet.create({
     lineHeight: 26,
     letterSpacing: 8,
     paddingLeft: 8,
-    textTransform: "uppercase",
     color: palette.textHi,
   },
   mmaTag: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 3,
     paddingLeft: 3,
     marginTop: 4,
@@ -287,7 +285,7 @@ const s = StyleSheet.create({
   },
   skip: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 2.4,
     color: palette.textMid,
     paddingHorizontal: 20,

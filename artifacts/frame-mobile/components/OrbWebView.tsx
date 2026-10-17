@@ -135,7 +135,7 @@ function NativeOrb({ state, size }: { state: string; size: number }) {
           allowFileAccessFromFileURLs
           allowUniversalAccessFromFileURLs
           // Transparency is via style.backgroundColor:"transparent" (below) so the
-          // orb sits on the app's #050505 background, not white.
+          // orb sits on the app's #08090B background, not white.
           // Purely decorative surface — no scroll, no input, no bounce.
           scrollEnabled={false}
           bounces={false}

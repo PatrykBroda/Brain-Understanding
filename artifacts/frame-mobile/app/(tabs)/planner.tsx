@@ -926,7 +926,7 @@ function SessionRow({
         accessibilityRole="checkbox"
         accessibilityState={{ checked: !!session.completed, disabled: disabled || imported }}
       >
-        {session.completed && <Feather name="check" size={13} color="#050505" />}
+        {session.completed && <Feather name="check" size={13} color="#08090B" />}
       </Pressable>
 
       <View style={{ flex: 1 }}>
@@ -1065,7 +1065,7 @@ function SessionForm(props: {
           disabled={props.saving}
         >
           {props.saving ? (
-            <ActivityIndicator size="small" color="#050505" />
+            <ActivityIndicator size="small" color="#08090B" />
           ) : (
             <Text style={camp.submitText}>{props.editing ? "UPDATE" : "ADD SESSION"}</Text>
           )}
@@ -1261,7 +1261,7 @@ function CampForm(props: {
           disabled={props.saving}
         >
           {props.saving ? (
-            <ActivityIndicator size="small" color="#050505" />
+            <ActivityIndicator size="small" color="#08090B" />
           ) : (
             <Text style={camp.submitText}>{props.editing ? "UPDATE CAMP" : "CREATE CAMP"}</Text>
           )}
@@ -1335,7 +1335,7 @@ function PlanItemRow({
       disabled={disabled}
     >
       <View style={[pi.check, item.completed && pi.checkDone]}>
-        {item.completed && <Feather name="check" size={10} color="#050505" />}
+        {item.completed && <Feather name="check" size={10} color="#08090B" />}
       </View>
       <Text style={[pi.text, item.completed && pi.textDone]}>{item.content}</Text>
     </Pressable>
@@ -1512,7 +1512,7 @@ function MissionContent() {
             disabled={generating}
           >
             {generating ? (
-              <ActivityIndicator color="#050505" />
+              <ActivityIndicator color="#08090B" />
             ) : (
               <Text style={mission.generateBtnText}>GENERATE MISSION</Text>
             )}
@@ -1599,7 +1599,7 @@ const shell = StyleSheet.create({
   },
   subtitle: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.8,
     color: palette.textLow,
     marginTop: 2,
@@ -1618,7 +1618,7 @@ const shell = StyleSheet.create({
   },
   plusPillText: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.6,
     color: palette.goldPale,
   },
@@ -1696,7 +1696,7 @@ const camp = StyleSheet.create({
   },
   phaseLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.8,
   },
   editInline: {
@@ -1709,7 +1709,7 @@ const camp = StyleSheet.create({
   },
   editInlineText: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.6,
     color: palette.textMid,
   },
@@ -1726,7 +1726,7 @@ const camp = StyleSheet.create({
   },
   countdownUnit: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.8,
     color: palette.textMid,
     textAlign: "center",
@@ -1741,7 +1741,7 @@ const camp = StyleSheet.create({
   },
   weighInLine: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.6,
     color: palette.textLow,
     textAlign: "center",
@@ -1769,7 +1769,7 @@ const camp = StyleSheet.create({
   },
   rowLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.6,
     color: palette.textLow,
   },
@@ -1793,7 +1793,7 @@ const camp = StyleSheet.create({
     justifyContent: "center",
   },
   endCampBtnPressed: {
-    borderColor: "rgba(224,86,78,0.5)",
+    borderColor: "rgba(229,100,90,0.5)",
     backgroundColor: palette.redWash,
   },
   endCampText: {
@@ -1839,7 +1839,7 @@ const camp = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.8,
     color: palette.goldLight,
   },
@@ -1853,7 +1853,7 @@ const camp = StyleSheet.create({
   },
   addBtnText: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.6,
     color: palette.goldLight,
   },
@@ -1868,7 +1868,7 @@ const camp = StyleSheet.create({
   },
   dayLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.6,
     color: palette.textLow,
     marginBottom: 8,
@@ -1917,7 +1917,7 @@ const camp = StyleSheet.create({
   },
   importedTag: {
     fontFamily: fonts.textMedium,
-    fontSize: 9.5,
+    fontSize: 12.5,
     letterSpacing: 1.2,
     color: palette.textMid,
     borderWidth: 1,
@@ -1962,7 +1962,7 @@ const camp = StyleSheet.create({
   },
   formTitle: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.8,
     color: palette.goldLight,
     marginBottom: 18,
@@ -1972,7 +1972,7 @@ const camp = StyleSheet.create({
   },
   fieldLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.6,
     color: palette.goldLight,
     marginBottom: 8,
@@ -2015,7 +2015,7 @@ const camp = StyleSheet.create({
   },
   chipText: {
     fontFamily: fonts.textMedium,
-    fontSize: 11.5,
+    fontSize: 12.5,
     letterSpacing: 1.2,
     color: palette.textMid,
   },
@@ -2060,7 +2060,7 @@ const camp = StyleSheet.create({
     flex: 1,
     minHeight: 52,
     borderRadius: radius.pill,
-    backgroundColor: "#B38F4B",
+    backgroundColor: "#B9A477",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2068,7 +2068,7 @@ const camp = StyleSheet.create({
     fontFamily: fonts.textMedium,
     fontSize: 13,
     letterSpacing: 1.2,
-    color: "#0a0806",
+    color: "#0B0C0E",
   },
 });
 
@@ -2089,13 +2089,13 @@ const rev = StyleSheet.create({
   },
   headLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.8,
     color: palette.goldLight,
   },
   headCount: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.6,
     color: palette.textLow,
   },
@@ -2112,7 +2112,7 @@ const rev = StyleSheet.create({
   },
   lockPillText: {
     fontFamily: fonts.textMedium,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 1.4,
     color: palette.goldPale,
   },
@@ -2148,7 +2148,7 @@ const rev = StyleSheet.create({
   },
   mixLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.4,
     color: palette.textLow,
   },
@@ -2163,7 +2163,7 @@ const rev = StyleSheet.create({
   },
   blockLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.8,
     color: palette.goldLight,
   },
@@ -2210,7 +2210,7 @@ const rev = StyleSheet.create({
   },
   leakMeta: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.4,
     color: palette.textLow,
     marginTop: 6,
@@ -2314,7 +2314,7 @@ const mission = StyleSheet.create({
   generateBtn: {
     minHeight: 52,
     borderRadius: radius.pill,
-    backgroundColor: "#B38F4B",
+    backgroundColor: "#B9A477",
     paddingHorizontal: 28,
     alignItems: "center",
     justifyContent: "center",
@@ -2324,7 +2324,7 @@ const mission = StyleSheet.create({
     fontFamily: fonts.textMedium,
     fontSize: 13,
     letterSpacing: 1.4,
-    color: "#0a0806",
+    color: "#0B0C0E",
   },
   focusCard: {
     ...glassPanel,
@@ -2336,7 +2336,7 @@ const mission = StyleSheet.create({
   },
   focusLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.8,
     color: palette.goldLight,
     marginBottom: 8,
@@ -2375,7 +2375,7 @@ const mission = StyleSheet.create({
   },
   sectionLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.8,
     color: palette.goldLight,
     marginBottom: 10,

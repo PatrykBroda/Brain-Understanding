@@ -397,14 +397,14 @@ const beltStyles = StyleSheet.create({
     borderWidth: 1,
   },
   nodeCurrent: {
-    shadowColor: "#8A6A2F",
+    shadowColor: "#B9A477",
     shadowOpacity: 0.6,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 0 },
   },
   rungLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 9.5,
+    fontSize: 12.5,
     letterSpacing: 1.2,
   },
   headRow: {
@@ -420,13 +420,13 @@ const beltStyles = StyleSheet.create({
   },
   nextLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.4,
     color: palette.textMid,
   },
   apexLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.4,
     color: palette.goldLight,
   },
@@ -438,7 +438,7 @@ const beltStyles = StyleSheet.create({
   },
   meaningState: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.6,
     color: palette.goldLight,
   },
@@ -460,7 +460,7 @@ const beltStyles = StyleSheet.create({
   },
   unrankedText: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.8,
     color: palette.textMid,
   },

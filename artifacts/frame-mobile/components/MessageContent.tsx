@@ -291,10 +291,9 @@ const s = StyleSheet.create({
   },
   whyLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.6,
     color: palette.goldLight,
-    textTransform: "uppercase",
     marginBottom: 6,
   },
   whyText: {
@@ -330,7 +329,6 @@ const s = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 1.2,
     color: palette.goldPale,
-    textTransform: "uppercase",
   },
   closeBtn: {
     marginTop: 12,
@@ -344,6 +342,5 @@ const s = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 1.2,
     color: palette.textMid,
-    textTransform: "uppercase",
   },
 });

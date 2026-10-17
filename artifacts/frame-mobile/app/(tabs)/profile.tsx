@@ -132,7 +132,7 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
             return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
           }).join(" ")}
           fill="none"
-          stroke="rgba(255,244,224,0.10)"
+          stroke="rgba(255,255,255,0.10)"
           strokeWidth={1}
         />
       ))}
@@ -145,12 +145,12 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
             y1={cy}
             x2={end.x.toFixed(1)}
             y2={end.y.toFixed(1)}
-            stroke="rgba(255,244,224,0.10)"
+            stroke="rgba(255,255,255,0.10)"
             strokeWidth={1}
           />
         );
       })}
-      <Path d={filledPath} fill="rgba(199,161,90,0.16)" stroke="#C7A15A" strokeWidth={1.2} strokeLinejoin="round" />
+      <Path d={filledPath} fill="rgba(185,164,119,0.16)" stroke="#B9A477" strokeWidth={1.2} strokeLinejoin="round" />
       {filledPoints.map((p, i) => (
         <Circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={2.5} fill={ACCENT} />
       ))}
@@ -164,7 +164,7 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
             textAnchor="middle"
             fontSize={8}
             fontFamily="Outfit"
-            fill="#a8a49d"
+            fill="#A4A8AE"
           >
             {d.label.toUpperCase()}
           </SvgText>
@@ -256,7 +256,7 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
           <>
             <Image source={media.gym} style={[StyleSheet.absoluteFill, { opacity: 0.7 }]} resizeMode="cover" />
             <LinearGradient
-              colors={["rgba(214,120,40,0.32)", "rgba(5,5,5,0)"]}
+              colors={["rgba(255,255,255,0.32)", "rgba(8,9,11,0)"]}
               start={{ x: 1, y: 0 }}
               end={{ x: 0.3, y: 0.7 }}
               style={StyleSheet.absoluteFill}
@@ -264,7 +264,7 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
           </>
         )}
         <LinearGradient
-          colors={["rgba(5,5,5,0.15)", "rgba(5,5,5,0.4)", "rgba(5,5,5,0.92)"]}
+          colors={["rgba(8,9,11,0.15)", "rgba(8,9,11,0.4)", "rgba(8,9,11,0.92)"]}
           locations={[0, 0.55, 1]}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
@@ -905,17 +905,17 @@ const cd = StyleSheet.create({
   pip: { width: 3, height: 10, borderRadius: 2 },
   active: { backgroundColor: palette.goldLight },
   inactive: { backgroundColor: "rgba(255,255,255,0.1)" },
-  count: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.5, color: palette.textLow },
+  count: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.5, color: palette.textLow },
 });
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "transparent" },
   content: { paddingHorizontal: 20 },
   section: { marginBottom: 32 },
-  privacyHeading: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textMid, marginBottom: 10 },
+  privacyHeading: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textMid, marginBottom: 10 },
   privacyCopy: { fontFamily: fonts.text, fontSize: 13, lineHeight: 20, color: palette.textMid, marginBottom: 12 },
   privacyLink: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 },
-  privacyLinkText: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.5, color: palette.goldLight },
+  privacyLinkText: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.5, color: palette.goldLight },
   emptyState: {
     fontFamily: fonts.text,
     fontSize: 14,
@@ -949,12 +949,12 @@ const s = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: palette.glassEdge,
-    backgroundColor: "rgba(5,5,5,0.55)",
+    backgroundColor: "rgba(8,9,11,0.55)",
   },
   bandBody: { paddingHorizontal: 16, paddingTop: 32, paddingBottom: 16 },
   bandKicker: { color: palette.goldLight, marginBottom: 4 },
   bandName: { fontSize: 50, lineHeight: 48, color: palette.textHi },
-  bandArchetype: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.4, color: palette.goldLight, marginTop: 8 },
+  bandArchetype: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.4, color: palette.goldLight, marginTop: 8 },
   bandError: {
     fontFamily: fonts.text,
     fontSize: 13,
@@ -971,7 +971,7 @@ const s = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     borderColor: palette.glassEdge,
-    backgroundColor: "rgba(5,5,5,0.55)",
+    backgroundColor: "rgba(8,9,11,0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -997,9 +997,9 @@ const s = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
-  sectionOverline: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 6 },
+  sectionOverline: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 6 },
   sectionTitle: { fontFamily: fonts.displayThin, fontSize: 20, lineHeight: 25, color: palette.textHi },
-  viewHistory: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.8, color: palette.textLow },
+  viewHistory: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.8, color: palette.textLow },
 
   // Panel shell
   panel: {
@@ -1022,24 +1022,24 @@ const s = StyleSheet.create({
 
   // Section head (overline + title, inside panels)
   headBlock: {},
-  headOverline: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 8 },
+  headOverline: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 8 },
   headTitle: { fontFamily: fonts.displayThin, fontSize: 15, lineHeight: 19, color: palette.textHi },
   headRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
-  syncing: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.goldLight },
+  syncing: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.goldLight },
 
   // Model confidence
   gaugeRow: { alignItems: "center", marginTop: 12, marginBottom: 4 },
-  updated: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.5, color: palette.textLow, marginBottom: 16 },
+  updated: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.5, color: palette.textLow, marginBottom: 16 },
   stageRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14 },
-  stageLabel: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textMid },
-  stageValue: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.8, color: palette.goldLight },
+  stageLabel: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textMid },
+  stageValue: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.8, color: palette.goldLight },
     bodyCopy: { fontFamily: fonts.text, fontSize: 13, lineHeight: 20, color: palette.textMid, marginTop: 16 },
 
   // Lowest confidence bullets
-  subOverline: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 12 },
+  subOverline: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 12 },
   bulletRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   bulletDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: palette.goldLight },
-  bulletText: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.8, color: palette.textMid },
+  bulletText: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.8, color: palette.textMid },
 
   // CTA row
   ctaRow: {
@@ -1051,7 +1051,7 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: palette.hairline,
   },
-  ctaText: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.8, color: palette.goldLight },
+  ctaText: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.8, color: palette.goldLight },
 
   // Athlete state top
   stateTop: {
@@ -1062,8 +1062,8 @@ const s = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 4,
   },
-  stateTopLabel: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.8, color: palette.goldLight },
-  stateTopAside: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textMid },
+  stateTopLabel: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.8, color: palette.goldLight },
+  stateTopAside: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textMid },
 
   // Data rows
   rowDivided: {},
@@ -1077,7 +1077,7 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: palette.hairline,
   },
-  dataLabel: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.4, color: palette.textMid, width: 112, paddingTop: 2 },
+  dataLabel: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.4, color: palette.textMid, width: 112, paddingTop: 2 },
   dataValueWrap: { flex: 1, alignItems: "flex-end" },
   dataValue: { fontFamily: fonts.textMedium, fontSize: 13, letterSpacing: 0.6, color: palette.textHi, textAlign: "right" },
   dataSub: { fontFamily: fonts.text, fontSize: 12, color: palette.textMid, marginTop: 3, textAlign: "right" },
@@ -1093,7 +1093,7 @@ const s = StyleSheet.create({
     borderTopColor: palette.hairline,
   },
   lockNote: { flex: 1, fontFamily: fonts.text, fontSize: 13, lineHeight: 19, color: palette.textMid },
-  lockBadge: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.goldLight },
+  lockBadge: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.goldLight },
 
   // Radar
   radarWrap: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20 },
@@ -1107,7 +1107,7 @@ const s = StyleSheet.create({
   },
   tripleCell: { flex: 1, paddingHorizontal: 12, paddingVertical: 12, alignItems: "center" },
   tripleBorder: { borderLeftWidth: 1, borderLeftColor: palette.hairline },
-  tripleLabel: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textMid, marginBottom: 5 },
+  tripleLabel: { fontFamily: fonts.textMedium, fontSize: 12.5, letterSpacing: 1.8, color: palette.textMid, marginBottom: 5 },
   tripleValue: { fontFamily: fonts.numeral, fontSize: 18, letterSpacing: 0, color: palette.textHi, textAlign: "center" },
   integrityBarWrap: {
     paddingHorizontal: 16,
@@ -1118,14 +1118,14 @@ const s = StyleSheet.create({
   integrityBar: { flexDirection: "row", gap: 4 },
   integritySeg: { height: 4, flex: 1, borderRadius: 2 },
   integrityOn: { backgroundColor: ACCENT },
-  integrityOff: { backgroundColor: "rgba(255,244,224,0.14)" },
-  integrityCaption: { fontFamily: fonts.text, fontSize: 11, lineHeight: 16, color: palette.textMid, marginTop: 10 },
+  integrityOff: { backgroundColor: "rgba(255,255,255,0.14)" },
+  integrityCaption: { fontFamily: fonts.text, fontSize: 12, lineHeight: 16, color: palette.textMid, marginTop: 10 },
 
   // Full model fact list
   catHeadRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
   catHeadLabel: { fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 1.6, color: palette.goldLight },
   catHeadLine: { flex: 1, height: 1, backgroundColor: palette.goldHair },
-  catHeadCount: { fontFamily: fonts.textMedium, fontSize: 11.5, color: palette.textLow },
+  catHeadCount: { fontFamily: fonts.textMedium, fontSize: 12.5, color: palette.textLow },
   factItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -1138,7 +1138,7 @@ const s = StyleSheet.create({
   },
   factText: { flex: 1, fontFamily: fonts.textMedium, fontSize: 12, letterSpacing: 0.8, color: palette.text },
   factMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
-  factEvidence: { fontFamily: fonts.textMedium, fontSize: 11.5, color: palette.goldLight },
+  factEvidence: { fontFamily: fonts.textMedium, fontSize: 12.5, color: palette.goldLight },
 
   // Membership
   memberRow: {
@@ -1152,7 +1152,7 @@ const s = StyleSheet.create({
     backgroundColor: palette.goldWash,
     paddingHorizontal: 20,
   },
-  memberText: { fontFamily: fonts.textMedium, fontSize: 11, color: palette.goldLight, letterSpacing: 1.8 },
+  memberText: { fontFamily: fonts.textMedium, fontSize: 12, color: palette.goldLight, letterSpacing: 1.8 },
   upgradeCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -1167,7 +1167,7 @@ const s = StyleSheet.create({
   upgradeTitle: { fontFamily: fonts.displayThin, fontSize: 17, lineHeight: 21, color: palette.goldPale },
   upgradeSub: { fontFamily: fonts.text, fontSize: 12.5, color: palette.textMid, marginTop: 6, lineHeight: 18 },
   restoreLink: { alignItems: "center", justifyContent: "center", minHeight: 48 },
-  restoreLinkText: { fontFamily: fonts.textMedium, fontSize: 11.5, color: palette.textLow, letterSpacing: 1.8 },
+  restoreLinkText: { fontFamily: fonts.textMedium, fontSize: 12.5, color: palette.textLow, letterSpacing: 1.8 },
 
   // Account
   emailText: { fontFamily: fonts.text, fontSize: 13, color: palette.textLow, marginBottom: 12, textAlign: "center" },
@@ -1184,7 +1184,7 @@ const s = StyleSheet.create({
   },
   withdrawAiText: {
     fontFamily: fonts.textMedium,
-    fontSize: 11.5,
+    fontSize: 12.5,
     color: palette.textMid,
     letterSpacing: 1.8,
   },
@@ -1198,13 +1198,13 @@ const s = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: 20,
   },
-  signOutText: { fontFamily: fonts.textMedium, fontSize: 11, color: palette.textLow, letterSpacing: 1.8 },
+  signOutText: { fontFamily: fonts.textMedium, fontSize: 12, color: palette.textLow, letterSpacing: 1.8 },
   deleteAccountBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(224,86,78,0.35)",
+    borderColor: "rgba(229,100,90,0.35)",
     minHeight: 48,
     borderRadius: radius.pill,
     paddingHorizontal: 20,
@@ -1212,13 +1212,13 @@ const s = StyleSheet.create({
   },
   deleteAccountText: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     color: palette.redLight,
     letterSpacing: 1.8,
   },
   deleteAccountNote: {
     fontFamily: fonts.text,
-    fontSize: 11,
+    fontSize: 12,
     color: palette.textLow,
     textAlign: "center",
     marginTop: 8,

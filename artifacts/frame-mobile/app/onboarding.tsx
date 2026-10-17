@@ -447,11 +447,11 @@ const styles = StyleSheet.create({
   dobField: { flex: 1 },
   yearField: { flex: 1.45 },
   dobInput: { textAlign: "center", paddingHorizontal: 8, fontSize: 18 },
-  inputError: { borderColor: "rgba(224,86,78,0.55)" },
+  inputError: { borderColor: "rgba(229,100,90,0.55)" },
   ageConfirmation: {
     marginTop: 14,
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.6,
     color: palette.goldLight,
   },

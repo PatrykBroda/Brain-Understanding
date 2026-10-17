@@ -50,7 +50,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.goldHair,
     borderRadius: radius.md,
-    backgroundColor: "rgba(138,106,47,0.10)",
+    backgroundColor: "rgba(185,164,119,0.10)",
     overflow: "hidden",
   },
   head: {
@@ -65,13 +65,13 @@ const s = StyleSheet.create({
   },
   headLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.8,
     color: palette.goldLight,
   },
   headKind: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.4,
     color: palette.textMid,
   },
@@ -95,10 +95,9 @@ const s = StyleSheet.create({
   },
   fieldLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.6,
     color: palette.goldLight,
-    textTransform: "uppercase",
   },
   fieldValue: {
     fontFamily: fonts.text,

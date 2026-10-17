@@ -137,8 +137,8 @@ function Notice({ children, top = 0, bottom = 0 }: { children: React.ReactNode; 
 }
 
 const styles = StyleSheet.create({
-  webHost: { flex: 1, backgroundColor: "#050505" },
-  webview: { flex: 1, backgroundColor: "#050505" },
+  webHost: { flex: 1, backgroundColor: "#08090B" },
+  webview: { flex: 1, backgroundColor: "#08090B" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
   fade: { alignSelf: "stretch" },
   card: { alignSelf: "stretch" },

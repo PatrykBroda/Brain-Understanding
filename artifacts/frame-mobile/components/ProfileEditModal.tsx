@@ -149,7 +149,7 @@ export function ProfileEditModal({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: "#050505" }}
+        style={{ flex: 1, backgroundColor: "#08090B" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <Screen>

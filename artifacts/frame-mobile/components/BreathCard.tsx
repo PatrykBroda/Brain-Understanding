@@ -100,8 +100,8 @@ export function BreathCard({
             <Svg width="100%" height="100%" viewBox="0 0 100 100">
               <Polygon
                 points={OCTAGON}
-                fill="rgba(138,106,47,0.16)"
-                stroke="#C7A15A"
+                fill="rgba(185,164,119,0.16)"
+                stroke="#B9A477"
                 strokeWidth={1}
               />
             </Svg>
@@ -178,7 +178,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.goldHair,
     borderRadius: radius.md,
-    backgroundColor: "rgba(138,106,47,0.10)",
+    backgroundColor: "rgba(185,164,119,0.10)",
     overflow: "hidden",
   },
   head: {
@@ -193,13 +193,13 @@ const s = StyleSheet.create({
   },
   headLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.8,
     color: palette.goldLight,
   },
   headKind: {
     fontFamily: fonts.textMedium,
-    fontSize: 10.5,
+    fontSize: 12.5,
     letterSpacing: 1.4,
     color: palette.textMid,
   },
@@ -241,10 +241,9 @@ const s = StyleSheet.create({
   },
   phaseLabel: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 2,
     color: palette.goldLight,
-    textTransform: "uppercase",
   },
   count: {
     fontFamily: fonts.numeralXL,
@@ -257,7 +256,7 @@ const s = StyleSheet.create({
   roundLine: {
     marginTop: 16,
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.4,
     color: palette.textMid,
   },
@@ -280,7 +279,6 @@ const s = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 1.4,
     color: palette.goldPale,
-    textTransform: "uppercase",
   },
   btnGhost: {
     minHeight: 44,
@@ -296,7 +294,6 @@ const s = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 1.4,
     color: palette.text,
-    textTransform: "uppercase",
   },
   phaseList: {
     marginTop: 16,
@@ -307,10 +304,9 @@ const s = StyleSheet.create({
   },
   phaseChip: {
     fontFamily: fonts.textMedium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1,
     color: palette.textMid,
-    textTransform: "uppercase",
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: radius.pill,
