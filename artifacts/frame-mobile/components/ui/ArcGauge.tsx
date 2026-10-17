@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
-import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Stop } from "react-native-svg";
+import Svg, { Circle, G, Path } from "react-native-svg";
 
 import { fonts, palette } from "@/constants/theme";
 import { useReducedMotion } from "./motion";
@@ -49,7 +49,7 @@ export function ArcGauge({
     } else {
       Animated.timing(sweep, {
         toValue: pct,
-        duration: 1100,
+        duration: 600,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
       }).start();
@@ -61,30 +61,10 @@ export function ArcGauge({
   const END = 120;
   const cx = size / 2;
   const cy = size / 2;
-  const r = size / 2 - 22;
+  const r = size / 2 - 12;
   const valDeg = START + (END - START) * p;
-  const hi = tone === "red" ? palette.redLight : palette.goldPale;
-  const lo = tone === "red" ? palette.red : palette.gold;
+  const hi = tone === "red" ? palette.redText : palette.gold;
   const knob = polar(cx, cy, r, valDeg);
-  const ticks = Array.from({ length: 41 }, (_, i) => {
-    const deg = START + ((END - START) * i) / 40;
-    const major = i % 5 === 0;
-    const a = polar(cx, cy, r + 9, deg);
-    const b = polar(cx, cy, r + (major ? 17 : 13), deg);
-    const lit = deg <= valDeg;
-    return (
-      <Line
-        key={i}
-        x1={a.x}
-        y1={a.y}
-        x2={b.x}
-        y2={b.y}
-        stroke={lit ? palette.goldLight : "rgba(255,244,224,0.20)"}
-        strokeWidth={major ? 1.4 : 1}
-        strokeLinecap="round"
-      />
-    );
-  });
   const text = display ?? String(Math.round(value));
   return (
     <View
@@ -95,37 +75,28 @@ export function ArcGauge({
       accessibilityValue={{ min: 0, max, now: Math.round(value) }}
     >
       <Svg width={size} height={size}>
-        <Defs>
-          <LinearGradient id="arcv" x1="0" y1="1" x2="1" y2="0">
-            <Stop offset="0" stopColor={lo} />
-            <Stop offset="1" stopColor={hi} />
-          </LinearGradient>
-        </Defs>
-        {ticks}
         <Path
           d={arc(cx, cy, r, START, END)}
-          stroke="rgba(255,244,224,0.09)"
-          strokeWidth={5}
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth={6}
           fill="none"
           strokeLinecap="round"
         />
         {p > 0.003 ? (
           <Path
             d={arc(cx, cy, r, START, valDeg)}
-            stroke="url(#arcv)"
-            strokeWidth={5}
+            stroke={hi}
+            strokeWidth={6}
             fill="none"
             strokeLinecap="round"
           />
         ) : null}
         <G>
-          <Circle cx={knob.x} cy={knob.y} r={11} fill={lo} opacity={0.22} />
-          <Circle cx={knob.x} cy={knob.y} r={5.5} fill={hi} />
-          <Circle cx={knob.x} cy={knob.y} r={2} fill="#050505" />
+          <Circle cx={knob.x} cy={knob.y} r={5} fill={palette.textHi} />
         </G>
       </Svg>
       <View style={[StyleSheet.absoluteFill, styles.center]} pointerEvents="none">
-        <Text style={[styles.num, { fontSize: size * 0.3, lineHeight: size * 0.34 }]}>{text}</Text>
+        <Text style={[styles.num, { fontSize: size * 0.28, lineHeight: size * 0.32 }]}>{text}</Text>
         {unit ? <Text style={styles.unit}>{unit}</Text> : null}
         {label ? <Text style={styles.label}>{label}</Text> : null}
       </View>
@@ -135,14 +106,7 @@ export function ArcGauge({
 
 const styles = StyleSheet.create({
   center: { alignItems: "center", justifyContent: "center", paddingBottom: 6 },
-  num: { fontFamily: fonts.numeralXL, color: palette.textHi, letterSpacing: -3, includeFontPadding: false },
+  num: { fontFamily: fonts.semi, color: palette.textHi, letterSpacing: -2, includeFontPadding: false, fontVariant: ["tabular-nums"] },
   unit: { fontFamily: fonts.text, fontSize: 12, color: palette.textMid, marginTop: 2 },
-  label: {
-    fontFamily: fonts.textMedium,
-    fontSize: 10.5,
-    letterSpacing: 1.8,
-    color: palette.goldLight,
-    textTransform: "uppercase",
-    marginTop: 8,
-  },
+  label: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid, marginTop: 4 },
 });

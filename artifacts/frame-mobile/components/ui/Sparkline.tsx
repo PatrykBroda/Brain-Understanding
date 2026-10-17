@@ -3,7 +3,7 @@ import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg"
 
 import { palette } from "@/constants/theme";
 
-/** Thin refined line chart with a soft area wash and a glowing last point. */
+/** Thin refined line chart with a faint area wash and a plain last point. */
 export function Sparkline({
   data,
   width = 280,
@@ -32,18 +32,17 @@ export function Sparkline({
     d += ` C ${mx} ${a.y} ${mx} ${b.y} ${b.x} ${b.y}`;
   }
   const last = pts[pts.length - 1];
-  const stroke = tone === "red" ? palette.redLight : palette.goldLight;
+  const stroke = tone === "red" ? palette.redText : palette.gold;
   return (
     <Svg width={width} height={height}>
       <Defs>
         <LinearGradient id="spk" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={stroke} stopOpacity={0.22} />
+          <Stop offset="0" stopColor={stroke} stopOpacity={0.14} />
           <Stop offset="1" stopColor={stroke} stopOpacity={0} />
         </LinearGradient>
       </Defs>
       <Path d={`${d} L ${last.x} ${height} L ${pts[0].x} ${height} Z`} fill="url(#spk)" />
       <Path d={d} stroke={stroke} strokeWidth={1.5} fill="none" strokeLinecap="round" />
-      <Circle cx={last.x} cy={last.y} r={7} fill={stroke} opacity={0.22} />
       <Circle cx={last.x} cy={last.y} r={3} fill={stroke} />
     </Svg>
   );

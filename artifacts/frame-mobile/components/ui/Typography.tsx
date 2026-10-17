@@ -3,23 +3,31 @@ import { Text, type TextProps, type TextStyle } from "react-native";
 
 import { palette, type as T } from "@/constants/theme";
 
-/** Small uppercase label that names what the content under it is. */
+/**
+ * Short UPPERCASE category label (<= 2 words), e.g. "Today", "Recovery".
+ * Use sparingly — for anything longer use <Label> (sentence case).
+ */
 export function Eyebrow({ style, ...p }: TextProps) {
   return (
     <Text
       {...p}
-      style={[T.label, { color: palette.textLow, textTransform: "uppercase" } as TextStyle, style]}
+      style={[T.eyebrow as TextStyle, { color: palette.textMid, textTransform: "uppercase" }, style]}
     />
   );
 }
 
-/** Thin wide display heading. `size`: title (28) · heading (21) · sub (15). */
+/** Sentence-case supporting label (12–14px). */
+export function Label({ style, ...p }: TextProps) {
+  return <Text {...p} style={[T.label as TextStyle, { color: palette.textMid }, style]} />;
+}
+
+/** Headings. `size`: hero (40) · title (28) · heading/section (19) · sub (16). */
 export function Display({
   size = "heading",
   style,
   ...p
-}: TextProps & { size?: "title" | "heading" | "sub" }) {
-  const base = size === "title" ? T.title : size === "sub" ? T.subheading : T.heading;
+}: TextProps & { size?: "hero" | "title" | "heading" | "sub" }) {
+  const base = size === "hero" ? T.hero : size === "title" ? T.title : size === "sub" ? T.subheading : T.heading;
   return (
     <Text
       accessibilityRole="header"
@@ -29,29 +37,29 @@ export function Display({
   );
 }
 
-/** Condensed bold italic caps (Nike / UFC headline). Use sparingly; pass fontSize in `style`. */
+/** Hero headline (32–40, tight tracking). Alias of Display size="hero"; no caps, no italic. */
 export function Punch({ style, ...p }: TextProps) {
   return (
     <Text
       accessibilityRole="header"
       {...p}
-      style={[T.punch as TextStyle, { color: palette.textHi }, style]}
+      style={[T.hero as TextStyle, { color: palette.textHi }, style]}
     />
   );
 }
 
-/** Wide thin wordmark text: FRAME. */
+/** Wordmark text: FRAME. */
 export function Wordmark({ style, ...p }: TextProps) {
-  return <Text {...p} style={[T.wordmark as TextStyle, { color: palette.textHi, paddingLeft: 6 }, style]} />;
+  return <Text {...p} style={[T.wordmark as TextStyle, { color: palette.textHi, paddingLeft: 4 }, style]} />;
 }
 
-/** Oversized light-weight numeral. `size`: hero (88) · l (56) · m (34) · s (22). */
+/** Tabular numeral for metrics / timers / countdowns. `size`: hero (56) · l (40) · m (28) · s (20). */
 export function Numeral({
   size = "l",
   style,
   ...p
 }: TextProps & { size?: "hero" | "l" | "m" | "s" }) {
-  const base = size === "hero" ? T.hero : size === "l" ? T.numeralL : size === "m" ? T.numeralM : T.numeralS;
+  const base = size === "hero" ? T.numeralHero : size === "l" ? T.numeralL : size === "m" ? T.numeralM : T.numeralS;
   return <Text {...p} style={[base as TextStyle, { color: palette.textHi }, style]} />;
 }
 

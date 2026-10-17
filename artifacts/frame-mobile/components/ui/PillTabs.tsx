@@ -2,8 +2,9 @@ import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { fonts, MIN_TAP, palette, radius } from "@/constants/theme";
+import { haptic } from "./haptics";
 
-/** Pill segmented control. Active pill is a bronze-edged glass chip. */
+/** Filter / segment chips (pills are allowed here). Selected = raised surface, off-white text, stronger border. */
 export function PillTabs<T extends string>({
   tabs,
   value,
@@ -22,8 +23,11 @@ export function PillTabs<T extends string>({
         key={t.key}
         accessibilityRole="tab"
         accessibilityState={{ selected: on }}
-        onPress={() => onChange(t.key)}
-        style={[styles.pill, on && styles.pillOn]}
+        onPress={() => {
+          if (!on) haptic.select();
+          onChange(t.key);
+        }}
+        style={({ pressed }) => [styles.pill, on && styles.pillOn, pressed && !on && { backgroundColor: palette.raised }]}
       >
         <Text style={[styles.text, on && styles.textOn]}>{t.label}</Text>
       </Pressable>
@@ -43,15 +47,15 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 8 },
   pill: {
     minHeight: MIN_TAP,
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: palette.glass,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: palette.hairline,
+    borderColor: palette.border,
   },
-  pillOn: { backgroundColor: palette.goldWash, borderColor: palette.goldHair },
-  text: { fontFamily: fonts.textMedium, fontSize: 13, letterSpacing: 0.4, color: palette.textMid },
-  textOn: { color: palette.goldPale },
+  pillOn: { backgroundColor: palette.raised, borderColor: palette.goldHair },
+  text: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid },
+  textOn: { color: palette.textHi },
 });

@@ -3,7 +3,7 @@ import { Platform, StyleSheet, Text, TextInput, View, type TextInputProps } from
 
 import { fonts, palette, radius } from "@/constants/theme";
 
-/** Glass text field with a small uppercase label; edge turns bronze on focus. */
+/** Text field: surface fill, 1px border, radius 14. Sentence-case label above; border brightens (gold hairline) on focus. */
 export function Field({
   label,
   error,
@@ -25,7 +25,7 @@ export function Field({
         ref={inputRef}
         accessibilityLabel={p.accessibilityLabel ?? label}
         placeholderTextColor={palette.textLow}
-        selectionColor={palette.goldLight}
+        selectionColor={palette.gold}
         {...p}
         onFocus={(e) => {
           setFocus(true);
@@ -37,8 +37,9 @@ export function Field({
         }}
         style={[
           styles.input,
-          focus && { borderColor: "rgba(199,161,90,0.7)", backgroundColor: palette.glassStrong },
-          error ? { borderColor: "rgba(224,86,78,0.55)" } : null,
+          focus && { borderColor: palette.goldHair, backgroundColor: palette.raised },
+          error ? { borderColor: palette.redHair } : null,
+          p.editable === false ? { opacity: 0.5 } : null,
           style,
         ]}
       />
@@ -48,25 +49,19 @@ export function Field({
 }
 
 const styles = StyleSheet.create({
-  label: {
-    fontFamily: fonts.textMedium,
-    fontSize: 11,
-    letterSpacing: 1.6,
-    color: palette.goldLight,
-    textTransform: "uppercase",
-  },
+  label: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid },
   input: {
-    minHeight: 54,
-    paddingHorizontal: 20,
+    minHeight: 52,
+    paddingHorizontal: 16,
     borderRadius: radius.md,
-    backgroundColor: palette.glass,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: palette.glassEdge,
+    borderColor: palette.borderStrong,
     color: palette.textHi,
-    fontFamily: fonts.text,
+    fontFamily: fonts.regular,
     fontSize: 16,
-    // web: the bronze focus edge replaces the browser's default white ring
+    // web: the border change replaces the browser's default ring
     ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null),
   },
-  error: { fontFamily: fonts.text, fontSize: 12.5, color: palette.redLight },
+  error: { fontFamily: fonts.regular, fontSize: 13, color: palette.redText },
 });

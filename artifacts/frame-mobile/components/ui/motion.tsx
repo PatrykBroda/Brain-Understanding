@@ -20,7 +20,7 @@ export function useReducedMotion(): boolean {
   return reduced;
 }
 
-/** One soft rise-and-fade on mount; `index` staggers siblings. Instant when reduced. */
+/** One short rise-and-fade on mount (opacity + transform, ~320ms); `index` staggers siblings. Instant when reduced. */
 export function FadeIn({
   index = 0,
   children,
@@ -49,7 +49,7 @@ export function FadeIn({
     <Animated.View
       style={[
         style as ViewStyle,
-        { opacity: v, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] },
+        { opacity: v, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] },
       ]}
     >
       {children}

@@ -2,12 +2,31 @@ import { BlurView } from "expo-blur";
 import { Redirect, Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Image, Platform, StyleSheet } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useFighter } from "@/context/FighterContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { fonts, gradients, palette } from "@/constants/theme";
+import { haptic } from "@/components/ui/haptics";
+
+/** One icon family (Feather, 1.75 stroke feel at 22pt). Active tab = off-white + a short gold bar above. */
+function TabIcon({ name, color, focused }: { name: React.ComponentProps<typeof Feather>["name"]; color: string; focused: boolean }) {
+  return (
+    <View style={{ alignItems: "center" }}>
+      <View
+        style={{
+          width: 18,
+          height: 2,
+          borderRadius: 1,
+          marginBottom: 5,
+          backgroundColor: focused ? palette.gold : "transparent",
+        }}
+      />
+      <Feather name={name} size={22} color={color} />
+    </View>
+  );
+}
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -25,18 +44,19 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      screenListeners={{ tabPress: () => haptic.select() }}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: palette.goldLight,
-        tabBarInactiveTintColor: palette.textLow,
+        tabBarActiveTintColor: palette.textHi,
+        tabBarInactiveTintColor: palette.textMid,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : palette.graphite0,
+          backgroundColor: isIOS ? "transparent" : palette.bg,
           borderTopWidth: 1,
-          borderTopColor: palette.glassEdge,
+          borderTopColor: palette.border,
           elevation: 0,
           paddingBottom: isWeb ? 0 : insets.bottom,
-          height: isWeb ? 84 : 56 + insets.bottom,
+          height: isWeb ? 84 : 60 + insets.bottom,
         },
         tabBarBackground: () => (
           <>
@@ -53,8 +73,7 @@ export default function TabLayout() {
         tabBarShowLabel: true,
         tabBarLabelStyle: {
           fontFamily: fonts.textMedium,
-          fontSize: 10,
-          letterSpacing: 1.2,
+          fontSize: 12.5,
           marginBottom: 2,
         },
       }}
@@ -66,49 +85,43 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "HOME",
-          tabBarIcon: ({ color }) => <Feather name="home" size={20} color={color} />,
+          title: "Home",
+          tabBarIcon: ({ color, focused }) => <TabIcon name="home" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="state"
         options={{
-          title: "STATE",
-          tabBarIcon: ({ color }) => (
-            <Image
-              source={require("@/assets/images/frame-logo.png")}
-              style={{ width: 20, height: 20, tintColor: color }}
-              resizeMode="contain"
-            />
-          ),
+          title: "State",
+          tabBarIcon: ({ color, focused }) => <TabIcon name="disc" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
-          title: "CHAT",
-          tabBarIcon: ({ color }) => <Feather name="message-circle" size={20} color={color} />,
+          title: "Chat",
+          tabBarIcon: ({ color, focused }) => <TabIcon name="message-circle" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="analyse"
         options={{
-          title: "ANALYSE",
-          tabBarIcon: ({ color }) => <Feather name="film" size={20} color={color} />,
+          title: "Analyse",
+          tabBarIcon: ({ color, focused }) => <TabIcon name="film" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "PROFILE",
-          tabBarIcon: ({ color }) => <Feather name="user" size={20} color={color} />,
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => <TabIcon name="user" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="planner"
         options={{
-          title: "CAMP",
-          tabBarIcon: ({ color }) => <Feather name="calendar" size={20} color={color} />,
+          title: "Camp",
+          tabBarIcon: ({ color, focused }) => <TabIcon name="calendar" color={color} focused={focused} />,
         }}
       />
     </Tabs>

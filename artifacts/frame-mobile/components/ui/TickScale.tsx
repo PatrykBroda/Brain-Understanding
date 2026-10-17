@@ -1,53 +1,40 @@
 import React from "react";
 import { View } from "react-native";
-import Svg, { Circle, Line } from "react-native-svg";
+import Svg, { Line, Rect } from "react-native-svg";
 
 import { palette } from "@/constants/theme";
 
 /**
- * Horizontal tick-mark scale (like a ruler / dial rim) with a glowing marker.
- * `value` 0..max. Used for linear scores where a full gauge would be heavy.
+ * Linear score bar: hairline track, solid fill, quartile ticks. `value` 0..max.
+ * (Name kept from v2; no glow, no dense rim.)
  */
 export function TickScale({
   value,
   max = 100,
   width = 280,
-  height = 34,
-  ticks = 41,
+  height = 14,
   tone = "gold",
 }: {
   value: number;
   max?: number;
   width?: number;
   height?: number;
+  /** @deprecated ignored */
   ticks?: number;
   tone?: "gold" | "red";
 }) {
   const pct = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
-  const lit = tone === "red" ? palette.redLight : palette.goldLight;
-  const x = 6 + (width - 12) * pct;
+  const fill = tone === "red" ? palette.redText : palette.gold;
+  const barH = 4;
+  const y = (height - barH) / 2;
   return (
     <View accessible accessibilityRole="progressbar" accessibilityValue={{ min: 0, max, now: Math.round(value) }}>
       <Svg width={width} height={height}>
-        {Array.from({ length: ticks }, (_, i) => {
-          const tx = 6 + ((width - 12) * i) / (ticks - 1);
-          const major = i % 5 === 0;
-          const on = tx <= x;
-          return (
-            <Line
-              key={i}
-              x1={tx}
-              x2={tx}
-              y1={height - (major ? 16 : 10)}
-              y2={height - 2}
-              stroke={on ? lit : "rgba(255,244,224,0.20)"}
-              strokeWidth={major ? 1.4 : 1}
-              strokeLinecap="round"
-            />
-          );
-        })}
-        <Circle cx={x} cy={height - 20} r={6} fill={lit} opacity={0.25} />
-        <Circle cx={x} cy={height - 20} r={3} fill={lit} />
+        <Rect x={0} y={y} width={width} height={barH} rx={2} fill="rgba(255,255,255,0.08)" />
+        {pct > 0 ? <Rect x={0} y={y} width={Math.max(barH, width * pct)} height={barH} rx={2} fill={fill} /> : null}
+        {[0.25, 0.5, 0.75].map((q) => (
+          <Line key={q} x1={width * q} x2={width * q} y1={y - 2} y2={y + barH + 2} stroke="rgba(255,255,255,0.14)" strokeWidth={1} />
+        ))}
       </Svg>
     </View>
   );

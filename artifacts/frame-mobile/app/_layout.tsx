@@ -1,17 +1,8 @@
 import {
-  Outfit_100Thin,
-  Outfit_200ExtraLight,
-  Outfit_300Light,
-  Outfit_400Regular,
-  Outfit_500Medium,
-  Outfit_600SemiBold,
-} from "@expo-google-fonts/outfit";
-import { Unbounded_200ExtraLight, Unbounded_300Light } from "@expo-google-fonts/unbounded";
-import {
-  BarlowCondensed_600SemiBold_Italic,
-  BarlowCondensed_700Bold_Italic,
-} from "@expo-google-fonts/barlow-condensed";
-import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
+  InterTight_400Regular,
+  InterTight_500Medium,
+  InterTight_600SemiBold,
+} from "@expo-google-fonts/inter-tight";
 import Constants from "expo-constants";
 import { useFonts } from "expo-font";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
@@ -36,7 +27,7 @@ import { reportStartup } from "@/lib/crashReporter";
 
 SplashScreen.preventAutoHideAsync();
 
-SystemUI.setBackgroundColorAsync("#050505").catch(() => null);
+SystemUI.setBackgroundColorAsync("#08090B").catch(() => null);
 
 const domain = APP_DOMAIN;
 const apiBase = resolveApiBase({
@@ -154,23 +145,22 @@ const noticeStyles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     minHeight: 44,
-    borderRadius: 18,
-    backgroundColor: "rgba(23,19,12,0.96)",
+    borderRadius: 14,
+    backgroundColor: "#191C20",
     borderWidth: 1,
-    borderColor: "rgba(199,161,90,0.28)",
+    borderColor: "rgba(255,255,255,0.12)",
   },
   text: {
     flex: 1,
-    color: "#E0D5BF",
-    fontFamily: "Outfit",
+    color: "#F4F4F1",
+    fontFamily: "InterTight",
     fontSize: 13,
     lineHeight: 18,
   },
   dismiss: {
-    color: "#C7A15A",
-    fontFamily: "OutfitMedium",
-    fontSize: 10,
-    letterSpacing: 1.5,
+    color: "#B9A477",
+    fontFamily: "InterTightMedium",
+    fontSize: 13,
   },
 });
 
@@ -179,7 +169,7 @@ const noticeStyles = StyleSheet.create({
  * Kept intentionally simple and dependency-free so it can render before the
  * custom fonts finish loading (letter-spaced system text is an acceptable
  * pre-load fallback for the wordmark). Same dark base as the native splash and
- * SystemUI background (#050505), so there is no white flash on either side.
+ * SystemUI background (#08090B), so there is no white flash on either side.
  */
 function LoadingScreen() {
   return (
@@ -188,7 +178,7 @@ function LoadingScreen() {
       <ActivityIndicator
         style={loadingStyles.indicator}
         size="small"
-        color="#8A6A2F"
+        color="#B9A477"
       />
     </View>
   );
@@ -199,13 +189,13 @@ const loadingStyles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#050505",
+    backgroundColor: "#08090B",
   },
   wordmark: {
-    fontFamily: "SpaceMono",
-    fontSize: 18,
-    letterSpacing: 10,
-    color: "#e0e0e0",
+    fontFamily: "InterTightSemiBold",
+    fontSize: 16,
+    letterSpacing: 8,
+    color: "#F4F4F1",
   },
   indicator: {
     marginTop: 28,
@@ -246,12 +236,12 @@ const configErrorStyles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 32,
     gap: 16,
-    backgroundColor: "#050505",
+    backgroundColor: "#08090B",
   },
   wordmark: {
     fontSize: 18,
     letterSpacing: 10,
-    color: "#e0e0e0",
+    color: "#F4F4F1",
   },
   heading: {
     fontSize: 12,
@@ -262,11 +252,11 @@ const configErrorStyles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     textAlign: "center",
-    color: "#E0D5BF",
+    color: "#F4F4F1",
   },
   meta: {
     marginTop: 8,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.5,
     color: "#6d6d6d",
   },
@@ -286,7 +276,7 @@ function RootLayoutNav() {
         <UserScopedQueryReset />
         <LoginUpsellGate />
         <AiConsentGate>
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#050505" } }}>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#08090B" } }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="splash" options={{ animation: "fade" }} />
             <Stack.Screen name="sign-in" options={{ animation: "fade" }} />
@@ -318,21 +308,10 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Outfit: Outfit_400Regular,
-    Outfit_400Regular,
-    Outfit_500Medium,
-    Outfit_600SemiBold,
-    OutfitThin: Outfit_100Thin,
-    OutfitExtraLight: Outfit_200ExtraLight,
-    OutfitLight: Outfit_300Light,
-    OutfitMedium: Outfit_500Medium,
-    OutfitSemiBold: Outfit_600SemiBold,
-    UnboundedExtraLight: Unbounded_200ExtraLight,
-    UnboundedLight: Unbounded_300Light,
-    BarlowCondensedBoldItalic: BarlowCondensed_700Bold_Italic,
-    BarlowCondensedSemiBoldItalic: BarlowCondensed_600SemiBold_Italic,
-    SpaceMono: SpaceMono_400Regular,
-    SpaceMono_400Regular,
+    // one family, three weights (design tokens: constants/theme.ts `fonts`)
+    InterTight: InterTight_400Regular,
+    InterTightMedium: InterTight_500Medium,
+    InterTightSemiBold: InterTight_600SemiBold,
   });
 
   // Probe 2: RootLayout rendered — hooks running, fonts loading.
@@ -341,7 +320,7 @@ export default function RootLayout() {
   }, []);
 
   // Hide the native splash as soon as our own dark loading screen can paint.
-  // Because that screen shares the splash/system background (#050505), there is
+  // Because that screen shares the splash/system background (#08090B), there is
   // no white flash between the native splash and the branded loading screen.
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => null);
@@ -377,7 +356,7 @@ export default function RootLayout() {
           <ErrorBoundary context="SafeAreaProvider+QueryClient">
             <SafeAreaProvider>
               <QueryClientProvider client={queryClient}>
-                <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#050505" }}>
+                <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#08090B" }}>
                   <ErrorBoundary context="KeyboardProvider">
                     <KeyboardProvider>
                       <RootLayoutNav />
