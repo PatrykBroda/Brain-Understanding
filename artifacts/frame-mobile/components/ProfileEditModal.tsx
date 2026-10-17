@@ -24,6 +24,12 @@ import {
   levelsForSport,
 } from "@/lib/fighterOptions";
 
+/** "BJJ BELT" -> "BJJ belt" (sentence case, acronyms kept). */
+function sentenceLabel(s: string): string {
+  const lower = s.toLowerCase();
+  return (lower.charAt(0).toUpperCase() + lower.slice(1)).replace(/^(bjj|mma)/i, (m) => m.toUpperCase());
+}
+
 const PROFILE_SPORTS = [...SPORTS, ...LEGACY_SPORTS];
 
 const FREQS = [
@@ -183,7 +189,7 @@ export function ProfileEditModal({
               </View>
 
               <View style={styles.field}>
-                <Label>{levelLabelForSport(form.primarySport).charAt(0) + levelLabelForSport(form.primarySport).slice(1).toLowerCase().replace(/bjj/, "BJJ")}</Label>
+                <Label>{sentenceLabel(levelLabelForSport(form.primarySport))}</Label>
                 <ChipSelector
                   options={levelsForSport(form.primarySport)}
                   value={form.level}
