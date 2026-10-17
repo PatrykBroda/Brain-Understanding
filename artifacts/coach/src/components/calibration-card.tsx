@@ -15,35 +15,34 @@ export function CalibrationCard({
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   return (
-    <div className="border border-primary/30 backdrop-blur rounded-2xl">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-primary/20">
-        <div className="text-xs text-[#B9A477]">
-          Calibration
-        </div>
+    <div className="glass overflow-hidden">
+      <div className="flex items-center justify-between pl-4 pr-1 pt-1">
+        <div className="label">Quick question</div>
         <button
           onClick={onDismiss}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="dismiss"
+          className="grid h-11 w-11 place-items-center rounded-[12px] text-muted-foreground transition-colors hover:text-foreground"
+          aria-label="Dismiss"
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="h-4 w-4" strokeWidth={1.75} />
         </button>
       </div>
-      <div className="p-4 space-y-3">
-        <div className="text-sm text-foreground font-medium">{question.prompt}</div>
+      <div className="space-y-3 px-4 pb-4">
+        <div className="text-base font-medium leading-snug text-foreground">{question.prompt}</div>
         <div className="flex flex-wrap gap-2">
           {question.options.map((opt) => (
             <button
               key={opt}
               disabled={pending}
+              aria-pressed={selected === opt}
               onClick={() => {
                 setSelected(opt);
                 onAnswer(opt);
               }}
-              className={`text-[0.78rem] px-3 py-1.5 border transition-colors ${
+              className={`min-h-[44px] rounded-full border px-4 text-sm transition-colors duration-200 disabled:opacity-40 ${
                 selected === opt
-                  ? "border-primary bg-primary/20 text-[#B9A477]"
-                  : "border-border/70 bg-background/40 text-muted-foreground hover:border-primary/50 hover:text-foreground"
-              } disabled:opacity-50`}
+                  ? "border-[rgba(185,164,119,0.5)] bg-[var(--f-raised)] text-foreground"
+                  : "border-[var(--f-border)] bg-[var(--f-surface)] text-[var(--f-text-2)] hover:bg-[var(--f-raised)] hover:text-foreground"
+              }`}
             >
               {opt}
             </button>

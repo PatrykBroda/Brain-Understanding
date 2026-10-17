@@ -2,69 +2,40 @@ import { Link } from "wouter";
 import { ChevronLeft } from "lucide-react";
 import { VideoBackdrop } from "@/components/media-backdrop";
 
-// Film-grain layer: inline SVG turbulence noise, tiled. Pure decoration.
-const GRAIN_URI = `url("data:image/svg+xml,${encodeURIComponent(
-  `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.55'/></svg>`,
-)}")`;
+/** The two lines the client requires on every opening surface. */
+export const TAGLINE = "Your corner team between training sessions.";
+export const SUBLINE = "AI coaching for fighters and athletes.";
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+/**
+ * Opening surface for sign-in / sign-up: monochrome athlete imagery (video, poster
+ * for reduced-motion) under a dark scrim, a reserved text band for the tagline,
+ * and one form card. The imagery is the only atmospheric light here.
+ */
+export default function AuthLayout({ children, compact = false }: { children: React.ReactNode; compact?: boolean }) {
   return (
     <div
-      className="frame-ambient relative grid h-[100dvh] text-foreground overflow-hidden"
-      style={{ gridTemplateRows: "auto minmax(0,1fr) auto" }}
+      className="relative grid h-[100dvh] overflow-hidden bg-[var(--f-bg)] text-foreground"
+      style={{ gridTemplateRows: "auto minmax(0,1fr)" }}
     >
-      {/* Looping fight edit (placeholder footage), blurred + darkened; poster if reduced-motion / video fails */}
-      <VideoBackdrop blur={2} dim={0.28} />
-      {/* Film grain */}
-      <div
-        className="absolute inset-0 pointer-events-none z-0 mix-blend-overlay"
-        style={{ backgroundImage: GRAIN_URI, backgroundSize: "160px 160px", opacity: 0.12 }}
-      />
-      {/* Bronze + crimson glow fields */}
-      <div aria-hidden className="glow-orb z-0 -top-24 right-[-6rem] h-[22rem] w-[22rem]" />
-      <div
-        aria-hidden
-        className="glow-orb z-0 bottom-[-8rem] left-[-7rem] h-[20rem] w-[20rem]"
-        style={{ background: "radial-gradient(circle, rgba(229,100,90,0.30), transparent 70%)" }}
-      />
+      <VideoBackdrop dim={0.3} />
 
       <header className="relative z-10 grid grid-cols-[44px_1fr_44px] items-center px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
-        <Link
-          href="/"
-          className="icon-round text-foreground/85 transition-colors hover:text-foreground"
-          aria-label="Back"
-        >
-          <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
+        <Link href="/" className="icon-round" aria-label="Back">
+          <ChevronLeft className="h-5 w-5" strokeWidth={1.75} />
         </Link>
-        <div className="text-center">
-          <div className="wordmark text-[1.15rem]">Frame</div>
-          <div className="eyebrow mt-2 !text-xs !text-[#cfc9bf]">MMA · Calibration system</div>
-        </div>
+        <div className="wordmark text-center text-[1.05rem]">Frame</div>
         <div />
       </header>
 
-      <main className="relative z-10 min-h-0 grid place-items-center content-end overflow-y-auto px-5 py-4 sm:content-center">
-        <div className="frame-auth-in w-full grid place-items-center">{children}</div>
+      <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-[460px] flex-col justify-end gap-5 overflow-y-auto px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3">
+        <div className="frame-rise">
+          <h2 className={`punch ${compact ? "text-[1.75rem]" : "punch-l"} text-balance`}>{TAGLINE}</h2>
+          <p className="mt-2 text-base leading-6 text-[var(--f-text-2)]">{SUBLINE}</p>
+        </div>
+        <div className="frame-rise w-full" style={{ animationDelay: "60ms" }}>
+          {children}
+        </div>
       </main>
-
-      <footer className="relative z-10 px-6 pb-[max(1.6rem,env(safe-area-inset-bottom))] pt-2">
-        <p className="mx-auto max-w-sm text-center text-xs leading-relaxed text-muted-foreground">
-          Sign in with your FRAME email and password.
-        </p>
-      </footer>
-
-      <style>{`
-        @keyframes frame-auth-in {
-          from { opacity: 0; transform: translateY(14px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .frame-auth-in {
-          animation: frame-auth-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .frame-auth-in { animation: none; }
-        }
-      `}</style>
     </div>
   );
 }

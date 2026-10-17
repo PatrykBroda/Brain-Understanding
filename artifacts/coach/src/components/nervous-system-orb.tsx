@@ -1,5 +1,10 @@
 type State = "idle" | "streaming" | "wired" | "heavy" | "clean";
 
+/**
+ * Tiny status indicator for the coach. Static by design (v3): no breathing,
+ * pulsing or ping, so it never implies live biometric measurement. The label
+ * carries the meaning; the dot only repeats the tone.
+ */
 export function NervousSystemOrb({
   state = "idle",
   label,
@@ -11,7 +16,7 @@ export function NervousSystemOrb({
     state === "streaming"
       ? "border-primary/80"
       : state === "wired"
-        ? "border-destructive/60"
+        ? "border-[rgba(229,100,90,0.6)]"
         : state === "heavy"
           ? "border-muted-foreground/40"
           : state === "clean"
@@ -22,40 +27,19 @@ export function NervousSystemOrb({
     state === "streaming"
       ? "bg-primary"
       : state === "wired"
-        ? "bg-destructive/80"
+        ? "bg-[#E5645A]"
         : state === "heavy"
-          ? "bg-muted-foreground/50"
+          ? "bg-muted-foreground/60"
           : state === "clean"
             ? "bg-primary/70"
             : "bg-primary/40";
 
-  // Idle/clean/heavy states get a slow ambient breath so the indicator never
-  // feels fully static. Streaming/wired use the more urgent pulse.
-  const coreAnim =
-    state === "streaming" || state === "wired"
-      ? "animate-pulse"
-      : "nso-breath";
-
   return (
-    <div className="flex items-center gap-2.5">
-      <div className={`relative w-3 h-3 border ${ring} flex items-center justify-center`}>
-        <div className={`w-1.5 h-1.5 ${core} ${coreAnim} transition-colors`} />
-        {state === "streaming" && (
-          <div className="absolute inset-0 border border-primary/30 animate-ping" />
-        )}
+    <div className="flex items-center gap-2.5" role="status">
+      <div className={`flex h-3.5 w-3.5 items-center justify-center rounded-full border ${ring}`} aria-hidden>
+        <div className={`h-1.5 w-1.5 rounded-full ${core} transition-colors duration-200`} />
       </div>
-      {label && (
-        <span className="text-xs text-muted-foreground">
-          {label}
-        </span>
-      )}
-      <style>{`
-        @keyframes nso-breath {
-          0%, 100% { opacity: 0.45; transform: scale(0.9); }
-          50%      { opacity: 1;    transform: scale(1.05); }
-        }
-        .nso-breath { animation: nso-breath 3.4s ease-in-out infinite; }
-      `}</style>
+      {label && <span className="text-xs text-muted-foreground">{label}</span>}
     </div>
   );
 }

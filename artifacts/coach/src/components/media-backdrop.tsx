@@ -22,9 +22,13 @@ function saveData() {
  * - reduced motion / data saver: poster only, no video is loaded
  * - video error / autoplay blocked: poster stays, UI is never blocked (pointer-events none)
  * - portrait cut on tall screens, wide cut on landscape
- * Placeholder footage until the client supplies their edit (see RESULT.md).
+ * - MONOCHROME: grayscale + dark gradient scrim, no warm grade, no blur.
+ *   Top and bottom bands stay dark so headline/controls keep contrast.
+ *
+ * PLACEHOLDER: the footage and posters (frame-auth-*) are third-party stock
+ * cut for layout only. Swap those files for the client's edit; do not ship.
  */
-export function VideoBackdrop({ blur = 3, dim = 0.55 }: { blur?: number; dim?: number }) {
+export function VideoBackdrop({ dim = 0.5 }: { dim?: number; /** @deprecated ignored (no blur in v3) */ blur?: number }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
@@ -44,12 +48,12 @@ export function VideoBackdrop({ blur = 3, dim = 0.55 }: { blur?: number; dim?: n
 
   return (
     <div aria-hidden className="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none bg-[#08090B]">
-      <img src={poster} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ filter: "saturate(0.8)" }} />
+      <img src={poster} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ filter: "grayscale(1)" }} />
       {!still && !failed && (
         <video
           ref={ref}
           className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
-          style={{ opacity: ready ? 1 : 0, filter: "saturate(0.85)" }}
+          style={{ opacity: ready ? 1 : 0, filter: "grayscale(1)" }}
           muted
           loop
           autoPlay
@@ -63,16 +67,12 @@ export function VideoBackdrop({ blur = 3, dim = 0.55 }: { blur?: number; dim?: n
           <source src={`${base}/media/frame-auth-${name}.mp4`} type="video/mp4" />
         </video>
       )}
-      {/* blur + darken + warm bleed so the form stays legible over fast cuts */}
-      <div
-        className="absolute inset-0"
-        style={{ WebkitBackdropFilter: `blur(${blur}px)`, backdropFilter: `blur(${blur}px)`, background: `rgba(8,9,11,${dim})` }}
-      />
+      <div className="absolute inset-0" style={{ background: `rgba(8,9,11,${dim})` }} />
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(8,9,11,0.7) 0%, rgba(8,9,11,0.0) 28%, rgba(8,9,11,0.2) 52%, rgba(8,9,11,0.92) 100%), radial-gradient(70% 45% at 85% 0%, rgba(214,120,40,0.26), transparent 70%), radial-gradient(60% 40% at 0% 100%, rgba(229,100,90,0.22), transparent 70%)",
+            "linear-gradient(180deg, rgba(8,9,11,0.72) 0%, rgba(8,9,11,0.08) 30%, rgba(8,9,11,0.35) 52%, rgba(8,9,11,0.95) 100%)",
         }}
       />
     </div>
@@ -80,25 +80,20 @@ export function VideoBackdrop({ blur = 3, dim = 0.55 }: { blur?: number; dim?: n
 }
 
 /**
- * Photo behind a header or card: full-bleed, blurred, darkened, with a warm
- * glow bleeding off one corner and a fade into the page. Absolute-positioned;
- * the parent must be `relative` (and usually `overflow-hidden`).
+ * Photo behind ONE hero block or card: full-bleed, monochrome, with a dark
+ * gradient scrim fading into the page (reserved text band at the bottom).
+ * Absolute-positioned; the parent must be `relative`. Never behind a whole
+ * app screen (v3 removed per-route photo backdrops).
  */
 export function PhotoBackdrop({
   src = MEDIA.stillA,
-  blur = 10,
-  opacity = 0.55,
+  opacity = 0.7,
   position = "center",
-  fade = true,
-  glow = "right",
   className = "",
 }: {
   src?: string;
-  blur?: number;
   opacity?: number;
   position?: string;
-  fade?: boolean;
-  glow?: "right" | "left" | "none";
   className?: string;
 }) {
   return (
@@ -108,53 +103,12 @@ export function PhotoBackdrop({
         alt=""
         loading="lazy"
         decoding="async"
-        className="absolute inset-[-8%] h-[116%] w-[116%] max-w-none object-cover"
-        style={{ objectPosition: position, filter: `blur(${blur}px) saturate(0.9) contrast(1.05)`, opacity }}
-      />
-      {glow !== "none" && (
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              glow === "right"
-                ? "radial-gradient(70% 70% at 100% 0%, rgba(214,120,40,0.34), transparent 70%)"
-                : "radial-gradient(70% 70% at 0% 0%, rgba(214,120,40,0.30), transparent 70%)",
-            mixBlendMode: "screen",
-          }}
-        />
-      )}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: fade
-            ? "linear-gradient(180deg, rgba(8,9,11,0.35) 0%, rgba(8,9,11,0.2) 40%, #08090B 100%)"
-            : "rgba(8,9,11,0.35)",
-        }}
-      />
-    </div>
-  );
-}
-
-/**
- * Page-level backdrop for the signed-in app: a fixed, heavily blurred FRAME
- * photo behind everything (z -1, so transparent page roots show it through).
- */
-export function AppBackdrop({ src, position = "center" }: { src: string; position?: string }) {
-  return (
-    <div aria-hidden className="fixed inset-0 overflow-hidden pointer-events-none select-none" style={{ zIndex: -1 }}>
-      <img
-        src={src}
-        alt=""
-        decoding="async"
-        className="absolute inset-[-10%] h-[120%] w-[120%] max-w-none object-cover"
-        style={{ objectPosition: position, filter: "blur(26px) saturate(0.85) contrast(1.1)", opacity: 0.5 }}
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ objectPosition: position, filter: "grayscale(1) contrast(1.05)", opacity }}
       />
       <div
         className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(80% 50% at 100% 0%, rgba(214,120,40,0.30), transparent 70%), radial-gradient(70% 45% at 0% 100%, rgba(229,100,90,0.18), transparent 70%), linear-gradient(180deg, rgba(8,9,11,0.35) 0%, rgba(8,9,11,0.55) 55%, rgba(8,9,11,0.92) 100%)",
-        }}
+        style={{ background: "linear-gradient(180deg, rgba(8,9,11,0.35) 0%, rgba(8,9,11,0.25) 35%, #08090B 100%)" }}
       />
     </div>
   );

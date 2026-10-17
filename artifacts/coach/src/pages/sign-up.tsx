@@ -67,92 +67,85 @@ export default function SignUpPage() {
   }
 
   return (
-    <AuthLayout>
-      <div className="glass glass-clear w-full max-w-[420px] overflow-hidden">
-        <div aria-hidden className="glow-orb -right-20 -top-24 h-52 w-52 opacity-70" />
-        <div className="relative px-7 pt-9 pb-7">
-          <div className="mb-7 text-center">
-            <h1 className="punch !text-[clamp(2.8rem,15vw,3.8rem)]">Join Frame</h1>
-            <div className="eyebrow eyebrow-gold mt-3">Create your account</div>
+    <AuthLayout compact>
+      <div className="glass glass-clear w-full px-5 pb-3 pt-5">
+        <h1 className="display-title">Create your account</h1>
+
+        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3.5">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="signup-email" className="label">
+              Email
+            </label>
+            <input
+              id="signup-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              aria-invalid={error ? true : undefined}
+              className="field-glass"
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="signup-email" className="eyebrow pl-1">
-                Email
-              </label>
-              <input
-                id="signup-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                className="field-glass"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label htmlFor="signup-password" className="eyebrow pl-1">
-                Password
-              </label>
-              <input
-                id="signup-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                autoComplete="new-password"
-                className="field-glass"
-              />
-              <span className="pl-1 text-xs text-muted-foreground">
-                Minimum 8 characters
-              </span>
-            </div>
-
-            <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-xs leading-relaxed text-foreground/80">
-              <input
-                type="checkbox"
-                checked={acceptedLegal}
-                onChange={(e) => setAcceptedLegal(e.target.checked)}
-                required
-                className="mt-0.5 h-5 w-5 flex-none accent-[hsl(var(--primary))]"
-              />
-              <span>
-                I accept the{" "}
-                <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-[hsl(var(--primary-light))] underline underline-offset-2">Terms of Service</a>
-                {" "}and{" "}
-                <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-[hsl(var(--primary-light))] underline underline-offset-2">Privacy Policy and AI data-use disclosure</a>.
-              </span>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="signup-password" className="label">
+              Password
             </label>
+            <input
+              id="signup-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              aria-invalid={error ? true : undefined}
+              className="field-glass"
+            />
+            <span className="text-xs text-[var(--f-text-3)]">Minimum 8 characters</span>
+          </div>
 
-            {error && (
-              <p role="alert" className="text-sm text-[#E5645A]">
-                {error}
-              </p>
-            )}
+          <label className="flex min-h-[44px] items-start gap-3 text-sm leading-5 text-[var(--f-text-2)]">
+            <input
+              type="checkbox"
+              checked={acceptedLegal}
+              onChange={(e) => setAcceptedLegal(e.target.checked)}
+              required
+              className="mt-0.5 h-5 w-5 flex-none accent-[#B9A477]"
+            />
+            <span>
+              I accept the{" "}
+              <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-[var(--f-gold)] underline underline-offset-2">Terms of Service</a>
+              {" "}and{" "}
+              <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-[var(--f-gold)] underline underline-offset-2">Privacy Policy and AI data-use disclosure</a>.
+            </span>
+          </label>
 
-            <button
-              type="submit"
-              disabled={loading || !email || !password || !acceptedLegal}
-              className="btn-bronze mt-1 w-full"
-            >
-              {loading ? "Creating account…" : "Create account"}
-            </button>
-          </form>
-        </div>
+          {error && (
+            <p role="alert" className="text-sm text-[var(--f-red-text)]">
+              {error}
+            </p>
+          )}
 
-        <div className="relative border-t border-white/10 px-7 py-2 text-center">
-          <span className="text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <a
-              href={`${basePath}/sign-in`}
-              className="inline-flex min-h-[44px] items-center font-medium text-[hsl(var(--primary-light))] transition-colors hover:text-[hsl(var(--primary-pale))]"
-            >
-              Sign in
-            </a>
-          </span>
+          <button
+            type="submit"
+            disabled={loading || !email || !password || !acceptedLegal}
+            data-loading={loading ? "true" : undefined}
+            className="btn-bronze w-full"
+          >
+            Create account
+          </button>
+        </form>
+
+        <div className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <span>Already have an account?</span>
+          <a
+            href={`${basePath}/sign-in`}
+            className="inline-flex min-h-[44px] items-center font-semibold text-[var(--f-gold)] transition-colors hover:text-[var(--f-gold-pale)]"
+          >
+            Sign in
+          </a>
         </div>
       </div>
       {showAiConsent && (

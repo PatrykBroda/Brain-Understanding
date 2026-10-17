@@ -40,71 +40,67 @@ export default function SignInPage() {
 
   return (
     <AuthLayout>
-      <div className="glass glass-clear w-full max-w-[420px] overflow-hidden">
-        <div aria-hidden className="glow-orb -right-20 -top-24 h-52 w-52 opacity-70" />
-        <div className="relative px-7 pt-9 pb-7">
-          <div className="mb-8 text-center">
-            <h1 className="punch punch-xl !text-[clamp(3.4rem,18vw,4.6rem)]">Sign in</h1>
-            <div className="eyebrow eyebrow-gold mt-3">Welcome back</div>
+      <div className="glass glass-clear w-full px-5 pb-4 pt-6">
+        <h1 className="display-title">Sign in</h1>
+        <p className="label mt-1">Welcome back</p>
+
+        <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="signin-email" className="label">
+              Email
+            </label>
+            <input
+              id="signin-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              aria-invalid={error ? true : undefined}
+              className="field-glass"
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="signin-email" className="eyebrow pl-1">
-                Email
-              </label>
-              <input
-                id="signin-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                className="field-glass"
-              />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="signin-password" className="label">
+              Password
+            </label>
+            <input
+              id="signin-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              aria-invalid={error ? true : undefined}
+              className="field-glass"
+            />
+          </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="signin-password" className="eyebrow pl-1">
-                Password
-              </label>
-              <input
-                id="signin-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                className="field-glass"
-              />
-            </div>
+          {error && (
+            <p role="alert" className="text-sm text-[var(--f-red-text)]">
+              {error}
+            </p>
+          )}
 
-            {error && (
-              <p role="alert" className="text-sm text-[#E5645A]">
-                {error}
-              </p>
-            )}
+          <button
+            type="submit"
+            disabled={loading || !email || !password}
+            data-loading={loading ? "true" : undefined}
+            className="btn-bronze w-full"
+          >
+            Sign in
+          </button>
+        </form>
 
-            <button
-              type="submit"
-              disabled={loading || !email || !password}
-              className="btn-bronze mt-1 w-full"
-            >
-              {loading ? "Signing in…" : "Sign in"}
-            </button>
-          </form>
-        </div>
-
-        <div className="relative border-t border-white/10 px-7 py-2 text-center">
-          <span className="text-sm text-muted-foreground">
-            No account?{" "}
-            <a
-              href={`${basePath}/sign-up`}
-              className="inline-flex min-h-[44px] items-center font-medium text-[hsl(var(--primary-light))] transition-colors hover:text-[hsl(var(--primary-pale))]"
-            >
-              Create one
-            </a>
-          </span>
+        <div className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <span>New to FRAME?</span>
+          <a
+            href={`${basePath}/sign-up`}
+            className="inline-flex min-h-[44px] items-center font-semibold text-[var(--f-gold)] transition-colors hover:text-[var(--f-gold-pale)]"
+          >
+            Create account
+          </a>
         </div>
       </div>
     </AuthLayout>

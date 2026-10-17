@@ -1,10 +1,12 @@
+import { useRef, useState } from "react";
 import { Link } from "wouter";
-import { Shield, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Shield } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { CosmicOrb, ORB_PALETTE } from "@/components/cosmic-orb";
+import { CosmicOrb } from "@/components/cosmic-orb";
 import { FramePlusPill } from "@/components/frame-plus-modal";
 import { FrameWordmark } from "@/components/frame-wordmark";
 import { BottomNav } from "@/components/bottom-nav";
+import { Status } from "@/components/frame-ui";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { useFrameState, type FrameStateLabel } from "@/hooks/use-frame-state";
@@ -13,7 +15,7 @@ import { useTodayCheckin } from "@/hooks/use-checkin";
 import { api } from "@/lib/api";
 import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
 
-// One coaching cue per interpretive state. Deterministic — keyed to the same
+// One coaching cue per interpretive state. Deterministic - keyed to the same
 // honestly-derived state as the orb label, never generated, never a metric.
 const STATE_CUE: Record<FrameStateLabel, string> = {
   Dormant: "Step in. The frame reads what you feed it.",
@@ -26,12 +28,41 @@ const STATE_CUE: Record<FrameStateLabel, string> = {
   Overextended: "Cut volume. Keep structure.",
 };
 
+const NO_DATA = "No data yet";
+
+function Factor({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  const empty = value === NO_DATA;
+  return (
+    <div className="flex items-start justify-between gap-4 py-3 row-hair">
+      <dt className="label pt-0.5">{label}</dt>
+      <dd className="min-w-0 text-right">
+        <span className={`tnum block text-[15px] font-medium leading-snug ${empty ? "text-[var(--f-text-3)]" : "text-foreground"}`}>
+          {value}
+        </span>
+        {sub && <span className="mt-0.5 block text-xs leading-4 text-[var(--f-text-3)]">{sub}</span>}
+      </dd>
+    </div>
+  );
+}
+
 export default function StatePage() {
   const { data: fighterData } = useFighter();
   const fighter = fighterData?.fighter ?? null;
 
   useAutoWelcome();
   const frameState = useFrameState();
+  const [expanded, setExpanded] = useState(false);
+  const panelRef = useRef<HTMLElement>(null);
+
+  // Same cache key the state hook uses, so this is not a second fetch.
+  const memoryQuery = useQuery({
+    queryKey: ["memory"],
+    queryFn: api.getMemory,
+    enabled: !!fighter,
+  });
+  const noteCount = memoryQuery.data?.facts?.length ?? null;
+  const memoryLoading = memoryQuery.isLoading;
+  const memoryError = memoryQuery.isError;
 
   const analysesQuery = useAnalyses();
   const latest =
@@ -46,7 +77,7 @@ export default function StatePage() {
     : null;
   const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
   const baseReadiness = checkinScore ?? sessionScore;
-  const readinessSource = checkinScore != null ? "today" : "last session";
+  const readinessSource = checkinScore != null ? "today's check-in" : "last session";
 
   // Warms the shared ["conversation"] cache Chat reuses; lets the doorway read
   // "Continue" only when there's a real prior session (not keyed on analyses).
@@ -55,180 +86,178 @@ export default function StatePage() {
     queryFn: () => api.getActiveConversation(),
     enabled: !!fighter,
   });
-  const hasSession = (conversationQuery.data?.messages?.length ?? 0) > 0;
+  const messages = conversationQuery.data?.messages ?? [];
+  const hasSession = messages.length > 0;
 
-  // Recent chat drives a small ±10 modifier on top of the base readiness,
-  // reusing the conversation already fetched above — no new data flow. Mirrors
-  // the native app so the Fight Readiness number matches across surfaces.
-  const chatModifier = readinessModifier(conversationQuery.data?.messages ?? []);
+  // Recent chat drives a small +/-10 modifier on top of the base readiness.
+  const chatModifier = readinessModifier(messages);
   const readiness = applyReadinessModifier(baseReadiness, chatModifier);
 
-  const { hue, sat, light } = ORB_PALETTE[frameState.orb];
-  const labelColor = `hsl(${hue}, ${Math.round(sat * 35)}%, 91%)`;
-  const labelGlow = `0 0 48px hsla(${hue}, ${Math.round(sat * 100)}%, ${Math.round(light * 100)}%, 0.38), 0 2px 12px rgba(0,0,0,0.6)`;
-
+  const label = frameState.label;
+  const toggle = () => {
+    setExpanded((v) => {
+      const next = !v;
+      if (next) window.setTimeout(() => panelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 60);
+      return next;
+    });
+  };
 
   return (
-    <div
-      className="relative grid h-[100dvh] text-foreground overflow-hidden"
-      style={{ gridTemplateRows: "auto minmax(0,1fr) auto auto" }}
-    >
-      {/* ─── Ambient environment — bronze glow behind the orb, crimson low-left.
-          The body already carries the graphite gradient; these add local depth. */}
-      <div aria-hidden className="glow-orb z-0 left-1/2 top-[14%] h-[26rem] w-[26rem] -translate-x-1/2 opacity-70" />
-      <div
-        aria-hidden
-        className="glow-orb z-0 bottom-[-10rem] left-[-8rem] h-[22rem] w-[22rem]"
-        style={{ background: "radial-gradient(circle, rgba(229,100,90,0.20), transparent 70%)" }}
-      />
-
-      {/* Ultra-fine grain — barely perceptible, kills banding on the dark gradients */}
-      <svg
-        className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.04] mix-blend-overlay z-0"
-        aria-hidden
-      >
-        <filter id="frame-grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
-          <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#frame-grain)" />
-      </svg>
-
-      <header className="relative z-10 flex items-center justify-between px-6 pt-[max(1.1rem,env(safe-area-inset-top))] pb-3">
-        <div>
-          <FrameWordmark size={30} />
-          <div className="eyebrow mt-2.5">State calibration system</div>
-        </div>
-        <div className="flex items-center gap-2.5">
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden text-foreground">
+      <header className="relative z-10 flex flex-none items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
+        <FrameWordmark size={28} />
+        <div className="flex items-center gap-2">
           <FramePlusPill />
-          <Link
-            href="/profile"
-            aria-label="Open profile"
-            className="icon-round text-foreground/80 outline-none transition-colors hover:text-[hsl(var(--primary-light))]"
-          >
-            <Shield className="w-[17px] h-[17px]" strokeWidth={1.4} />
+          <Link href="/profile" aria-label="Open profile" className="icon-round outline-none">
+            <Shield className="h-[18px] w-[18px]" strokeWidth={1.75} />
           </Link>
         </div>
       </header>
 
-      <main className="relative z-10 min-h-0 grid place-items-center overflow-hidden px-2">
-        {/* Container-sized so the orb is always a whole, uncropped square; the soft
-            radial mask melts the canvas edge into the glow field behind it. */}
-        <div
-          className="frame-fade-in h-full w-full grid place-items-center [container-type:size]"
-          style={{
-            WebkitMaskImage: "radial-gradient(closest-side, #000 86%, transparent 100%)",
-            maskImage: "radial-gradient(closest-side, #000 86%, transparent 100%)",
-          }}
-        >
-          <CosmicOrb state={frameState.orb} className="w-[min(100cqw,100cqh,560px)]" />
+      <main className="relative min-h-0 flex-1 overflow-y-auto">
+        {/* The ONE atmospheric light on this screen: champagne, behind the orb */}
+        <div className="atmo atmo-champagne" aria-hidden />
+        <div className="relative z-10 mx-auto flex w-full max-w-md flex-col items-center px-5 pb-6 pt-2">
+          {/* Orb = button. idle -> pressed (scale .98 + brightness) -> expanded (factors panel) */}
+          <button
+            type="button"
+            onClick={toggle}
+            aria-expanded={expanded}
+            aria-controls="state-factors"
+            aria-label={`${label} state. ${expanded ? "Hide" : "Show"} what feeds this state.`}
+            className="group relative w-[min(66vw,280px)] rounded-full outline-none transition-[transform,filter] duration-[180ms] ease-out hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[var(--f-gold)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--f-bg)] active:scale-[0.98] active:brightness-125 motion-reduce:transition-none"
+          >
+            <CosmicOrb state={frameState.orb} className="w-full" />
+          </button>
+
+          <span aria-hidden className="mt-1 inline-flex min-h-[32px] items-center gap-1 text-xs font-medium text-[var(--f-text-3)]">
+            {expanded ? "Hide factors" : "Tap the sphere for the factors"}
+            <ChevronDown
+              className={`h-3.5 w-3.5 transition-transform duration-200 motion-reduce:transition-none ${expanded ? "rotate-180" : ""}`}
+              strokeWidth={1.75}
+            />
+          </span>
+
+          <div className="mt-3 w-full text-center">
+            <p className="label">Your state</p>
+            {memoryLoading ? (
+              <div className="mt-2 flex flex-col items-center gap-2" role="status" aria-label="Reading your notes">
+                <div className="h-10 w-40 rounded-[12px] bg-white/[0.06]" />
+                <p className="text-sm text-[var(--f-text-3)]">Reading your notes</p>
+              </div>
+            ) : (
+              <>
+                <h1 className="punch punch-xl mt-1" title={frameState.source}>
+                  {label}
+                </h1>
+                <p className="mx-auto mt-3 max-w-[28ch] text-[17px] leading-6 text-[var(--f-text-2)]">{STATE_CUE[label]}</p>
+              </>
+            )}
+            {memoryError && (
+              <div className="mt-3 flex justify-center">
+                <Status tone="red" label="Couldn't load your notes" />
+              </div>
+            )}
+          </div>
+
+          {expanded && (
+            <section
+              id="state-factors"
+              ref={panelRef}
+              aria-label="What feeds this state"
+              className="frame-rise glass mt-5 w-full px-5 pb-2 pt-4"
+            >
+              <h2 className="section-title">What feeds this state</h2>
+              <p className="mt-1 text-sm leading-5 text-[var(--f-text-2)]">
+                Only things FRAME actually holds. Nothing here is measured live.
+              </p>
+              <dl className="mt-2">
+                <Factor
+                  label="State"
+                  value={label}
+                  sub={memoryLoading ? undefined : `Based on: ${frameState.source}`}
+                />
+                <Factor
+                  label="Recorded notes"
+                  value={noteCount == null ? NO_DATA : noteCount === 0 ? NO_DATA : `${noteCount} ${noteCount === 1 ? "note" : "notes"}`}
+                  sub={noteCount ? `The latest ${Math.min(12, noteCount)} are scanned for signal` : "State stays Dormant until FRAME has notes"}
+                />
+                <Factor
+                  label="Today's check-in"
+                  value={
+                    checkin
+                      ? `Sleep ${Math.round(checkin.sleep)} · Energy ${Math.round(checkin.energy)}`
+                      : NO_DATA
+                  }
+                  sub={
+                    checkin
+                      ? `Soreness ${Math.round(checkin.soreness)} · Stress ${Math.round(checkin.stress)}`
+                      : "Feeds readiness, not the state label"
+                  }
+                />
+                <Factor
+                  label="Last analysed session"
+                  value={sessionScore != null ? `${sessionScore} / 100` : NO_DATA}
+                  sub={sessionScore != null ? "Used for readiness when there is no check-in today" : undefined}
+                />
+                <Factor
+                  label="Recent chat"
+                  value={!hasSession ? NO_DATA : chatModifier === 0 ? "No change" : `${chatModifier > 0 ? "+" : "−"}${Math.abs(chatModifier)} readiness`}
+                  sub={hasSession ? "Small adjustment (at most 10) from what you said" : undefined}
+                />
+                <Factor
+                  label="Fight readiness"
+                  value={readiness != null ? `${readiness} / 100` : NO_DATA}
+                  sub={readiness != null ? `From ${readinessSource}` : undefined}
+                />
+              </dl>
+              <div className="border-t border-[var(--f-hairline)] py-3">
+                <p className="label">Coaching cue</p>
+                <p className="mt-0.5 text-[15px] leading-snug text-foreground">{STATE_CUE[label]}</p>
+              </div>
+            </section>
+          )}
+
+          {/* Fight readiness - real, or an honest prompt */}
+          <Link
+            href={readiness != null && checkinScore != null ? "/home" : "/analyse"}
+            className="glass mt-5 block w-full px-5 py-3 outline-none focus-visible:ring-2 focus-visible:ring-[var(--f-gold)]"
+            aria-label={readiness != null ? "View readiness detail" : "Analyse a session"}
+          >
+            <div className="flex min-h-[44px] items-center justify-between gap-4">
+              <span className="label">Fight readiness</span>
+              {readiness != null ? (
+                <span className="flex items-baseline gap-2">
+                  <span className="numeral numeral-m">{readiness}</span>
+                  <span className="tnum text-xs text-[var(--f-text-3)]">/ 100 &middot; {readinessSource}</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--f-gold)]">
+                  Analyse a session
+                  <ChevronRight className="h-4 w-4" strokeWidth={1.75} />
+                </span>
+              )}
+            </div>
+            {readiness != null && (
+              <div className="bar-thin mt-1" aria-hidden>
+                <span style={{ width: `${Math.max(0, Math.min(100, readiness))}%` }} />
+              </div>
+            )}
+          </Link>
+
+          <Link
+            href="/chat"
+            aria-label={hasSession ? "Continue session" : "Start coaching"}
+            className="btn-bronze mt-3 w-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--f-gold-pale)]"
+          >
+            {hasSession ? "Continue coaching" : "Start coaching"}
+          </Link>
         </div>
       </main>
 
-      <section className="relative z-10 flex flex-col items-center text-center px-6 gap-4 pb-4">
-        <div className="space-y-2">
-          <div className="frame-state-caption-top eyebrow eyebrow-gold">State</div>
-          <div
-            key={frameState.label}
-            className="frame-state-label punch text-[clamp(3.6rem,17vw,5.4rem)]"
-            style={{
-              color: labelColor,
-              textShadow: labelGlow,
-              transition: "color 1.6s cubic-bezier(0.22, 0.61, 0.36, 1), text-shadow 1.6s cubic-bezier(0.22, 0.61, 0.36, 1)",
-            }}
-            title={frameState.source}
-          >
-            {frameState.label}
-          </div>
-          <div className="frame-state-caption-bottom font-normal tracking-wide text-[1rem] leading-snug text-foreground/80 pt-1">
-            {STATE_CUE[frameState.label]}
-          </div>
-        </div>
-
-        {/* ─── Fight readiness — real, or an honest prompt ─────────────
-            Same priority as the Home dashboard: today's self-reported
-            check-in composite, else the last analysed session's score.
-            No data, no number — never "calibrating". */}
-        <Link
-          href={readiness != null && checkinScore != null ? "/home" : "/analyse"}
-          className="group frame-readiness-in glass block w-full max-w-sm px-5 py-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light))]"
-          aria-label={readiness != null ? "View readiness detail" : "Analyse a session"}
-        >
-          <div className="flex min-h-[44px] items-center justify-between gap-4">
-            <span className="eyebrow">Fight readiness</span>
-            {readiness != null ? (
-              <span className="flex items-baseline gap-2">
-                <span className="numeral numeral-m !text-[2.2rem] !text-[hsl(var(--primary-pale))]">{readiness}</span>
-                <span className="text-xs text-muted-foreground">/ 100 · {readinessSource}</span>
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors group-hover:text-[hsl(var(--primary-light))]">
-                Analyse a session
-                <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </span>
-            )}
-          </div>
-          {readiness != null && (
-            <div className="bar-thin mt-1" aria-hidden>
-              <span style={{ width: `${Math.max(0, Math.min(100, readiness))}%` }} />
-            </div>
-          )}
-        </Link>
-
-        <Link
-          href="/chat"
-          aria-label={hasSession ? "Continue session" : "Enter the frame"}
-          className="btn-bronze w-full max-w-sm outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-pale))]"
-        >
-          Continue
-        </Link>
-      </section>
-
-      <div className="relative z-10">
+      <div className="relative z-10 flex-none">
         <BottomNav />
       </div>
-
-      <style>{`
-        @keyframes frame-fade-in {
-          from { opacity: 0; transform: scale(0.96); }
-          to   { opacity: 1; transform: scale(1); }
-        }
-        .frame-fade-in {
-          animation: frame-fade-in 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-        }
-
-        @keyframes frame-caption-in {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-        .frame-state-caption-top {
-          animation: frame-caption-in 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) 0.1s both;
-        }
-
-        @keyframes frame-state-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to   { opacity: 1; transform: none; }
-        }
-        .frame-state-label {
-          animation: frame-state-in 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
-        }
-
-        .frame-state-caption-bottom {
-          animation: frame-caption-in 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) 0.9s both;
-        }
-
-        .frame-readiness-in {
-          animation: frame-caption-in 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) 1.05s both;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .frame-fade-in,
-          .frame-state-caption-top,
-          .frame-state-label,
-          .frame-state-caption-bottom,
-          .frame-readiness-in { animation: none; }
-        }
-      `}</style>
     </div>
   );
 }

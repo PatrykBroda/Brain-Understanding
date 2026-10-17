@@ -1,49 +1,16 @@
 import { VideoBackdrop } from "@/components/media-backdrop";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { TAGLINE, SUBLINE } from "@/components/auth-layout";
+import { useEffect, useRef, useState } from "react";
 
 interface EntrySequenceProps {
   fighterName: string | null;
   onDismiss: () => void;
 }
 
-const APHORISMS: ReadonlyArray<readonly string[]> = [
-  ["MOST MISTAKES", "ARE NERVOUS SYSTEM", "MISTAKES"],
-  ["PRESSURE IS NOT", "THE PROBLEM.", "FRAGMENTATION IS."],
-  ["THE SYSTEM YOU BUILD", "IS THE SYSTEM", "THAT TESTS YOU."],
-  ["COHERENCE", "BEATS", "INTENSITY."],
-  ["POSITION BEFORE SUBMISSION.", "REGULATION", "BEFORE POSITION."],
-  ["THE ROLL REVEALS", "WHAT THE DRILL", "HIDES."],
-  ["TILT", "IS", "DATA."],
-  ["ANCHOR", "BEFORE", "YOU ACT."],
-  ["NARROW", "THE DECISION", "TREE."],
-  ["THE FRAME IS BUILT", "ONE REP", "AT A TIME."],
-];
-
 const MIN_DISPLAY_MS = 3600;
 const FADE_OUT_MS = 420;
 
-function pickRotated<T>(arr: ReadonlyArray<T>, storageKey: string): T {
-  if (arr.length === 0) throw new Error("empty array");
-  if (arr.length === 1) return arr[0]!;
-  let lastIdx = -1;
-  try {
-    const stored = window.localStorage.getItem(storageKey);
-    if (stored !== null) lastIdx = Number(stored);
-  } catch {
-    /* ignore */
-  }
-  let idx = Math.floor(Math.random() * arr.length);
-  if (idx === lastIdx) idx = (idx + 1) % arr.length;
-  try {
-    window.localStorage.setItem(storageKey, String(idx));
-  } catch {
-    /* ignore */
-  }
-  return arr[idx]!;
-}
-
 export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
-  const hero = useMemo(() => pickRotated(APHORISMS, "frame:lastEntryIdx"), []);
   const [closing, setClosing] = useState(false);
   const mountedAtRef = useRef(performance.now());
   const dismissTimerRef = useRef<number | null>(null);
@@ -78,110 +45,57 @@ export function EntrySequence({ fighterName, onDismiss }: EntrySequenceProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const callsign = fighterName?.split(" ")[0]?.toUpperCase() ?? "ATHLETE";
+  return <OpeningScene name={fighterName} closing={closing} onContinue={() => close(true)} fixed />;
+}
 
+/**
+ * Shared opening scene (first-run entry + intro splash): monochrome athlete imagery
+ * under a dark scrim, wordmark on top, a reserved text band at the bottom with the
+ * two brand lines and ONE primary action. No atmospheric light beyond the imagery.
+ */
+export function OpeningScene({
+  name,
+  closing,
+  onContinue,
+  fixed = false,
+}: {
+  name: string | null;
+  closing: boolean;
+  onContinue: () => void;
+  fixed?: boolean;
+}) {
+  const first = name?.split(" ")[0] ?? null;
   return (
     <div
-      className={`frame-ambient fixed inset-0 z-50 grid text-foreground overflow-hidden transition-opacity duration-[420ms] ease-out ${
-        closing ? "opacity-0 pointer-events-none" : "opacity-100"
+      className={`${fixed ? "fixed inset-0 z-50" : "relative h-[100dvh]"} grid overflow-hidden bg-[var(--f-bg)] text-foreground transition-opacity duration-[320ms] ease-out ${
+        closing ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
       style={{ gridTemplateRows: "auto minmax(0,1fr) auto" }}
     >
-      <VideoBackdrop blur={2} dim={0.42} />
-      {/* Bronze + crimson glow fields give the screen depth */}
-      <div aria-hidden className="glow-orb z-0 left-1/2 top-[8%] h-[26rem] w-[26rem] -translate-x-1/2" />
-      <div
-        aria-hidden
-        className="glow-orb z-0 bottom-[-9rem] right-[-6rem] h-[22rem] w-[22rem]"
-        style={{ background: "radial-gradient(circle, rgba(229,100,90,0.22), transparent 70%)" }}
-      />
-      {/* film grain */}
-      <svg
-        className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.05] mix-blend-overlay z-0"
-        aria-hidden
-      >
-        <filter id="frame-grain-entry">
-          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" />
-          <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#frame-grain-entry)" />
-      </svg>
+      <VideoBackdrop dim={0.28} />
 
-      {/* Top status bar */}
-      <header className="relative z-10 flex items-center justify-between px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
-        <span className="chip !text-xs !text-muted-foreground">
-          <span className="mr-2 h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary-light))]" aria-hidden />
-          Tuning Frame
-        </span>
-        <span
-          className="chip !border-primary/30 !bg-primary/10 !text-xs"
-        >
-          {callsign}
-        </span>
+      <header className="relative z-10 flex items-center justify-center px-6 pt-[max(1.25rem,env(safe-area-inset-top))] pb-2">
+        <div className="wordmark text-[1.15rem]">Frame</div>
       </header>
 
-      {/* Hero — elegant serif lines */}
-      <main className="relative z-10 min-h-0 grid place-items-center px-6">
-        <div className="frame-entry-hero text-center max-w-2xl">
-          <h1 className="punch text-[#F4F4F1]" style={{ fontSize: "clamp(3rem, 14vw, 5.6rem)" }}>
-            {hero.map((line, i) => (
-              <span
-                key={`${line}-${i}`}
-                className="block frame-entry-line"
-                style={{ animationDelay: `${0.05 + i * 0.12}s` }}
-              >
-                {line}
-              </span>
-            ))}
-          </h1>
+      <div />
 
-          <div
-            className="mx-auto mt-10 h-px w-24 frame-entry-line"
-            style={{ animationDelay: "0.5s", background: "linear-gradient(90deg, transparent, rgba(185,164,119,0.7), transparent)" }}
-            aria-hidden
-          />
+      <section className="relative z-10 mx-auto flex w-full max-w-[460px] flex-col gap-5 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <div className="frame-rise">
+          {first && <p className="label mb-2">Welcome, {first}</p>}
+          <h1 className="punch punch-xl text-balance">{TAGLINE}</h1>
+          <p className="mt-3 text-base leading-6 text-[var(--f-text-2)]">{SUBLINE}</p>
         </div>
-      </main>
-
-      {/* Wordmark + SKIP */}
-      <section className="relative z-10 flex flex-col items-center text-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] gap-4">
-        <div>
-          <div className="wordmark text-[clamp(1.5rem,6.5vw,2rem)]">Frame</div>
-          <div className="eyebrow mt-2 !text-[#E5645A]">MMA AI</div>
-        </div>
-
         <button
           type="button"
-          onClick={() => close(true)}
+          onClick={onContinue}
           disabled={closing}
-          aria-label="Skip intro and enter"
-          className="btn-glass !min-h-[48px] !px-8 cursor-pointer disabled:opacity-40"
+          className="btn-bronze frame-rise w-full"
+          style={{ animationDelay: "80ms" }}
         >
-          Skip
+          Continue
         </button>
       </section>
-
-      <style>{`
-        @keyframes frame-entry-rise {
-          from { opacity: 0; transform: translateY(8px); filter: blur(2px); }
-          to   { opacity: 1; transform: translateY(0);  filter: blur(0); }
-        }
-        .frame-entry-line {
-          opacity: 0;
-          animation: frame-entry-rise 0.8s cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
-        }
-        @keyframes frame-entry-drift {
-          0%, 100% { transform: translate(0, 0); }
-          50%      { transform: translate(0.6%, -0.4%); }
-        }
-        .frame-entry-hero {
-          animation: frame-entry-drift 14s ease-in-out infinite;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .frame-entry-line { animation-duration: 0.01s; }
-          .frame-entry-hero { animation: none; }
-        }
-      `}</style>
     </div>
   );
 }

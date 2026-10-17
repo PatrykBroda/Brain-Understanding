@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useSaveFighter } from "@/hooks/use-fighter";
 import { Button } from "@/components/ui/button";
+import { Check, ChevronLeft } from "lucide-react";
+import { VideoBackdrop } from "@/components/media-backdrop";
+import { TAGLINE, SUBLINE } from "@/components/auth-layout";
+import { Atmosphere } from "@/components/frame-ui";
 import type { FighterInput } from "@/lib/api";
 import {
   FREQUENCIES,
@@ -12,9 +16,9 @@ import {
   ageFromDob,
 } from "@/lib/fighter-options";
 
-const FIELD_LABEL = "eyebrow block mb-2";
-const INPUT_CLASS =
-  "field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground";
+const FIELD_LABEL = "label block mb-1.5";
+const INPUT_CLASS = "field-glass";
+const AREA_CLASS = "field-glass !py-3 leading-6 resize-y";
 
 // Behavioral calibration. Each answer carries a short "read" sentence that gets
 // composed into the personality signal the system uses to assign an archetype.
@@ -67,6 +71,7 @@ const QUESTIONS: Question[] = [
 
 export default function OnboardingPage() {
   const save = useSaveFighter();
+  const [started, setStarted] = useState(false); // false = opening screen
   const [step, setStep] = useState(0); // 0..N-1 = questions, N = details
   const [answers, setAnswers] = useState<Record<string, number>>({});
   // Optional multi-select "Training background" — other arts they've trained.
@@ -126,24 +131,63 @@ export default function OnboardingPage() {
     });
   };
 
+  // Opening screen: monochrome athlete imagery, brand lines, one primary route in
+  if (!started) {
+    return (
+      <div
+        className="relative grid h-[100dvh] overflow-hidden bg-[var(--f-bg)] text-foreground"
+        style={{ gridTemplateRows: "auto minmax(0,1fr) auto" }}
+      >
+        <VideoBackdrop dim={0.28} />
+        <header className="relative z-10 flex items-center justify-center px-6 pt-[max(1.25rem,env(safe-area-inset-top))] pb-2">
+          <div className="wordmark text-[1.15rem]">Frame</div>
+        </header>
+        <div />
+        <section className="relative z-10 mx-auto flex w-full max-w-[460px] flex-col gap-5 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <div className="frame-rise">
+            <h1 className="punch punch-xl text-balance">{TAGLINE}</h1>
+            <p className="mt-3 text-base leading-6 text-[var(--f-text-2)]">{SUBLINE}</p>
+          </div>
+          <div className="frame-rise flex flex-col gap-1" style={{ animationDelay: "80ms" }}>
+            <button type="button" className="btn-bronze w-full" onClick={() => setStarted(true)}>
+              Get started
+            </button>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <span>Already have an account?</span>
+              <a
+                href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/sign-in`}
+                className="inline-flex min-h-[44px] items-center font-semibold text-[var(--f-gold)] transition-colors hover:text-[var(--f-gold-pale)]"
+              >
+                Sign in
+              </a>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   // Shared shell
   return (
-    <div className="min-h-[100dvh] text-foreground flex justify-center px-4 py-12 md:py-16">
-      <div className="w-full max-w-xl">
+    <div className="relative min-h-[100dvh] overflow-hidden text-foreground">
+      <div className="atmo atmo-silver-left" aria-hidden />
+      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-xl flex-col px-5 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
         {/* Wordmark + progress */}
-        <div className="mb-10 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-[#B9A477] shadow-[0_0_12px_rgba(185,164,119,0.7)]" />
-            <h1 className="display-heading !text-[1.6rem]">
-              FRAME
-            </h1>
-          </div>
-          <div className="flex items-center gap-1.5">
+        <div className="mb-8 space-y-4">
+          <div className="wordmark text-[1rem]">Frame</div>
+          <div
+            className="flex items-center gap-1.5"
+            role="progressbar"
+            aria-label="Progress"
+            aria-valuemin={1}
+            aria-valuemax={totalSteps}
+            aria-valuenow={step + 1}
+          >
             {Array.from({ length: totalSteps }).map((_, i) => (
               <span
                 key={i}
-                className="h-0.5 flex-1 rounded-full transition-colors duration-500"
-                style={{ background: i <= step ? "hsl(var(--primary))" : "hsl(var(--border))" }}
+                className="h-[3px] flex-1 rounded-full transition-colors duration-300"
+                style={{ background: i <= step ? "var(--f-gold)" : "rgba(255,255,255,0.1)" }}
               />
             ))}
           </div>
@@ -154,12 +198,12 @@ export default function OnboardingPage() {
           const q = QUESTIONS[step];
           const selected = answers[q.id];
           return (
-            <div className="space-y-7">
+            <div className="space-y-6">
               <div className="space-y-2">
-                <div className="eyebrow eyebrow-gold">
-                  Calibration {step + 1} / {QUESTIONS.length}
+                <div className="label tnum">
+                  Question {step + 1} of {QUESTIONS.length}
                 </div>
-                <h2 className="display-heading !text-[1.9rem] leading-snug">
+                <h2 className="display-title !text-[1.625rem] !leading-tight">
                   {q.prompt}
                 </h2>
               </div>
@@ -171,16 +215,15 @@ export default function OnboardingPage() {
                       key={idx}
                       type="button"
                       onClick={() => answerQuestion(q, idx)}
-                      className={`w-full text-left px-4 py-3.5 min-h-[48px] rounded-2xl border bg-white/[0.04] text-sm transition-colors ${
+                      aria-pressed={isSel}
+                      className={`flex w-full items-center justify-between gap-3 rounded-[16px] border px-4 py-3.5 min-h-[56px] text-left text-base transition-colors duration-200 active:scale-[0.99] motion-reduce:transition-none ${
                         isSel
-                          ? "border-primary text-foreground"
-                          : "border-border/70 text-foreground/85 hover:border-primary/50"
+                          ? "border-[rgba(185,164,119,0.5)] bg-[var(--f-raised)] text-foreground"
+                          : "border-[var(--f-border)] bg-[var(--f-surface)] text-foreground/90 hover:bg-[var(--f-raised)]"
                       }`}
                     >
-                      <span className="text-xs text-muted-foreground mr-3">
-                        {String.fromCharCode(65 + idx)}
-                      </span>
-                      {c.label}
+                      <span>{c.label}</span>
+                      {isSel && <Check className="h-5 w-5 shrink-0 text-[var(--f-gold)]" strokeWidth={2} aria-hidden />}
                     </button>
                   );
                 })}
@@ -189,9 +232,18 @@ export default function OnboardingPage() {
                 <button
                   type="button"
                   onClick={() => setStep((s) => Math.max(0, s - 1))}
-                  className="eyebrow hover:text-foreground transition-colors"
+                  className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  ← Back
+                  <ChevronLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden /> Back
+                </button>
+              )}
+              {step === 0 && (
+                <button
+                  type="button"
+                  onClick={() => setStarted(false)}
+                  className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <ChevronLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden /> Back
                 </button>
               )}
             </div>
@@ -202,16 +254,16 @@ export default function OnboardingPage() {
         {step === detailsStep && (
           <form onSubmit={submit} className="space-y-6">
             <div className="space-y-2 mb-2">
-              <h2 className="display-heading !text-[1.9rem] leading-snug">
-                Tell FRAME about your training.
+              <h2 className="display-title !text-[1.625rem] !leading-tight">
+                Tell FRAME about your training
               </h2>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-base text-muted-foreground leading-6">
                 The basics — the model sharpens with every session.
               </p>
             </div>
 
             <div>
-              <label className={FIELD_LABEL}>Name / Callsign</label>
+              <label className={FIELD_LABEL}>Name or callsign</label>
               <input
                 className={INPUT_CLASS}
                 value={form.name}
@@ -240,7 +292,7 @@ export default function OnboardingPage() {
                 )}
               </div>
               <div>
-                <label className={FIELD_LABEL}>Training Frequency</label>
+                <label className={FIELD_LABEL}>Training frequency</label>
                 <select
                   className={INPUT_CLASS}
                   value={form.trainingFrequency}
@@ -257,7 +309,7 @@ export default function OnboardingPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={FIELD_LABEL}>Primary Combat Sport</label>
+                <label className={FIELD_LABEL}>Primary combat sport</label>
                 <select
                   className={INPUT_CLASS}
                   value={form.primarySport}
@@ -307,10 +359,10 @@ export default function OnboardingPage() {
                       type="button"
                       onClick={() => toggleBackground(label)}
                       aria-pressed={on}
-                      className={`px-4 min-h-[44px] rounded-full border bg-white/[0.04] text-xs transition-colors ${
+                      className={`px-4 min-h-[44px] rounded-full border text-sm transition-colors duration-200 ${
                         on
-                          ? "border-primary text-foreground"
-                          : "border-border/70 text-foreground/70 hover:border-primary/50"
+                          ? "border-[rgba(185,164,119,0.5)] bg-[var(--f-raised)] text-foreground"
+                          : "border-[var(--f-border)] bg-[var(--f-surface)] text-foreground/70 hover:bg-[var(--f-raised)]"
                       }`}
                     >
                       {label}
@@ -323,7 +375,7 @@ export default function OnboardingPage() {
             <div>
               <label className={FIELD_LABEL}>Goals — what does winning look like in 6 months</label>
               <textarea
-                className={`${INPUT_CLASS} min-h-[72px] resize-y`}
+                className={`${AREA_CLASS} min-h-[88px]`}
                 value={form.goals}
                 onChange={(e) => update("goals", e.target.value)}
                 placeholder="e.g. compete this season, stop gassing in round 3, build a reliable A-game"
@@ -333,7 +385,7 @@ export default function OnboardingPage() {
             <div>
               <label className={FIELD_LABEL}>Weaknesses — what's leaking right now</label>
               <textarea
-                className={`${INPUT_CLASS} min-h-[72px] resize-y`}
+                className={`${AREA_CLASS} min-h-[88px]`}
                 value={form.weaknesses}
                 onChange={(e) => update("weaknesses", e.target.value)}
                 placeholder="e.g. fragment under top pressure, no takedowns, hesitate to commit to submissions"
@@ -343,7 +395,7 @@ export default function OnboardingPage() {
             <div>
               <label className={FIELD_LABEL}>Bio — saved to your profile, read by FRAME every session (optional)</label>
               <textarea
-                className={`${INPUT_CLASS} min-h-[72px] resize-y`}
+                className={`${AREA_CLASS} min-h-[88px]`}
                 value={form.bio ?? ""}
                 onChange={(e) => update("bio", e.target.value)}
                 placeholder="Background, injuries, competition history, or anything that shapes how you train."
@@ -353,17 +405,17 @@ export default function OnboardingPage() {
             <div>
               <label className={FIELD_LABEL}>Anything else (optional)</label>
               <textarea
-                className={`${INPUT_CLASS} min-h-[60px] resize-y`}
+                className={`${AREA_CLASS} min-h-[72px]`}
                 value={form.personality}
                 onChange={(e) => update("personality", e.target.value)}
                 placeholder="A line or two in your own words. Sharpens the read on your archetype."
               />
             </div>
 
-            <label className="flex items-center gap-3 text-sm text-foreground cursor-pointer select-none">
+            <label className="flex min-h-[44px] cursor-pointer select-none items-center gap-3 text-base text-foreground">
               <input
                 type="checkbox"
-                className="w-4 h-4 accent-primary"
+                className="h-5 w-5 accent-[#B9A477]"
                 checked={form.competes}
                 onChange={(e) => update("competes", e.target.checked)}
               />
@@ -371,7 +423,7 @@ export default function OnboardingPage() {
             </label>
 
             {save.isError && (
-              <div className="text-sm text-destructive ">
+              <div role="alert" className="text-sm text-[var(--f-red-text)]">
                 {(save.error as Error).message}
               </div>
             )}
@@ -380,16 +432,18 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
-                className="eyebrow hover:text-foreground transition-colors"
+                className="btn-glass shrink-0 !px-5"
               >
-                ← Back
+                Back
               </button>
               <Button
                 type="submit"
-                disabled={save.isPending || !form.name.trim()}
-                className="btn-bronze flex-1"
+                size="lg"
+                loading={save.isPending}
+                disabled={!form.name.trim()}
+                className="flex-1"
               >
-                {save.isPending ? "Reading you..." : "Enter the frame"}
+                Enter FRAME
               </Button>
             </div>
           </form>

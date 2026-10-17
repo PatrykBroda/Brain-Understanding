@@ -21,10 +21,10 @@ function Row({
   title?: string;
 }) {
   return (
-    <div className="px-5 py-4 flex items-start justify-between gap-4" title={title}>
-      <div className="eyebrow pt-1.5 flex-none w-28">{label}</div>
+    <div className="flex items-start justify-between gap-4 px-5 py-4" title={title}>
+      <div className="label flex-none w-28 pt-1">{label}</div>
       <div className="min-w-0 text-right">
-        <div className="font-display text-[1.05rem] leading-tight text-[#F4F4F1] truncate">
+        <div className="truncate text-base font-medium leading-tight text-[#F4F4F1]">
           {value}
         </div>
         {sub && (
@@ -66,11 +66,11 @@ export function AthleteStatePanel({
   return (
     <div className="glass overflow-hidden">
       <div className="flex items-center justify-between px-5 pt-5 pb-1">
-        <div className="eyebrow eyebrow-gold">Athlete state</div>
-        <span className="chip !px-2.5 !py-1 !text-xs !text-muted-foreground">Real signal only</span>
+        <h3 className="section-title">Athlete state</h3>
+        <span className="chip">Real signal only</span>
       </div>
 
-      <div className="divide-y divide-white/10">
+      <div className="divide-y divide-[var(--f-hairline)]">
         <Row
           label="State"
           value={state.label}

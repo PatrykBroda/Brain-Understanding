@@ -14,7 +14,6 @@ import HistoryPage from "@/pages/history";
 import CampPage from "@/pages/planner";
 import AnalysePage from "@/pages/analyse";
 import SplashPage from "@/pages/splash";
-import { AppBackdrop, MEDIA } from "@/components/media-backdrop";
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
 import { useFighter } from "@/hooks/use-fighter";
@@ -31,7 +30,7 @@ const GATE_BTN = "btn-glass w-full max-w-[16rem] disabled:opacity-50";
 
 function GateShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="frame-ambient relative flex h-[100dvh] flex-col items-center justify-center gap-5 overflow-hidden px-6 text-center">
+    <div className="relative flex h-[100dvh] flex-col items-center justify-center gap-5 overflow-hidden px-6 text-center">
       {children}
     </div>
   );
@@ -40,8 +39,7 @@ function GateShell({ children }: { children: React.ReactNode }) {
 function BootScreen({ label }: { label: string }) {
   return (
     <GateShell>
-      <div aria-hidden className="glow-orb h-64 w-64 opacity-60" />
-      <span className="eyebrow eyebrow-gold relative">{label}</span>
+      <span className="label relative">{label}</span>
       <div className="frame-loader-track relative" role="status" aria-label="Loading">
         <div className="frame-loader-bar" />
       </div>
@@ -53,7 +51,7 @@ function GateError({ title, children }: { title: string; children: React.ReactNo
   return (
     <GateShell>
       <div className="glass glass-red frame-rise flex w-full max-w-sm flex-col items-center gap-4 p-8">
-        <div className="eyebrow !text-[#E5645A]">{title}</div>
+        <div className="section-title">{title}</div>
         {children}
       </div>
     </GateShell>
@@ -156,7 +154,7 @@ function ConsentGate({ children }: { children: React.ReactNode }) {
           }}
         />
         {(deleteError || acceptError) && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] bg-destructive/90 text-destructive-foreground px-5 py-3 text-xs tracking-wide rounded-full shadow-lg">
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] max-w-[calc(100vw-2rem)] rounded-[14px] border border-[rgba(229,100,90,0.34)] bg-[#2a1614] px-5 py-3 text-sm text-[var(--f-red-text)]">
             {deleteError || acceptError}
           </div>
         )}
@@ -191,7 +189,7 @@ function Gate({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
   if (isLoading) {
     return (
-      <BootScreen label="Booting system" />
+      <BootScreen label="Starting FRAME" />
     );
   }
   if (isError) {
@@ -220,7 +218,7 @@ function Gate({ children }: { children: React.ReactNode }) {
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="min-h-[44px] text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+            className="min-h-[44px] text-sm font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
           >
             {isFetching ? "Retrying" : "Retry"}
           </button>
@@ -313,21 +311,6 @@ const PAGE_TITLES: Record<string, string> = {
   "/sign-up": "Create account · FRAME",
 };
 
-const BACKDROPS: Record<string, { src: string; position?: string }> = {
-  "/home": { src: MEDIA.stillB, position: "60% 40%" },
-  "/chat": { src: MEDIA.gym, position: "50% 30%" },
-  "/analyse": { src: MEDIA.stillA, position: "50% 40%" },
-  "/camp": { src: MEDIA.stillB, position: "30% 40%" },
-  "/profile": { src: MEDIA.gym, position: "40% 25%" },
-  "/history": { src: MEDIA.stillA, position: "70% 40%" },
-};
-
-function RouteBackdrop() {
-  const [location] = useLocation();
-  const b = BACKDROPS["/" + (location.split("/")[1] ?? "")];
-  return b ? <AppBackdrop src={b.src} position={b.position} /> : null;
-}
-
 function PageTitle() {
   const [location] = useLocation();
   useEffect(() => {
@@ -349,7 +332,6 @@ function AppRoutes() {
       <ApiSetup />
       <UserScopedQueryReset />
       <PageTitle />
-      <RouteBackdrop />
       <TooltipProvider>
         <FramePlusProvider>
           <Switch>

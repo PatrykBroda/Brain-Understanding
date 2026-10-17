@@ -27,7 +27,7 @@ function readStateFromUrl(): OrbState {
 
 /**
  * Bare, chrome-less orb surface consumed by the mobile app via a WebView
- * (see frame-mobile/components/OrbWebView.tsx). Renders ONLY the CosmicOrb —
+ * (see frame-mobile/components/OrbWebView.tsx). Renders ONLY the CosmicOrb (add ?static=1 for the no-motion version) -
  * full-viewport, centered, on true black — so the native app can embed the
  * exact same WebGL orb the web hub uses. State is driven purely by the URL
  * query (`/orb?state=stable`); defaults to "stable" when missing/invalid.
@@ -50,15 +50,16 @@ export default function OrbPage() {
         inset: 0,
         display: "grid",
         placeItems: "center",
-        // Near-black with a soft bronze glow behind the orb. WebView-embedded,
-        // so keep it self-contained (no dependency on the app shell).
+        // Near-black with one soft, defocused champagne light behind the orb.
+        // WebView-embedded, so keep it self-contained (no dependency on the app shell).
         background:
-          "radial-gradient(60% 60% at 50% 48%, rgba(185,164,119,0.16), transparent 70%), #08090B",
+          "radial-gradient(60% 60% at 50% 46%, rgba(205,187,142,0.10), transparent 70%), #08090B",
         overflow: "hidden",
       }}
     >
       <CosmicOrb
         state={state}
+        static={new URLSearchParams(window.location.search).get("static") === "1"}
         className="h-[min(88vh,88vw)] w-[min(88vh,88vw)] max-h-[520px] max-w-[520px]"
       />
     </div>

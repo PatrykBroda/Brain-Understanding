@@ -26,7 +26,8 @@ export function FrameOctagon({
   spin = false,
   spinSeconds = 6,
   color = "currentColor",
-  glow = true,
+  // glow is accepted for compatibility but ignored: v3 has no glows
+  glow: _glow = false,
   className = "",
 }: FrameOctagonProps) {
   const half = size / 2;
@@ -40,20 +41,11 @@ export function FrameOctagon({
       className={`relative inline-block ${className}`}
       style={{ width: size, height: size }}
     >
-      {glow && (
-        <div
-          className="absolute inset-0 rounded-full pointer-events-none frame-oct-glow"
-          style={{
-            background: `radial-gradient(circle at 50% 50%, hsla(var(--primary), 0.28) 0%, hsla(var(--primary), 0.08) 38%, transparent 70%)`,
-            filter: `blur(${Math.max(8, size / 6)}px)`,
-          }}
-        />
-      )}
       <svg
         viewBox={`-${half} -${half} ${size} ${size}`}
         width={size}
         height={size}
-        className="relative block"
+        className="relative block frame-oct-spin"
         style={{
           animation: spin
             ? `frame-oct-spin ${spinSeconds}s linear infinite`
@@ -87,11 +79,7 @@ export function FrameOctagon({
           0%   { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
-        @keyframes frame-oct-glow {
-          0%, 100% { opacity: 0.7; transform: scale(0.96); }
-          50%      { opacity: 1;   transform: scale(1.06); }
-        }
-        .frame-oct-glow { animation: frame-oct-glow 3.2s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) { .frame-oct-spin { animation: none !important; } }
       `}</style>
     </div>
   );
