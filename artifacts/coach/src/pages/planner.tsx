@@ -55,7 +55,7 @@ function formatDay(value: string | null): string {
 }
 
 export default function CampPage() {
-  const { data, isLoading } = useActiveCompetition();
+  const { data, isLoading, isError, refetch } = useActiveCompetition();
   const competition = data?.competition ?? null;
   const pressure = data?.pressure ?? null;
   const weightCut = data?.weightCut ?? null;
@@ -86,6 +86,14 @@ export default function CampPage() {
               <span className="h-5 w-5 rounded-full border-2 border-white/15 border-t-[#B9A477] animate-spin motion-reduce:animate-none" aria-hidden />
               Loading your camp
             </div>
+          ) : isError && !data ? (
+            <div role="alert" className="glass glass-red px-5 py-5 space-y-3">
+              <div className="text-[1rem] font-medium text-[#E5645A]">Could not load your camp</div>
+              <p className="text-[0.9375rem] text-foreground/80">Check your connection and try again.</p>
+              <button type="button" onClick={() => void refetch()} className="btn-quiet btn-quiet-red">
+                Try again
+              </button>
+            </div>
           ) : !competition ? (
             <NoCampState
               showCreate={showCreate}
@@ -107,13 +115,6 @@ export default function CampPage() {
                   onEdit={() => setEditing(true)}
                 />
               )}
-
-              {!editing &&
-                (data?.review ? (
-                  <CampReviewSection review={data.review} />
-                ) : (
-                  <CampReviewLocked />
-                ))}
 
               {/* Primary vs secondary view toggle */}
               <div className="grid grid-cols-2 gap-2">
@@ -137,6 +138,15 @@ export default function CampPage() {
               ) : (
                 <CampMission />
               )}
+
+              {!editing &&
+                (data?.review ? (
+                  <CampReviewSection review={data.review} />
+                ) : (
+                  <CampReviewLocked />
+                ))}
+
+              {!editing && <EndCamp id={competition.id} />}
             </>
           )}
         </div>
@@ -168,6 +178,24 @@ function ViewTab({
   );
 }
 
+function EndCamp({ id }: { id: number }) {
+  const cancel = useCancelCompetition();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (confirm("End this camp? It moves to history and the countdown stops.")) {
+          cancel.mutate(id);
+        }
+      }}
+      disabled={cancel.isPending}
+      className="btn-quiet w-full hover:!text-[#E5645A] hover:!border-[#E5645A]/50"
+    >
+      {cancel.isPending ? "Ending" : "End camp"}
+    </button>
+  );
+}
+
 function CampDashboard({
   competition: c,
   pressure,
@@ -179,7 +207,6 @@ function CampDashboard({
   weightCut: WeightCut | null;
   onEdit: () => void;
 }) {
-  const cancel = useCancelCompetition();
   const tier = pressure?.tier ?? "base";
   const fg = TIER_FG[tier];
 
@@ -254,18 +281,6 @@ function CampDashboard({
         {c.notes.trim() && <Row label="Notes" value={c.notes} />}
       </dl>
 
-      <button
-        type="button"
-        onClick={() => {
-          if (confirm("End this camp? It moves to history and the countdown stops.")) {
-            cancel.mutate(c.id);
-          }
-        }}
-        disabled={cancel.isPending}
-        className="btn-quiet mt-4 w-full hover:!text-[#E5645A] hover:!border-[#E5645A]/50"
-      >
-        {cancel.isPending ? "Ending" : "End camp"}
-      </button>
     </section>
   );
 }

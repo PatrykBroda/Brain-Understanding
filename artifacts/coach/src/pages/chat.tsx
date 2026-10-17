@@ -455,6 +455,7 @@ export default function ChatPage() {
                   className="min-w-0 flex-1 resize-none bg-transparent border-0 outline-none focus:outline-none focus-visible:outline-none min-h-[44px] max-h-[200px] py-[10px] px-2 text-[1rem] leading-[1.5] text-foreground placeholder:text-[#8A8F96]"
                   rows={1}
                   disabled={isStreaming}
+                  style={{ outline: "none" }}
                 />
                 {voiceSupported && !isStreaming && (
                   <button

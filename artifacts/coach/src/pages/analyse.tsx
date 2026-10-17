@@ -553,6 +553,8 @@ export default function AnalysePage() {
               onSubmitLink={() => void runFromLink(linkUrl)}
               analyses={analyses.data?.analyses ?? []}
               analysesLoading={analyses.isLoading}
+              analysesError={analyses.isError}
+              onRetryAnalyses={() => void analyses.refetch()}
               onOpen={(id) => setOpenId(id)}
               compareId={compareId}
               onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
@@ -730,7 +732,7 @@ export default function AnalysePage() {
                   value={focus}
                   onChange={(e) => setFocus(e.target.value.slice(0, 200))}
                   disabled={busy}
-                  placeholder="e.g. my guard when I get tired, left-side pressure…"
+                  placeholder="e.g. my guard when I get tired"
                   className="field-glass !py-0 disabled:opacity-40"
                 />
                 <FocusPresets focus={focus} setFocus={setFocus} disabled={busy} />
@@ -775,6 +777,8 @@ export default function AnalysePage() {
                 <History
                   items={analyses.data?.analyses ?? []}
                   loading={analyses.isLoading}
+                  error={analyses.isError}
+                  onRetry={() => void analyses.refetch()}
                   onOpen={(id) => setOpenId(id)}
                   compareId={compareId}
                   onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
@@ -969,6 +973,8 @@ function UploadControls({
   onSubmitLink,
   analyses,
   analysesLoading,
+  analysesError,
+  onRetryAnalyses,
   onOpen,
   compareId,
   onSetCompare,
@@ -997,6 +1003,8 @@ function UploadControls({
   onSubmitLink: () => void;
   analyses: AnalysisListItem[];
   analysesLoading: boolean;
+  analysesError: boolean;
+  onRetryAnalyses: () => void;
   onOpen: (id: number) => void;
   compareId: number | null;
   onSetCompare: (id: number) => void;
@@ -1079,7 +1087,7 @@ function UploadControls({
           value={focus}
           onChange={(e) => setFocus(e.target.value.slice(0, 200))}
           disabled={busy}
-          placeholder="guard under fatigue, left shoulder, pressure after a miss…"
+          placeholder="e.g. my guard when I get tired"
           className="field-glass !py-0 disabled:opacity-40"
         />
         <FocusPresets focus={focus} setFocus={setFocus} disabled={busy} />
@@ -1142,6 +1150,8 @@ function UploadControls({
         <History
           items={analyses}
           loading={analysesLoading}
+          error={analysesError}
+          onRetry={onRetryAnalyses}
           onOpen={onOpen}
           compareId={compareId}
           onSetCompare={onSetCompare}
@@ -1728,92 +1738,45 @@ function RawSignalsTable({
   return (
     <section className="space-y-3">
       <div className="flex items-baseline gap-3">
-        <span className="section-title">
-          Raw signals
-        </span>
+        <h2 className="section-title">Raw signals</h2>
         {hasPrev && hasCustomCompare && (
-          <span className="text-xs text-[#B9A477]">
-            vs selected baseline
-          </span>
+          <span className="text-[0.8125rem] text-[#D4C7A3]">vs selected baseline</span>
         )}
       </div>
-      <div className="glass glass-table w-full">
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="border-b border-border/40 bg-secondary/20">
-              <th className="text-xs text-muted-foreground text-left px-3 py-2 w-[130px]">
-                Signal
-              </th>
-              <th className="text-xs text-muted-foreground text-left px-3 py-2 w-[80px]">
-                Value
-              </th>
-              {hasPrev && (
-                <th className="text-xs text-muted-foreground text-left px-3 py-2 w-[28px]" title={hasCustomCompare ? "Change vs selected baseline" : "Change vs previous session"}>
-                  vs
-                </th>
-              )}
-              <th className="text-xs text-muted-foreground text-left px-3 py-2">
-                Detail
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {signals.map((s, i) => {
-              const prev = prevByKey?.get(s.key);
-              const dir = prev ? signalDelta(s.key, s.value, prev.value) : null;
-              const trail = buildSignalTrail(s.key, s.value, history);
-              const showTrail = !hasCustomCompare && trail.length >= 3;
-              return (
-                <tr
-                  key={s.key}
-                  className={`border-b border-border/30 last:border-0 ${
-                    i % 2 === 0 ? "" : "bg-secondary/10"
-                  }`}
-                >
-                  <td className="px-3 py-2 align-top">
-                    <span className="text-xs text-foreground/80">
-                      {s.label}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 align-top">
-                    <span className="text-xs text-foreground/90">
-                      {s.value}
-                    </span>
-                    {showTrail ? (
-                      <SignalHistoryTrail
-                        signalKey={s.key}
-                        currentValue={s.value}
-                        history={history}
-                        onSelectSession={onSelectSession}
-                      />
-                    ) : (
-                      prev && dir !== "same" && (
-                        <div className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                          was: {prev.value}
-                        </div>
-                      )
-                    )}
-                  </td>
-                  {hasPrev && (
-                    <td className="px-3 py-2 align-middle">
-                      {dir != null ? (
-                        <SignalDeltaBadge dir={dir} prevValue={prev?.value ?? ""} />
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </td>
+      <ul className="glass overflow-hidden">
+        {signals.map((s) => {
+          const prev = prevByKey?.get(s.key);
+          const dir = prev ? signalDelta(s.key, s.value, prev.value) : null;
+          const trail = buildSignalTrail(s.key, s.value, history);
+          const showTrail = !hasCustomCompare && trail.length >= 3;
+          return (
+            <li key={s.key} className="px-4 py-3.5 border-t border-white/[0.06] first:border-t-0">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-[1rem] font-medium text-foreground">{s.label}</span>
+                <span className="flex items-center gap-2 flex-none">
+                  <span className="text-[1rem] text-[#D4C7A3] capitalize">{s.value}</span>
+                  {hasPrev && dir != null && (
+                    <SignalDeltaBadge dir={dir} prevValue={prev?.value ?? ""} />
                   )}
-                  <td className="px-3 py-2 align-top">
-                    <span className="text-xs text-muted-foreground leading-relaxed">
-                      {s.detail}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                </span>
+              </div>
+              {showTrail ? (
+                <SignalHistoryTrail
+                  signalKey={s.key}
+                  currentValue={s.value}
+                  history={history}
+                  onSelectSession={onSelectSession}
+                />
+              ) : (
+                prev && dir !== "same" && (
+                  <div className="label mt-0.5">Was: {prev.value}</div>
+                )
+              )}
+              <p className="mt-1.5 text-[0.9375rem] text-muted-foreground leading-[1.55]">{s.detail}</p>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }
@@ -2659,19 +2622,48 @@ function OpponentHistory({
 function History({
   items,
   loading,
+  error = false,
+  onRetry,
   onOpen,
   compareId,
   onSetCompare,
 }: {
   items: AnalysisListItem[];
   loading: boolean;
+  error?: boolean;
+  onRetry?: () => void;
   onOpen: (id: number) => void;
   compareId: number | null;
   onSetCompare: (id: number) => void;
 }) {
   const { openUpgrade } = useFramePlus();
   if (loading) return null;
-  if (items.length === 0) return null;
+  if (error && items.length === 0) {
+    return (
+      <section className="space-y-3 pt-2">
+        <h2 className="section-title">Session log</h2>
+        <div role="alert" className="glass glass-red px-4 py-4 space-y-3">
+          <div className="text-[1rem] font-medium text-[#E5645A]">Could not load your sessions</div>
+          <button type="button" onClick={onRetry} className="btn-quiet btn-quiet-red">
+            Try again
+          </button>
+        </div>
+      </section>
+    );
+  }
+  if (items.length === 0) {
+    return (
+      <section className="space-y-3 pt-2">
+        <h2 className="section-title">Session log</h2>
+        <div className="glass px-4 py-5">
+          <div className="text-[1rem] font-medium text-foreground">No sessions yet</div>
+          <p className="mt-1 text-[0.9375rem] leading-[1.55] text-muted-foreground">
+            Upload your first clip above. Each read you run is saved here with its score.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   const baselineItem = compareId != null ? items.find((a) => a.id === compareId) : null;
 
