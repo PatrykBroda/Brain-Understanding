@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@expo-google-fonts/instrument-serif": "^0.4.1",
     "@expo-google-fonts/inter": "^0.4.0",
     "@expo-google-fonts/outfit": "^0.4.3",
     "@expo-google-fonts/space-mono": "^0.4.2",
