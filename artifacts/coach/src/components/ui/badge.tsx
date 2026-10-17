@@ -3,25 +3,19 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+/** Badges are compact status/chips: the one place the pill shape is correct. Always give them a text label. */
 const badgeVariants = cva(
-  // @replit
-  // Whitespace-nowrap: Badges should never wrap.
-  "whitespace-nowrap inline-flex items-center rounded-full border px-3 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" +
-  " hover-elevate ",
+  "inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium leading-4 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
   {
     variants: {
       variant: {
         default:
-          // @replit shadow-xs instead of shadow, no hover because we use hover-elevate
-          "border-transparent bg-primary text-primary-foreground shadow-xs",
+          "border-[rgba(185,164,119,0.28)] bg-[rgba(185,164,119,0.1)] text-[var(--f-gold)]",
         secondary:
-          // @replit no hover because we use hover-elevate
-          "border-transparent bg-secondary text-secondary-foreground",
+          "border-[var(--f-border)] bg-[var(--f-raised)] text-[var(--f-text-2)]",
         destructive:
-          // @replit shadow-xs instead of shadow, no hover because we use hover-elevate
-          "border-transparent bg-destructive text-destructive-foreground shadow-xs",
-          // @replit shadow-xs" - use badge outline variable
-        outline: "text-foreground border [border-color:var(--badge-outline)]",
+          "border-[rgba(229,100,90,0.3)] bg-[rgba(229,100,90,0.1)] text-[var(--f-red-text)]",
+        outline: "border-[var(--f-border-strong)] text-foreground",
       },
     },
     defaultVariants: {

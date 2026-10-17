@@ -4,34 +4,32 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * FRAME buttons: rounded rectangles (12-14px), never pills.
+ * default = primary (gold fill, dark foreground), secondary, outline, ghost,
+ * destructive, link. States: hover, pressed (scale .985 + darker fill),
+ * focus-visible ring, disabled (40%), loading (data-loading spinner via index.css).
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0" +
-" hover-elevate active-elevate-2",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[14px] text-[15px] font-semibold tracking-[-0.005em] transition-[background-color,border-color,color,transform,opacity] duration-[180ms] ease-out active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--f-bg)] disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-           // @replit: no hover, and add primary border
-           "bg-gradient-to-br from-[#B9A477] to-primary text-primary-foreground border border-transparent shadow-[0_10px_28px_-10px_rgba(185,164,119,0.75),inset_0_1px_0_rgba(255,240,200,0.3)]",
+          "border border-transparent bg-[var(--f-gold)] text-[var(--f-on-gold)] hover:bg-[#c4b084] active:bg-[var(--f-gold-pressed)]",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-sm border-destructive-border",
+          "border border-[rgba(229,100,90,0.34)] bg-[rgba(229,100,90,0.12)] text-[var(--f-red-text)] hover:bg-[rgba(229,100,90,0.18)]",
         outline:
-          // @replit Shows the background color of whatever card / sidebar / accent background it is inside of.
-          // Inherits the current text color. Uses shadow-xs. no shadow on active
-          // No hover state
-          " border [border-color:var(--button-outline)] shadow-xs active:shadow-none ",
+          "border border-[var(--f-border-strong)] bg-transparent text-foreground hover:bg-[var(--f-raised)]",
         secondary:
-          // @replit border, no hover, no shadow, secondary border.
-          "border bg-secondary text-secondary-foreground border border-secondary-border ",
-        // @replit no hover, transparent border
-        ghost: "border border-transparent",
-        link: "text-primary underline-offset-4 hover:underline",
+          "border border-[var(--f-border-strong)] bg-[var(--f-raised)] text-foreground hover:bg-[var(--f-overlay)]",
+        ghost: "border border-transparent bg-transparent text-foreground hover:bg-white/[0.06]",
+        link: "rounded-[8px] text-primary underline-offset-4 hover:underline",
       },
       size: {
-        // @replit changed sizes
         default: "min-h-11 px-5 py-2",
-        sm: "min-h-9 rounded-full px-4 text-xs",
-        lg: "min-h-12 rounded-full px-8",
+        sm: "min-h-9 rounded-[12px] px-3.5 text-[13px]",
+        lg: "min-h-[52px] px-6 text-base",
         icon: "h-11 w-11",
       },
     },
@@ -46,15 +44,20 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  /** Shows a spinner in place of the label and blocks presses. */
+  loading?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, loading = false, disabled, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
+        data-loading={loading ? "true" : undefined}
+        aria-busy={loading || undefined}
+        disabled={disabled || loading}
         {...props}
       />
     )
