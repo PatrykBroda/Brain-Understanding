@@ -1,6 +1,5 @@
-import * as Haptics from "expo-haptics";
 import React, { useEffect, useMemo, useReducer, useRef } from "react";
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Platform, StyleSheet, Text, View } from "react-native";
 import Svg, { Polygon } from "react-native-svg";
 import {
   type Breath,
@@ -9,6 +8,8 @@ import {
   clampSec,
   makeBreathReducer,
 } from "@/lib/breathReducer";
+import { BlockCard } from "@/components/BlockCard";
+import { Button, haptic, useReducedMotion } from "@/components/ui";
 import { fonts, palette, radius } from "@/constants/theme";
 
 export type { Breath };
@@ -40,6 +41,7 @@ export function BreathCard({
   }));
   const { running, phaseIdx, remaining, round, done } = state;
 
+  const reduceMotion = useReducedMotion();
   const scaleAnim = useRef(new Animated.Value(0.62)).current;
   const hapticReady = useRef(false);
 
@@ -64,12 +66,15 @@ export function BreathCard({
       hapticReady.current = true;
       return;
     }
-    if (running) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    if (running) haptic.select();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phaseIdx, round]);
 
   useEffect(() => {
-    if (done) onComplete?.();
+    if (done) {
+      haptic.success();
+      onComplete?.();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done]);
 
@@ -80,7 +85,7 @@ export function BreathCard({
   useEffect(() => {
     Animated.timing(scaleAnim, {
       toValue: targetScale,
-      duration: transitionMs,
+      duration: reduceMotion ? 0 : transitionMs,
       easing: Easing.inOut(Easing.ease),
       useNativeDriver: Platform.OS !== "web",
     }).start();
@@ -100,8 +105,8 @@ export function BreathCard({
             <Svg width="100%" height="100%" viewBox="0 0 100 100">
               <Polygon
                 points={OCTAGON}
-                fill="rgba(185,164,119,0.16)"
-                stroke="#B9A477"
+                fill="rgba(255,255,255,0.04)"
+                stroke={palette.gold}
                 strokeWidth={1}
               />
             </Svg>
@@ -122,24 +127,14 @@ export function BreathCard({
 
         <View style={s.controls}>
           {!running && !done && (
-            <Pressable style={s.btnPrimary} onPress={() => dispatch({ type: "BEGIN" })}>
-              <Text style={s.btnPrimaryText}>Begin</Text>
-            </Pressable>
+            <Button title="Begin" onPress={() => dispatch({ type: "BEGIN" })} style={s.btn} />
           )}
-          {running && (
-            <Pressable style={s.btnGhost} onPress={() => dispatch({ type: "PAUSE" })}>
-              <Text style={s.btnGhostText}>Pause</Text>
-            </Pressable>
-          )}
+          {running && <Button title="Pause" variant="secondary" onPress={() => dispatch({ type: "PAUSE" })} style={s.btn} />}
           {!running && (phaseIdx > 0 || round > 1 || done) && (
-            <Pressable style={s.btnGhost} onPress={reset}>
-              <Text style={s.btnGhostText}>Reset</Text>
-            </Pressable>
+            <Button title="Reset" variant="secondary" onPress={reset} style={s.btn} />
           )}
           {!running && phaseIdx > 0 && !done && (
-            <Pressable style={s.btnPrimary} onPress={() => dispatch({ type: "BEGIN" })}>
-              <Text style={s.btnPrimaryText}>Resume</Text>
-            </Pressable>
+            <Button title="Resume" onPress={() => dispatch({ type: "BEGIN" })} style={s.btn} />
           )}
         </View>
 
@@ -161,140 +156,54 @@ export function BreathCard({
 
   if (embedded) return <View>{inner}</View>;
 
-  return (
-    <View style={s.card}>
-      <View style={s.head}>
-        <Text style={s.headLabel}>REGULATE</Text>
-        <Text style={s.headKind}>BREATH</Text>
-      </View>
-      {inner}
-    </View>
-  );
+  return <BlockCard kind="Breathing">{inner}</BlockCard>;
 }
 
 const s = StyleSheet.create({
-  card: {
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-    borderRadius: radius.md,
-    backgroundColor: "rgba(185,164,119,0.10)",
-    overflow: "hidden",
-  },
-  head: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.hairline,
-    backgroundColor: palette.goldWash,
-  },
-  headLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.8,
-    color: palette.goldLight,
-  },
-  headKind: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.4,
-    color: palette.textMid,
-  },
   title: {
     paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 2,
-    fontFamily: fonts.displayThin,
-    fontSize: 17,
-    lineHeight: 21,
+    paddingTop: 8,
+    fontFamily: fonts.semi,
+    fontSize: 19,
+    lineHeight: 25,
+    letterSpacing: -0.3,
     color: palette.textHi,
   },
   purpose: {
     paddingHorizontal: 16,
-    paddingBottom: 2,
-    fontFamily: fonts.text,
-    fontSize: 13.5,
+    paddingTop: 4,
+    fontFamily: fonts.regular,
+    fontSize: 14,
     color: palette.textMid,
     lineHeight: 20,
   },
   stage: {
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 22,
+    paddingVertical: 20,
   },
-  octWrap: {
-    width: 176,
-    height: 176,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  octFill: {
-    position: "absolute",
-    width: 160,
-    height: 160,
-  },
-  octCenter: {
-    alignItems: "center",
-  },
-  phaseLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 2,
-    color: palette.goldLight,
-  },
+  octWrap: { width: 176, height: 176, alignItems: "center", justifyContent: "center" },
+  octFill: { position: "absolute", width: 160, height: 160 },
+  octCenter: { alignItems: "center" },
+  phaseLabel: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid },
   count: {
-    fontFamily: fonts.numeralXL,
-    fontSize: 52,
-    lineHeight: 56,
-    letterSpacing: -2,
+    fontFamily: fonts.semi,
+    fontSize: 48,
+    lineHeight: 52,
+    letterSpacing: -1.6,
     color: palette.textHi,
     marginTop: 2,
+    fontVariant: ["tabular-nums"],
   },
   roundLine: {
     marginTop: 16,
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.4,
+    fontFamily: fonts.medium,
+    fontSize: 13,
     color: palette.textMid,
+    fontVariant: ["tabular-nums"],
   },
-  controls: {
-    marginTop: 16,
-    flexDirection: "row",
-    gap: 12,
-  },
-  btnPrimary: {
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    borderRadius: radius.pill,
-    backgroundColor: palette.goldWash,
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-  },
-  btnPrimaryText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.4,
-    color: palette.goldPale,
-  },
-  btnGhost: {
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    borderRadius: radius.pill,
-    backgroundColor: palette.glass,
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
-  },
-  btnGhostText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.4,
-    color: palette.text,
-  },
+  controls: { marginTop: 16, flexDirection: "row", gap: 12, alignSelf: "stretch" },
+  btn: { flex: 1, minHeight: 48 },
   phaseList: {
     marginTop: 16,
     flexDirection: "row",
@@ -303,30 +212,30 @@ const s = StyleSheet.create({
     gap: 8,
   },
   phaseChip: {
-    fontFamily: fonts.textMedium,
+    fontFamily: fonts.medium,
     fontSize: 12,
-    letterSpacing: 1,
     color: palette.textMid,
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: palette.hairline,
+    borderColor: palette.border,
     overflow: "hidden",
+    fontVariant: ["tabular-nums"],
   },
   phaseChipActive: {
-    color: palette.goldPale,
-    backgroundColor: palette.goldWash,
+    color: palette.textHi,
+    backgroundColor: palette.raised,
     borderColor: palette.goldHair,
   },
   note: {
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 14,
     paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: palette.hairline,
-    fontFamily: fonts.text,
-    fontSize: 13.5,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: palette.borderStrong,
+    fontFamily: fonts.regular,
+    fontSize: 14,
     color: palette.textMid,
     lineHeight: 20,
   },

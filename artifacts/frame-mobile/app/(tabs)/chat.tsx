@@ -1,9 +1,9 @@
 import { useAuth } from "@/context/AuthContext";
-import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   Linking,
@@ -30,19 +30,15 @@ import {
   uploadAttachment,
   type AttachmentDto,
 } from "@/lib/api";
-import { reportLayout } from "@/lib/crashReporter";
 import { sendErrorMessage, streamErrorMessage, uploadErrorMessage } from "@/lib/chatErrors";
-import { useFighter } from "@/context/FighterContext";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { MessageContent } from "@/components/MessageContent";
 import { CompetitionBanner } from "@/components/CompetitionBanner";
-import { OctagonSpinner } from "@/components/OctagonSpinner";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
-import { Display, Eyebrow, FadeIn, Screen, media } from "@/components/ui";
-import { fonts, palette, radius } from "@/constants/theme";
+import { Body, Button, Display, FadeIn, IconButton, Label, Screen, haptic } from "@/components/ui";
+import { fonts, MIN_TAP, palette, radius, SCREEN_PAD, type as T } from "@/constants/theme";
 
-const FRAME_WORDMARK = require("@/assets/images/frame-wordmark.png");
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 
@@ -58,6 +54,8 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   attachments?: AttachmentDto[];
+  /** set on an inline failure message: the text to resend when the athlete taps Retry */
+  retry?: string;
 }
 
 let _counter = 0;
@@ -68,38 +66,30 @@ function uid() {
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   {
-    label: "ANALYSE SESSION",
-    prompt:
-      "Debrief my last training session — what fragmented, what held, what's the next rep.",
+    label: "Analyse session",
+    prompt: "Debrief my last training session — what fragmented, what held, what's the next rep.",
+  },
+  { label: "Build drill", prompt: "Build me a drill for my biggest current weakness. Use the drill block." },
+  {
+    label: "Fix my game",
+    prompt: "Identify the recurring gap in my game right now and give me a training plan to close it.",
   },
   {
-    label: "BUILD DRILL",
-    prompt:
-      "Build me a drill for my biggest current weakness. Use the drill block.",
-  },
-  {
-    label: "FIX MY GAME",
-    prompt:
-      "Identify the recurring gap in my game right now and give me a training plan to close it.",
-  },
-  {
-    label: "COMPETITION PREP",
+    label: "Competition prep",
     prompt:
       "Walk me through how to prepare my composure, decision-making, and tactics for an upcoming competition.",
   },
-  { label: "REGULATE", prompt: "I need to regulate right now. Produce a regulate block." },
+  { label: "Regulate", prompt: "I need to regulate right now. Produce a regulate block." },
   {
-    label: "REFLECT",
-    prompt:
-      "Ask me one sharp question to surface what I'm not seeing about my training this week.",
+    label: "Reflect",
+    prompt: "Ask me one sharp question to surface what I'm not seeing about my training this week.",
   },
 ];
 
 const SUGGESTED_PROMPTS = [
   "Debrief tonight's roll",
   "I fragmented under pressure today",
-  "Walk me through a containment cycle",
-  "What's my next rep on the half-guard pass?",
+  "Build me a drill for my weakest position",
 ];
 
 // A single attached image/video. Drafts pass a local `uri` (instant preview,
@@ -134,7 +124,7 @@ function AttachmentThumb({
           accessibilityRole="button"
           accessibilityLabel="Remove attachment"
         >
-          <Feather name="x" size={12} color={palette.text} />
+          <Feather name="x" size={14} color={palette.textHi} />
         </Pressable>
       )}
     </View>
@@ -144,21 +134,19 @@ function AttachmentThumb({
 function MessageBubble({
   msg,
   onTrain,
-  userLabel,
+  onRetry,
 }: {
   msg: Message;
   onTrain: (prompt: string) => void;
-  userLabel: string;
+  onRetry: (msg: Message) => void;
 }) {
   const isUser = msg.role === "user";
   const hasAttachments = (msg.attachments?.length ?? 0) > 0;
-  return (
-    <View style={[mb.wrap, isUser ? mb.wrapUser : mb.wrapAssistant]}>
-      <Text style={[mb.senderLabel, isUser ? mb.senderLabelUser : mb.senderLabelFrame]}>
-        {isUser ? userLabel : "FRAME"}
-      </Text>
-      <View style={[mb.row, isUser ? mb.userRow : mb.assistantRow]}>
-        <View style={[mb.bubble, isUser ? mb.userBubble : mb.assistantBubble]}>
+
+  if (isUser) {
+    return (
+      <View style={mb.userWrap}>
+        <View style={mb.userBubble}>
           {hasAttachments && (
             <View style={mb.attachGrid}>
               {msg.attachments!.map((a) => (
@@ -166,136 +154,105 @@ function MessageBubble({
               ))}
             </View>
           )}
-          {isUser ? (
-            msg.content ? (
-              <Text style={[mb.text, mb.userText]}>{msg.content}</Text>
-            ) : null
-          ) : (
-            <MessageContent content={msg.content} onTrain={onTrain} />
-          )}
+          {msg.content ? <Text style={mb.userText}>{msg.content}</Text> : null}
         </View>
       </View>
+    );
+  }
+
+  if (msg.retry != null) {
+    return (
+      <View style={mb.coachWrap}>
+        <Label style={mb.coachLabel}>Coach</Label>
+        <View style={mb.errorBox} accessibilityRole="alert">
+          <View style={mb.errorHead}>
+            <Feather name="alert-circle" size={18} color={palette.redText} />
+            <Text style={mb.errorTitle}>Message not delivered</Text>
+          </View>
+          <Text style={mb.errorBody}>{msg.content}</Text>
+          <Button title="Retry" variant="secondary" onPress={() => onRetry(msg)} style={mb.retryBtn} />
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={mb.coachWrap}>
+      <Label style={mb.coachLabel}>Coach</Label>
+      <MessageContent content={msg.content} onTrain={onTrain} />
     </View>
   );
 }
 
 const mb = StyleSheet.create({
-  wrap: {
-    marginVertical: 8,
-  },
-  wrapUser: {
-    alignItems: "flex-end",
-  },
-  wrapAssistant: {
-    alignItems: "flex-start",
-  },
-  senderLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.6,
-    marginBottom: 6,
-    paddingHorizontal: 22,
-  },
-  senderLabelUser: {
-    color: palette.textLow,
-  },
-  senderLabelFrame: {
-    color: palette.goldLight,
-  },
-  row: {
-    flexDirection: "row",
-    marginVertical: 2,
-    paddingHorizontal: 16,
-    alignItems: "flex-end",
-    gap: 8,
-  },
-  userRow: { justifyContent: "flex-end" },
-  assistantRow: { justifyContent: "flex-start" },
-  bubble: {
-    maxWidth: "84%",
+  // user: right-aligned raised bubble, radius 18, tail corner 6
+  userWrap: { alignItems: "flex-end", paddingHorizontal: SCREEN_PAD, marginTop: 16 },
+  userBubble: {
+    maxWidth: "86%",
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: palette.raised,
     borderWidth: 1,
-  },
-  // user = bronze-tinted glass
-  userBubble: {
-    backgroundColor: "rgba(185,164,119,0.20)",
-    borderColor: palette.goldHair,
-    borderRadius: 22,
+    borderColor: palette.border,
+    borderRadius: 18,
     borderBottomRightRadius: 6,
   },
-  // coach = graphite glass
-  assistantBubble: {
-    maxWidth: "94%",
-    backgroundColor: palette.graphite2,
-    borderColor: palette.glassEdge,
-    borderRadius: 22,
-    borderBottomLeftRadius: 6,
+  userText: { ...T.chat, color: palette.textHi },
+  // coach: plain text on the canvas, small label, comfortable measure
+  coachWrap: { paddingHorizontal: SCREEN_PAD, marginTop: 20, maxWidth: 680, width: "100%" },
+  coachLabel: { marginBottom: 6, color: palette.textMid },
+  errorBox: {
+    padding: 16,
+    gap: 8,
+    borderRadius: radius.lg,
+    backgroundColor: palette.surface,
+    borderWidth: 1,
+    borderColor: palette.redHair,
   },
-  text: {
-    fontFamily: fonts.text,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  userText: { color: palette.textHi },
-  assistantText: { color: palette.text },
-  attachGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 8,
-  },
+  errorHead: { flexDirection: "row", alignItems: "center", gap: 8 },
+  errorTitle: { fontFamily: fonts.semi, fontSize: 16, color: palette.redText },
+  errorBody: { ...T.bodySm, color: palette.textMid },
+  retryBtn: { marginTop: 4, minHeight: 48 },
+  attachGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
   thumb: {
     width: 120,
     height: 120,
-    borderRadius: 16,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: palette.glassEdge,
-    backgroundColor: palette.graphite0,
+    borderColor: palette.border,
+    backgroundColor: palette.bg,
     overflow: "hidden",
   },
-  thumbImg: {
-    width: "100%",
-    height: "100%",
-  },
-  videoThumb: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingHorizontal: 8,
-  },
-  videoName: {
-    fontFamily: fonts.text,
-    fontSize: 12,
-    color: palette.textMid,
-    textAlign: "center",
-  },
+  thumbImg: { width: "100%", height: "100%" },
+  videoThumb: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 8 },
+  videoName: { fontFamily: fonts.regular, fontSize: 12, color: palette.textMid, textAlign: "center" },
   thumbRemove: {
     position: "absolute",
     top: 6,
     right: 6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "rgba(8,9,11,0.8)",
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: palette.scrim,
     borderWidth: 1,
-    borderColor: palette.glassEdge,
+    borderColor: palette.borderStrong,
     alignItems: "center",
     justifyContent: "center",
   },
 });
 
+// Static (no pulsing): label + small spinner.
 function TypingIndicator() {
   return (
-    <View style={[mb.row, mb.assistantRow]}>
-      <View style={[mb.bubble, mb.assistantBubble]}>
-        <OctagonSpinner size={26} color={palette.goldPale} />
+    <View style={mb.coachWrap} accessibilityLiveRegion="polite" accessibilityLabel="Coach is thinking">
+      <Label style={mb.coachLabel}>Coach</Label>
+      <View style={styles.thinking}>
+        <ActivityIndicator size="small" color={palette.textMid} />
+        <Text style={styles.thinkingText}>Coach is thinking</Text>
       </View>
     </View>
   );
 }
-
 
 interface ConversationResponse {
   conversation: { id: number } | null;
@@ -311,10 +268,7 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const qc = useQueryClient();
-  const { fighter } = useFighter();
   const { isSignedIn } = useAuth();
-
-  const userLabel = (fighter?.name ?? "Operator").toUpperCase();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -337,9 +291,6 @@ export default function ChatScreen() {
   const sendInFlightRef = useRef(false);
   const consentAcceptingRef = useRef(false);
   const inputRef = useRef<TextInput>(null);
-  // One-shot guards so on-device layout probes report once per mount,
-  // not on every re-layout.
-  const layoutProbes = useRef({ row: false, chip: false, text: false });
 
   useEffect(() => {
     if (isSignedIn) return;
@@ -475,8 +426,10 @@ export default function ChatScreen() {
     setMessages((prev) => [...prev, userMsg]);
 
     // Show a failure as a fresh assistant bubble (mobile has no error banner).
-    const showAssistant = (content: string) =>
-      setMessages((prev) => [...prev, { id: uid(), role: "assistant", content }]);
+    const showAssistant = (content: string) => {
+      haptic.error();
+      setMessages((prev) => [...prev, { id: uid(), role: "assistant", content, retry: trimmed }]);
+    };
 
     let fullContent = "";
     let added = false;
@@ -578,6 +531,7 @@ export default function ChatScreen() {
     }
 
     inputRef.current?.focus();
+    if (streamSucceeded) haptic.success();
     if (!streamSucceeded && trimmed) setInput(trimmed);
     return streamSucceeded;
   }
@@ -613,13 +567,27 @@ export default function ChatScreen() {
   }
 
   function sendQuick(prompt: string) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.press();
     handleSend(prompt);
+  }
+
+  // Inline retry: drop the failed exchange (error + the user bubble it answered) and send again.
+  function retryMessage(failed: { id: string; retry?: string }) {
+    if (isStreaming || failed.retry == null) return;
+    const text = failed.retry;
+    setMessages((prev) => {
+      const idx = prev.findIndex((m) => m.id === failed.id);
+      if (idx < 0) return prev;
+      const cut = idx > 0 && prev[idx - 1].role === "user" && prev[idx - 1].content === text ? idx - 1 : idx;
+      return prev.filter((_, i) => i !== idx && i !== cut);
+    });
+    setInput("");
+    handleSend(text);
   }
 
   async function resetConversation() {
     if (isStreaming || resetting) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    haptic.press();
     setResetting(true);
     try {
       const data = await apiPost<ConversationResponse>("/conversation/reset");
@@ -663,7 +631,7 @@ export default function ChatScreen() {
     }
     const kind: "image" | "video" = asset.type === "video" ? "video" : "image";
     setUploading(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    haptic.press();
     try {
       const att = await uploadAttachment({
         conversationId,
@@ -687,7 +655,7 @@ export default function ChatScreen() {
   async function doSend() {
     if (isStreaming || isLoadingHistory) return;
     if (!input.trim() && drafts.length === 0) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.press();
     const text = input;
     const attachments = drafts.map((d) => d.att);
     const sent = await handleSend(
@@ -716,7 +684,7 @@ export default function ChatScreen() {
       }}
       onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
     />
-    <Screen photo={media.gym}>
+    <Screen light={null}>
     <KeyboardAvoidingView
       style={[styles.root, { paddingTop: topPad }]}
       behavior="padding"
@@ -725,18 +693,20 @@ export default function ChatScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable
-          style={styles.headerPill}
+          style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}
           onPress={() => router.push("/(tabs)/home")}
           hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel="Back to home"
         >
-          <Feather name="chevron-left" size={18} color={palette.text} />
-          <Text style={styles.headerPillText}>Home</Text>
+          <Feather name="chevron-left" size={20} color={palette.textHi} />
+          <Text style={styles.headerBtnText}>Home</Text>
         </Pressable>
-        <Image source={FRAME_WORDMARK} style={styles.headerWordmark} resizeMode="contain" />
+        <Text style={styles.headerTitle} accessibilityRole="header">
+          Coach
+        </Text>
         <Pressable
-          style={[styles.headerPill, styles.headerReset]}
+          style={({ pressed }) => [styles.headerBtn, styles.headerBtnRight, pressed && styles.headerBtnPressed]}
           onPress={resetConversation}
           disabled={isStreaming || resetting}
           hitSlop={8}
@@ -744,11 +714,11 @@ export default function ChatScreen() {
           accessibilityLabel="Reset conversation"
         >
           {resetting ? (
-            <OctagonSpinner size={14} color={palette.textMid} />
+            <ActivityIndicator size="small" color={palette.textMid} />
           ) : (
             <>
-              <Feather name="refresh-ccw" size={13} color={palette.text} />
-              <Text style={styles.headerPillText}>Reset</Text>
+              <Feather name="refresh-ccw" size={15} color={palette.textMid} />
+              <Text style={[styles.headerBtnText, { color: palette.textMid }]}>Reset</Text>
             </>
           )}
         </Pressable>
@@ -758,16 +728,15 @@ export default function ChatScreen() {
 
       {/* Messages */}
       {isLoadingHistory ? (
-        <View style={styles.loadingState}>
-          <OctagonSpinner size={30} color={palette.goldPale} />
+        <View style={styles.loadingState} accessibilityLabel="Loading conversation">
+          <ActivityIndicator color={palette.textMid} />
+          <Text style={styles.loadingText}>Loading conversation</Text>
         </View>
       ) : (
         <FlatList
           data={reversed}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <MessageBubble msg={item} onTrain={handleSend} userLabel={userLabel} />
-          )}
+          renderItem={({ item }) => <MessageBubble msg={item} onTrain={handleSend} onRetry={retryMessage} />}
           inverted={messages.length > 0}
           ListHeaderComponent={showTyping ? <TypingIndicator /> : null}
           keyboardDismissMode="interactive"
@@ -775,26 +744,24 @@ export default function ChatScreen() {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <FadeIn style={styles.emptyState}>
-              <Eyebrow style={styles.emptyOpen}>Frame open</Eyebrow>
               <Display size="title" style={styles.emptyTitle}>
                 What are we working on?
               </Display>
-              <Text style={styles.emptyText}>
+              <Body style={styles.emptyText}>
                 Say what happened. Debrief a session, request a drill, regulate, or reflect.
-              </Text>
+              </Body>
               <View style={styles.suggestGrid}>
                 {SUGGESTED_PROMPTS.map((prompt) => (
                   <Pressable
                     key={prompt}
-                    style={({ pressed }) => [
-                      styles.suggestBtn,
-                      pressed && styles.suggestBtnPressed,
-                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={prompt}
+                    style={({ pressed }) => [styles.suggestBtn, pressed && styles.suggestBtnPressed]}
                     onPress={() => sendQuick(prompt)}
                     disabled={isStreaming || isLoadingHistory}
                   >
                     <Text style={styles.suggestText}>{prompt}</Text>
-                    <Feather name="arrow-up-right" size={16} color={palette.goldLight} />
+                    <Feather name="arrow-up-right" size={18} color={palette.textMid} />
                   </Pressable>
                 ))}
               </View>
@@ -803,56 +770,24 @@ export default function ChatScreen() {
         />
       )}
 
-      {/* Quick actions — persist above the input in both the empty state and an
-          active conversation (matches the website's suggested-question chips,
-          which stay available while chatting instead of disappearing). */}
-      {!isLoadingHistory && (
+      {/* Suggested prompts: a chip row above the composer once a conversation exists
+          (the empty state shows its own list). */}
+      {!isLoadingHistory && messages.length > 0 && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.quickRow}
           contentContainerStyle={styles.quickContent}
-          onLayout={(e) => {
-            if (layoutProbes.current.row) return;
-            layoutProbes.current.row = true;
-            const { width, height } = e.nativeEvent.layout;
-            reportLayout(`quickRow w=${Math.round(width)} h=${Math.round(height)}`);
-          }}
         >
-          {QUICK_ACTIONS.map((a, i) => (
+          {QUICK_ACTIONS.map((a) => (
             <Pressable
               key={a.label}
-              style={({ pressed }) => [styles.quickChip, pressed && styles.quickChipPressed]}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.quickChip, pressed && styles.quickChipPressed, isStreaming && { opacity: 0.4 }]}
               onPress={() => sendQuick(a.prompt)}
               disabled={isStreaming}
-              onLayout={
-                i === 0
-                  ? (e) => {
-                      if (layoutProbes.current.chip) return;
-                      layoutProbes.current.chip = true;
-                      const { width, height } = e.nativeEvent.layout;
-                      reportLayout(`quickChip[0] w=${Math.round(width)} h=${Math.round(height)}`);
-                    }
-                  : undefined
-              }
             >
-              <Text
-                style={styles.quickText}
-                onTextLayout={
-                  i === 0
-                    ? (e) => {
-                        if (layoutProbes.current.text) return;
-                        layoutProbes.current.text = true;
-                        const lines = e.nativeEvent.lines;
-                        reportLayout(
-                          `quickText[0] lines=${lines.length} h=${Math.round(lines[0]?.height ?? 0)} w=${Math.round(lines[0]?.width ?? 0)}`,
-                        );
-                      }
-                    : undefined
-                }
-              >
-                {a.label}
-              </Text>
+              <Text style={styles.quickText}>{a.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -862,60 +797,39 @@ export default function ChatScreen() {
       {(drafts.length > 0 || uploading || uploadError) && (
         <View style={styles.draftRow}>
           {drafts.length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.draftStrip}
-            >
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.draftStrip}>
               {drafts.map((d) => (
-                <AttachmentThumb
-                  key={d.att.id}
-                  att={d.att}
-                  uri={d.uri}
-                  onRemove={() => removeDraft(d.att.id)}
-                />
+                <AttachmentThumb key={d.att.id} att={d.att} uri={d.uri} onRemove={() => removeDraft(d.att.id)} />
               ))}
             </ScrollView>
           )}
           {uploading && (
             <View style={styles.draftStatus}>
-              <OctagonSpinner size={16} color={palette.goldLight} />
-              <Text style={styles.draftStatusText}>Uploading…</Text>
+              <ActivityIndicator size="small" color={palette.textMid} />
+              <Text style={styles.draftStatusText}>Uploading</Text>
             </View>
           )}
           {uploadError && <Text style={styles.draftError}>{uploadError}</Text>}
         </View>
       )}
 
-      {/* Input — glass pill composer with a round send button */}
+      {/* Composer: attach, solid field with voice, gold send */}
       <View style={[styles.inputRow, { paddingBottom: inputBottomInset }]}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.roundBtn,
-            (!conversationId || uploading || isStreaming) && styles.attachBtnDisabled,
-            pressed && styles.sendBtnPressed,
-          ]}
+        <IconButton
+          icon="plus"
+          label="Attach a file"
           onPress={pickAttachment}
           disabled={!conversationId || uploading || isStreaming}
-          hitSlop={6}
-          accessibilityRole="button"
-          accessibilityLabel="Attach a file"
-        >
-          <Feather
-            name="plus"
-            size={20}
-            color={!conversationId || uploading || isStreaming ? palette.textLow : palette.text}
-          />
-        </Pressable>
-        <View style={styles.composer}>
+        />
+        <View style={[styles.composer, listening && styles.composerLive]}>
           <TextInput
             ref={inputRef}
             style={styles.input}
             value={input}
             onChangeText={setInput}
-            placeholder={listening ? "Listening..." : "Enter transmission..."}
-            placeholderTextColor={palette.textLow}
-            selectionColor={palette.goldLight}
+            placeholder={listening ? "Listening" : "Message your coach"}
+            placeholderTextColor={listening ? palette.redText : palette.textLow}
+            selectionColor={palette.gold}
             accessibilityLabel="Message"
             multiline
             maxLength={2000}
@@ -923,37 +837,27 @@ export default function ChatScreen() {
           />
           {voiceSupported && !isStreaming && (
             <Pressable
-              style={({ pressed }) => [
-                styles.micBtn,
-                listening && styles.micBtnLive,
-                pressed && styles.sendBtnPressed,
-              ]}
-              onPress={toggleVoice}
-              hitSlop={6}
+              style={({ pressed }) => [styles.micBtn, listening && styles.micBtnLive, pressed && { opacity: 0.7 }]}
+              onPress={() => {
+                haptic.select();
+                toggleVoice();
+              }}
+              hitSlop={4}
               accessibilityRole="button"
               accessibilityLabel={listening ? "Stop voice input" : "Start voice input"}
+              accessibilityState={{ selected: listening }}
             >
-              <Feather name="mic" size={18} color={listening ? palette.redLight : palette.textMid} />
+              <Feather name="mic" size={19} color={listening ? palette.redText : palette.textMid} />
             </Pressable>
           )}
         </View>
-        <Pressable
-          style={({ pressed }) => [
-            styles.sendBtn,
-            !canSend && styles.sendBtnDisabled,
-            pressed && canSend && styles.sendBtnPressed,
-          ]}
-          onPress={doSend}
-          disabled={!canSend}
-          accessibilityRole="button"
-          accessibilityLabel="Send message"
-        >
-          {isStreaming ? (
-            <OctagonSpinner size={20} color={palette.textMid} />
-          ) : (
-            <Feather name="arrow-up" size={19} color={canSend ? "#08090B" : palette.textLow} />
-          )}
-        </Pressable>
+        {isStreaming ? (
+          <View style={styles.sendBusy} accessibilityLabel="Sending">
+            <ActivityIndicator size="small" color={palette.textMid} />
+          </View>
+        ) : (
+          <IconButton icon="arrow-up" label="Send message" solid onPress={doSend} disabled={!canSend} />
+        )}
       </View>
     </KeyboardAvoidingView>
     </Screen>
@@ -962,234 +866,128 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
+  root: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  headerPill: {
+  headerBtn: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    minHeight: 44,
-    minWidth: 44,
-    paddingHorizontal: 14,
-    borderRadius: radius.pill,
-    backgroundColor: palette.glass,
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
+    gap: 4,
+    minHeight: MIN_TAP,
+    minWidth: 80,
+    paddingHorizontal: 8,
+    borderRadius: radius.sm,
   },
-  headerReset: {
-    paddingHorizontal: 16,
-  },
-  headerPillText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 0.6,
-    color: palette.text,
-  },
-  headerWordmark: {
-    width: 96,
-    height: 22,
-    tintColor: palette.text,
-  },
-  listContent: {
-    paddingVertical: 12,
-    flexGrow: 1,
-  },
+  headerBtnRight: { justifyContent: "flex-end", gap: 6 },
+  headerBtnPressed: { backgroundColor: palette.surface },
+  headerBtnText: { fontFamily: fonts.medium, fontSize: 15, color: palette.textHi },
+  headerTitle: { fontFamily: fonts.semi, fontSize: 17, color: palette.textHi, letterSpacing: -0.2 },
+  listContent: { paddingTop: 8, paddingBottom: 16, flexGrow: 1 },
+  thinking: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 28 },
+  thinkingText: { ...T.chat, color: palette.textMid },
   emptyState: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 40,
-    paddingHorizontal: 24,
+    paddingVertical: 32,
+    paddingHorizontal: SCREEN_PAD,
   },
-  emptyOpen: {
-    color: palette.goldLight,
-    marginBottom: 10,
-  },
-  emptyTitle: {
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  emptyText: {
-    fontFamily: fonts.text,
-    fontSize: 15,
-    color: palette.textMid,
-    textAlign: "center",
-    lineHeight: 23,
-    maxWidth: 320,
-    marginBottom: 28,
-  },
-  suggestGrid: {
-    width: "100%",
-    maxWidth: 420,
-    gap: 10,
-  },
+  emptyTitle: { marginBottom: 12 },
+  emptyText: { marginBottom: 28, maxWidth: 340 },
+  suggestGrid: { width: "100%", maxWidth: 480, gap: 10 },
   suggestBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
     minHeight: 56,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 14,
-    borderRadius: 28,
-    backgroundColor: palette.glass,
+    borderRadius: radius.md,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: palette.glassEdge,
+    borderColor: palette.border,
   },
-  suggestBtnPressed: {
-    backgroundColor: palette.goldWash,
-    borderColor: palette.goldHair,
-  },
-  suggestText: {
-    fontFamily: fonts.text,
-    fontSize: 14.5,
-    lineHeight: 20,
-    color: palette.text,
-    flexShrink: 1,
-  },
+  suggestBtnPressed: { backgroundColor: palette.raised, borderColor: palette.borderStrong },
+  suggestText: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 22, color: palette.textHi, flexShrink: 1 },
   quickRow: {
     height: 56,
-    // Never let the KeyboardAvoidingView flex math compress this row —
-    // vertical squash clips the chip text into flat empty strips.
+    // Never let the KeyboardAvoidingView flex math compress this row.
     flexGrow: 0,
     flexShrink: 0,
   },
-  quickContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    gap: 8,
-    alignItems: "center",
-  },
+  quickContent: { paddingHorizontal: SCREEN_PAD, paddingVertical: 6, gap: 8, alignItems: "center" },
   quickChip: {
-    minHeight: 44,
+    minHeight: MIN_TAP,
     borderRadius: radius.pill,
-    backgroundColor: palette.glass,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: palette.glassEdge,
-    paddingHorizontal: 18,
+    borderColor: palette.border,
+    paddingHorizontal: 16,
     alignSelf: "center",
     justifyContent: "center",
   },
-  quickChipPressed: {
-    backgroundColor: palette.goldWash,
-    borderColor: palette.goldHair,
-  },
-  quickText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    // Explicit lineHeight so the label can never measure as zero height.
-    lineHeight: 15,
-    color: palette.goldPale,
-    letterSpacing: 1.2,
-  },
+  quickChipPressed: { backgroundColor: palette.raised, borderColor: palette.borderStrong },
+  quickText: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 18, color: palette.textHi },
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    paddingHorizontal: 16,
+    paddingHorizontal: SCREEN_PAD,
     paddingTop: 8,
-    gap: 10,
+    gap: 8,
   },
   composer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "flex-end",
-    minHeight: 48,
-    borderRadius: 26,
-    backgroundColor: palette.graphite2,
+    minHeight: MIN_TAP,
+    borderRadius: radius.md,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: palette.glassEdge,
-    paddingLeft: 18,
-    paddingRight: 4,
+    borderColor: palette.borderStrong,
+    paddingLeft: 14,
+    paddingRight: 2,
   },
+  // listening = static ring, no animation
+  composerLive: { borderColor: palette.redText },
   input: {
     flex: 1,
     color: palette.textHi,
-    fontFamily: fonts.text,
-    fontSize: 15,
-    paddingTop: 13,
-    paddingBottom: 13,
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    lineHeight: 22,
+    paddingTop: 10,
+    paddingBottom: 10,
     maxHeight: 120,
-  },
-  roundBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: palette.glassStrong,
-    borderWidth: 1,
-    borderColor: palette.glassEdge,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  attachBtnDisabled: {
-    opacity: 0.5,
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null),
   },
   micBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 2,
-  },
-  micBtnLive: {
-    backgroundColor: palette.redWash,
-  },
-  draftRow: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    gap: 8,
-  },
-  draftStrip: {
-    gap: 8,
-    paddingBottom: 2,
-  },
-  draftStatus: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  draftStatusText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.4,
-    color: palette.goldLight,
-  },
-  draftError: {
-    fontFamily: fonts.text,
-    fontSize: 12.5,
-    color: palette.redLight,
-  },
-  sendBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#B9A477",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#B9A477",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 14,
-  },
-  sendBtnDisabled: {
-    backgroundColor: palette.graphite3,
-    shadowOpacity: 0,
-  },
-  sendBtnPressed: {
-    opacity: 0.85,
-  },
-  loadingState: {
-    flex: 1,
+    width: MIN_TAP,
+    height: MIN_TAP - 2,
+    borderRadius: radius.sm,
     alignItems: "center",
     justifyContent: "center",
   },
+  micBtnLive: { backgroundColor: palette.redWash },
+  sendBusy: {
+    width: MIN_TAP,
+    height: MIN_TAP,
+    borderRadius: radius.md,
+    backgroundColor: palette.raised,
+    borderWidth: 1,
+    borderColor: palette.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  draftRow: { paddingHorizontal: SCREEN_PAD, paddingTop: 10, gap: 8 },
+  draftStrip: { gap: 8, paddingBottom: 2 },
+  draftStatus: { flexDirection: "row", alignItems: "center", gap: 8 },
+  draftStatusText: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid },
+  draftError: { fontFamily: fonts.regular, fontSize: 13, color: palette.redText },
+  loadingState: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
+  loadingText: { fontFamily: fonts.regular, fontSize: 14, color: palette.textMid },
 });

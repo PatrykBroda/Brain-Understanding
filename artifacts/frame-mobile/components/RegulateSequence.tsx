@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { BreathCard, type Breath } from "@/components/BreathCard";
-import { fonts, palette, radius } from "@/constants/theme";
+import { BlockCard } from "@/components/BlockCard";
+import { Button, haptic } from "@/components/ui";
+import { fonts, palette } from "@/constants/theme";
 
 type StateStep = { type: "state"; content: string };
 type BreathStep = { type: "breath" } & Breath;
@@ -28,9 +30,7 @@ const DEFAULT_PROMPTS = [
 
 function ContinueBtn({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <Pressable style={s.continueBtn} onPress={onPress}>
-      <Text style={s.continueText}>{label}</Text>
-    </Pressable>
+    <Button title={label} onPress={onPress} variant="secondary" style={s.continueBtn} />
   );
 }
 
@@ -38,7 +38,7 @@ function StateCard({ step, onDone }: { step: StateStep; onDone: () => void }) {
   return (
     <View style={s.stepPad}>
       <Text style={s.bodyText}>{step.content}</Text>
-      <ContinueBtn label="Continue →" onPress={onDone} />
+      <ContinueBtn label="Continue" onPress={onDone} />
     </View>
   );
 }
@@ -62,7 +62,7 @@ function BreathStepCard({ step, onDone }: { step: BreathStep; onDone: () => void
       <BreathCard breath={breathProps as Breath} embedded onComplete={() => setBreathDone(true)} />
       {breathDone && (
         <View style={[s.stepPad, { paddingTop: 0 }]}>
-          <ContinueBtn label="Continue →" onPress={onDone} />
+          <ContinueBtn label="Continue" onPress={onDone} />
         </View>
       )}
     </View>
@@ -87,7 +87,7 @@ function GroundingCard({ step, onDone }: { step: GroundingStep; onDone: () => vo
       {done ? (
         <View style={s.groundDone}>
           <Text style={s.anchored}>Anchored</Text>
-          <ContinueBtn label="Continue →" onPress={onDone} />
+          <ContinueBtn label="Continue" onPress={onDone} />
         </View>
       ) : (
         <View style={s.groundActive}>
@@ -104,7 +104,7 @@ function GroundingCard({ step, onDone }: { step: GroundingStep; onDone: () => vo
               />
             ))}
           </View>
-          <ContinueBtn label="Got it →" onPress={advance} />
+          <ContinueBtn label="Got it" onPress={advance} />
         </View>
       )}
     </View>
@@ -119,7 +119,10 @@ export function RegulateSequence({ data }: { data: RegulateSequenceData }) {
   if (steps.length === 0) return null;
 
   function advance() {
-    if (stepIdx + 1 >= steps.length) setFinished(true);
+    if (stepIdx + 1 >= steps.length) {
+      haptic.success();
+      setFinished(true);
+    }
     else setStepIdx((i) => i + 1);
   }
 
@@ -127,16 +130,7 @@ export function RegulateSequence({ data }: { data: RegulateSequenceData }) {
   const label = STEP_LABEL[step.type] ?? step.type;
 
   return (
-    <View style={s.card}>
-      <View style={s.head}>
-        <Text style={s.headLabel}>REGULATE</Text>
-        {!finished && (
-          <Text style={s.headKind}>
-            {label} · {stepIdx + 1}/{steps.length}
-          </Text>
-        )}
-      </View>
-
+    <BlockCard kind="Regulate" meta={finished ? undefined : `${label}, step ${stepIdx + 1} of ${steps.length}`}>
       {finished ? (
         <View style={s.finishedPad}>
           <Text style={s.finishedText}>Sequence complete</Text>
@@ -155,158 +149,56 @@ export function RegulateSequence({ data }: { data: RegulateSequenceData }) {
           {steps.map((_, i) => (
             <View
               key={i}
-              style={[
-                s.seqDot,
-                i === stepIdx ? s.seqDotActive : i < stepIdx ? s.seqDotPast : s.seqDotFuture,
-              ]}
+              style={[s.seqDot, i === stepIdx ? s.seqDotActive : i < stepIdx ? s.seqDotPast : s.seqDotFuture]}
             />
           ))}
         </View>
       )}
-    </View>
+    </BlockCard>
   );
 }
 
 const s = StyleSheet.create({
-  card: {
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-    borderRadius: radius.md,
-    backgroundColor: "rgba(185,164,119,0.10)",
-    overflow: "hidden",
-  },
-  head: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.hairline,
-    backgroundColor: palette.goldWash,
-  },
-  headLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.8,
-    color: palette.goldLight,
-  },
-  headKind: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.4,
-    color: palette.textMid,
-  },
-  stepPad: {
-    paddingHorizontal: 16,
-    paddingVertical: 18,
-    gap: 16,
-  },
-  bodyText: {
-    fontFamily: fonts.text,
-    fontSize: 14.5,
-    color: palette.text,
-    lineHeight: 22,
-  },
+  stepPad: { paddingHorizontal: 16, paddingVertical: 16, gap: 16 },
+  bodyText: { fontFamily: fonts.regular, fontSize: 16, color: palette.textHi, lineHeight: 24 },
   focusBar: {
     borderLeftWidth: 2,
-    borderLeftColor: palette.goldHair,
+    borderLeftColor: palette.gold,
     paddingLeft: 14,
     paddingVertical: 2,
   },
-  continueBtn: {
-    alignSelf: "flex-start",
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    borderRadius: radius.pill,
-    backgroundColor: palette.goldWash,
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-  },
-  continueText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.4,
-    color: palette.goldPale,
-  },
-  groundWrap: {
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-  },
-  groundTitle: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.8,
-    color: palette.textMid,
-    marginBottom: 18,
-  },
-  groundDone: {
-    alignItems: "center",
-    gap: 16,
-  },
-  anchored: {
-    fontFamily: fonts.displayThin,
-    fontSize: 24,
-    color: palette.goldPale,
-  },
-  groundActive: {
-    alignItems: "center",
-    gap: 12,
-    width: "100%",
-  },
+  continueBtn: { alignSelf: "stretch", minHeight: 48 },
+  groundWrap: { alignItems: "center", paddingHorizontal: 16, paddingVertical: 20 },
+  groundTitle: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid, marginBottom: 16 },
+  groundDone: { alignItems: "center", gap: 16, alignSelf: "stretch" },
+  anchored: { fontFamily: fonts.semi, fontSize: 24, letterSpacing: -0.5, color: palette.textHi },
+  groundActive: { alignItems: "center", gap: 12, width: "100%" },
   bigCount: {
-    fontFamily: fonts.numeralXL,
-    fontSize: 96,
-    lineHeight: 100,
-    letterSpacing: -3,
-    color: palette.goldLight,
-    opacity: 0.55,
+    fontFamily: fonts.semi,
+    fontSize: 48,
+    lineHeight: 52,
+    letterSpacing: -1.6,
+    color: palette.textHi,
+    fontVariant: ["tabular-nums"],
   },
   groundPrompt: {
-    fontFamily: fonts.text,
-    fontSize: 15,
-    color: palette.text,
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    color: palette.textHi,
     textAlign: "center",
-    lineHeight: 22,
+    lineHeight: 24,
     maxWidth: 280,
   },
-  dots: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 4,
-  },
-  dot: {
-    borderRadius: 4,
-  },
-  dotActive: { width: 18, height: 6, backgroundColor: palette.goldLight },
+  dots: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, marginBottom: 4 },
+  dot: { borderRadius: 4 },
+  dotActive: { width: 18, height: 6, backgroundColor: palette.gold },
   dotPast: { width: 6, height: 6, backgroundColor: palette.goldHair },
-  dotFuture: { width: 6, height: 6, backgroundColor: "rgba(255,255,255,0.18)" },
-  finishedPad: {
-    paddingHorizontal: 16,
-    paddingVertical: 28,
-    alignItems: "center",
-  },
-  finishedText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.8,
-    color: palette.goldLight,
-  },
-  seqDots: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 6,
-    paddingBottom: 14,
-    paddingTop: 4,
-  },
-  seqDot: {
-    borderRadius: 2,
-  },
-  seqDotActive: { width: 22, height: 4, backgroundColor: palette.goldLight },
+  dotFuture: { width: 6, height: 6, backgroundColor: palette.borderStrong },
+  finishedPad: { paddingHorizontal: 16, paddingVertical: 28, alignItems: "center" },
+  finishedText: { fontFamily: fonts.semi, fontSize: 17, color: palette.textHi },
+  seqDots: { flexDirection: "row", justifyContent: "center", gap: 6, paddingBottom: 14, paddingTop: 4 },
+  seqDot: { borderRadius: 2 },
+  seqDotActive: { width: 22, height: 4, backgroundColor: palette.gold },
   seqDotPast: { width: 8, height: 4, backgroundColor: palette.goldHair },
-  seqDotFuture: { width: 8, height: 4, backgroundColor: "rgba(255,255,255,0.18)" },
+  seqDotFuture: { width: 8, height: 4, backgroundColor: palette.borderStrong },
 });

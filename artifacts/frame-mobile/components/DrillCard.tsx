@@ -1,7 +1,7 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { View } from "react-native";
 
-import { fonts, palette, radius } from "@/constants/theme";
+import { BlockCard, BlockRow } from "@/components/BlockCard";
 
 export type Drill = {
   title?: string;
@@ -15,94 +15,22 @@ export type Drill = {
 
 const FIELDS: { key: keyof Drill; label: string }[] = [
   { key: "objective", label: "Objective" },
-  { key: "startPosition", label: "Start" },
+  { key: "startPosition", label: "Start position" },
   { key: "constraint", label: "Constraint" },
   { key: "rounds", label: "Rounds" },
-  { key: "failureCondition", label: "Failure → Reset" },
+  { key: "failureCondition", label: "If it fails" },
   { key: "progression", label: "Progression" },
 ];
 
 export function DrillCard({ drill }: { drill: Drill }) {
+  const rows = FIELDS.filter(({ key }) => !!drill[key]);
   return (
-    <View style={s.card}>
-      <View style={s.head}>
-        <Text style={s.headLabel}>PRESCRIPTION</Text>
-        <Text style={s.headKind}>DRILL</Text>
+    <BlockCard kind="Drill" title={drill.title}>
+      <View style={{ marginTop: 10 }}>
+        {rows.map(({ key, label }, i) => (
+          <BlockRow key={key} label={label} value={String(drill[key])} first={i === 0} />
+        ))}
       </View>
-      {drill.title ? <Text style={s.title}>{drill.title}</Text> : null}
-      <View style={s.body}>
-        {FIELDS.map(({ key, label }) =>
-          drill[key] ? (
-            <View key={key} style={s.fieldRow}>
-              <Text style={s.fieldLabel}>{label}</Text>
-              <Text style={s.fieldValue}>{drill[key]}</Text>
-            </View>
-          ) : null,
-        )}
-      </View>
-    </View>
+    </BlockCard>
   );
 }
-
-const s = StyleSheet.create({
-  card: {
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-    borderRadius: radius.md,
-    backgroundColor: "rgba(185,164,119,0.10)",
-    overflow: "hidden",
-  },
-  head: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.hairline,
-    backgroundColor: palette.goldWash,
-  },
-  headLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.8,
-    color: palette.goldLight,
-  },
-  headKind: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.4,
-    color: palette.textMid,
-  },
-  title: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 4,
-    fontFamily: fonts.displayThin,
-    fontSize: 17,
-    lineHeight: 21,
-    color: palette.textHi,
-  },
-  body: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  fieldRow: {
-    gap: 3,
-  },
-  fieldLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.6,
-    color: palette.goldLight,
-  },
-  fieldValue: {
-    fontFamily: fonts.text,
-    fontSize: 14.5,
-    color: palette.text,
-    lineHeight: 21,
-  },
-});

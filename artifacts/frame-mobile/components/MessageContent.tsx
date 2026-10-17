@@ -4,7 +4,8 @@ import { DrillCard, type Drill } from "@/components/DrillCard";
 import { BreathCard, type Breath } from "@/components/BreathCard";
 import { RegulateSequence, type RegulateSequenceData } from "@/components/RegulateSequence";
 import { GLOSSARY, GLOSSARY_KEYS, type GlossEntry } from "@/lib/glossary";
-import { fonts, palette, radius } from "@/constants/theme";
+import { Button } from "@/components/ui";
+import { fonts, palette, radius, type as T } from "@/constants/theme";
 
 // ─── Block parsing ──────────────────────────────────────────────────────────
 const BLOCK_RE = /```(drill|breath|regulate)\s*\n([\s\S]*?)\n?```/g;
@@ -185,28 +186,25 @@ export function MessageContent({
                       <Text style={s.whyText}>{active.entry.why}</Text>
                     </View>
                   ) : (
-                    <Pressable onPress={() => setShowWhy(true)} style={s.linkBtn}>
-                      <Text style={s.linkText}>Why it matters →</Text>
+                    <Pressable onPress={() => setShowWhy(true)} style={s.linkBtn} accessibilityRole="button">
+                      <Text style={s.linkText}>Why it matters</Text>
                     </Pressable>
                   )
                 ) : null}
 
-                {active.entry.train && onTrain ? (
-                  <Pressable
-                    style={s.trainBtn}
-                    onPress={() => {
-                      const prompt = active.entry.train!;
-                      setActive(null);
-                      onTrain(prompt);
-                    }}
-                  >
-                    <Text style={s.trainText}>Train this →</Text>
-                  </Pressable>
-                ) : null}
-
-                <Pressable style={s.closeBtn} onPress={() => setActive(null)}>
-                  <Text style={s.closeText}>Close</Text>
-                </Pressable>
+                <View style={s.actions}>
+                  {active.entry.train && onTrain ? (
+                    <Button
+                      title="Train this"
+                      onPress={() => {
+                        const prompt = active.entry.train!;
+                        setActive(null);
+                        onTrain(prompt);
+                      }}
+                    />
+                  ) : null}
+                  <Button title="Close" variant="secondary" onPress={() => setActive(null)} />
+                </View>
               </>
             )}
           </Pressable>
@@ -217,43 +215,19 @@ export function MessageContent({
 }
 
 const s = StyleSheet.create({
-  paragraph: {
-    fontFamily: fonts.text,
-    fontSize: 15,
-    lineHeight: 23,
-    color: palette.text,
-  },
-  paragraphGap: {
-    marginTop: 10,
-  },
-  bold: {
-    color: palette.textHi,
-    fontFamily: fonts.textSemi,
-  },
-  concept: {
-    color: palette.goldLight,
-    fontFamily: fonts.displayThin,
-    fontSize: 12.5,
-  },
+  paragraph: { ...T.chat, color: palette.textHi },
+  paragraphGap: { marginTop: 14 },
+  bold: { color: palette.textHi, fontFamily: fonts.semi },
+  concept: { color: palette.goldPale, fontFamily: fonts.medium },
   gloss: {
-    color: palette.goldPale,
+    color: palette.textHi,
     textDecorationLine: "underline",
     textDecorationStyle: "dotted",
-    textDecorationColor: palette.goldHair,
+    textDecorationColor: palette.textLow,
   },
-  list: {
-    marginTop: 6,
-    gap: 4,
-  },
-  listItem: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  bullet: {
-    color: palette.goldLight,
-    fontSize: 15,
-    lineHeight: 23,
-  },
+  list: { marginTop: 8, gap: 8 },
+  listItem: { flexDirection: "row", gap: 10, paddingRight: 4 },
+  bullet: { color: palette.textLow, fontSize: 16.5, lineHeight: 26, width: 8 },
   backdrop: {
     flex: 1,
     backgroundColor: palette.scrim,
@@ -264,83 +238,18 @@ const s = StyleSheet.create({
   sheet: {
     width: "100%",
     maxWidth: 420,
-    backgroundColor: palette.graphite2,
+    backgroundColor: palette.raised,
     borderWidth: 1,
-    borderColor: palette.goldHair,
-    borderRadius: radius.lg,
+    borderColor: palette.borderStrong,
+    borderRadius: radius.xl,
     padding: 24,
   },
-  sheetTerm: {
-    fontFamily: fonts.displayThin,
-    fontSize: 18,
-    lineHeight: 22,
-    color: palette.goldPale,
-    marginBottom: 10,
-  },
-  sheetQuick: {
-    fontFamily: fonts.text,
-    fontSize: 15,
-    color: palette.text,
-    lineHeight: 23,
-  },
-  whyBlock: {
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: palette.hairline,
-  },
-  whyLabel: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12.5,
-    letterSpacing: 1.6,
-    color: palette.goldLight,
-    marginBottom: 6,
-  },
-  whyText: {
-    fontFamily: fonts.text,
-    fontSize: 14,
-    color: palette.textMid,
-    lineHeight: 21,
-  },
-  linkBtn: {
-    marginTop: 8,
-    minHeight: 44,
-    justifyContent: "center",
-  },
-  linkText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 13,
-    letterSpacing: 0.4,
-    color: palette.goldLight,
-  },
-  trainBtn: {
-    marginTop: 10,
-    alignSelf: "flex-start",
-    minHeight: 44,
-    justifyContent: "center",
-    borderRadius: radius.pill,
-    backgroundColor: palette.goldWash,
-    borderWidth: 1,
-    borderColor: palette.goldHair,
-    paddingHorizontal: 22,
-  },
-  trainText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.2,
-    color: palette.goldPale,
-  },
-  closeBtn: {
-    marginTop: 12,
-    alignSelf: "flex-end",
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: 8,
-  },
-  closeText: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.2,
-    color: palette.textMid,
-  },
+  sheetTerm: { fontFamily: fonts.semi, fontSize: 20, lineHeight: 26, letterSpacing: -0.3, color: palette.textHi, marginBottom: 10 },
+  sheetQuick: { ...T.body, color: palette.textHi },
+  whyBlock: { marginTop: 16, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.borderStrong },
+  whyLabel: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid, marginBottom: 6 },
+  whyText: { ...T.bodySm, color: palette.textMid, lineHeight: 21 },
+  linkBtn: { marginTop: 8, minHeight: 44, justifyContent: "center" },
+  linkText: { fontFamily: fonts.medium, fontSize: 14, color: palette.goldPale },
+  actions: { marginTop: 16, gap: 10 },
 });
