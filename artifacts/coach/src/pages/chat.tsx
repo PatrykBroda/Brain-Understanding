@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
-import { Send, Square, RefreshCcw, ChevronLeft, Paperclip, X, Mic } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Square, RefreshCcw, ChevronLeft, Paperclip, X, Mic } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useFighter } from "@/hooks/use-fighter";
@@ -9,9 +9,7 @@ import { MessageContent } from "@/components/message-content";
 import { FramePlusPill } from "@/components/frame-plus-modal";
 import { EntrySequence } from "@/components/entry-sequence";
 import { CompetitionBanner } from "@/components/competition-banner";
-import { FrameOctagon } from "@/components/frame-octagon";
 import { FrameWordmark } from "@/components/frame-wordmark";
-import { Button } from "@/components/ui/button";
 import { api, attachmentFileUrl, type AttachmentDto } from "@/lib/api";
 import { useAuthedObjectUrl } from "@/lib/useAuthedObjectUrl";
 import { useQueryClient } from "@tanstack/react-query";
@@ -28,7 +26,6 @@ const QUICK_ACTIONS: { label: string; prompt: string }[] = [
 const SUGGESTED_PROMPTS = [
   "Debrief tonight's roll",
   "I fragmented under pressure today",
-  "Walk me through a containment cycle",
   "What's my next rep on the half-guard pass?",
 ];
 
@@ -45,9 +42,9 @@ function AttachmentThumb({
   // header, so load the bytes through an authed object URL instead.
   const url = useAuthedObjectUrl(attachmentFileUrl(att.id));
   return (
-    <div className="relative inline-block border border-white/10 bg-[#08090B] overflow-hidden rounded-2xl">
+    <div className="relative inline-block border border-white/10 bg-[#08090B] overflow-hidden rounded-[14px]">
       {!url ? (
-        <div className="flex h-24 w-24 items-center justify-center text-muted-foreground/90 text-xs ">
+        <div className="flex h-24 w-24 items-center justify-center text-muted-foreground text-[0.8125rem]">
           Loading
         </div>
       ) : att.kind === "image" ? (
@@ -67,10 +64,10 @@ function AttachmentThumb({
         <button
           type="button"
           onClick={onRemove}
-          className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-[#08090B]/80 hover:bg-[#08090B] border border-white/15 flex items-center justify-center text-foreground/85 hover:text-destructive transition-colors rounded-2xl"
+          className="absolute top-1.5 right-1.5 w-9 h-9 bg-[#08090B]/85 hover:bg-[#08090B] border border-white/15 flex items-center justify-center text-foreground/85 hover:text-foreground transition-colors rounded-[12px]"
           aria-label="Remove attachment"
         >
-          <X className="w-3.5 h-3.5" strokeWidth={2} />
+          <X className="w-4 h-4" strokeWidth={1.75} />
         </button>
       )}
     </div>
@@ -240,93 +237,97 @@ export default function ChatPage() {
         />
       )}
       <div className="flex flex-col h-[100dvh] text-foreground font-sans">
-        <header className="flex-none flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-white/[0.07] bg-[#08090B]/60 backdrop-blur-xl">
-          <Link href="/home" className="btn-quiet btn-quiet-sm !px-3">
+        <header className="flex-none flex items-center justify-between gap-2 px-3 md:px-5 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 border-b border-white/[0.07] bg-[#08090B]">
+          <Link href="/home" className="btn-quiet !border-transparent !px-2.5" aria-label="Back to home">
             <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
-            <span className="text-xs ">Home</span>
+            <span className="hidden sm:inline text-[0.875rem]">Home</span>
           </Link>
           <div className="flex items-center gap-3">
             <FrameWordmark size={22} />
             <FramePlusPill />
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            type="button"
             onClick={() => reset()}
-            className="text-muted-foreground hover:text-foreground text-xs -mr-2"
+            className="btn-quiet !border-transparent !px-2.5 text-muted-foreground hover:text-foreground"
+            aria-label="Start a new conversation"
           >
-            <RefreshCcw className="w-3 h-3 mr-1.5" />
-            Reset
-          </Button>
+            <RefreshCcw className="w-4 h-4" strokeWidth={1.5} />
+            <span className="hidden sm:inline text-[0.875rem]">New chat</span>
+          </button>
         </header>
 
-        <div className="flex-none">
+        <div className="flex-none px-5 md:px-6 pt-3 max-w-3xl w-full mx-auto">
           <CompetitionBanner />
         </div>
 
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
+          <div className="max-w-3xl mx-auto px-5 md:px-6 py-6">
             {isLoading ? (
-              <div className="flex justify-center pt-20 text-muted-foreground text-xs ">
-                Loading state…
+              <div
+                className="flex flex-col items-center justify-center gap-3 pt-24 text-muted-foreground text-[0.9375rem]"
+                role="status"
+              >
+                <span className="h-5 w-5 rounded-full border-2 border-white/15 border-t-[#B9A477] animate-spin motion-reduce:animate-none" aria-hidden />
+                Loading your conversation
               </div>
             ) : messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center min-h-[55vh] gap-10 animate-in fade-in duration-700">
-                <div className="text-center space-y-4">
-                  <div className="eyebrow">
-                    Frame open
-                  </div>
-                  <p className="font-display text-[1.25rem] leading-snug text-foreground/90 max-w-sm">
-                    Say what happened. Debrief a session, request a drill, regulate, or reflect.
+              <div className="flex flex-col justify-center min-h-[52vh] gap-8 frame-rise">
+                <div className="space-y-3 max-w-md">
+                  <h1 className="display-title">Your corner is open.</h1>
+                  <p className="text-[1.0625rem] leading-[1.6] text-muted-foreground">
+                    Say what happened in training. Debrief a session, ask for a drill, regulate, or reflect.
                   </p>
                 </div>
-                <div className="w-full max-w-xl grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {SUGGESTED_PROMPTS.map((prompt) => (
-                    <button
-                      key={prompt}
-                      onClick={() => void requestSend(prompt)}
-                      className="glass group text-left p-4 min-h-[56px] hover:border-primary/40 transition-colors text-[0.85rem] leading-snug text-foreground/85 hover:text-foreground"
-                    >
-                      <span className="text-[#B9A477] group-hover:text-[#B9A477] mr-2 transition-colors">—</span>
-                      {prompt}
-                    </button>
-                  ))}
+                <div className="w-full max-w-xl" role="list" aria-label="Suggested prompts">
+                  <div className="label mb-2">Try asking</div>
+                  <div className="glass overflow-hidden">
+                    {SUGGESTED_PROMPTS.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        role="listitem"
+                        onClick={() => void requestSend(prompt)}
+                        className="group flex w-full items-center justify-between gap-3 min-h-[56px] px-4 py-3 text-left text-[1rem] leading-snug text-foreground/90 border-t border-white/[0.06] first:border-t-0 hover:bg-white/[0.03] transition-colors"
+                      >
+                        <span>{prompt}</span>
+                        <ArrowUpRight className="w-4 h-4 flex-none text-muted-foreground group-hover:text-[#B9A477] transition-colors" strokeWidth={1.5} />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className="space-y-10">
+              <div className="space-y-8">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
                   >
-                    <div
-                      className={`text-xs mb-2.5 px-1 ${
-                        msg.role === "user" ? "text-foreground/70" : "text-[#B9A477]"
-                      }`}
-                    >
-                      {msg.role === "user" ? (fighter?.name ?? "Operator") : "FRAME"}
-                    </div>
+                    {msg.role === "assistant" && (
+                      <div className="label mb-2 !text-[#B9A477]">Coach</div>
+                    )}
                     <div
                       className={
                         msg.role === "user"
-                          ? "max-w-[90%] md:max-w-[80%] space-y-2"
-                          : "max-w-full text-foreground"
+                          ? "max-w-[88%] md:max-w-[34rem] space-y-2"
+                          : "w-full text-foreground"
                       }
                     >
                       {msg.attachments && msg.attachments.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
+                        <div className={`flex flex-wrap gap-2 ${msg.role === "user" ? "justify-end" : ""}`}>
                           {msg.attachments.map((a) => (
                             <AttachmentThumb key={a.id} att={a} />
                           ))}
                         </div>
                       )}
                       {msg.role === "assistant" && msg.pending && !msg.content ? (
-                        <div className="flex items-center py-2">
-                          <FrameOctagon size={30} spin spinSeconds={4} glow={false} color="#EDEDED" />
+                        <div className="flex items-center gap-3 py-1.5 text-[1rem] text-muted-foreground" role="status">
+                          <span className="h-4 w-4 rounded-full border-2 border-white/15 border-t-[#B9A477] animate-spin motion-reduce:animate-none" aria-hidden />
+                          Coach is thinking…
                         </div>
                       ) : msg.role === "user" && msg.content ? (
-                        <div className="glass glass-gold !rounded-[1.5rem] !rounded-br-md text-foreground px-4 py-3 whitespace-pre-wrap text-[0.95rem] leading-relaxed">
+                        <div className="rounded-[18px] rounded-br-[6px] border border-white/10 bg-[#191C20] text-foreground px-4 py-3 whitespace-pre-wrap text-[1.0625rem] leading-[1.6]">
                           {msg.content}
                         </div>
                       ) : msg.content ? (
@@ -341,8 +342,14 @@ export default function ChatPage() {
                   </div>
                 ))}
                 {error && (
-                  <div className="p-4 glass glass-red !rounded-2xl text-destructive/90 text-xs flex flex-col items-center gap-3 text-center">
-                    <span>{error}</span>
+                  <div
+                    role="alert"
+                    className="glass glass-red p-4 flex flex-col sm:flex-row sm:items-center gap-3 text-[0.9375rem] leading-snug"
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium text-[#E5645A]">Message did not go through</div>
+                      <div className="text-foreground/80 mt-0.5">{error}</div>
+                    </div>
                     <button
                       type="button"
                       onClick={() => {
@@ -366,9 +373,9 @@ export default function ChatPage() {
                           });
                       }}
                       disabled={isStreaming}
-                      className="btn-quiet btn-quiet-red btn-quiet-sm disabled:opacity-40"
+                      className="btn-quiet btn-quiet-red flex-none"
                     >
-                      <RefreshCcw className="w-3 h-3" />
+                      <RefreshCcw className="w-4 h-4" strokeWidth={1.5} />
                       Retry
                     </button>
                   </div>
@@ -379,26 +386,24 @@ export default function ChatPage() {
           </div>
         </main>
 
-        <footer className="flex-none p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-[#08090B]/60 backdrop-blur-xl border-t border-white/[0.07]">
+        <footer className="flex-none px-3 md:px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-[#08090B] border-t border-white/[0.07]">
           <div className="max-w-3xl mx-auto space-y-3">
-            {messages.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                {QUICK_ACTIONS.map((qa) => (
-                  <button
-                    key={qa.label}
-                    onClick={() => {
-                      // Ignore taps while a reply streams instead of disabling
-                      // the button — `disabled:opacity-40` faded the low-contrast
-                      // label to near-invisible, so the chips looked empty.
-                      if (!isStreaming) void requestSend(qa.prompt);
-                    }}
-                    className="flex-none hover:text-foreground btn-quiet btn-quiet-sm"
-                  >
-                    {qa.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="flex gap-2 overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0 pb-0.5" role="group" aria-label="Quick prompts">
+              {QUICK_ACTIONS.map((qa) => (
+                <button
+                  key={qa.label}
+                  type="button"
+                  onClick={() => {
+                    // Ignore taps while a reply streams instead of disabling
+                    // the button (a dimmed label looked empty).
+                    if (!isStreaming) void requestSend(qa.prompt);
+                  }}
+                  className="pill flex-none !px-4 !text-[0.875rem] whitespace-nowrap"
+                >
+                  {qa.label}
+                </button>
+              ))}
+            </div>
 
             {drafts.length > 0 && (
               <div className="flex flex-wrap gap-2 px-1">
@@ -409,12 +414,12 @@ export default function ChatPage() {
             )}
 
             {uploadError && (
-              <div className="text-xs text-destructive px-1">
+              <div className="text-[0.875rem] text-[#E5645A] px-1" role="alert">
                 {uploadError}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="relative flex items-end gap-2">
+            <form onSubmit={handleSubmit} className="relative">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -423,87 +428,70 @@ export default function ChatPage() {
                 onChange={handleFileChange}
                 className="sr-only"
               />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading || isStreaming || !conversationId}
-                className="icon-round flex-none !h-[52px] !w-[52px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
-                aria-label="Attach image or video"
+              <div
+                className={`flex items-end gap-1 rounded-[16px] border bg-[#111316] p-1.5 transition-colors ${
+                  listening ? "border-[#B9A477]/60" : "border-white/[0.12] focus-within:border-[#B9A477]/50"
+                } ${isStreaming ? "opacity-70" : ""}`}
               >
-                {uploading ? (
-                  <FrameOctagon size={20} spin spinSeconds={3} glow={false} />
-                ) : (
-                  <Paperclip className="w-4 h-4" strokeWidth={1.5} />
-                )}
-              </button>
-              <div className="relative flex-1">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading || isStreaming || !conversationId}
+                  className="flex h-11 w-11 flex-none items-center justify-center rounded-[12px] text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition-colors disabled:opacity-40"
+                  aria-label="Attach image or video"
+                >
+                  {uploading ? (
+                    <span className="h-4 w-4 rounded-full border-2 border-white/15 border-t-[#B9A477] animate-spin motion-reduce:animate-none" aria-hidden />
+                  ) : (
+                    <Paperclip className="w-5 h-5" strokeWidth={1.5} />
+                  )}
+                </button>
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={listening ? "Listening..." : "Enter transmission..."}
-                  className={`field-glass !rounded-[1.5rem] resize-none !min-h-[52px] max-h-[200px] !py-3.5 !pl-5 text-sm placeholder:text-muted-foreground ${
-                    voiceSupported ? "pr-[5.25rem]" : "pr-12"
-                  }`}
+                  placeholder={listening ? "Listening…" : "Message your coach"}
+                  aria-label="Message your coach"
+                  className="min-w-0 flex-1 resize-none bg-transparent border-0 outline-none focus:outline-none focus-visible:outline-none min-h-[44px] max-h-[200px] py-[10px] px-2 text-[1rem] leading-[1.5] text-foreground placeholder:text-[#8A8F96]"
                   rows={1}
                   disabled={isStreaming}
                 />
-                <div className="absolute right-1.5 bottom-1.5 flex items-center gap-0.5">
-                  {voiceSupported && !isStreaming && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={toggleVoice}
-                      aria-label={listening ? "Stop voice input" : "Speak your message"}
-                      aria-pressed={listening}
-                      className={`h-9 w-9 transition-colors ${
-                        listening
-                          ? "text-destructive hover:text-destructive hover:bg-destructive/10 frame-mic-live"
-                          : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
-                      }`}
-                    >
-                      <Mic className="w-4 h-4" strokeWidth={1.5} />
-                    </Button>
-                  )}
-                  {isStreaming ? (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={stop}
-                      className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Square className="w-4 h-4 fill-current" />
-                    </Button>
-                  ) : (
-                    <Button
-                      type="submit"
-                      size="icon"
-                      variant="ghost"
-                      disabled={!canSend}
-                      className="h-9 w-9 text-[#B9A477] hover:text-[#B9A477] hover:bg-primary/10"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
+                {voiceSupported && !isStreaming && (
+                  <button
+                    type="button"
+                    onClick={toggleVoice}
+                    aria-label={listening ? "Stop voice input" : "Speak your message"}
+                    aria-pressed={listening}
+                    className={`flex h-11 w-11 flex-none items-center justify-center rounded-[12px] transition-colors ${
+                      listening
+                        ? "bg-[#191C20] text-[#B9A477] frame-mic-live"
+                        : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
+                    }`}
+                  >
+                    <Mic className="w-5 h-5" strokeWidth={1.5} />
+                  </button>
+                )}
+                {isStreaming ? (
+                  <button
+                    type="button"
+                    onClick={stop}
+                    aria-label="Stop response"
+                    className="flex h-11 w-11 flex-none items-center justify-center rounded-[12px] border border-white/[0.12] bg-[#191C20] text-foreground hover:bg-[#1F2328] transition-colors"
+                  >
+                    <Square className="w-4 h-4 fill-current" />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={!canSend}
+                    aria-label="Send message"
+                    className="flex h-11 w-11 flex-none items-center justify-center rounded-[12px] bg-[#B9A477] text-[#0B0C0E] hover:bg-[#C4B084] active:bg-[#A8946A] disabled:bg-[#191C20] disabled:text-[#8A8F96] transition-colors"
+                  >
+                    <ArrowUp className="w-5 h-5" strokeWidth={2} />
+                  </button>
+                )}
               </div>
             </form>
-
-            {messages.length === 0 && (
-              <div className="flex flex-wrap gap-2 justify-center pt-1">
-                {QUICK_ACTIONS.map((qa) => (
-                  <button
-                    key={qa.label}
-                    onClick={() => void requestSend(qa.prompt)}
-                    className="hover:text-foreground btn-quiet btn-quiet-sm"
-                  >
-                    {qa.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </footer>
       </div>

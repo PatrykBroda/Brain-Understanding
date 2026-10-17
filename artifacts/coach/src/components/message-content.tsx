@@ -79,9 +79,9 @@ function Glossable({ term, entry }: { term: string; entry: GlossEntry }) {
       {open && (
         <span
           role="tooltip"
-          className="absolute left-0 bottom-full z-20 mb-1 w-64 max-w-[78vw] rounded-sm border border-primary/30 bg-popover px-3 py-2.5 text-[0.78rem] leading-snug text-foreground/90 shadow-lg"
+          className="overlay-surface absolute left-0 bottom-full z-20 mb-2 w-72 max-w-[78vw] rounded-[14px] px-4 py-3 text-[0.875rem] leading-[1.55] text-foreground/90"
         >
-          <span className="block text-xs text-[#B9A477] mb-1">
+          <span className="block text-[0.8125rem] font-medium text-[#B9A477] mb-1">
             {term}
           </span>
           <span className="block">{entry.quick}</span>
@@ -97,7 +97,7 @@ function Glossable({ term, entry }: { term: string; entry: GlossEntry }) {
               <button
                 type="button"
                 onClick={() => setShowWhy(true)}
-                className="text-xs text-[#B9A477] hover:text-[#B9A477] transition-colors"
+                className="min-h-[32px] text-[0.8125rem] font-medium text-[#D4C7A3] hover:text-foreground transition-colors"
               >
                 Why it matters
               </button>
@@ -109,7 +109,7 @@ function Glossable({ term, entry }: { term: string; entry: GlossEntry }) {
                   onTrain(entry.train!);
                   close();
                 }}
-                className="text-xs text-[#B9A477] hover:text-[#B9A477] transition-colors"
+                className="min-h-[32px] text-[0.8125rem] font-medium text-[#D4C7A3] hover:text-foreground transition-colors"
               >
                 Train this →
               </button>
@@ -151,7 +151,7 @@ function renderInline(text: string, baseKey: string) {
     const key = `${baseKey}-${i}`;
     if (p.startsWith("[[") && p.endsWith("]]")) {
       return (
-        <span key={key} className="synochi-concept">
+        <span key={key} className="synochi-concept !font-sans !text-[1em] !font-medium !rounded-md">
           {p.slice(2, -2)}
         </span>
       );
@@ -173,11 +173,34 @@ function renderText(text: string, baseKey: string) {
     const key = `${baseKey}-p-${i}`;
     const lines = p.split("\n");
     const isList = lines.every((l) => /^\s*[-*]\s+/.test(l));
+    const isNumbered = lines.every((l) => /^\s*\d+[.)]\s+/.test(l));
+    const heading = /^#{1,4}\s+/.test(p) && lines.length === 1;
+    if (heading) {
+      return (
+        <h4 key={key} className="section-title !text-[1.0625rem] pt-2">
+          {renderInline(p.replace(/^#{1,4}\s+/, ""), key)}
+        </h4>
+      );
+    }
+    if (isNumbered) {
+      return (
+        <ol key={key} className="space-y-3">
+          {lines.map((l, j) => (
+            <li key={`${key}-ol-${j}`} className="flex gap-3 text-[1.0625rem] leading-[1.7]">
+              <span className="tnum mt-[3px] flex h-6 w-6 flex-none items-center justify-center rounded-lg border border-white/10 bg-[#191C20] text-[0.8125rem] font-medium text-[#D4C7A3]">
+                {j + 1}
+              </span>
+              <span className="min-w-0 flex-1">{renderInline(l.replace(/^\s*\d+[.)]\s+/, ""), `${key}-ol-${j}`)}</span>
+            </li>
+          ))}
+        </ol>
+      );
+    }
     if (isList) {
       return (
-        <ul key={key} className="list-disc pl-5 space-y-1.5 marker:text-[#B9A477]">
+        <ul key={key} className="list-disc pl-5 space-y-2 marker:text-[#8A8F96]">
           {lines.map((l, j) => (
-            <li key={`${key}-li-${j}`} className="leading-relaxed text-[0.95rem]">
+            <li key={`${key}-li-${j}`} className="leading-[1.7] text-[1.0625rem] pl-1">
               {renderInline(l.replace(/^\s*[-*]\s+/, ""), `${key}-li-${j}`)}
             </li>
           ))}
@@ -185,7 +208,7 @@ function renderText(text: string, baseKey: string) {
       );
     }
     return (
-      <p key={key} className="leading-relaxed text-[0.95rem] whitespace-pre-wrap">
+      <p key={key} className="leading-[1.7] text-[1.0625rem] whitespace-pre-wrap">
         {renderInline(p, key)}
       </p>
     );
@@ -202,11 +225,11 @@ export function MessageContent({
   const segs = segment(content);
   return (
     <TrainContext.Provider value={onTrain ?? null}>
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-[68ch]">
         {segs.map((s, i) => {
           if (s.kind === "text") {
             return (
-              <div key={i} className="space-y-3">
+              <div key={i} className="space-y-4">
                 {renderText(s.text, `seg-${i}`)}
               </div>
             );

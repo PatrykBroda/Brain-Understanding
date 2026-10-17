@@ -23,7 +23,7 @@ const STEP_LABEL: Record<string, string> = {
 const CSS = `
 @keyframes reg-fade { from{opacity:0} to{opacity:1} }
 @keyframes reg-up   { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
-@keyframes reg-pulse-left { 0%{border-color:hsl(var(--primary)/0.2)} 55%{border-color:hsl(var(--primary)/0.85)} 100%{border-color:hsl(var(--primary)/0.55)} }
+@media (prefers-reduced-motion: reduce){ [style*="reg-"]{animation:none !important} }
 `;
 
 // ─── State step ───────────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ const CSS = `
 function StateCard({ step, onDone }: { step: StateStep; onDone: () => void }) {
   return (
     <div className="px-5 py-5 space-y-4" style={{ animation: "reg-fade 0.4s ease-out" }}>
-      <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">{step.content}</p>
+      <p className="text-[0.9375rem] text-foreground/90 leading-[1.6] whitespace-pre-wrap">{step.content}</p>
       <button
         type="button"
         onClick={onDone}
@@ -96,14 +96,12 @@ function GroundingCard({ step, onDone }: { step: GroundingStep; onDone: () => vo
   return (
     <div className="flex flex-col items-center px-4 py-6">
       {step.title && (
-        <div className="eyebrow mb-5">
-          {step.title}
-        </div>
+        <div className="label mb-5">{step.title}</div>
       )}
 
       {done ? (
         <div className="flex flex-col items-center gap-4" style={{ animation: "reg-fade 0.4s ease-out" }}>
-          <div className="font-display text-2xl text-[hsl(var(--primary-pale))]">Anchored</div>
+          <div className="font-display text-2xl text-[#D4C7A3]">Anchored</div>
           <button
             type="button"
             onClick={onDone}
@@ -117,13 +115,13 @@ function GroundingCard({ step, onDone }: { step: GroundingStep; onDone: () => vo
           {/* Big count */}
           <div
             className="numeral leading-none select-none"
-            style={{ fontSize: "6.5rem", color: "rgba(185,164,119,0.28)" }}
+            style={{ fontSize: "4rem", color: "#B9A477" }}
           >
             {remaining}
           </div>
 
           {/* Prompt */}
-          <p className="text-center text-sm text-foreground/80 leading-relaxed max-w-xs">
+          <p className="text-center text-[0.9375rem] text-foreground/90 leading-[1.6] max-w-xs">
             {prompts[idx]}
           </p>
 
@@ -134,9 +132,9 @@ function GroundingCard({ step, onDone }: { step: GroundingStep; onDone: () => vo
                 key={i}
                 className={`rounded-full transition-all duration-300 ${
                   i === idx
-                    ? "w-4 h-1.5 bg-[hsl(var(--primary-light))]"
+                    ? "w-4 h-1.5 bg-[#B9A477]"
                     : i < idx
-                    ? "w-1.5 h-1.5 bg-[hsl(var(--primary-light))]/40"
+                    ? "w-1.5 h-1.5 bg-[#B9A477]/40"
                     : "w-1.5 h-1.5 bg-white/15"
                 }`}
               />
@@ -162,10 +160,9 @@ function FocusCard({ step, onDone }: { step: FocusStep; onDone: () => void }) {
   return (
     <div className="px-5 py-5 space-y-4" style={{ animation: "reg-fade 0.5s ease-out" }}>
       <div
-        className="border-l-2 border-[hsl(var(--primary-light))]/60 pl-4 py-0.5"
-        style={{ animation: "reg-pulse-left 1.8s ease-in-out 1" }}
+        className="border-l-2 border-[#B9A477]/60 pl-4 py-0.5"
       >
-        <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">
+        <p className="text-[0.9375rem] text-foreground/90 leading-[1.6] whitespace-pre-wrap">
           {step.content}
         </p>
       </div>
@@ -201,18 +198,18 @@ export function RegulateSequence({ data }: { data: RegulateSequenceData }) {
   const label = STEP_LABEL[step.type] ?? step.type;
 
   return (
-    <div className="glass glass-gold my-4 overflow-hidden">
+    <section className="glass my-5 overflow-hidden" aria-label="Regulation sequence">
       <style>{CSS}</style>
 
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-white/10">
-        <div className="eyebrow eyebrow-gold">Regulate</div>
+      <header className="flex items-center justify-between gap-3 px-5 pt-4 pb-3 border-b border-white/[0.06]">
+        <span className="chip chip-gold">Regulate</span>
         {!finished && (
-          <div className="eyebrow">
-            {label} · {stepIdx + 1}/{steps.length}
+          <div className="label tnum">
+            {label} · step {stepIdx + 1} of {steps.length}
           </div>
         )}
-      </div>
+      </header>
 
       {/* Step content */}
       {finished ? (
@@ -220,9 +217,7 @@ export function RegulateSequence({ data }: { data: RegulateSequenceData }) {
           className="px-4 py-8 flex flex-col items-center gap-2"
           style={{ animation: "reg-fade 0.5s ease-out" }}
         >
-          <div className="eyebrow eyebrow-gold">
-            Sequence complete
-          </div>
+          <div className="label !text-[#B9A477]">Sequence complete</div>
         </div>
       ) : (
         <div key={stepIdx}>
@@ -241,15 +236,15 @@ export function RegulateSequence({ data }: { data: RegulateSequenceData }) {
               key={i}
               className={`rounded-full transition-all duration-300 ${
                 i === stepIdx
-                  ? "w-5 h-1 bg-[hsl(var(--primary-light))]"
+                  ? "w-5 h-1 bg-[#B9A477]"
                   : i < stepIdx
-                  ? "w-2 h-1 bg-[hsl(var(--primary-light))]/40"
+                  ? "w-2 h-1 bg-[#B9A477]/40"
                   : "w-2 h-1 bg-white/15"
               }`}
             />
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }

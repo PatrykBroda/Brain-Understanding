@@ -58,33 +58,29 @@ export function BreathCard({
   const scale = running || done ? current.scale : 0.62;
   const transitionSec = running ? current.seconds : 0.4;
 
+  const reduceMotion =
+    typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
   const inner = (
     <>
       {breath.title && (
-        <div className="display-heading px-5 pt-5 pb-1 !text-[1.5rem]">
-          {breath.title}
-        </div>
+        <h3 className="display-heading px-5 pt-1 pb-1 !text-[1.1875rem]">{breath.title}</h3>
       )}
       {breath.purpose && (
-        <div className="px-5 pb-1 text-[0.85rem] text-muted-foreground leading-relaxed">
-          {breath.purpose}
-        </div>
+        <p className="px-5 pb-1 text-[0.9375rem] text-muted-foreground leading-[1.6]">{breath.purpose}</p>
       )}
 
       <div className="flex flex-col items-center px-4 py-6">
         <div className="relative flex items-center justify-center w-44 h-44">
           <div
-            className="absolute w-40 h-40 rounded-full border border-[hsl(var(--primary-light))]/60"
+            className="absolute w-40 h-40 rounded-full border border-[#B9A477]/50 bg-[#191C20]"
             style={{
-              background:
-                "radial-gradient(circle at 35% 30%, rgba(230,210,163,0.28), rgba(185,164,119,0.16) 55%, rgba(185,164,119,0.04) 100%)",
-              boxShadow: "0 0 48px rgba(185,164,119,0.30), inset 0 1px 0 rgba(255,255,255,0.25)",
-              transform: `scale(${scale})`,
-              transition: `transform ${transitionSec}s ease-in-out`,
+              transform: `scale(${reduceMotion ? 1 : scale})`,
+              transition: reduceMotion ? "none" : `transform ${transitionSec}s ease-in-out`,
             }}
           />
           <div className="relative text-center">
-            <div className="eyebrow eyebrow-gold">
+            <div className="label !text-[#B9A477]">
               {done ? "Done" : running ? current.label : "Ready"}
             </div>
             {!done && (
@@ -95,58 +91,33 @@ export function BreathCard({
           </div>
         </div>
 
-        <div className="eyebrow mt-4">
-          {done ? `${totalRounds} rounds complete` : `Round ${round} / ${totalRounds}`}
+        <div className="label mt-4 tnum">
+          {done ? `${totalRounds} rounds complete` : `Round ${round} of ${totalRounds}`}
         </div>
 
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
           {!running && !done && (
-            <button
-              type="button"
-              onClick={() => dispatch({ type: "BEGIN" })}
-              className="btn-bronze !min-h-[44px] !px-6"
-            >
-              Begin
+            <button type="button" onClick={() => dispatch({ type: "BEGIN" })} className="btn-bronze !min-h-[44px] !px-6">
+              {phaseIdx > 0 ? "Resume" : "Begin"}
             </button>
           )}
           {running && (
-            <button
-              type="button"
-              onClick={() => dispatch({ type: "PAUSE" })}
-              className="btn-glass !min-h-[44px] !px-6"
-            >
+            <button type="button" onClick={() => dispatch({ type: "PAUSE" })} className="btn-glass !min-h-[44px] !px-6">
               Pause
             </button>
           )}
           {!running && (phaseIdx > 0 || round > 1 || done) && (
-            <button
-              type="button"
-              onClick={() => dispatch({ type: "RESET" })}
-              className="btn-glass !min-h-[44px] !px-6"
-            >
+            <button type="button" onClick={() => dispatch({ type: "RESET" })} className="btn-glass !min-h-[44px] !px-6">
               Reset
-            </button>
-          )}
-          {!running && phaseIdx > 0 && !done && (
-            <button
-              type="button"
-              onClick={() => dispatch({ type: "BEGIN" })}
-              className="btn-bronze !min-h-[44px] !px-6"
-            >
-              Resume
             </button>
           )}
         </div>
 
-        <div className="mt-4 flex flex-wrap justify-center gap-x-3 gap-y-1">
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
           {phases.map((p, i) => (
             <span
               key={p.key + i}
-              className={`chip !px-2.5 !py-1 !text-xs ${
-                running && i === phaseIdx
-                  ? "!border-primary/50 !bg-primary/20 !text-[hsl(var(--primary-pale))]"
-                  : "!text-muted-foreground"
-              }`}
+              className={`chip tnum ${running && i === phaseIdx ? "chip-gold" : ""}`}
             >
               {p.label} {p.seconds}s
             </span>
@@ -155,9 +126,9 @@ export function BreathCard({
       </div>
 
       {breath.note && (
-        <div className="px-5 pb-5 text-[0.8rem] text-muted-foreground leading-relaxed border-t border-white/10 pt-3">
+        <p className="px-5 pb-5 text-[0.875rem] text-muted-foreground leading-[1.6] border-t border-white/[0.06] pt-3">
           {breath.note}
-        </div>
+        </p>
       )}
     </>
   );
@@ -165,12 +136,11 @@ export function BreathCard({
   if (embedded) return inner;
 
   return (
-    <div className="glass glass-gold my-4 overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-white/10">
-        <div className="eyebrow eyebrow-gold">Regulate</div>
-        <div className="eyebrow">Breath</div>
-      </div>
+    <section className="glass my-5 overflow-hidden" aria-label="Breathing exercise">
+      <header className="px-5 pt-4 pb-3">
+        <span className="chip chip-gold">Breathwork</span>
+      </header>
       {inner}
-    </div>
+    </section>
   );
 }
