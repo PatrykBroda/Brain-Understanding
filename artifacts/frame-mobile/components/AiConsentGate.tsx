@@ -1,13 +1,14 @@
 import React, { useState, useCallback } from "react";
 import { Alert, Linking, View, ActivityIndicator, StyleSheet, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
+import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPatch, apiDelete, apiUrl } from "@/lib/api";
 import { AiConsentStatus } from "@/lib/aiConsent";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
-import { Button, Display, Eyebrow, GlassCard, Screen } from "@/components/ui";
-import { fonts, palette } from "@/constants/theme";
+import { Button, Display, GlassCard, Screen } from "@/components/ui";
+import { fonts, MIN_TAP, palette, radius } from "@/constants/theme";
 
 export function AiConsentGate({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, signOut } = useAuth();
@@ -96,10 +97,10 @@ export function AiConsentGate({ children }: { children: React.ReactNode }) {
   // 1. Loading
   if (isLoading || !isLoaded) {
     return (
-      <Screen>
-        <View style={s.fullscreen}>
+      <Screen light="silver" focus="top">
+        <View style={s.fullscreen} accessibilityLabel="Loading">
           <Text style={s.wordmark}>FRAME</Text>
-          <ActivityIndicator size="small" color={palette.goldLight} style={{ marginTop: 28 }} />
+          <ActivityIndicator size="small" color={palette.textMid} style={{ marginTop: 24 }} />
         </View>
       </Screen>
     );
@@ -108,45 +109,37 @@ export function AiConsentGate({ children }: { children: React.ReactNode }) {
   // 2. Errored
   if (isError) {
     return (
-      <Screen tone="red">
+      <Screen light={null}>
         <View style={s.fullscreen}>
           <View style={s.cardWrap}>
-            <GlassCard tone="red" radius={32} padding={28}>
-              <Eyebrow style={{ color: palette.redLight, textAlign: "center" }}>
-                CONNECTION ERROR
-              </Eyebrow>
-              <Display size="heading" style={s.errorTitle}>
-                We can't reach FRAME.
-              </Display>
-              <Text style={s.errorBody}>
-                Could not load your permissions. Please check your connection and try again.
-              </Text>
+            <GlassCard tone="red" radius={radius.xl} padding={24} raised>
+              <View accessibilityRole="alert" style={s.errorStack}>
+                <View style={s.errorIcon}>
+                  <Feather name="wifi-off" size={20} color={palette.redText} />
+                </View>
+                <Display size="heading" style={s.errorTitle}>
+                  We can't reach FRAME
+                </Display>
+                <Text style={s.errorBody}>
+                  Could not load your permissions. Please check your connection and try again.
+                </Text>
+              </View>
 
-              <Button title="RETRY" onPress={() => refetch()} />
+              <Button title="Retry" onPress={() => refetch()} />
+              <Button title="Sign out" variant="secondary" onPress={() => void handleSignOut()} style={{ marginTop: 10 }} />
 
               <View style={s.linksRow}>
-                <Pressable
-                  style={s.linkBtn}
-                  accessibilityRole="link"
-                  onPress={() => void Linking.openURL(apiUrl("/privacy"))}
-                >
-                  <Text style={s.link}>PRIVACY POLICY</Text>
+                <Pressable style={s.linkBtn} accessibilityRole="link" onPress={() => void Linking.openURL(apiUrl("/privacy"))}>
+                  <Text style={s.link}>Privacy policy</Text>
                 </Pressable>
-                <Pressable
-                  style={s.linkBtn}
-                  accessibilityRole="link"
-                  onPress={() => void Linking.openURL(apiUrl("/terms"))}
-                >
-                  <Text style={s.link}>TERMS OF SERVICE</Text>
+                <Pressable style={s.linkBtn} accessibilityRole="link" onPress={() => void Linking.openURL(apiUrl("/terms"))}>
+                  <Text style={s.link}>Terms of service</Text>
                 </Pressable>
               </View>
 
-              <Button title="SIGN OUT" variant="glass" onPress={() => void handleSignOut()} />
-
               <Button
-                title="DELETE ACCOUNT"
+                title="Delete account"
                 variant="danger"
-                style={{ marginTop: 12 }}
                 loading={deletingAccount}
                 onPress={() => void handleDeleteAccount()}
               />
@@ -160,9 +153,9 @@ export function AiConsentGate({ children }: { children: React.ReactNode }) {
   // 3. Loaded but not accepted (including absent status due to parsing issues but success response, etc)
   if (!status?.accepted) {
     return (
-      <Screen>
+      <Screen light="silver" focus="top">
         <View style={s.fullscreen}>
-          {/* The modal mounts over the brand backdrop so no underlying app is visible */}
+          {/* The modal mounts over the canvas so no underlying app is visible */}
           <AiConsentModal
             visible={true}
             mandatory={true}
@@ -192,32 +185,38 @@ const s = StyleSheet.create({
   },
   cardWrap: { width: "100%", maxWidth: 420 },
   wordmark: {
-    fontFamily: fonts.numeralXL,
-    fontSize: 26,
-    letterSpacing: 10,
+    fontFamily: fonts.semi,
+    fontSize: 22,
+    letterSpacing: 8,
     color: palette.textHi,
   },
-  errorTitle: { textAlign: "center", marginTop: 8, marginBottom: 12 },
+  errorStack: { alignItems: "center", gap: 8, marginBottom: 20 },
+  errorIcon: {
+    width: MIN_TAP + 4,
+    height: MIN_TAP + 4,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: palette.redWash,
+    borderWidth: 1,
+    borderColor: palette.redHair,
+    marginBottom: 4,
+  },
+  errorTitle: { textAlign: "center" },
   errorBody: {
-    fontFamily: fonts.text,
+    fontFamily: fonts.regular,
     fontSize: 14,
     lineHeight: 21,
     color: palette.textMid,
     textAlign: "center",
-    marginBottom: 28,
   },
   linksRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
-    columnGap: 20,
+    columnGap: 24,
     marginVertical: 8,
   },
-  linkBtn: { minHeight: 44, justifyContent: "center" },
-  link: {
-    fontFamily: fonts.textMedium,
-    fontSize: 12,
-    letterSpacing: 1.4,
-    color: palette.goldLight,
-  },
+  linkBtn: { minHeight: MIN_TAP, justifyContent: "center" },
+  link: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid },
 });
