@@ -2,7 +2,7 @@ export { Screen } from "./Screen";
 export { Atmosphere } from "./Atmosphere";
 export { GlassCard, Card } from "./GlassCard";
 export { Eyebrow, Label, Display, Punch, Wordmark, Numeral, Body } from "./Typography";
-export { PhotoBackdrop, VideoBackdrop, media } from "./Backdrop";
+export { VideoBackdrop, AuthPanel, AUTH_PANEL_ALPHA, AUTH_SCRIM, media } from "./Backdrop";
 export { ArcGauge } from "./ArcGauge";
 export { TickScale } from "./TickScale";
 export { PillTabs } from "./PillTabs";

@@ -2,54 +2,16 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, VideoView } from "expo-video";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, useWindowDimensions, View, type ImageSourcePropType } from "react-native";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
-import { palette } from "@/constants/theme";
+import { palette, radius, space } from "@/constants/theme";
 import { useReducedMotion } from "./motion";
 
-/** FRAME's own imagery. All assets are graded MONOCHROME. The fight stills + loop are PLACEHOLDERS cut from stock clips (third-party: must not ship) until the client sends their edit. */
+/** FRAME's own imagery: the client's edit (monochrome, Pineapple sponsor card cut out), 576x1024, no audio. */
 export const media = {
-  gym: require("../../assets/images/login-hero.jpg") as number,
-  stillA: require("../../assets/images/fight-still-a.jpg") as number,
-  stillB: require("../../assets/images/fight-still-b.jpg") as number,
-  posterPortrait: require("../../assets/images/frame-auth-portrait-poster.jpg") as number,
-  posterWide: require("../../assets/images/frame-auth-wide-poster.jpg") as number,
-  videoPortrait: require("../../assets/video/frame-auth-portrait.mp4") as number,
-  videoWide: require("../../assets/video/frame-auth-wide.mp4") as number,
+  poster: require("../../assets/images/frame-auth-poster.jpg") as number,
+  video: require("../../assets/video/frame-auth.mp4") as number,
 };
-
-/**
- * Monochrome photo behind a hero/header block (NOT whole app screens): full-bleed,
- * darkened, with a dark scrim that reserves a stable band for text.
- */
-export function PhotoBackdrop({
-  source = media.stillB,
-  blur = 0,
-  opacity = 0.55,
-  position = "center",
-}: {
-  source?: ImageSourcePropType;
-  blur?: number;
-  opacity?: number;
-  position?: string;
-}) {
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Image
-        source={source}
-        contentFit="cover"
-        contentPosition={position as never}
-        blurRadius={Math.round(blur / 2)}
-        style={[StyleSheet.absoluteFill, { opacity }]}
-      />
-      <LinearGradient
-        colors={["rgba(8,9,11,0.35)", "rgba(8,9,11,0.6)", "rgba(8,9,11,0.96)"]}
-        locations={[0, 0.55, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-    </View>
-  );
-}
 
 function LoopVideo({ source, onFail }: { source: number; onFail: () => void }) {
   const player = useVideoPlayer(source, (p) => {
@@ -83,6 +45,30 @@ function LoopVideo({ source, onFail }: { source: number; onFail: () => void }) {
   );
 }
 
+/** Flat dark scrim over the whole loop on every pre-login screen (on top of the band gradient below). */
+export const AUTH_SCRIM = 0.5;
+/** Opacity of the dark translucent panel the pre-login forms sit on ("behind a screen"). */
+export const AUTH_PANEL_ALPHA = 0.88;
+
+/**
+ * Dark translucent panel for pre-login forms/copy: the loop shows faintly
+ * through, but labels, inputs, placeholders and errors always sit on a
+ * near-black plate (contrast checked against the brightest loop frame).
+ */
+export function AuthPanel({ children, style }: { children?: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  return <View style={[authPanel.box, style]}>{children}</View>;
+}
+
+const authPanel = StyleSheet.create({
+  box: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: palette.borderStrong,
+    backgroundColor: `rgba(8,9,11,${AUTH_PANEL_ALPHA})`,
+    padding: space.xl,
+  },
+});
+
 /**
  * Looping muted background video for sign-in / sign-up / splash.
  * Poster image underneath always; video only when motion is allowed and it
@@ -90,16 +76,14 @@ function LoopVideo({ source, onFail }: { source: number; onFail: () => void }) {
  * that keeps the top and bottom bands dark (reserved for the wordmark and the
  * headline/controls). No blur, no colour grade: imagery is monochrome.
  */
-export function VideoBackdrop({ dim = 0.2 }: { dim?: number }) {
+export function VideoBackdrop({ dim = AUTH_SCRIM }: { dim?: number }) {
   const reduced = useReducedMotion();
-  const { width, height } = useWindowDimensions();
-  const wide = width > height * 1.1;
   const [failed, setFailed] = useState(false);
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.bg }]} pointerEvents="none">
-      <Image source={wide ? media.posterWide : media.posterPortrait} contentFit="cover" style={StyleSheet.absoluteFill} />
+      <Image source={media.poster} contentFit="cover" style={StyleSheet.absoluteFill} />
       {!reduced && !failed ? (
-        <LoopVideo source={wide ? media.videoWide : media.videoPortrait} onFail={() => setFailed(true)} />
+        <LoopVideo source={media.video} onFail={() => setFailed(true)} />
       ) : null}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(8,9,11,${dim})` }]} />
       <LinearGradient

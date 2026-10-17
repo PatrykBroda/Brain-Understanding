@@ -175,7 +175,7 @@ export default function ProfilePage() {
                   ) : (
                     <>
                       <img
-                        src={MEDIA.gym}
+                        src={MEDIA.poster}
                         alt=""
                         aria-hidden
                         className="w-full h-full object-cover"
