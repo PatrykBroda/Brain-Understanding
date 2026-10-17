@@ -181,7 +181,7 @@ function CompareStage({
           type="button"
           onClick={() => (playing ? ctlRef.current.stop() : ctlRef.current.start())}
           aria-label={playing ? "Pause comparison" : "Play comparison"}
-          className="flex-none w-9 h-9 flex items-center justify-center border border-primary/50 text-[#B9A477] hover:border-primary transition-colors rounded-2xl"
+          className="flex-none w-11 h-11 flex items-center justify-center border border-white/[0.12] bg-[#191C20] text-[#D4C7A3] hover:bg-[#1F2328] transition-colors rounded-[12px]"
         >
           {playing ? <Pause className="w-4 h-4" strokeWidth={1.5} /> : <Play className="w-4 h-4" strokeWidth={1.5} />}
         </button>
@@ -203,8 +203,8 @@ function CompareStage({
           type="button"
           onClick={() => setSlow((s) => !s)}
           aria-pressed={slow}
-          className={`flex-none text-xs border px-2 py-2 ${
-            slow ? "border-primary/60 text-[#B9A477]" : "border-border/50 text-muted-foreground"
+          className={`flex-none text-[0.875rem] font-medium min-h-[44px] border rounded-[12px] px-3 ${
+            slow ? "border-[#B9A477]/60 text-[#D4C7A3]" : "border-white/[0.12] text-muted-foreground"
           }`}
         >
           0.5x
@@ -221,8 +221,8 @@ function Block({ title, note, children }: { title: string; note: string; childre
   return (
     <div className="space-y-2.5 border border-border/40 bg-white/[0.025] p-3 rounded-2xl">
       <div className="space-y-0.5">
-        <div className="text-xs text-foreground/85">{title}</div>
-        <p className="text-xs tracking-wide text-muted-foreground/90 leading-relaxed">{note}</p>
+        <div className="text-[1rem] font-medium text-foreground">{title}</div>
+        <p className="text-[0.875rem] text-muted-foreground leading-[1.55]">{note}</p>
       </div>
       {children}
     </div>

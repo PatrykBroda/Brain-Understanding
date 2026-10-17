@@ -29,20 +29,11 @@ function rungFor(key: BeltKey | null): { rung: LadderRung; index: number } | nul
 // the rank colour; the gold only frames it — "white belt in a luxury system".
 function RealisticBelt({ cloth, ink, label }: { cloth: string; ink: string; label: string }) {
   const isDarkCloth = cloth === "#1d1d1d";
-  const stitch = isDarkCloth ? "rgba(212,175,90,0.55)" : "rgba(0,0,0,0.14)";
+  const stitch = isDarkCloth ? "rgba(212,199,163,0.5)" : "rgba(0,0,0,0.14)";
   const bandShade = `linear-gradient(180deg, rgba(255,255,255,0.14) 0%, ${cloth} 22%, ${cloth} 64%, rgba(0,0,0,0.28) 100%)`;
 
   return (
     <div className="relative w-full" aria-label={`${label} belt`}>
-      {/* golden halo */}
-      <div
-        className="absolute -inset-x-4 -inset-y-3 pointer-events-none belt-halo"
-        style={{
-          background:
-            "radial-gradient(ellipse 70% 120% at 50% 50%, hsla(40,70%,55%,0.16) 0%, transparent 70%)",
-        }}
-      />
-
       <div className="relative h-[68px] w-full">
         {/* left band */}
         <Band side="left" shade={bandShade} stitch={stitch} />
@@ -60,7 +51,7 @@ function RealisticBelt({ cloth, ink, label }: { cloth: string; ink: string; labe
         />
         <div
           className="absolute top-[14px] right-[calc(14%+30px)] h-[40px] w-[3px]"
-          style={{ background: "hsla(40,75%,58%,0.6)" }}
+          style={{ background: "rgba(212,199,163,0.5)" }}
         />
 
         {/* centre knot */}
@@ -88,18 +79,13 @@ function RealisticBelt({ cloth, ink, label }: { cloth: string; ink: string; labe
           </div>
         </div>
 
-        {/* shimmer sweep */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-[3px]">
-          <div className="belt-shimmer absolute top-0 -left-1/3 h-full w-1/3 skew-x-[-18deg]" />
-        </div>
-
         {/* gold corner markers */}
         {(["left-1 top-1", "right-1 top-1", "left-1 bottom-1", "right-1 bottom-1"] as const).map((pos) => (
           <span
             key={pos}
             className={`absolute ${pos} h-[6px] w-[6px] pointer-events-none`}
             style={{
-              borderColor: "hsla(40,75%,58%,0.7)",
+              borderColor: "rgba(212,199,163,0.6)",
               borderStyle: "solid",
               borderWidth: pos.includes("top")
                 ? pos.includes("left")
@@ -130,7 +116,7 @@ function Band({ side, shade, stitch }: { side: "left" | "right"; shade: string; 
       <div className="absolute inset-x-1 top-[4px] h-px" style={{ background: stitch }} />
       <div className="absolute inset-x-1 bottom-[4px] h-px" style={{ background: stitch }} />
       {/* gold edge line */}
-      <div className="absolute inset-x-0 top-0 h-px" style={{ background: "hsla(40,75%,60%,0.35)" }} />
+      <div className="absolute inset-x-0 top-0 h-px" style={{ background: "rgba(212,199,163,0.3)" }} />
     </div>
   );
 }
@@ -150,18 +136,18 @@ function BeltLadder({ currentIndex }: { currentIndex: number }) {
         return (
           <div key={rung.key} aria-hidden="true" className="flex flex-col items-center gap-1.5 flex-1">
             <span
-              className={`block h-[9px] w-[9px] rounded-full transition-all duration-700 ${isCurrent ? "belt-node-pulse" : ""}`}
+              className={`block h-[10px] w-[10px] rounded-full transition-all duration-700`}
               style={{
                 background: earned ? rung.cloth : "transparent",
                 border: earned ? "1px solid rgba(255,255,255,0.25)" : "1px solid rgba(255,255,255,0.12)",
-                boxShadow: isCurrent ? "0 0 8px 1px hsla(40,75%,58%,0.55)" : "none",
+                boxShadow: isCurrent ? "0 0 0 2px rgba(185,164,119,0.55)" : "none",
                 opacity: earned ? 1 : 0.45,
               }}
               title={`${rung.label} belt`}
             />
             <span
-              className="text-xs "
-              style={{ color: isCurrent ? "hsl(var(--primary))" : earned ? "hsl(var(--foreground)/0.6)" : "hsl(var(--muted-foreground)/0.5)" }}
+              className="text-[0.8125rem] font-medium"
+              style={{ color: isCurrent ? "#D4C7A3" : earned ? "#A4A8AE" : "#8A8F96" }}
             >
               {rung.label.slice(0, 3)}
             </span>
@@ -181,10 +167,8 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
   if (!info) {
     return (
       <div>
-        <div className="h-[68px] w-full border border-border/50 flex items-center justify-center rounded-2xl">
-          <span className="eyebrow">
-            Unranked / other
-          </span>
+        <div className="h-[68px] w-full border border-white/10 bg-[#111316] flex items-center justify-center rounded-[14px]">
+          <span className="label">Unranked or other</span>
         </div>
       </div>
     );
@@ -198,56 +182,27 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
       <RealisticBelt cloth={rung.cloth} ink={rung.ink} label={rung.label} />
 
       <div className="flex items-baseline justify-between">
-        <div className="text-xs text-foreground/95">
+        <div className="text-[1rem] font-medium text-foreground">
           {rung.label} belt
         </div>
         {next ? (
-          <div className="eyebrow">
-            Next · {next.label}
-          </div>
+          <div className="label">Next: {next.label}</div>
         ) : (
-          <div className="text-xs text-[#B9A477]">
-            Apex
-          </div>
+          <div className="label !text-[#D4C7A3]">Highest rank</div>
         )}
       </div>
 
       <BeltLadder currentIndex={index} />
 
       {showMeaning && meaning && (
-        <div className="border-l border-primary/40 pl-3 pt-0.5">
-          <div className="text-xs text-[#B9A477]">
+        <div className="border-l-2 border-white/15 pl-3 pt-0.5">
+          <div className="text-[0.9375rem] font-medium text-[#D4C7A3]">
             {meaning.state}
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed mt-1">{meaning.meaning}</p>
+          <p className="text-[0.9375rem] text-muted-foreground leading-[1.55] mt-1">{meaning.meaning}</p>
         </div>
       )}
 
-      <style>{`
-        @keyframes belt-halo {
-          0%, 100% { opacity: 0.55; }
-          50% { opacity: 1; }
-        }
-        .belt-halo { animation: belt-halo 6s ease-in-out infinite; }
-        @keyframes belt-shimmer {
-          0% { transform: translateX(0) skewX(-18deg); opacity: 0; }
-          6% { opacity: 0.5; }
-          14% { opacity: 0; }
-          100% { transform: translateX(420%) skewX(-18deg); opacity: 0; }
-        }
-        .belt-shimmer {
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
-          animation: belt-shimmer 13s ease-in-out infinite;
-        }
-        @keyframes belt-node-pulse {
-          0%, 100% { box-shadow: 0 0 6px 0 hsla(40,75%,58%,0.4); }
-          50% { box-shadow: 0 0 11px 2px hsla(40,75%,58%,0.7); }
-        }
-        .belt-node-pulse { animation: belt-node-pulse 3.2s ease-in-out infinite; }
-        @media (prefers-reduced-motion: reduce) {
-          .belt-halo, .belt-shimmer, .belt-node-pulse { animation: none !important; }
-        }
-      `}</style>
     </div>
   );
 }

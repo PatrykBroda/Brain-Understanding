@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { useUpdateFighter } from "@/hooks/use-fighter";
 import type { Fighter, FighterUpdate } from "@/lib/api";
 import {
@@ -15,9 +14,9 @@ import {
   ageFromDob,
 } from "@/lib/fighter-options";
 
-const FIELD_LABEL = "eyebrow block mb-2";
+const FIELD_LABEL = "label block mb-1.5";
 const INPUT_CLASS =
-  "field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground";
+  "field-glass !py-0";
 
 type FormState = {
   name: string;
@@ -124,10 +123,8 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
   })();
 
   return (
-    <form onSubmit={submit} className="space-y-5 border border-border/50 p-4 rounded-2xl">
-      <div className="text-xs text-[#B9A477]">
-        Edit profile
-      </div>
+    <form onSubmit={submit} className="glass space-y-5 p-5" aria-label="Edit profile">
+      <h2 className="section-title !text-[1.25rem]">Edit profile</h2>
 
       <div>
         <label className={FIELD_LABEL}>Name / Callsign</label>
@@ -150,7 +147,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
             onChange={(e) => set("dateOfBirth", e.target.value)}
           />
           {computedAge != null && (
-            <p className="mt-1.5 text-xs text-muted-foreground">
+            <p className="mt-1.5 text-[0.875rem] text-muted-foreground">
               {computedAge} years old
             </p>
           )}
@@ -346,7 +343,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
       <div>
         <label className={FIELD_LABEL}>Goals</label>
         <textarea
-          className={`${INPUT_CLASS} min-h-[72px] resize-y`}
+          className={`${INPUT_CLASS} min-h-[88px] resize-y !py-3`}
           value={form.goals}
           onChange={(e) => set("goals", e.target.value)}
         />
@@ -355,7 +352,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
       <div>
         <label className={FIELD_LABEL}>Weaknesses</label>
         <textarea
-          className={`${INPUT_CLASS} min-h-[72px] resize-y`}
+          className={`${INPUT_CLASS} min-h-[88px] resize-y !py-3`}
           value={form.weaknesses}
           onChange={(e) => set("weaknesses", e.target.value)}
         />
@@ -364,17 +361,17 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
       <div>
         <label className={FIELD_LABEL}>Bio — about you (read by FRAME every session)</label>
         <textarea
-          className={`${INPUT_CLASS} min-h-[80px] resize-y`}
+          className={`${INPUT_CLASS} min-h-[104px] resize-y !py-3`}
           value={form.bio}
           onChange={(e) => set("bio", e.target.value)}
           placeholder="A few sentences about your background, injuries, competition history, or anything else that shapes how you train."
         />
       </div>
 
-      <label className="flex items-center gap-3 text-sm text-foreground cursor-pointer select-none">
+      <label className="flex items-center gap-3 min-h-[44px] text-[1rem] text-foreground cursor-pointer select-none">
         <input
           type="checkbox"
-          className="w-4 h-4 accent-primary"
+          className="w-5 h-5 accent-[#B9A477]"
           checked={form.competes}
           onChange={(e) => set("competes", e.target.checked)}
         />
@@ -382,26 +379,23 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
       </label>
 
       {update.isError && (
-        <div className="text-sm text-destructive ">
+        <div role="alert" className="text-[0.9375rem] text-[#E5645A]">
           {(update.error as Error).message}
         </div>
       )}
 
       <div className="flex items-center gap-3 pt-1">
-        <button
-          type="button"
-          onClick={onClose}
-          className="eyebrow hover:text-foreground transition-colors"
-        >
+        <button type="button" onClick={onClose} className="btn-glass !min-h-[48px]">
           Cancel
         </button>
-        <Button
+        <button
           type="submit"
           disabled={update.isPending || !form.name.trim()}
-          className="flex-1 h-11 text-xs bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          data-loading={update.isPending ? "true" : undefined}
+          className="btn-bronze flex-1 !min-h-[48px]"
         >
-          {update.isPending ? "Saving..." : "Save profile"}
-        </Button>
+          Save profile
+        </button>
       </div>
     </form>
   );

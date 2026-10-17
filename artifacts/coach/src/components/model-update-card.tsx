@@ -1,4 +1,4 @@
-import { Brain, TrendingUp, Plus } from "lucide-react";
+import { Brain, TrendingUp } from "lucide-react";
 import { ontologyLabels } from "@workspace/ontology";
 import type { AnalysisModelUpdate } from "@/lib/api";
 
@@ -28,104 +28,86 @@ export function ModelUpdateCard({ update }: { update: AnalysisModelUpdate }) {
   if (newObservations.length === 0 && confirmed.length === 0) return null;
 
   return (
-    <section
-      className="rounded-xl border border-primary/25 overflow-hidden"
-      style={{
-        background:
-          "linear-gradient(160deg, hsla(39,49%,36%,0.07), hsla(0,0%,100%,0.015) 55%)",
-      }}
-      aria-label="Athlete model updated"
-    >
+    <section className="glass overflow-hidden" aria-label="Athlete model updated">
       <div className="flex items-center gap-2.5 px-5 pt-4 pb-3">
-        <Brain className="w-3.5 h-3.5 text-[#B9A477]" strokeWidth={1.5} />
-        <div className="text-xs text-[#B9A477]">
-          Athlete model updated
-        </div>
+        <Brain className="w-4 h-4 text-[#B9A477]" strokeWidth={1.5} />
+        <h2 className="section-title !text-[1.0625rem]">Athlete model updated</h2>
         {confidencePointsDelta > 0 && (
-          <div
-            className="ml-auto flex items-center gap-1 text-xs tabular-nums text-[#B9A477]"
-            title="Total confidence gained across confirmed observations — recomputed server-side from the evidence trail"
+          <span
+            className="chip chip-gold ml-auto tnum"
+            title="Total confidence gained across confirmed observations, recomputed server-side from the evidence trail"
           >
             <TrendingUp className="w-3 h-3" strokeWidth={1.5} />
-            +{confidencePointsDelta} conf
-          </div>
+            +{confidencePointsDelta} confidence
+          </span>
         )}
       </div>
 
-      <div className="px-5 pb-4 space-y-3">
+      <div className="px-5 pb-4">
         {confirmed.length > 0 && (
-          <div className="space-y-1.5">
-            <div className="eyebrow">
-              Confirmed by this footage
-            </div>
-            {confirmed.map((c) => (
-              <div
-                key={c.id}
-                className="pl-3 py-1 flex items-baseline justify-between gap-3"
-                style={{ borderLeft: "1px solid hsla(39,49%,36%,0.35)" }}
-              >
-                <div className="min-w-0">
-                  <div className="text-xs text-foreground/80 truncate">
-                    {c.topic || c.content}
+          <div>
+            <div className="label pb-1">Confirmed by this footage</div>
+            <ul>
+              {confirmed.map((c) => (
+                <li
+                  key={c.id}
+                  className="py-3 flex items-baseline justify-between gap-3 border-t border-white/[0.06]"
+                >
+                  <div className="min-w-0">
+                    <div className="text-[1rem] text-foreground leading-snug">{c.topic || c.content}</div>
+                    <div
+                      className="label tnum mt-0.5"
+                      title="Independent sightings of this observation across chat, footage and calibration"
+                    >
+                      Seen {c.evidenceCount} {c.evidenceCount === 1 ? "time" : "times"}
+                    </div>
                   </div>
-                  <div
-                    className="text-xs text-foreground/70 tabular-nums"
-                    title="Independent sightings of this observation across chat, footage and calibration"
-                  >
-                    seen ×{c.evidenceCount}
+                  <div className="flex-none text-[0.875rem] tnum">
+                    {c.confidence > c.previousConfidence ? (
+                      <span className="text-[#D4C7A3]">
+                        Confidence {c.previousConfidence} to {c.confidence}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Confidence {c.confidence} of 5</span>
+                    )}
                   </div>
-                </div>
-                <div className="flex-none text-xs tabular-nums">
-                  {c.confidence > c.previousConfidence ? (
-                    <span className="text-[#B9A477]">
-                      conf {c.previousConfidence}→{c.confidence}
-                    </span>
-                  ) : (
-                    <span className="text-foreground/70">conf {c.confidence}/5</span>
-                  )}
-                </div>
-              </div>
-            ))}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 
         {newObservations.length > 0 && (
-          <div className="space-y-1.5">
-            <div className="eyebrow">
-              New observations
-            </div>
-            {newObservations.map((o) => {
-              const sub = subLabel(o.subcategory);
-              return (
-                <div
-                  key={o.id}
-                  className="pl-3 py-1 flex items-baseline justify-between gap-3"
-                  style={{ borderLeft: "1px solid hsla(0,0%,100%,0.12)" }}
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <Plus className="w-2.5 h-2.5 flex-none text-foreground/70" strokeWidth={2} />
-                      <span className="text-xs text-foreground/80 truncate">
-                        {o.topic || o.content}
-                      </span>
+          <div className={confirmed.length > 0 ? "mt-3" : ""}>
+            <div className="label pb-1">New observations</div>
+            <ul>
+              {newObservations.map((o) => {
+                const sub = subLabel(o.subcategory);
+                return (
+                  <li
+                    key={o.id}
+                    className="py-3 flex items-baseline justify-between gap-3 border-t border-white/[0.06]"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-[1rem] text-foreground leading-snug">{o.topic || o.content}</div>
+                      <div className="label mt-0.5">
+                        {CATEGORY_LABELS[o.category] ?? o.category}
+                        {sub ? ` · ${sub}` : ""}
+                      </div>
                     </div>
-                    <div className="text-xs text-foreground/70 pl-4">
-                      {CATEGORY_LABELS[o.category] ?? o.category}
-                      {sub ? ` · ${sub}` : ""}
+                    <div className="flex-none text-[0.875rem] tnum text-muted-foreground">
+                      Confidence {o.confidence} of 5
                     </div>
-                  </div>
-                  <div className="flex-none text-xs tabular-nums text-foreground/70">
-                    conf {o.confidence}/5
-                  </div>
-                </div>
-              );
-            })}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
 
-        <p className="text-[0.7rem] leading-relaxed text-foreground/70 pt-1">
-          Confidence only moves when the same thing shows up again — across chat,
-          footage or calibration. Nothing here is estimated.
+        <p className="text-[0.875rem] leading-[1.55] text-muted-foreground pt-3 border-t border-white/[0.06]">
+          Confidence only moves when the same thing shows up again, across chat, footage or
+          calibration. Nothing here is estimated.
         </p>
       </div>
     </section>

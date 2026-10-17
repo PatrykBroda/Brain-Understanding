@@ -17,6 +17,7 @@ import { Link } from "wouter";
 import {
   Camera,
   ChevronLeft,
+  ChevronRight,
   Loader2,
   LogOut,
   Pencil,
@@ -45,12 +46,10 @@ function LineItem({
 }) {
   return (
     <div className="px-5 py-4 flex items-baseline justify-between gap-4">
-      <div className="eyebrow flex-none w-20">
-        {label}
-      </div>
+      <div className="label flex-none w-20">{label}</div>
       <div className="min-w-0 text-right">
         <div
-          className="text-[0.95rem] font-medium text-foreground truncate"
+          className="text-[1rem] font-medium text-foreground"
           title={sub}
         >
           {value}
@@ -61,7 +60,7 @@ function LineItem({
 }
 
 export default function ProfilePage() {
-  const { data: fighterData } = useFighter();
+  const { data: fighterData, isLoading: fighterLoading, isError: fighterError, refetch: refetchFighter } = useFighter();
   const fighter = fighterData?.fighter ?? null;
   const { signOut, email } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -131,18 +130,13 @@ export default function ProfilePage() {
         <Link href="/home" aria-label="Back to home" className="icon-round text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
         </Link>
-        <div className="text-center">
-          <div className="eyebrow">
-            Athlete
-          </div>
-          <h1 className="display-heading mt-0.5">Passport</h1>
-        </div>
+        <h1 className="display-heading text-center">Athlete profile</h1>
         {fighter && !isEditing ? (
           <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="icon-round text-muted-foreground hover:text-[#B9A477] transition-colors"
+              className="icon-round text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Edit profile"
             >
               <Pencil className="w-4 h-4" strokeWidth={1.5} />
@@ -154,14 +148,14 @@ export default function ProfilePage() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-y-auto">
-        <div className="max-w-md mx-auto px-5 py-5">
+        <div className="max-w-md md:max-w-xl mx-auto px-5 py-5">
           {fighter && isEditing ? (
             <ProfileEdit fighter={fighter} onClose={() => setIsEditing(false)} />
           ) : fighter ? (
             <>
               {/* ─── IDENTITY BAND ─────────────────────────────────── */}
               <div
-                className="glass glass-gold relative overflow-hidden passport-in !rounded-[1.75rem]"
+                className="glass relative overflow-hidden passport-in !rounded-[20px]"
                 style={{ minHeight: 210 }}
               >
                 <div className="absolute inset-0 overflow-hidden">
@@ -185,12 +179,8 @@ export default function ProfilePage() {
                         alt=""
                         aria-hidden
                         className="w-full h-full object-cover"
-                        style={{ objectPosition: "30% 55%", opacity: 0.7, filter: "contrast(1.1)" }}
+                        style={{ objectPosition: "30% 55%", opacity: 0.6, filter: "grayscale(1) contrast(1.05)" }}
                         draggable={false}
-                      />
-                      <div
-                        className="absolute inset-0"
-                        style={{ background: "radial-gradient(90% 80% at 100% 0%, rgba(214,120,40,0.32), transparent 65%)", mixBlendMode: "screen" }}
                       />
                     </>
                   )}
@@ -198,7 +188,7 @@ export default function ProfilePage() {
                     className="absolute inset-0"
                     style={{
                       background:
-                        "linear-gradient(180deg, hsla(30,14%,6%,0.25) 0%, hsla(30,14%,6%,0.55) 55%, hsla(30,14%,6%,0.92) 100%)",
+                        "linear-gradient(180deg, rgba(8,9,11,0.2) 0%, rgba(8,9,11,0.55) 50%, rgba(8,9,11,0.94) 100%)",
                     }}
                   />
                 </div>
@@ -239,16 +229,11 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="relative z-[1] flex flex-col justify-end h-full min-h-[210px] px-4 pt-8 pb-4">
-                  <div className="eyebrow eyebrow-gold mb-2">
-                    Identity
-                  </div>
                   <div className="display-title truncate">
                     {fighter.name}
                   </div>
                   {(arch || fighter.spiritAnimal) && (
-                    <div
-                      className="eyebrow eyebrow-gold mt-2"
-                    >
+                    <div className="label !text-[#D4C7A3] mt-1.5">
                       {arch ? arch.name : fighter.spiritAnimal}
                       {mode ? ` · ${mode.label}` : ""}
                     </div>
@@ -257,7 +242,7 @@ export default function ProfilePage() {
               </div>
 
               {uploadError && (
-                <div className="glass glass-red mt-3 px-4 py-2 text-xs text-[#E5645A] tracking-wide">
+                <div role="alert" className="glass glass-red mt-3 px-4 py-3 text-[0.9375rem] text-[#E5645A]">
                   {uploadError}
                 </div>
               )}
@@ -269,7 +254,7 @@ export default function ProfilePage() {
               )}
 
               {/* ─── FOCUS · STRENGTH ──────────────────────────────── */}
-              <div className="glass mt-3 divide-y divide-white/[0.07] overflow-hidden">
+              <div className="glass mt-3 divide-y divide-white/[0.06] overflow-hidden">
                 {focus && (
                   <LineItem label="Focus" value={focus.label} sub={focus.source} />
                 )}
@@ -290,12 +275,8 @@ export default function ProfilePage() {
                   href="/chat"
                   className="flex items-center justify-between px-5 min-h-[56px] hover:bg-white/[0.04] transition-colors group"
                 >
-                  <span className="eyebrow eyebrow-gold">
-                    Continue Calibration
-                  </span>
-                  <span className="text-xs text-foreground/70 group-hover:text-[#B9A477] transition-colors">
-                    →
-                  </span>
+                  <span className="text-[1rem] font-medium text-[#D4C7A3]">Continue calibration</span>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-[#B9A477] transition-colors" strokeWidth={1.5} />
                 </Link>
               </div>
 
@@ -307,78 +288,86 @@ export default function ProfilePage() {
               {/* ─── MEMBERSHIP ────────────────────────────────────── */}
               <div className="pt-6">
                 {sub.isFramePlus ? (
-                  <div className="glass glass-gold">
-                    <div className="flex items-center justify-between px-5 py-4">
-                      <div>
-                        <div className="eyebrow eyebrow-gold">
-                          FRAME+ active
-                        </div>
-                        {sub.status?.currentPeriodEnd && (
-                          <div className="text-xs tracking-wide text-muted-foreground mt-1">
-                            {sub.status.cancelAtPeriodEnd ? "Ends" : "Renews"}{" "}
-                            {new Date(sub.status.currentPeriodEnd).toLocaleDateString(undefined, {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </div>
-                        )}
-                        <div className="text-xs tracking-wide text-muted-foreground mt-1">
-                          Manage or cancel in the iOS app
-                        </div>
+                  <div className="glass px-5 py-4">
+                    <span className="chip chip-gold">FRAME+ active</span>
+                    {sub.status?.currentPeriodEnd && (
+                      <div className="text-[0.9375rem] tnum text-foreground/85 mt-2">
+                        {sub.status.cancelAtPeriodEnd ? "Ends" : "Renews"}{" "}
+                        {new Date(sub.status.currentPeriodEnd).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
                       </div>
+                    )}
+                    <div className="text-[0.875rem] text-muted-foreground mt-1">
+                      Manage or cancel in the iOS app
                     </div>
                   </div>
                 ) : (
                   <button
                     type="button"
                     onClick={() => openUpgrade()}
-                    className="glass w-full flex items-center justify-between hover:border-primary/40 transition-colors px-5 py-4 text-left group"
+                    className="glass w-full flex items-center justify-between hover:border-white/20 transition-colors px-5 py-4 text-left group"
                   >
                     <div>
-                      <div className="text-xs text-foreground/85 group-hover:text-[#B9A477] transition-colors">
-                        FRAME+
-                      </div>
-                      <div className="text-xs tracking-wide text-muted-foreground mt-1">
-                        Unlimited coaching · full history · full mission ·
-                        subscribe in the iOS app
+                      <div className="text-[1rem] font-medium text-foreground">FRAME+</div>
+                      <div className="text-[0.875rem] text-muted-foreground mt-1">
+                        Unlimited coaching, full history and mission. Subscribe in the iOS app.
                       </div>
                     </div>
-                    <span className="text-xs text-foreground/70 group-hover:text-[#B9A477] transition-colors">
-                      →
-                    </span>
+                    <ChevronRight className="w-5 h-5 flex-none text-muted-foreground group-hover:text-[#B9A477] transition-colors" strokeWidth={1.5} />
                   </button>
                 )}
               </div>
 
               {/* ─── ACCOUNT ───────────────────────────────────────── */}
               <div className="space-y-2.5 pt-6 pb-2">
-                <div className="flex justify-center gap-4 text-xs ">
-                  <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-[#B9A477] hover:underline">
-                    Privacy & AI permissions
+                <div className="flex justify-center gap-6 text-[0.875rem]">
+                  <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="min-h-[44px] inline-flex items-center text-muted-foreground hover:text-foreground underline underline-offset-4 decoration-white/20">
+                    Privacy and AI permissions
                   </a>
-                  <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-[#B9A477] hover:underline">
+                  <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="min-h-[44px] inline-flex items-center text-muted-foreground hover:text-foreground underline underline-offset-4 decoration-white/20">
                     Terms
                   </a>
                 </div>
                 {email && (
-                  <div className="text-xs text-muted-foreground/90 tracking-wide text-center">
+                  <div className="text-[0.875rem] text-muted-foreground text-center">
                     {email}
                   </div>
                 )}
                 <button
                   type="button"
                   onClick={() => { signOut(); setLocation(`${basePath}/sign-in`); }}
-                  className="w-full flex items-center justify-center gap-2 hover:text-[#B9A477] btn-quiet"
+                  className="w-full btn-quiet"
                 >
-                  <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  <LogOut className="w-4 h-4" strokeWidth={1.5} />
                   Sign out
                 </button>
               </div>
             </>
+          ) : fighterLoading ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-[0.9375rem] text-muted-foreground" role="status">
+              <span className="h-5 w-5 rounded-full border-2 border-white/15 border-t-[#B9A477] animate-spin motion-reduce:animate-none" aria-hidden />
+              Loading your profile
+            </div>
+          ) : fighterError ? (
+            <div role="alert" className="glass glass-red px-5 py-5 space-y-3">
+              <div className="text-[1rem] font-medium text-[#E5645A]">Could not load your profile</div>
+              <p className="text-[0.9375rem] text-foreground/80">Check your connection and try again.</p>
+              <button type="button" onClick={() => void refetchFighter()} className="btn-quiet btn-quiet-red">
+                Try again
+              </button>
+            </div>
           ) : (
-            <div className="text-sm text-muted-foreground py-10 text-center">
-              No athlete profile yet.
+            <div className="glass px-5 py-8">
+              <h2 className="section-title">No athlete profile yet</h2>
+              <p className="mt-2 text-[1rem] leading-[1.6] text-muted-foreground">
+                Tell FRAME who you are and your coaching starts from there.
+              </p>
+              <Link href="/home" className="btn-bronze mt-5 w-full">
+                Back to home
+              </Link>
             </div>
           )}
         </div>
@@ -392,7 +381,7 @@ export default function ProfilePage() {
           to   { opacity: 1; transform: translateY(0); }
         }
         .passport-in {
-          animation: passport-in 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) 0.05s both;
+          animation: passport-in 0.32s cubic-bezier(0.2, 0, 0, 1) both;
         }
         @media (prefers-reduced-motion: reduce) {
           .passport-in { animation: none; }

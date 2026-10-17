@@ -157,7 +157,7 @@ function SeriesChart({
           />
         </div>
       </div>
-      <div className="text-xs tracking-wide text-muted-foreground/90 leading-snug">
+      <div className="text-[0.8125rem] text-muted-foreground leading-snug">
         {def.axis} · {def.hint}
       </div>
     </div>
@@ -188,11 +188,11 @@ export function MovementGraphs({
       {series.map((s) => (
         <SeriesChart key={s.def.key} series={s} events={events} duration={duration} playback={playback} />
       ))}
-      <div className="flex items-center justify-between text-xs text-muted-foreground/90">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>0s</span>
         <span>{duration.toFixed(0)}s</span>
       </div>
-      <p className="text-xs text-muted-foreground/90 leading-relaxed">
+      <p className="text-xs text-muted-foreground leading-relaxed">
         every line is measured from the tracked pose, same definitions as the scores
         {hasEvents ? " · shaded bands are detected events" : ""} · breaks in a line = pose lock lost, nothing is
         filled in · tap or drag to jump

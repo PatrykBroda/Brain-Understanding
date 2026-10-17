@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Lock } from "lucide-react";
+import { ChevronRight, Lock } from "lucide-react";
 import { useFighter } from "@/hooks/use-fighter";
 import { useMemory } from "@/hooks/use-memory";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -146,7 +146,7 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
     filledPoints.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ") + " Z";
 
   return (
-    <svg viewBox="0 0 190 190" className="w-full max-w-[200px] mx-auto block">
+    <svg viewBox="0 0 190 190" className="w-full max-w-[300px] mx-auto block" role="img" aria-label="Athlete DNA radar">
       {/* Grid polygons */}
       {gridLevels.map((level) => {
         const pts = angles
@@ -160,7 +160,7 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
             key={level}
             points={pts}
             fill="none"
-            stroke="hsla(0,0%,100%,0.07)"
+            stroke="rgba(255,255,255,0.08)"
             strokeWidth="1"
           />
         );
@@ -176,7 +176,7 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
             y1={cy}
             x2={end.x.toFixed(1)}
             y2={end.y.toFixed(1)}
-            stroke="hsla(0,0%,100%,0.07)"
+            stroke="rgba(255,255,255,0.08)"
             strokeWidth="1"
           />
         );
@@ -185,15 +185,15 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
       {/* Filled confidence polygon */}
       <path
         d={filledPath}
-        fill="hsla(39,49%,36%,0.12)"
-        stroke="hsla(39,49%,36%,0.55)"
+        fill="rgba(185,164,119,0.14)"
+        stroke="#B9A477"
         strokeWidth="1.5"
         strokeLinejoin="round"
       />
 
       {/* Data points */}
       {filledPoints.map((p, i) => (
-        <circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="2.5" fill="hsl(39,49%,36%)" />
+        <circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="2.5" fill="#D4C7A3" />
       ))}
 
       {/* Labels */}
@@ -207,9 +207,9 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
             textAnchor="middle"
             dominantBaseline="middle"
             fontSize="8.5"
-            fontFamily="monospace"
-            fill="hsla(0,0%,100%,0.7)"
-            style={{ textTransform: "", letterSpacing: 1 }}
+            fontFamily="'Inter Tight Variable','Inter Tight',system-ui,sans-serif"
+            fontWeight="500"
+            fill="#A4A8AE"
           >
             {d.label}
           </text>
@@ -219,93 +219,60 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
   );
 }
 
-// ─── Segmented confidence bar ─────────────────────────────────────────────────
+// ─── Confidence bar: one thin bar, label next to it ──────────────────────────
 
-function ConfidenceBar({ pct, segments = 20 }: { pct: number; segments?: number }) {
-  const filled = Math.round((pct / 100) * segments);
+function ConfidenceBar({ pct }: { pct: number }) {
+  const v = Math.max(0, Math.min(100, pct));
   return (
-    <div className="flex gap-[2px]">
-      {Array.from({ length: segments }).map((_, i) => (
-        <div
-          key={i}
-          className="h-[4px] flex-1 rounded-full transition-colors duration-700"
-          style={{
-            background:
-              i < filled
-                ? `hsl(39,49%,${40 - (i / segments) * 8}%)`
-                : "hsla(0,0%,100%,0.08)",
-          }}
-        />
-      ))}
+    <div
+      className="bar-thin"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={v}
+      aria-label="Model confidence"
+    >
+      <span style={{ width: `${v}%` }} />
     </div>
   );
 }
 
-// ─── Editorial section header (overline + title, optional aside) ──────────────
+// ─── Section header (sentence-case title, optional aside) ────────────────────
 
 function SectionHead({
   overline,
   title,
   aside,
 }: {
-  overline: string;
+  overline?: string;
   title: string;
   aside?: React.ReactNode;
 }) {
   return (
     <div className="flex items-end justify-between gap-4">
       <div>
-        <div className="eyebrow mb-2">
-          {overline}
-        </div>
-        <div className="font-sans font-normal text-[0.95rem] text-foreground/90 leading-none">
-          {title}
-        </div>
+        {overline && <div className="label mb-1">{overline}</div>}
+        <h3 className="section-title">{title}</h3>
       </div>
       {aside ? <div className="flex-none pb-0.5">{aside}</div> : null}
     </div>
   );
 }
 
-// ─── Hairline divider with amber node ────────────────────────────────────────
-
-function NodeDivider({ className = "" }: { className?: string }) {
-  return (
-    <div className={`flex items-center gap-3 ${className}`} aria-hidden>
-      <div
-        className="flex-1 h-px"
-        style={{ background: "linear-gradient(to right, transparent, hsla(39,49%,36%,0.18))" }}
-      />
-      <div className="w-1 h-1 rounded-full" style={{ background: "hsla(39,49%,36%,0.3)" }} />
-      <div
-        className="flex-1 h-px"
-        style={{ background: "linear-gradient(to left, transparent, hsla(39,49%,36%,0.18))" }}
-      />
-    </div>
-  );
-}
-
-// ─── Dossier panel shell — transparent, hairline, subtle inner highlight ─────
+// ─── Panel shell: solid card ─────────────────────────────────────────────────
 
 function Panel({
   children,
-  accent = false,
   className = "",
 }: {
   children: React.ReactNode;
   accent?: boolean;
   className?: string;
 }) {
-  return (
-    <div className={`glass ${accent ? "glass-gold" : ""} overflow-hidden ${className}`}>
-      {children}
-    </div>
-  );
+  return <div className={`glass overflow-hidden ${className}`}>{children}</div>;
 }
 
-// ─── Fact confidence — pips + label, real 1–5 confidence only ────────────────
-
-// Locked stub for FRAME+ gated sections — section stays visible (never a
+// Locked stub for FRAME+ gated sections: the section stays visible (never a
 // full-page block), the body is replaced with a tap-to-upgrade row.
 function LockedSection({
   overline,
@@ -313,7 +280,7 @@ function LockedSection({
   note,
   onTap,
 }: {
-  overline: string;
+  overline?: string;
   title: string;
   note: string;
   onTap: () => void;
@@ -326,37 +293,27 @@ function LockedSection({
       <button
         type="button"
         onClick={onTap}
-        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors group"
-        style={{ borderTop: "1px solid hsla(0,0%,100%,0.05)" }}
+        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-white/[0.03] transition-colors border-t border-white/[0.06]"
       >
         <span className="flex items-start gap-2.5 min-w-0">
-          <Lock className="h-3.5 w-3.5 flex-none mt-0.5 text-foreground/70" strokeWidth={1.5} />
-          <span className="text-[0.8rem] text-foreground/70 leading-relaxed">{note}</span>
+          <Lock className="h-4 w-4 flex-none mt-0.5 text-muted-foreground" strokeWidth={1.5} />
+          <span className="text-[0.9375rem] text-muted-foreground leading-[1.55]">{note}</span>
         </span>
-        <span className="flex-none text-xs text-[#B9A477] group-hover:text-[#B9A477] transition-colors">
-          FRAME+
-        </span>
+        <span className="chip chip-gold flex-none">FRAME+</span>
       </button>
     </Panel>
   );
 }
 
+// Fact confidence: real 1-5 value as a thin bar plus a text label.
 function FactConfidence({ value }: { value: number }) {
   const v = Math.max(0, Math.min(5, value));
   return (
-    <div className="flex items-center gap-1.5 flex-none" title={`Confidence ${v}/5`}>
-      <div className="flex gap-[3px]">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <span
-            key={i}
-            className="w-[3px] h-[9px]"
-            style={{ background: i <= v ? "hsl(39,49%,36%)" : "hsla(0,0%,100%,0.1)" }}
-          />
-        ))}
+    <div className="flex items-center gap-2 flex-none" title={`Confidence ${v} of 5`}>
+      <div className="bar-thin w-10" aria-hidden>
+        <span style={{ width: `${(v / 5) * 100}%` }} />
       </div>
-      <span className="eyebrow tabular-nums">
-        {v}/5
-      </span>
+      <span className="label tnum">{v} of 5</span>
     </div>
   );
 }
@@ -371,34 +328,25 @@ function IdentityRow({
   sub?: string;
 }) {
   return (
-    <div className="px-4 py-3 flex items-start justify-between gap-4">
-      <div className="text-xs text-muted-foreground/90 pt-0.5 flex-none w-28">
-        {label}
-      </div>
+    <div className="px-5 py-3.5 flex items-start justify-between gap-4 border-t border-white/[0.06] first:border-t-0">
+      <div className="label pt-0.5 flex-none w-32">{label}</div>
       <div className="min-w-0 text-right">
-        <div className="text-xs text-foreground/90 leading-snug">
-          {value}
-        </div>
-        {sub && (
-          <div className="text-xs tracking-wide text-muted-foreground/90 mt-0.5 normal-case">
-            {sub}
-          </div>
-        )}
+        <div className="text-[0.9375rem] text-foreground leading-snug">{value}</div>
+        {sub && <div className="label tnum mt-0.5">{sub}</div>}
       </div>
     </div>
   );
 }
 
-// ─── Athlete model — the full FRAME dossier, mounted on Analyse ─────────────
-// Everything FRAME knows: model confidence, observations, hypotheses, patterns,
-// coverage graphs, calibration history. Moved here from Profile so Profile can
-// stay a passport ("who am I") and Analyse holds the data ("everything").
+// ─── Athlete model: the full FRAME dossier ───────────────────────────────────
+// Everything FRAME knows: model confidence, observations, patterns, coverage,
+// calibration history. Every number is a real recorded value.
 
 export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "desktop" }) {
   const { isFramePlus, isLoading: subLoading } = useSubscription();
   const { openUpgrade } = useFramePlus();
   // Full model visibility is FRAME+. While the status is loading we show
-  // nothing gated-open — locked is the safe default only once we KNOW free.
+  // nothing gated-open: locked is the safe default only once we KNOW free.
   const modelLocked = !subLoading && !isFramePlus;
   const { data: fighterData } = useFighter();
   const fighter = fighterData?.fighter ?? null;
@@ -547,84 +495,57 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
 
   return (
     <div className="space-y-5">
-      <NodeDivider />
-
       <div>
-        <div className="eyebrow mb-2">
-          Athlete model
-        </div>
-        <div className="font-sans font-normal text-xl text-foreground/90 leading-none">
-          What FRAME knows
-        </div>
+        <div className="label mb-1">Athlete model</div>
+        <h2 className="display-title !text-[1.5rem]">What FRAME knows</h2>
       </div>
 
       {/* ─── 1. MODEL CONFIDENCE ──────────────────────────────── */}
       <Panel className="model-reveal">
-        <div className="px-5 pt-5 pb-4">
+        <div className="px-5 pt-5 pb-5">
           <SectionHead
-            overline="Dossier · Model confidence"
             title="Understanding your game"
             aside={
               memoryQuery.isFetching ? (
-                <span className="text-xs text-[#B9A477]">
-                  Syncing
-                </span>
+                <span className="chip">Syncing</span>
               ) : null
             }
           />
 
-          <div className="flex items-baseline gap-4 mt-6 mb-2">
-            <div className="font-sans font-normal text-[3.25rem] text-foreground/95 tabular-nums leading-[0.85]">
+          <div className="flex items-baseline gap-3 mt-5 mb-1">
+            <div className="numeral numeral-hero">
               {computed.frameConfidence}
-              <span className="text-2xl text-[#B9A477]">%</span>
+              <span className="text-[1.5rem] text-[#B9A477]">%</span>
             </div>
-            <div className="eyebrow leading-relaxed pb-1">
-              Model
-              <br />
-              confidence
-            </div>
+            <div className="label">model confidence</div>
           </div>
 
           {computed.lastUpdated && (
-            <div className="text-xs text-foreground/70 mb-4">
+            <div className="label tnum mb-4">
               Updated {formatHeartbeat(computed.lastUpdated)}
             </div>
           )}
 
+          <ConfidenceBar pct={computed.frameConfidence} />
+
           <div
-            className="flex items-baseline justify-between gap-3 mb-4"
-            title={`${computed.maturity.stage.meaning} Derived from ${computed.maturity.factCount} observations across ${computed.maturity.distinctCategories} categories — ${computed.maturity.corroborated} corroborated, ${computed.maturity.crossSource} cross-source.`}
+            className="flex items-baseline justify-between gap-3 mt-4"
+            title={`${computed.maturity.stage.meaning} Derived from ${computed.maturity.factCount} observations across ${computed.maturity.distinctCategories} categories: ${computed.maturity.corroborated} corroborated, ${computed.maturity.crossSource} cross-source.`}
           >
-            <span className="eyebrow">
-              Stage
-            </span>
-            <span className="text-xs text-[#B9A477]">
-              {computed.maturity.stage.label}
-            </span>
+            <span className="label">Stage</span>
+            <span className="chip chip-gold">{computed.maturity.stage.label}</span>
           </div>
 
-          <ConfidenceBar pct={computed.frameConfidence} segments={20} />
-
           {changeInfo && (
-            <div
-              className="mt-4 px-3.5 py-3"
-              style={{
-                border: "1px solid hsla(39,49%,36%,0.28)",
-                background: "linear-gradient(180deg, hsla(39,49%,36%,0.07), transparent 90%)",
-              }}
-            >
-              <div className="flex items-baseline justify-between">
-                <span className="text-xs text-[#B9A477]">
-                  Model updated
-                </span>
-                <span className="font-sans font-normal text-base tabular-nums text-[#B9A477]">
-                  +{changeInfo.delta}%
-                </span>
-              </div>
+            <div className="mt-4 px-4 py-3 rounded-[14px] border border-[#B9A477]/28 bg-[#B9A477]/[0.07] flex items-baseline justify-between">
+              <span className="text-[0.9375rem] text-[#D4C7A3]">Model updated</span>
+              <span className="text-[1.0625rem] font-semibold tnum text-[#D4C7A3]">
+                +{changeInfo.delta}%
+              </span>
             </div>
           )}
 
-          <p className="text-[0.8rem] text-foreground/70 leading-relaxed mt-4">
+          <p className="text-[0.9375rem] text-muted-foreground leading-[1.6] mt-4">
             {computed.frameConfidence < 10
               ? "FRAME is still learning how you move under pressure. This percentage is how complete its model of you is."
               : computed.frameConfidence < 25
@@ -636,20 +557,12 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
         </div>
 
         {computed.lowestCategories.length > 0 && (
-          <div
-            className="px-5 pt-4 pb-5"
-            style={{ borderTop: "1px solid hsla(0,0%,100%,0.05)" }}
-          >
-            <div className="eyebrow mb-3">
-              Lowest confidence
-            </div>
-            <ul className="space-y-2">
+          <div className="px-5 pt-4 pb-4 border-t border-white/[0.06]">
+            <div className="label mb-2">Lowest confidence</div>
+            <ul>
               {computed.lowestCategories.map((c) => (
-                <li key={c} className="flex items-center gap-2.5">
-                  <span className="w-1 h-1 rounded-full bg-primary/40 flex-none" />
-                  <span className="text-xs text-foreground/65">
-                    {CATEGORY_LABELS[c]}
-                  </span>
+                <li key={c} className="text-[0.9375rem] text-foreground/85 py-1.5">
+                  {CATEGORY_LABELS[c]}
                 </li>
               ))}
             </ul>
@@ -658,27 +571,22 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
 
         <Link
           href="/chat"
-          className="flex items-center justify-between px-5 py-3.5 hover:bg-white/[0.02] transition-colors group"
-          style={{ borderTop: "1px solid hsla(0,0%,100%,0.06)" }}
+          className="flex items-center justify-between px-5 min-h-[56px] hover:bg-white/[0.03] transition-colors group border-t border-white/[0.06]"
         >
-          <span className="text-xs text-[#B9A477] group-hover:text-[#B9A477] transition-colors">
-            Continue Calibration
-          </span>
-          <span className="text-xs text-foreground/70 group-hover:text-[#B9A477] transition-colors">
-            →
-          </span>
+          <span className="text-[1rem] font-medium text-[#D4C7A3]">Continue calibration</span>
+          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-[#B9A477] transition-colors" strokeWidth={1.5} />
         </Link>
       </Panel>
 
-      {/* ─── 4. ATHLETE STATE ────────────────────────────────── */}
+      {/* ─── 2. ATHLETE STATE ────────────────────────────────── */}
       <AthleteStatePanel fighter={fighter} facts={facts} />
 
-      {/* ─── 5. ATHLETE DNA ──────────────────────────────────── */}
+      {/* ─── 3. ATHLETE DNA ──────────────────────────────────── */}
       {modelLocked ? (
         <LockedSection
           overline="Model coverage"
           title="Athlete DNA"
-          note="The DNA radar — how well FRAME reads each dimension of your game — is part of the full athlete model."
+          note="The DNA radar, how well FRAME reads each dimension of your game, is part of the full athlete model."
           onTap={() => openUpgrade("athlete_model")}
         />
       ) : (
@@ -686,34 +594,30 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
           <div className="px-5 pt-5 pb-3">
             <SectionHead overline="Model coverage" title="Athlete DNA" />
           </div>
-          <div className="px-4 pt-3 pb-5">
+          <div className="px-4 pt-2 pb-5">
             <RadarChart dims={computed.radarData} />
-            <p className="text-[0.75rem] text-foreground/70 leading-relaxed text-center mt-2">
-              Confidence bands — how well FRAME understands each dimension.
-              Not scored 1–100.
+            <p className="text-[0.875rem] text-muted-foreground leading-[1.55] text-center mt-3">
+              Confidence bands: how well FRAME understands each dimension. Not scored 1 to 100.
             </p>
           </div>
         </Panel>
       )}
 
-      {/* ─── ATHLETE IDENTITY ─────────────────────────────────── */}
+      {/* ─── 4. ATHLETE IDENTITY ─────────────────────────────── */}
       {(computed.topStrength || computed.topWeakness || computed.topPattern || arch) && (
         <Panel>
           <div className="px-5 pt-5 pb-3">
             <SectionHead overline="Derived read" title="Athlete identity" />
           </div>
-          <div className="divide-y" style={{ borderColor: "hsla(0,0%,100%,0.05)" }}>
+          <div className="border-t border-white/[0.06]">
             <IdentityRow
               label="Current style"
-              value={`${fighter.primarySport ? sportLabel(fighter.primarySport) : fighter.art ?? "—"} · ${fighter.level}`}
+              value={`${fighter.primarySport ? sportLabel(fighter.primarySport) : fighter.art ?? "-"} · ${fighter.level}`}
             />
             {arch && (
               <>
                 <IdentityRow label="Primary archetype" value={arch.name} />
-                <IdentityRow
-                  label="Pressure response"
-                  value={leadClause(arch.pressureSignature)}
-                />
+                <IdentityRow label="Pressure response" value={leadClause(arch.pressureSignature)} />
                 <IdentityRow label="Gift" value={leadClause(arch.gift)} />
                 <IdentityRow label="Shadow" value={leadClause(arch.shadow)} />
               </>
@@ -727,144 +631,132 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
               <IdentityRow
                 label="Observed strength"
                 value={computed.topStrength.topic || computed.topStrength.content}
-                sub={`conf ${computed.topStrength.confidence}/5`}
+                sub={`Confidence ${computed.topStrength.confidence} of 5`}
               />
             )}
             {computed.topWeakness && (
               <IdentityRow
                 label="Observed blind spot"
                 value={computed.topWeakness.topic || computed.topWeakness.content}
-                sub={`conf ${computed.topWeakness.confidence}/5`}
+                sub={`Confidence ${computed.topWeakness.confidence} of 5`}
               />
             )}
             {computed.topPattern && (
               <IdentityRow
                 label="Decision pattern"
                 value={computed.topPattern.topic || computed.topPattern.content}
-                sub={`conf ${computed.topPattern.confidence}/5`}
+                sub={`Confidence ${computed.topPattern.confidence} of 5`}
               />
             )}
           </div>
         </Panel>
       )}
 
-      {/* ─── FRAME INTEGRITY ──────────────────────────────────── */}
+      {/* ─── 5. FRAME INTEGRITY ──────────────────────────────── */}
       <Panel>
         <div className="grid grid-cols-3 divide-x divide-white/[0.06]">
-          <div className="px-3 py-2.5 text-center">
-            <div className="eyebrow mb-1">
-              Integrity
-            </div>
-            <div className="text-xs text-foreground/95 leading-tight">
-              {computed.integrityLabel}
-            </div>
+          <div className="px-3 py-4">
+            <div className="label mb-1">Integrity</div>
+            <div className="text-[1rem] font-medium text-foreground leading-tight">{computed.integrityLabel}</div>
           </div>
-          <div className="px-3 py-2.5 text-center">
-            <div className="eyebrow mb-1">
-              Cadence
-            </div>
-            <div className="text-xs text-foreground/95 leading-tight">
-              {fighter.trainingFrequency}
-            </div>
+          <div className="px-3 py-4">
+            <div className="label mb-1">Cadence</div>
+            <div className="text-[1rem] font-medium text-foreground leading-tight">{fighter.trainingFrequency}</div>
           </div>
-          <div className="px-3 py-2.5 text-center">
-            <div className="eyebrow mb-1">
-              Days in frame
-            </div>
-            <div className="text-xs text-foreground/95 leading-tight">
-              {computed.sinceDays}
-            </div>
+          <div className="px-3 py-4">
+            <div className="label mb-1">Days in FRAME</div>
+            <div className="text-[1rem] font-medium text-foreground leading-tight tnum">{computed.sinceDays}</div>
           </div>
         </div>
-        <div className="px-4 py-4 border-t border-white/[0.10]">
+        <div className="px-5 py-4 border-t border-white/[0.06]">
           <div className="flex gap-1">
             {[0, 1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className={`h-1 flex-1 transition-colors duration-700 ${
-                  i < computed.integritySegments ? "bg-primary" : "bg-border/60"
-                }`}
+                className="h-1 flex-1 rounded-sm"
+                style={{ background: i < computed.integritySegments ? "#B9A477" : "rgba(255,255,255,0.08)" }}
               />
             ))}
           </div>
-          <div className="text-xs text-muted-foreground leading-relaxed mt-2">
-            Frame integrity — how much of your structure survives when pressure spikes.
-            Composure under fragmentation, not a fitness score.
-          </div>
+          <p className="text-[0.875rem] text-muted-foreground leading-[1.55] mt-3">
+            Frame integrity is how much of your structure survives when pressure spikes. Composure
+            under fragmentation, not a fitness score.
+          </p>
         </div>
       </Panel>
 
-      {/* ─── FULL ATHLETE MODEL (fact list) ───────────────────── */}
+      {/* ─── 6. FULL ATHLETE MODEL (fact list) ───────────────── */}
       <section className="model-reveal">
-        <div className="flex items-end justify-between gap-4 mb-6 pt-2">
+        <div className="flex items-end justify-between gap-4 mb-4 pt-2">
           <div>
-            <div className="eyebrow mb-2">
-              Full model
-            </div>
-            <div className="font-sans font-normal text-xl text-foreground/90 leading-none">
+            <div className="label mb-1">Full model</div>
+            <h3 className="section-title tnum">
               {facts.length} observation{facts.length === 1 ? "" : "s"}
-            </div>
+            </h3>
           </div>
           <Link
             href="/history"
-            className="flex-none text-xs text-foreground/70 hover:text-[#B9A477] transition-colors"
+            className="flex-none min-h-[44px] inline-flex items-center gap-1 text-[0.9375rem] text-muted-foreground hover:text-foreground transition-colors"
           >
-            View history →
+            View history
+            <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
           </Link>
         </div>
 
-        {modelLocked ? (
+        {memoryQuery.isError ? (
+          <Panel className="px-5 py-5">
+            <div role="alert" className="space-y-3">
+              <div className="text-[1rem] font-medium text-[#E5645A]">Could not load the model</div>
+              <button type="button" onClick={() => void memoryQuery.refetch()} className="btn-quiet btn-quiet-red">
+                Try again
+              </button>
+            </div>
+          </Panel>
+        ) : modelLocked ? (
           <Panel>
             <button
               type="button"
               onClick={() => openUpgrade("athlete_model")}
-              className="w-full flex items-center justify-between gap-4 px-5 py-5 text-left hover:bg-white/[0.02] transition-colors group"
+              className="w-full flex items-center justify-between gap-4 px-5 py-5 text-left hover:bg-white/[0.03] transition-colors"
             >
               <span className="flex items-start gap-2.5 min-w-0">
-                <Lock className="h-3.5 w-3.5 flex-none mt-0.5 text-foreground/70" strokeWidth={1.5} />
-                <span className="text-[0.85rem] text-foreground/70 leading-relaxed">
+                <Lock className="h-4 w-4 flex-none mt-0.5 text-muted-foreground" strokeWidth={1.5} />
+                <span className="text-[0.9375rem] text-muted-foreground leading-[1.55]">
                   {facts.length === 0
                     ? "FRAME records durable observations as you train and talk. The full model is a FRAME+ feature."
                     : `FRAME holds ${facts.length} recorded observation${facts.length === 1 ? "" : "s"} on you. The full breakdown is a FRAME+ feature.`}
                 </span>
               </span>
-              <span className="flex-none text-xs text-[#B9A477] group-hover:text-[#B9A477] transition-colors">
-                FRAME+
-              </span>
+              <span className="chip chip-gold flex-none">FRAME+</span>
             </button>
           </Panel>
         ) : facts.length === 0 ? (
           <Panel className="px-5 py-6">
-            <p className="text-[0.95rem] text-foreground/70 leading-relaxed">
+            <h4 className="section-title !text-[1.0625rem]">Nothing recorded yet</h4>
+            <p className="text-[1rem] text-muted-foreground leading-[1.6] mt-2">
               The model sharpens with use. As you talk to the coach, FRAME records durable
-              observations and feeds them back into how you're coached.
+              observations and feeds them back into how you are coached.
             </p>
+            <Link href="/chat" className="btn-quiet mt-4">
+              Talk to your coach
+            </Link>
           </Panel>
         ) : (
-          <div className="space-y-7">
+          <div className="space-y-6">
             {CATEGORY_ORDER.filter((c) => (grouped[c]?.length ?? 0) > 0).map((c) => (
               <div key={c}>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex-none font-sans font-normal text-[0.9rem] text-[#B9A477] leading-none">
-                    {CATEGORY_LABELS[c]}
-                  </div>
-                  <div
-                    className="flex-1 h-px"
-                    style={{ background: "linear-gradient(to right, hsla(39,49%,36%,0.22), transparent)" }}
-                  />
-                  <div className="flex-none text-xs tabular-nums text-foreground/70">
-                    {grouped[c]!.length}
-                  </div>
+                <div className="flex items-baseline justify-between gap-3 mb-2">
+                  <h4 className="text-[1rem] font-semibold text-[#D4C7A3]">{CATEGORY_LABELS[c]}</h4>
+                  <span className="label tnum">{grouped[c]!.length}</span>
                 </div>
-                <div className="space-y-2">
+                <div className="glass px-4">
                   {grouped[c]!.map((f) => (
                     <div
                       key={f.id}
-                      className="pl-4 py-1 flex items-baseline justify-between gap-3"
-                      style={{ borderLeft: "1px solid hsla(39,49%,36%,0.25)" }}
+                      className="py-3 flex items-baseline justify-between gap-3 border-t border-white/[0.06] first:border-t-0"
                     >
                       <div
-                        className="min-w-0 text-xs text-foreground/75 truncate"
+                        className="min-w-0 text-[0.9375rem] text-foreground/90 leading-snug"
                         title={f.topic || undefined}
                       >
                         {f.topic || f.content}
@@ -872,10 +764,10 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
                       <div className="flex items-baseline gap-2.5 flex-none">
                         {(f.evidenceCount ?? 1) > 1 && (
                           <span
-                            className="text-xs tabular-nums text-[#B9A477]"
+                            className="label tnum !text-[#D4C7A3]"
                             title={`Seen ${f.evidenceCount} times across chat, footage and calibration`}
                           >
-                            ×{f.evidenceCount}
+                            seen {f.evidenceCount}x
                           </span>
                         )}
                         <FactConfidence value={f.confidence} />
@@ -891,11 +783,11 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
 
       <style>{`
         @keyframes model-reveal-in {
-          from { opacity: 0; transform: translateY(12px) scale(0.99); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
         .model-reveal {
-          animation: model-reveal-in 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+          animation: model-reveal-in 0.32s cubic-bezier(0.2, 0, 0, 1) both;
         }
         @media (prefers-reduced-motion: reduce) {
           .model-reveal { animation: none; }

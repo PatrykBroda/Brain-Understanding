@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { X, Crosshair, Shield, AlertTriangle, Target, ScanLine } from "lucide-react";
-import { FrameOctagon } from "@/components/frame-octagon";
+import { X, Crosshair, Shield, AlertTriangle, Target, ScanLine, RefreshCcw } from "lucide-react";
 import { useAnalysis } from "@/hooks/use-analysis";
 import { AthleteVsOpponent } from "@/components/pose-comparison";
 import type {
@@ -12,10 +11,9 @@ import type {
   Matchup,
 } from "@/lib/api";
 
-// Opponent Mode uses a deliberately COOL accent (steel/cyan) so a scouting read
-// can never be mistaken for the athlete's own red-accented FRAME REPORT. This is
-// the whole point of the mode: the opponent is someone else, clearly marked.
-const SCOUT = "199,84%,56%";
+// Opponent Mode is marked by label and a neutral silver accent (never the gold of the
+// athlete's own report), so a scouting read can't be mistaken for your own FRAME report.
+const SCOUT = "#C9CDD2";
 
 const SEVERITY_LABEL: Record<AnalysisFinding["severity"], string> = {
   low: "Minor",
@@ -34,28 +32,26 @@ export function SavedOpponentReport({
   fighter: Fighter | null;
   onClose: () => void;
 }) {
-  const { data, isLoading, isError } = useAnalysis(id);
+  const { data, isLoading, isError, refetch } = useAnalysis(id);
   if (isLoading) {
     return (
-      <div className="py-16 flex flex-col items-center gap-4">
-        <FrameOctagon size={56} spin spinSeconds={4} glow={false} />
-        <div className="eyebrow">
-          Loading scout
-        </div>
+      <div className="py-16 flex flex-col items-center gap-4 text-[0.9375rem] text-muted-foreground" role="status">
+        <span className="h-5 w-5 rounded-full border-2 border-white/15 border-t-[#B9A477] animate-spin motion-reduce:animate-none" aria-hidden />
+        Loading scouting read
       </div>
     );
   }
   if (isError || !data?.analysis) {
     return (
       <div className="space-y-4">
-        <div className="glass glass-red !rounded-2xl px-3 py-2 text-xs text-destructive/90">
-          could not load this scout
+        <div role="alert" className="glass glass-red px-4 py-4 space-y-3">
+          <div className="text-[1rem] font-medium text-[#E5645A]">Could not load this scouting read</div>
+          <button type="button" onClick={() => void refetch()} className="btn-quiet btn-quiet-red">
+            <RefreshCcw className="w-4 h-4" strokeWidth={1.5} />
+            Try again
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-full btn-quiet"
-        >
+        <button type="button" onClick={onClose} className="w-full btn-quiet">
           Back
         </button>
       </div>
@@ -84,18 +80,11 @@ export function OpponentReport({
       {/* header */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div
-            className="inline-flex items-center gap-1.5 text-xs px-2 py-1 mb-2"
-            style={{
-              color: `hsla(${SCOUT},0.95)`,
-              border: `1px solid hsla(${SCOUT},0.35)`,
-              background: `hsla(${SCOUT},0.06)`,
-            }}
-          >
-            <ScanLine className="w-3 h-3" strokeWidth={1.5} />
+          <span className="chip mb-2" style={{ color: SCOUT }}>
+            <ScanLine className="w-3.5 h-3.5" strokeWidth={1.5} />
             Opponent scout
-          </div>
-          <div className="eyebrow">
+          </span>
+          <div className="label tnum capitalize">
             {analysis.kind} · {analysis.durationSec.toFixed(0)}s read
           </div>
         </div>
@@ -103,50 +92,38 @@ export function OpponentReport({
           type="button"
           onClick={onClose}
           aria-label="Close scout"
-          className="text-muted-foreground hover:text-foreground transition-colors flex-none"
+          className="w-11 h-11 -mr-2 -mt-1 flex items-center justify-center rounded-[12px] text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition-colors flex-none"
         >
           <X className="w-5 h-5" strokeWidth={1.5} />
         </button>
       </div>
 
-      {/* opponent identity band */}
-      <div
-        className="px-5 py-4"
-        style={{
-          borderLeft: `2px solid hsla(${SCOUT},0.6)`,
-          background: `linear-gradient(90deg, hsla(${SCOUT},0.07), transparent 85%)`,
-        }}
-      >
+      {/* opponent identity */}
+      <div className="glass px-5 py-4">
         <div className="flex items-center gap-2.5">
-          <Crosshair className="w-4 h-4 flex-none" style={{ color: `hsla(${SCOUT},0.85)` }} strokeWidth={1.5} />
-          <span className="text-base text-foreground/90 font-normal truncate">
-            {name || "Unnamed opponent"}
-          </span>
+          <Crosshair className="w-5 h-5 flex-none" style={{ color: SCOUT }} strokeWidth={1.5} />
+          <h2 className="display-heading truncate">{name || "Unnamed opponent"}</h2>
         </div>
         {analysis.styleProfile && (
-          <div className="text-xs mt-1.5" style={{ color: `hsla(${SCOUT},0.75)` }}>
-            {analysis.styleProfile}
-          </div>
+          <div className="text-[0.9375rem] mt-1.5 text-muted-foreground">{analysis.styleProfile}</div>
         )}
       </div>
 
       {/* grounded summary */}
       {analysis.summary && (
-        <p className="text-[0.95rem] text-foreground/90 leading-relaxed pl-4" style={{ borderLeft: `2px solid hsla(${SCOUT},0.5)` }}>
+        <p className="text-[1.0625rem] text-foreground leading-[1.65] pl-4 border-l-2 border-white/20">
           {analysis.summary}
         </p>
       )}
 
-      {/* MATCHUP — the athlete's recorded model vs this opponent's tendencies */}
+      {/* MATCHUP: the athlete's recorded model vs this opponent's tendencies */}
       <MatchupPanel matchup={analysis.matchup} />
 
       {/* opponent tendencies (= the athlete's openings) */}
       {analysis.findings.length > 0 && (
         <section className="space-y-3">
-          <div className="section-title">
-            Tendencies to exploit
-          </div>
-          <div className="space-y-2.5">
+          <h2 className="section-title">Tendencies to exploit</h2>
+          <div className="space-y-3">
             {analysis.findings.map((f, i) => (
               <TendencyCard key={i} finding={f} />
             ))}
@@ -154,16 +131,14 @@ export function OpponentReport({
         </section>
       )}
 
-      {/* keyframes — categorical, no scores, no notes editor (this is someone else) */}
+      {/* keyframes: categorical, no scores, no notes editor (this is someone else) */}
       {analysis.keyframes.length > 0 && (
         <section className="space-y-3">
-          <div className="section-title">
-            Detected moments
-          </div>
+          <h2 className="section-title">Detected moments</h2>
           {kf && (
             <figure className="space-y-2">
-              <img src={kf.imageBase64} alt={kf.caption} className="w-full rounded border border-border/50" />
-              <figcaption className="eyebrow">
+              <img src={kf.imageBase64} alt={kf.caption} className="w-full rounded-[14px] border border-white/10" />
+              <figcaption className="label tnum">
                 {kf.timestamp.toFixed(1)}s · {kf.caption}
               </figcaption>
             </figure>
@@ -174,37 +149,28 @@ export function OpponentReport({
                 key={i}
                 type="button"
                 onClick={() => setActiveKf(i)}
-                className="flex-none w-20 border transition-colors"
-                style={{ borderColor: i === activeKf ? `hsla(${SCOUT},0.7)` : "hsla(0,0%,100%,0.12)" }}
+                aria-pressed={i === activeKf}
+                className="flex-none w-20 overflow-hidden rounded-[12px] border transition-colors bg-[#111316]"
+                style={{ borderColor: i === activeKf ? "rgba(201,205,210,0.7)" : "rgba(255,255,255,0.12)" }}
               >
                 <img src={k.imageBase64} alt={k.caption} className="w-full" />
-                <div className="eyebrow px-1 py-1 truncate">
-                  {k.caption}
-                </div>
+                <div className="label px-1.5 py-1 truncate">{k.caption}</div>
               </button>
             ))}
           </div>
         </section>
       )}
 
-      {/* athlete vs opponent ghost players — only when BOTH tracks exist */}
+      {/* athlete vs opponent ghost players, only when BOTH tracks exist */}
       <AthleteVsOpponent analysis={analysis} />
 
       {/* grounded, hedged parallels */}
-      {analysis.styleParallels.length > 0 && (
-        <StyleParallels parallels={analysis.styleParallels} />
-      )}
+      {analysis.styleParallels.length > 0 && <StyleParallels parallels={analysis.styleParallels} />}
 
-      {/* categorical movement signals — the raw basis, never a score */}
-      {analysis.metrics.signals.length > 0 && (
-        <SignalTable signals={analysis.metrics.signals} />
-      )}
+      {/* categorical movement signals: the raw basis, never a score */}
+      {analysis.metrics.signals.length > 0 && <SignalTable signals={analysis.metrics.signals} />}
 
-      <button
-        type="button"
-        onClick={onClose}
-        className="w-full btn-quiet"
-      >
+      <button type="button" onClick={onClose} className="w-full btn-quiet">
         Close scout
       </button>
     </div>
@@ -217,43 +183,35 @@ function MatchupPanel({ matchup }: { matchup: Matchup }) {
   if (!matchup) {
     // Honest-null: the gate refused to fabricate a matchup from thin evidence.
     return (
-      <section
-        className="px-5 py-4 space-y-2"
-        style={{ border: `1px solid hsla(${SCOUT},0.2)`, background: `hsla(${SCOUT},0.03)` }}
-      >
-        <div className="flex items-center gap-2 text-xs " style={{ color: `hsla(${SCOUT},0.8)` }}>
-          <Target className="w-3.5 h-3.5" strokeWidth={1.5} />
+      <section className="glass px-5 py-4 space-y-2">
+        <h2 className="section-title !text-[1.0625rem] flex items-center gap-2">
+          <Target className="w-4 h-4" strokeWidth={1.5} style={{ color: SCOUT }} />
           Matchup
-        </div>
-        <p className="text-[0.85rem] text-foreground/60 leading-relaxed">
-          Not enough grounded evidence to call this matchup honestly yet — either your
-          own recorded model is still thin, or this clip didn't show enough tracked
-          movement. The scout above still stands on its own. Log more of your own reads
-          and it'll sharpen.
+        </h2>
+        <p className="text-[0.9375rem] text-muted-foreground leading-[1.6]">
+          Not enough grounded evidence to call this matchup honestly yet. Either your own recorded
+          model is still thin, or this clip did not show enough tracked movement. The scout above
+          still stands on its own. Log more of your own reads and it will sharpen.
         </p>
       </section>
     );
   }
   return (
     <section className="space-y-3">
-      <div className="flex items-center gap-2 text-xs " style={{ color: `hsla(${SCOUT},0.85)` }}>
-        <Target className="w-3.5 h-3.5" strokeWidth={1.5} />
+      <h2 className="section-title flex items-center gap-2">
+        <Target className="w-4 h-4" strokeWidth={1.5} style={{ color: SCOUT }} />
         Matchup
-      </div>
-      <div className="grid gap-2.5 sm:grid-cols-2">
-        <MatchupEdgeCard
-          kind="advantage"
-          title={matchup.advantage.title}
-          note={matchup.advantage.note}
-        />
+      </h2>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <MatchupEdgeCard kind="advantage" title={matchup.advantage.title} note={matchup.advantage.note} />
         <MatchupEdgeCard kind="risk" title={matchup.risk.title} note={matchup.risk.note} />
       </div>
       {matchup.notes.length > 0 && (
-        <ul className="space-y-1.5 pt-1">
+        <ul className="space-y-2 pt-1">
           {matchup.notes.map((n, i) => (
             <li
               key={i}
-              className="text-[0.8rem] text-foreground/70 leading-relaxed before:content-['—'] before:mr-2 before:text-muted-foreground/90"
+              className="text-[0.9375rem] text-muted-foreground leading-[1.55] before:content-['—'] before:mr-2"
             >
               {n}
             </li>
@@ -274,18 +232,14 @@ function MatchupEdgeCard({
   note: string;
 }) {
   const isAdvantage = kind === "advantage";
-  const accent = isAdvantage ? "142,64%,45%" : "0,68%,52%";
   return (
-    <div
-      className="px-4 py-3.5 space-y-1.5"
-      style={{ borderLeft: `2px solid hsla(${accent},0.7)`, background: `hsla(${accent},0.05)` }}
-    >
-      <div className="flex items-center gap-1.5 text-xs " style={{ color: `hsla(${accent},0.9)` }}>
-        {isAdvantage ? <Shield className="w-3 h-3" strokeWidth={1.5} /> : <AlertTriangle className="w-3 h-3" strokeWidth={1.5} />}
+    <div className={`glass px-4 py-4 space-y-2 ${isAdvantage ? "" : "glass-red"}`}>
+      <span className={`chip ${isAdvantage ? "chip-ok" : "chip-red"}`}>
+        {isAdvantage ? <Shield className="w-3.5 h-3.5" strokeWidth={1.5} /> : <AlertTriangle className="w-3.5 h-3.5" strokeWidth={1.5} />}
         {isAdvantage ? "Your biggest advantage" : "Biggest risk"}
-      </div>
-      <div className="text-[0.9rem] text-foreground/90 leading-snug">{title}</div>
-      <p className="text-[0.8rem] text-foreground/65 leading-relaxed">{note}</p>
+      </span>
+      <div className="text-[1.0625rem] font-medium text-foreground leading-snug">{title}</div>
+      <p className="text-[0.9375rem] text-muted-foreground leading-[1.55]">{note}</p>
     </div>
   );
 }
@@ -294,16 +248,16 @@ function MatchupEdgeCard({
 
 function TendencyCard({ finding }: { finding: AnalysisFinding }) {
   return (
-    <div className="px-4 py-3 space-y-1.5" style={{ borderLeft: `2px solid hsla(${SCOUT},0.4)`, background: "hsla(0,0%,100%,0.015)" }}>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[0.9rem] text-foreground/90 leading-snug">{finding.title}</span>
-        <span className="text-xs flex-none" style={{ color: `hsla(${SCOUT},0.75)` }}>
+    <div className="glass px-4 py-4 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-[1.0625rem] font-medium text-foreground leading-snug">{finding.title}</span>
+        <span className={`chip flex-none ${finding.severity === "high" ? "chip-gold" : ""}`}>
           {SEVERITY_LABEL[finding.severity]}
         </span>
       </div>
-      <p className="text-[0.8rem] text-foreground/65 leading-relaxed">{finding.observation}</p>
+      <p className="text-[0.9375rem] text-foreground/80 leading-[1.6]">{finding.observation}</p>
       {finding.nervousSystemFraming && (
-        <p className="text-[0.78rem] text-foreground/70 leading-relaxed ">{finding.nervousSystemFraming}</p>
+        <p className="text-[0.9375rem] text-[#D4C7A3] leading-[1.6]">{finding.nervousSystemFraming}</p>
       )}
     </div>
   );
@@ -312,16 +266,12 @@ function TendencyCard({ finding }: { finding: AnalysisFinding }) {
 function StyleParallels({ parallels }: { parallels: StyleParallel[] }) {
   return (
     <section className="space-y-3">
-      <div className="section-title">
-        Reads like
-      </div>
-      <div className="space-y-2">
+      <h2 className="section-title">Reads like</h2>
+      <div className="glass px-4">
         {parallels.map((p, i) => (
-          <div key={i} className="space-y-0.5">
-            <div className="text-xs " style={{ color: `hsla(${SCOUT},0.8)` }}>
-              {p.name}
-            </div>
-            <p className="text-[0.8rem] text-foreground/65 leading-relaxed">{p.note}</p>
+          <div key={i} className="py-3 border-t border-white/[0.06] first:border-t-0 space-y-0.5">
+            <div className="text-[1rem] font-medium text-foreground">{p.name}</div>
+            <p className="text-[0.9375rem] text-muted-foreground leading-[1.55]">{p.note}</p>
           </div>
         ))}
       </div>
@@ -332,17 +282,18 @@ function StyleParallels({ parallels }: { parallels: StyleParallel[] }) {
 function SignalTable({ signals }: { signals: AnalysisSignal[] }) {
   return (
     <section className="space-y-3">
-      <div className="section-title">
-        Movement signals
-      </div>
-      <div className="space-y-1.5">
+      <h2 className="section-title">Movement signals</h2>
+      <div className="glass px-4">
         {signals.map((s, i) => (
-          <div key={i} className="flex items-baseline justify-between gap-4 py-1 border-b border-border/15">
+          <div
+            key={i}
+            className="flex items-baseline justify-between gap-4 py-3 border-t border-white/[0.06] first:border-t-0"
+          >
             <div className="min-w-0">
-              <div className="text-xs text-foreground/75">{s.label}</div>
-              <div className="text-[0.76rem] text-foreground/70 leading-snug">{s.detail}</div>
+              <div className="text-[1rem] text-foreground">{s.label}</div>
+              <div className="text-[0.875rem] text-muted-foreground leading-snug mt-0.5">{s.detail}</div>
             </div>
-            <div className="text-xs flex-none" style={{ color: `hsla(${SCOUT},0.85)` }}>
+            <div className="text-[0.9375rem] font-medium flex-none capitalize" style={{ color: SCOUT }}>
               {s.value}
             </div>
           </div>

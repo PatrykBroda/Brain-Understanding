@@ -59,23 +59,17 @@ type DayBucket = {
   facts: AthleteFact[];
 };
 
-// Honest confidence read — five dots, filled to the recorded 1-5 value.
-// Tooltip carries the real value and provenance source.
-function ConfidenceDots({ value, source }: { value: number; source?: string }) {
+// Honest confidence read: thin bar plus a text label, real recorded 1-5 value.
+function ConfidenceBar({ value, source }: { value: number; source?: string }) {
   return (
     <div
-      className="flex flex-none items-center gap-[3px]"
-      title={`Confidence ${value}/5${source ? ` · ${source}` : ""}`}
-      aria-label={`Confidence ${value} of 5`}
+      className="flex flex-none items-center gap-2"
+      title={`Confidence ${value} of 5${source ? ` · ${source}` : ""}`}
     >
-      {[1, 2, 3, 4, 5].map((i) => (
-        <span
-          key={i}
-          className={`w-1 h-1 rounded-full ${
-            i <= value ? "bg-primary/80" : "bg-white/15"
-          }`}
-        />
-      ))}
+      <div className="bar-thin w-10" aria-hidden>
+        <span style={{ width: `${(Math.max(0, Math.min(5, value)) / 5) * 100}%` }} />
+      </div>
+      <span className="label tnum">{value} of 5</span>
     </div>
   );
 }
@@ -124,29 +118,14 @@ export default function HistoryPage() {
 
   const isEmpty = !isLoading && days.length === 0;
 
+  const hasError = memoryQuery.isError || analysesQuery.isError;
+
   return (
     <div className="relative flex flex-col h-[100dvh] text-foreground font-sans overflow-hidden">
-      {/* Ultra-fine grain — kills banding on the OLED black */}
-      <svg
-        className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.04] mix-blend-overlay z-0"
-        aria-hidden
-      >
-        <filter id="frame-history-grain">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.9"
-            numOctaves="2"
-            stitchTiles="stitch"
-          />
-          <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#frame-history-grain)" />
-      </svg>
-
-      <header className="relative z-10 flex-none flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
+      <header className="relative z-10 flex-none flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3">
         <Link
           href="/home"
-          aria-label="Back to Frame"
+          aria-label="Back to home"
           className="icon-round text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
@@ -156,201 +135,139 @@ export default function HistoryPage() {
       </header>
 
       <main className="relative z-10 flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-6 py-9">
-          {/* Editorial intro */}
-          <div className="mb-10 text-center">
-            <div className="eyebrow">
-              The record
-            </div>
-            <p className="mt-3 text-[0.95rem] leading-relaxed text-foreground/75">
-              Your sessions and what FRAME holds now, newest first.
-            </p>
-            <div
-              className="mt-6 mx-auto max-w-[10rem] flex items-center gap-3 px-1"
-              aria-hidden
-            >
-              <div
-                className="flex-1 h-px"
-                style={{
-                  background:
-                    "linear-gradient(to right, transparent, hsla(39,49%,36%,0.18))",
-                }}
-              />
-              <div
-                className="w-1 h-1 rounded-full"
-                style={{ background: "hsla(39,49%,36%,0.22)" }}
-              />
-              <div
-                className="flex-1 h-px"
-                style={{
-                  background:
-                    "linear-gradient(to left, transparent, hsla(39,49%,36%,0.18))",
-                }}
-              />
-            </div>
-          </div>
+        <div className="max-w-2xl mx-auto px-5 py-6">
+          <p className="mb-8 text-[1rem] leading-[1.6] text-muted-foreground">
+            Your sessions and what FRAME holds now, newest first.
+          </p>
 
           {isLoading ? (
-            <div className="flex justify-center pt-16 text-muted-foreground text-xs ">
-              Loading record…
+            <div className="flex flex-col items-center gap-3 pt-16 text-[0.9375rem] text-muted-foreground" role="status">
+              <span className="h-5 w-5 rounded-full border-2 border-white/15 border-t-[#B9A477] animate-spin motion-reduce:animate-none" aria-hidden />
+              Loading your record
+            </div>
+          ) : hasError ? (
+            <div role="alert" className="glass glass-red px-5 py-5 space-y-3">
+              <div className="text-[1rem] font-medium text-[#E5645A]">Could not load your history</div>
+              <p className="text-[0.9375rem] text-foreground/80">Check your connection and try again.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  void memoryQuery.refetch();
+                  void analysesQuery.refetch();
+                }}
+                className="btn-quiet btn-quiet-red"
+              >
+                Try again
+              </button>
             </div>
           ) : isEmpty ? (
-            <div className="flex flex-col items-center justify-center min-h-[45vh] gap-6 text-center px-4">
-              <div className="eyebrow">
-                No record yet
-              </div>
-              <p className="font-sans font-normal text-lg leading-relaxed text-foreground/70 max-w-sm">
-                The timeline fills as you train and FRAME records what it sees.
+            <div className="glass px-5 py-8">
+              <h2 className="section-title">No record yet</h2>
+              <p className="mt-2 text-[1rem] leading-[1.6] text-muted-foreground max-w-sm">
+                The timeline fills as you train and FRAME records what it sees. Start with a
+                conversation or a clip.
               </p>
+              <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                <Link href="/chat" className="btn-bronze">
+                  Talk to your coach
+                </Link>
+                <Link href="/analyse" className="btn-glass">
+                  Analyse a clip
+                </Link>
+              </div>
             </div>
           ) : (
-            <div className="relative">
-              {/* Thin vertical rule threading every node */}
-              <div
-                aria-hidden
-                className="absolute top-1 bottom-1 left-[7px] w-px"
-                style={{
-                  background:
-                    "linear-gradient(to bottom, transparent, hsla(39,49%,36%,0.20) 10%, hsla(39,49%,36%,0.20) 90%, transparent)",
-                }}
-              />
+            <div className="space-y-10">
+              {days.map((day, di) => (
+                <section
+                  key={day.key}
+                  className="frame-timeline-in"
+                  style={{ animationDelay: `${Math.min(di * 0.04, 0.3)}s` }}
+                >
+                  <div className="mb-3 flex items-baseline gap-3">
+                    <h2 className="section-title !text-[1.25rem]">{dayHeader(day.date)}</h2>
+                    {dayHeader(day.date) !== explicitDate(day.date) && (
+                      <div className="label tnum">{explicitDate(day.date)}</div>
+                    )}
+                  </div>
 
-              <div className="space-y-12">
-                {days.map((day, di) => (
-                  <section
-                    key={day.key}
-                    className="frame-timeline-in"
-                    style={{ animationDelay: `${Math.min(di * 0.06, 0.5)}s` }}
-                  >
-                    {/* Day header */}
-                    <div className="relative pl-8 mb-6">
-                      <span
-                        aria-hidden
-                        className="absolute left-[1px] top-[3px] w-[13px] h-[13px] rounded-full border border-primary/50 flex items-center justify-center"
-                        style={{ background: "#08090B" }}
+                  <div className="space-y-3">
+                    {/* Analysed sessions */}
+                    {day.analyses.map((a) => (
+                      <Link
+                        key={`a-${a.id}`}
+                        href="/analyse"
+                        className="glass group flex items-center justify-between gap-4 p-4 outline-none transition-colors hover:border-white/20"
+                        aria-label={`View session analysis: ${a.styleProfile}`}
                       >
-                        <span
-                          className="w-1 h-1 rounded-full"
-                          style={{
-                            background: "hsla(39,49%,36%,0.9)",
-                            boxShadow: "0 0 8px hsla(39,49%,36%,0.55)",
-                          }}
-                        />
-                      </span>
-                      <h2 className="display-heading leading-none">
-                        {dayHeader(day.date)}
-                      </h2>
-                      {dayHeader(day.date) !== explicitDate(day.date) && (
-                        <div className="mt-2 text-xs text-foreground/70">
-                          {explicitDate(day.date)}
+                        <div className="min-w-0">
+                          <div className="label">Analysed session</div>
+                          <div className="mt-1 text-[1.0625rem] font-medium leading-snug text-foreground">
+                            {a.styleProfile}
+                          </div>
                         </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-6">
-                      {/* Analysed sessions */}
-                      {day.analyses.map((a) => (
-                        <Link
-                          key={`a-${a.id}`}
-                          href="/analyse"
-                          className="glass group relative block ml-8 p-5 outline-none transition-colors hover:border-primary/40 focus-visible:ring-1 focus-visible:ring-primary/50"
-                          aria-label={`View session analysis · ${a.styleProfile}`}
-                        >
-                          <span
-                            aria-hidden
-                            className="absolute -left-[30px] top-[24px] w-[9px] h-[9px] rounded-full"
-                            style={{
-                              background: "hsla(39,49%,36%,0.85)",
-                              boxShadow: "0 0 8px hsla(39,49%,36%,0.4)",
-                            }}
-                          />
-                          <div className="eyebrow">
-                            Analysed session
-                          </div>
-                          <div className="mt-1.5 flex items-baseline justify-between gap-4">
-                            <div className="text-[1.05rem] font-medium leading-snug text-foreground group-hover:text-[#B9A477] transition-colors">
-                              {a.styleProfile}
-                            </div>
-                            <ChevronRight
-                              className="flex-none w-3.5 h-3.5 text-foreground/70 group-hover:text-[#B9A477] transition-colors"
-                              strokeWidth={1.5}
-                            />
-                          </div>
-                          <div className="mt-2 flex items-baseline gap-2">
-                            <span className="eyebrow">
-                              Session score
-                            </span>
-                            <span className="numeral numeral-m !text-[1.75rem] !text-[#B9A477]">
+                        <div className="flex flex-none items-center gap-3">
+                          <div className="text-right">
+                            <div className="numeral numeral-m !text-[1.75rem] !text-[#D4C7A3]">
                               {Math.round(a.sessionScore ?? 0)}
-                            </span>
+                            </div>
+                            <div className="label -mt-0.5">score</div>
                           </div>
-                        </Link>
-                      ))}
-
-                      {/* FRAME noticed — facts recorded that day */}
-                      {day.facts.length > 0 && (
-                        <div className="glass relative ml-8 p-5">
-                          <span
-                            aria-hidden
-                            className="absolute -left-[30px] top-[24px] w-[9px] h-[9px] rounded-full"
-                            style={{
-                              background: "hsla(39,49%,36%,0.85)",
-                              boxShadow: "0 0 8px hsla(39,49%,36%,0.4)",
-                            }}
+                          <ChevronRight
+                            className="w-5 h-5 text-muted-foreground group-hover:text-[#B9A477] transition-colors"
+                            strokeWidth={1.5}
                           />
-                          <div className="flex items-baseline justify-between gap-3">
-                            <div className="eyebrow eyebrow-gold">
-                              FRAME noticed
-                            </div>
-                            {day.facts.length > 1 && (
-                              <div className="flex-none text-xs text-foreground/70">
-                                {day.facts.length} observations
-                              </div>
-                            )}
-                          </div>
+                        </div>
+                      </Link>
+                    ))}
 
-                          {modelLocked ? (
-                            <button
-                              type="button"
-                              onClick={() => openUpgrade("athlete_model")}
-                              className="mt-4 w-full min-h-[44px] flex items-center justify-between gap-3 text-left group"
-                            >
-                              <span className="flex items-center gap-2.5 min-w-0">
-                                <Lock className="h-3.5 w-3.5 flex-none text-foreground/70" strokeWidth={1.5} />
-                                <span className="text-[0.85rem] text-foreground/70 leading-relaxed">
-                                  {day.facts.length} observation{day.facts.length === 1 ? "" : "s"} recorded — the full model is FRAME+
-                                </span>
-                              </span>
-                              <span className="flex-none text-xs text-[#B9A477] group-hover:text-[#B9A477] transition-colors">
-                                FRAME+
-                              </span>
-                            </button>
-                          ) : (
-                            <div className="mt-4 space-y-4">
-                              {day.facts.map((f) => (
-                                <div
-                                  key={`f-${f.id}`}
-                                  className="row-hair pb-4"
-                                >
-                                  <div className="flex items-baseline justify-between gap-3 mb-1">
-                                    <div className="eyebrow eyebrow-gold truncate">
-                                      {CATEGORY_LABELS[f.category]}
-                                    </div>
-                                    <ConfidenceDots value={f.confidence} source={f.source} />
-                                  </div>
-                                  <div className="text-[0.95rem] leading-relaxed text-foreground/90">
-                                    {f.content}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                    {/* FRAME noticed: facts recorded that day */}
+                    {day.facts.length > 0 && (
+                      <div className="glass p-4">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <h3 className="text-[1rem] font-semibold text-[#D4C7A3]">FRAME noticed</h3>
+                          {day.facts.length > 1 && (
+                            <div className="label tnum flex-none">{day.facts.length} observations</div>
                           )}
                         </div>
-                      )}
-                    </div>
-                  </section>
-                ))}
-              </div>
+
+                        {modelLocked ? (
+                          <button
+                            type="button"
+                            onClick={() => openUpgrade("athlete_model")}
+                            className="mt-3 w-full min-h-[44px] flex items-center justify-between gap-3 text-left"
+                          >
+                            <span className="flex items-center gap-2.5 min-w-0">
+                              <Lock className="h-4 w-4 flex-none text-muted-foreground" strokeWidth={1.5} />
+                              <span className="text-[0.9375rem] text-muted-foreground leading-[1.55]">
+                                {day.facts.length} observation{day.facts.length === 1 ? "" : "s"} recorded. The full model is FRAME+.
+                              </span>
+                            </span>
+                            <span className="chip chip-gold flex-none">FRAME+</span>
+                          </button>
+                        ) : (
+                          <div className="mt-2">
+                            {day.facts.map((f) => (
+                              <div
+                                key={`f-${f.id}`}
+                                className="py-3 border-t border-white/[0.06] first:border-t-0"
+                              >
+                                <div className="flex items-baseline justify-between gap-3 mb-1">
+                                  <div className="label truncate">{CATEGORY_LABELS[f.category]}</div>
+                                  <ConfidenceBar value={f.confidence} source={f.source} />
+                                </div>
+                                <div className="text-[1rem] leading-[1.55] text-foreground/90">
+                                  {f.content}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </section>
+              ))}
             </div>
           )}
         </div>
@@ -366,7 +283,7 @@ export default function HistoryPage() {
           to   { opacity: 1; transform: translateY(0); }
         }
         .frame-timeline-in {
-          animation: frame-timeline-in 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+          animation: frame-timeline-in 0.3s cubic-bezier(0.2, 0, 0, 1) both;
         }
         @media (prefers-reduced-motion: reduce) {
           .frame-timeline-in { animation: none; }

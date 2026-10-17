@@ -20,7 +20,7 @@ export function WeeklyReportOverlay({ open, onClose }: { open: boolean; onClose:
 
   async function renderPng(): Promise<string | null> {
     if (!cardRef.current) return null;
-    return toPng(cardRef.current, { pixelRatio: 2, backgroundColor: "#060504", cacheBust: true });
+    return toPng(cardRef.current, { pixelRatio: 2, backgroundColor: "#08090B", cacheBust: true });
   }
 
   async function download() {
@@ -69,19 +69,17 @@ export function WeeklyReportOverlay({ open, onClose }: { open: boolean; onClose:
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-[#08090B]/80 backdrop-blur-xl"
+      className="fixed inset-0 z-50 flex flex-col overlay-surface !rounded-none !border-0 !bg-[#08090B]/90"
       role="dialog"
       aria-modal="true"
       aria-label="FRAME Intelligence Report"
     >
-      <div className="flex-none flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-3 border-b border-border/30">
-        <div className="text-xs text-foreground/90">
-          Intelligence Report
-        </div>
+      <div className="flex-none flex items-center justify-between px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 border-b border-white/[0.08]">
+        <h2 className="section-title">Intelligence report</h2>
         <button
           type="button"
           onClick={onClose}
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="w-11 h-11 -mr-2 flex items-center justify-center rounded-[12px] text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition-colors"
           aria-label="Close"
         >
           <X className="w-5 h-5" strokeWidth={1.5} />
@@ -91,15 +89,15 @@ export function WeeklyReportOverlay({ open, onClose }: { open: boolean; onClose:
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="max-w-md mx-auto px-5 py-8 flex flex-col items-center gap-5">
           {isLoading && (
-            <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
-              <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.5} />
-              <span className="text-xs ">Reading the week</span>
+            <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground" role="status">
+              <Loader2 className="w-5 h-5 animate-spin motion-reduce:animate-none" strokeWidth={1.5} />
+              <span className="text-[0.9375rem]">Reading the week</span>
             </div>
           )}
 
           {isError && (
             <div className="flex flex-col items-center gap-4 py-16">
-              <p className="text-sm text-foreground/70">Couldn't build this week's report.</p>
+              <p className="text-[1rem] text-foreground/80">Could not build this week's report.</p>
               <button
                 type="button"
                 onClick={() => void refetch()}
@@ -118,18 +116,18 @@ export function WeeklyReportOverlay({ open, onClose }: { open: boolean; onClose:
                   type="button"
                   onClick={download}
                   disabled={busy}
-                  className="inline-flex items-center gap-2 disabled:opacity-50 btn-quiet"
+                  className="btn-glass disabled:opacity-50"
                 >
-                  <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  <Download className="w-4 h-4" strokeWidth={1.5} />
                   {busy ? "Rendering…" : "Save"}
                 </button>
                 <button
                   type="button"
                   onClick={share}
                   disabled={busy}
-                  className="inline-flex items-center gap-2 disabled:opacity-50 btn-quiet btn-quiet-gold"
+                  className="btn-bronze disabled:opacity-50"
                 >
-                  <Share2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  <Share2 className="w-4 h-4" strokeWidth={1.5} />
                   Share
                 </button>
               </div>
@@ -138,7 +136,7 @@ export function WeeklyReportOverlay({ open, onClose }: { open: boolean; onClose:
 
           {!isLoading && !isError && !report && (
             <div className="py-16 text-center">
-              <p className="text-sm text-foreground/70">
+              <p className="text-[1rem] text-foreground/80">
                 Set up your fighter profile to start building your intelligence report.
               </p>
             </div>

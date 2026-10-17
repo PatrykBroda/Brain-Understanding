@@ -88,67 +88,52 @@ function FramePlusModal({
       onClick={onClose}
     >
       <div
-        className="frame-plus-breath glass glass-gold relative w-full max-w-md overflow-hidden rounded-b-none rounded-t-[2rem] p-7 pb-9 sm:rounded-[2rem] sm:p-8"
+        className="overlay-surface relative w-full max-w-md overflow-hidden !rounded-b-none !rounded-t-[20px] p-6 pb-8 sm:!rounded-[20px] sm:p-8"
         onClick={(e) => e.stopPropagation()}
       >
-        <div aria-hidden className="glow-orb -right-16 -top-20 h-56 w-56" />
-        <div className="relative flex items-start justify-between gap-4">
-          <div className="eyebrow eyebrow-gold pt-3">
-            FRAME+
-          </div>
+        <div className="flex items-start justify-between gap-4">
+          <span className="chip chip-gold">FRAME+</span>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
             className="icon-round -mr-1 -mt-1 text-foreground/80 transition-colors hover:text-foreground"
           >
-            <X className="h-4 w-4" strokeWidth={1.5} />
+            <X className="h-5 w-5" strokeWidth={1.5} />
           </button>
         </div>
 
         {reason !== "" && (
-          <p className="relative mt-6 text-xs tracking-wide text-muted-foreground">
-            {reason}
-          </p>
+          <p className="mt-5 text-[1rem] text-muted-foreground">{reason}</p>
         )}
 
-        <h2
-          className={`${reason !== "" ? "mt-3" : "mt-8"} display-title relative max-w-[16ch]`}
-        >
+        <h2 className={`${reason !== "" ? "mt-2" : "mt-6"} display-title max-w-[16ch]`}>
           {IDENTITY}
         </h2>
 
-        <ul className="relative mt-8 space-y-3">
+        <ul className="mt-6">
           {IDENTITY_LINES.map((line) => (
             <li
               key={line}
-              className="flex items-center gap-3 text-[15px] font-normal tracking-wide text-foreground/90"
+              className="flex items-center gap-3 py-3 text-[1rem] text-foreground/90 border-t border-white/[0.06] first:border-t-0"
             >
-              <span
-                aria-hidden
-                className="h-px w-5 shrink-0 bg-[hsl(var(--primary-light))]"
-              />
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full shrink-0 bg-[#B9A477]" />
               {line}
             </li>
           ))}
         </ul>
 
         {isFramePlus ? (
-          <div className="eyebrow eyebrow-gold relative mt-9 border-t border-white/10 pt-5">
-            FRAME+ active — you're covered
+          <div className="mt-6 border-t border-white/[0.08] pt-5 text-[1rem] font-medium text-[#D4C7A3]">
+            FRAME+ active. You are covered.
           </div>
         ) : (
-          <div className="relative mt-9">
-            <p className="text-sm font-normal leading-relaxed tracking-wide text-foreground/70">
-              FRAME+ is unlocked in the FRAME iOS app. Open the app on your
-              iPhone and subscribe — your FRAME+ access then carries across to
-              the web automatically.
+          <div className="mt-6">
+            <p className="text-[1rem] leading-[1.6] text-foreground/80">
+              FRAME+ is unlocked in the FRAME iOS app. Open the app on your iPhone and subscribe,
+              and your FRAME+ access carries across to the web automatically.
             </p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-glass mt-6 w-full"
-            >
+            <button type="button" onClick={onClose} className="btn-bronze mt-6 w-full">
               Got it
             </button>
           </div>
@@ -168,7 +153,7 @@ export function FramePlusPill() {
   if (isLoading || !isFramePlus) return null;
 
   return (
-    <span className="chip whitespace-nowrap !border-primary/40 !bg-primary/10 !px-3 !py-1 !text-xs">
+    <span className="chip chip-gold whitespace-nowrap">
       FRAME+ active
     </span>
   );

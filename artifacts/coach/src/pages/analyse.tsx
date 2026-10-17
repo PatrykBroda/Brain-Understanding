@@ -84,9 +84,16 @@ const LOAD_LABEL: Record<NervousSystemLoad, string> = {
 
 const LOAD_COLOR: Record<NervousSystemLoad, string> = {
   low: "text-[#D4C7A3] border-emerald-300/40",
-  moderate: "text-[#B9A477] border-primary/40",
+  moderate: "text-[#B9A477] border-[#B9A477]/40",
   elevated: "text-[#B9A477] border-[#B9A477]/40",
   high: "text-[#E5645A] border-[#E5645A]/40",
+};
+
+const LOAD_CHIP: Record<NervousSystemLoad, string> = {
+  low: "chip-ok",
+  moderate: "",
+  elevated: "chip-gold",
+  high: "chip-red",
 };
 
 type Phase =
@@ -563,9 +570,9 @@ export default function AnalysePage() {
               <button
                 type="button"
                 onClick={() => setWeeklyReportOpen(true)}
-                className="w-full inline-flex items-center justify-center gap-2 btn-quiet btn-quiet-gold"
+                className="w-full btn-quiet"
               >
-                <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
+                <ScrollText className="w-4 h-4" strokeWidth={1.5} />
                 Weekly intelligence report
               </button>
             </>
@@ -632,16 +639,16 @@ export default function AnalysePage() {
               <div className="w-full max-w-sm space-y-3">
                 <div className="glass p-5">
                   <div
-                    className="eyebrow eyebrow-gold mb-2"
+                    className="label !text-[#B9A477] mb-2"
                   >
                     {subject === "opponent" ? "Opponent scout" : "Analyst Workstation"}
                   </div>
-                  <p className="text-sm text-foreground/75 leading-relaxed">
+                  <p className="text-[1rem] text-foreground/85 leading-[1.6]">
                     {subject === "opponent"
                       ? "Upload footage of your opponent. The system reads their movement — guard, base, output rhythm — builds a categorical scouting model, and contrasts it against your own recorded model for the matchup."
                       : "Upload a clip. The system reads your movement directly — guard, base, shoulders, output rhythm — scores it against itself, and tells you what your nervous system is doing under load."}
                   </p>
-                  <p className="text-xs text-muted-foreground/90 mt-2">
+                  <p className="text-[0.875rem] text-muted-foreground mt-3">
                     Processed on device · only the read is kept
                   </p>
                 </div>
@@ -656,12 +663,12 @@ export default function AnalysePage() {
                     disabled={busy}
                     className="dropzone w-full transition-all duration-300 disabled:opacity-50 py-16 flex flex-col items-center justify-center gap-4"
 >
-<span className="dz-icon"><Upload className="w-6 h-6" strokeWidth={1.25} /></span>
-                    <div className="text-xs text-foreground/80">
-                      Drop footage
+<span className="dz-icon"><Upload className="w-6 h-6" strokeWidth={1.5} /></span>
+                    <div className="text-[1.0625rem] font-medium text-foreground">
+                      Choose footage to analyse
                     </div>
-                    <div className="text-xs text-muted-foreground/90">
-                      mp4 · mov · first 75s processed
+                    <div className="text-[0.875rem] text-muted-foreground">
+                      mp4 or mov · first 75 seconds processed
                     </div>
                   </button>
                 ) : (
@@ -680,9 +687,9 @@ export default function AnalysePage() {
               <SubjectToggle subject={subject} setSubject={setSubject} disabled={busy} />
               {subject === "opponent" && (
                 <section className="space-y-2">
-                  <div className="eyebrow">
+                  <div className="label">
                     Opponent name{" "}
-                    <span className="font-sans normal-case tracking-normal text-muted-foreground/90 text-xs">optional</span>
+                    <span className="text-muted-foreground">optional</span>
                   </div>
                   <input
                     type="text"
@@ -690,12 +697,12 @@ export default function AnalysePage() {
                     onChange={(e) => setOpponentName(e.target.value.slice(0, 80))}
                     disabled={busy}
                     placeholder="who are you scouting?"
-                    className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground disabled:opacity-40"
+                    className="field-glass !py-0 disabled:opacity-40"
                   />
                 </section>
               )}
               <section className="space-y-2">
-                <div className="eyebrow">
+                <div className="label">
                   Clip type
                 </div>
                 <div className="grid grid-cols-3 gap-2">
@@ -714,9 +721,9 @@ export default function AnalysePage() {
               </section>
 
               <section className="space-y-2">
-                <div className="eyebrow">
+                <div className="label">
                   Anything to focus on{" "}
-                  <span className="text-muted-foreground/90 normal-case tracking-normal">(optional)</span>
+                  <span className="text-muted-foreground">(optional)</span>
                 </div>
                 <input
                   type="text"
@@ -724,14 +731,14 @@ export default function AnalysePage() {
                   onChange={(e) => setFocus(e.target.value.slice(0, 200))}
                   disabled={busy}
                   placeholder="e.g. my guard when I get tired, left-side pressure…"
-                  className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground disabled:opacity-40"
+                  className="field-glass !py-0 disabled:opacity-40"
                 />
                 <FocusPresets focus={focus} setFocus={setFocus} disabled={busy} />
               </section>
 
               {phase.stage === "error" && (
-                <div data-testid="analyse-error" role="alert" className="glass glass-red !rounded-2xl px-4 py-3 space-y-2">
-                  <div className="text-xs text-destructive/90">
+                <div data-testid="analyse-error" role="alert" className="glass glass-red px-4 py-4 space-y-2">
+                  <div className="text-[1rem] font-medium text-[#E5645A]">
                     {phase.title}
                   </div>
                   {phase.causes.length > 0 && (
@@ -739,7 +746,7 @@ export default function AnalysePage() {
                       {phase.causes.map((c, i) => (
                         <li
                           key={i}
-                          className="text-xs leading-relaxed text-destructive/70 before:content-['—'] before:mr-1.5"
+                          className="text-[0.9375rem] leading-[1.55] text-foreground/80 before:content-['—'] before:mr-1.5 before:text-muted-foreground"
                         >
                           {c}
                         </li>
@@ -750,7 +757,7 @@ export default function AnalysePage() {
                     <button
                       type="button"
                       onClick={retry}
-                      className="mt-1 text-xs border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5 rounded-2xl"
+                      className="btn-quiet btn-quiet-red mt-2"
                     >
                       Retry
                     </button>
@@ -777,9 +784,9 @@ export default function AnalysePage() {
               <button
                 type="button"
                 onClick={() => setWeeklyReportOpen(true)}
-                className="w-full inline-flex items-center justify-center gap-2 btn-quiet btn-quiet-gold"
+                className="w-full btn-quiet"
               >
-                <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
+                <ScrollText className="w-4 h-4" strokeWidth={1.5} />
                 Weekly intelligence report
               </button>
             </div>
@@ -909,7 +916,7 @@ function LinkInput({
     <div className="w-full space-y-3">
       <div className="dropzone flex flex-col gap-4 p-5" style={{ borderStyle: "solid" }}>
 <div className="flex items-center gap-2.5">
-          <Link2 className="w-4 h-4 flex-none text-primary-light" strokeWidth={1.5} />
+          <Link2 className="w-4 h-4 flex-none text-[#D4C7A3]" strokeWidth={1.5} />
           <input
             type="url"
             inputMode="url"
@@ -923,19 +930,19 @@ function LinkInput({
             }}
             disabled={disabled}
             placeholder="https://…"
-            className="field-glass flex-1 min-w-0 !min-h-[44px] !py-0 !text-sm placeholder:text-muted-foreground disabled:opacity-40"
+            className="field-glass flex-1 min-w-0 !min-h-[44px] !py-0 disabled:opacity-40"
           />
         </div>
         <button
           type="button"
           onClick={onSubmit}
           disabled={disabled || !value.trim()}
-          className="btn-quiet btn-quiet-gold w-full disabled:opacity-40"
+          className="btn-bronze w-full disabled:opacity-40"
 >
           Fetch and analyse
         </button>
       </div>
-      <p className="text-xs leading-relaxed tracking-wide text-muted-foreground/90">
+      <p className="text-[0.875rem] leading-[1.55] text-muted-foreground">
         Direct video links (.mp4 / .mov), Google Drive and Dropbox share links work best. YouTube is
         best-effort — use your own footage; some links won&apos;t pull. The clip is fetched and read on
         this device, nothing else is stored.
@@ -1010,25 +1017,25 @@ function UploadControls({
         className="glass relative p-5"
         >
         <div
-          className="eyebrow eyebrow-gold mb-2"
+          className="label !text-[#B9A477] mb-2"
         >
           {subject === "opponent" ? "Opponent scout" : "Movement read"}
         </div>
-        <p className="text-sm text-foreground/75 leading-relaxed">
+        <p className="text-[1rem] text-foreground/85 leading-[1.6]">
           {subject === "opponent"
             ? "Upload footage of your opponent. The system builds a categorical scouting model and contrasts it against your own recorded model for the matchup."
             : "Upload a clip. The system reads your movement directly — guard, base, shoulders, output rhythm — scores it against itself, and tells you what your nervous system is doing under load."}
         </p>
-        <p className="text-xs text-muted-foreground/90 mt-2">
+        <p className="text-[0.875rem] text-muted-foreground mt-3">
           Processed on device · only the read is kept
         </p>
       </section>
 
       {subject === "opponent" && (
         <section className="space-y-2">
-          <div className="eyebrow">
+          <div className="label">
             Opponent name{" "}
-            <span className="font-sans normal-case tracking-normal text-muted-foreground/90 text-xs">optional</span>
+            <span className="text-muted-foreground">optional</span>
           </div>
           <input
             type="text"
@@ -1036,14 +1043,14 @@ function UploadControls({
             onChange={(e) => setOpponentName(e.target.value.slice(0, 80))}
             disabled={busy}
             placeholder="who are you scouting?"
-            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground disabled:opacity-40"
+            className="field-glass !py-0 disabled:opacity-40"
           />
         </section>
       )}
 
       {/* Clip type selector */}
       <section className="space-y-2">
-        <div className="eyebrow">
+        <div className="label">
           Clip type
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -1063,9 +1070,9 @@ function UploadControls({
 
       {/* Focus input */}
       <section className="space-y-2">
-        <div className="eyebrow">
+        <div className="label">
           Focus area{" "}
-          <span className="font-sans normal-case tracking-normal text-muted-foreground/90 text-xs">optional</span>
+          <span className="text-muted-foreground">optional</span>
         </div>
         <input
           type="text"
@@ -1073,7 +1080,7 @@ function UploadControls({
           onChange={(e) => setFocus(e.target.value.slice(0, 200))}
           disabled={busy}
           placeholder="guard under fatigue, left shoulder, pressure after a miss…"
-          className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground disabled:opacity-40"
+          className="field-glass !py-0 disabled:opacity-40"
         />
         <FocusPresets focus={focus} setFocus={setFocus} disabled={busy} />
       </section>
@@ -1087,12 +1094,12 @@ function UploadControls({
             onClick={() => fileRef.current?.click()}
             disabled={busy}
             className="dropzone w-full transition-all duration-300 disabled:opacity-50 py-12 flex flex-col items-center justify-center gap-4"
-><span className="dz-icon"><Upload className="w-6 h-6" strokeWidth={1.25} /></span>
-            <div className="text-xs text-foreground/80">
-              Drop footage
+><span className="dz-icon"><Upload className="w-6 h-6" strokeWidth={1.5} /></span>
+            <div className="text-[1.0625rem] font-medium text-foreground">
+              Choose footage to analyse
             </div>
-            <div className="text-xs text-muted-foreground/90">
-              mp4 · mov · first 75s processed
+            <div className="text-[0.875rem] text-muted-foreground">
+              mp4 or mov · first 75 seconds processed
             </div>
           </button>
         ) : (
@@ -1101,8 +1108,8 @@ function UploadControls({
       </section>
 
       {phase.stage === "error" && (
-        <div data-testid="analyse-error" role="alert" className="glass glass-red !rounded-2xl px-4 py-3 space-y-2">
-          <div className="text-xs text-destructive/90">
+        <div data-testid="analyse-error" role="alert" className="glass glass-red px-4 py-4 space-y-2">
+          <div className="text-[1rem] font-medium text-[#E5645A]">
             {phase.title}
           </div>
           {phase.causes.length > 0 && (
@@ -1110,7 +1117,7 @@ function UploadControls({
               {phase.causes.map((c, i) => (
                 <li
                   key={i}
-                  className="text-xs leading-relaxed text-destructive/70 before:content-['—'] before:mr-1.5"
+                  className="text-[0.9375rem] leading-[1.55] text-foreground/80 before:content-['—'] before:mr-1.5 before:text-muted-foreground"
                 >
                   {c}
                 </li>
@@ -1121,7 +1128,7 @@ function UploadControls({
             <button
               type="button"
               onClick={retry}
-              className="mt-1 text-xs border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5 rounded-2xl"
+              className="btn-quiet btn-quiet-red mt-2"
             >
               Retry
             </button>
@@ -1188,7 +1195,7 @@ function WorkstationLeft({
     <div className="flex flex-col h-full">
       {/* meta bar */}
       <div className="flex-none flex items-center justify-between px-5 py-3 border-b border-border/30 bg-white/[0.025]">
-        <div className="eyebrow">
+        <div className="label">
           {analysis.kind} · {analysis.durationSec.toFixed(0)}s read
           {analysis.focus && (
             <span className="ml-2 normal-case tracking-normal text-muted-foreground">
@@ -1232,7 +1239,7 @@ function WorkstationLeft({
                   alt={kf.caption}
                   className="w-full border border-border/40 object-contain max-h-[50vh] rounded-2xl"
                 />
-                <figcaption className="eyebrow px-1">
+                <figcaption className="label px-1">
                   {kf.timestamp.toFixed(1)}s · {kf.caption}
                 </figcaption>
                 {localNotes[activeKf] && (
@@ -1242,7 +1249,7 @@ function WorkstationLeft({
                 )}
               </figure>
             ) : (
-              <div className="text-xs text-muted-foreground/90">
+              <div className="text-xs text-muted-foreground">
                 No keyframes
               </div>
             )}
@@ -1253,15 +1260,15 @@ function WorkstationLeft({
       {/* filmstrip — click to seek + annotate */}
       {analysis.keyframes.length > 0 && (
         <div className="flex-none border-t border-border/30 bg-white/[0.025] px-4 py-3 space-y-2">
-          <div className="eyebrow">
+          <div className="label">
             Detected events
             {hasFootage && (
-              <span className="ml-2 normal-case tracking-normal text-muted-foreground/90">
+              <span className="ml-2 normal-case tracking-normal text-muted-foreground">
                 · click to seek · click again to annotate
               </span>
             )}
             {!hasFootage && (
-              <span className="ml-2 normal-case tracking-normal text-muted-foreground/90">
+              <span className="ml-2 normal-case tracking-normal text-muted-foreground">
                 · click to annotate
               </span>
             )}
@@ -1273,16 +1280,16 @@ function WorkstationLeft({
                 type="button"
                 onClick={() => seekTo(k.timestamp, i)}
                 className={`flex-none flex flex-col overflow-hidden rounded-xl border transition-colors ${
-                  i === activeKf ? "border-primary/70" : "border-border/40 hover:border-primary/40"
+                  i === activeKf ? "border-[#B9A477]/70" : "border-border/40 hover:border-white/20"
                 }`}
                 style={{ width: 88 }}
                 title={`${k.timestamp.toFixed(1)}s — ${k.caption}`}
               >
                 <img src={k.imageBase64} alt={k.caption} className="w-full" />
-                <div className="eyebrow px-1 py-1 truncate bg-white/[0.025]">
+                <div className="label px-1 py-1 truncate bg-white/[0.025]">
                   {k.timestamp.toFixed(1)}s
                 </div>
-                <div className="eyebrow px-1 pb-1 truncate">
+                <div className="label px-1 pb-1 truncate">
                   {k.caption}
                 </div>
                 {localNotes[i] && (
@@ -1295,7 +1302,7 @@ function WorkstationLeft({
           </div>
           {/* inline note editor for the active keyframe */}
           <div className="flex items-center gap-2 pt-1">
-            <div className="text-xs text-muted-foreground/90 flex-none">
+            <div className="text-xs text-muted-foreground flex-none">
               Note
             </div>
             <input
@@ -1356,7 +1363,7 @@ function WorkstationRight({
     try {
       const dataUrl = await toPng(cardRef.current, {
         pixelRatio: 2,
-        backgroundColor: "#060504",
+        backgroundColor: "#08090B",
         cacheBust: true,
       });
       const link = document.createElement("a");
@@ -1387,7 +1394,7 @@ function WorkstationRight({
       </div>
 
       {/* summary */}
-      <p className="glass glass-gold font-display not-italic text-[1rem] text-[#F4F4F1] leading-snug p-5">
+      <p className="glass text-[1.0625rem] font-medium text-[#F4F4F1] leading-[1.55] p-5">
         {analysis.summary}
       </p>
 
@@ -1463,7 +1470,7 @@ function SavedWorkstationLeft({
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 py-16">
         <FrameOctagon size={56} spin spinSeconds={4} glow={false} />
-        <div className="eyebrow">
+        <div className="label">
           Loading read
         </div>
       </div>
@@ -1521,82 +1528,33 @@ function FindingsTable({
 }) {
   return (
     <section className="space-y-3">
-      <div className="section-title">
-        What the body is doing
-      </div>
-      <div className="glass glass-table w-full">
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="border-b border-border/40">
-              <th className="text-xs text-muted-foreground text-left px-3 py-2 w-[90px]">
-                Area
-              </th>
-              <th className="text-xs text-muted-foreground text-left px-3 py-2">
-                Finding
-              </th>
-              <th className="text-xs text-muted-foreground text-left px-3 py-2 w-[72px]">
-                Signal
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {findings.map((f, i) => (
-              <Fragment key={i}>
-              <tr
-                className="border-b border-border/30 last:border-0"
+      <h2 className="section-title">What the body is doing</h2>
+      <ul className="glass overflow-hidden">
+        {findings.map((f, i) => (
+          <li key={i} className="px-4 py-4 border-t border-white/[0.06] first:border-t-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="chip capitalize">{f.area}</span>
+              <span
+                className={`chip ${
+                  f.severity === "high" ? "chip-red" : f.severity === "medium" ? "chip-gold" : ""
+                }`}
               >
-                <td className="px-3 py-2.5 align-top">
-                  <span
-                    className={`text-xs px-2.5 py-0.5 border rounded-full inline-block ${
-                      f.severity === "high"
-                        ? "text-[#E5645A] border-[#E5645A]/40"
-                        : f.severity === "medium"
-                          ? "text-[#B9A477] border-[#B9A477]/40"
-                          : "text-muted-foreground border-border/50"
-                    }`}
-                  >
-                    {f.area}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 align-top space-y-1">
-                  <div className="text-[0.9rem] text-foreground/95 leading-snug">
-                    {f.title}
-                  </div>
-                  <div className="text-xs text-foreground/75 leading-relaxed">
-                    {f.observation}
-                  </div>
-                  {f.nervousSystemFraming && (
-                    <div className="text-xs text-[#B9A477] leading-relaxed ">
-                      {f.nervousSystemFraming}
-                    </div>
-                  )}
-                </td>
-                <td className="px-3 py-2.5 align-top">
-                  <span
-                    className={`text-xs ${
-                      f.severity === "high"
-                        ? "text-[#E5645A]"
-                        : f.severity === "medium"
-                          ? "text-[#B9A477]"
-                          : "text-muted-foreground"
-                    }`}
-                  >
-                    {f.severity}
-                  </span>
-                </td>
-              </tr>
-              {keyframes && track && f.keyframeIndex != null && f.bodyRegion && (
-                <tr className="border-b border-border/30 last:border-0">
-                  <td colSpan={3} className="px-3 pb-3">
-                    <AnnotatedFindingFrame finding={f} keyframes={keyframes} track={track} onJump={onJump} />
-                  </td>
-                </tr>
-              )}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                {f.severity} signal
+              </span>
+            </div>
+            <div className="mt-2.5 text-[1.0625rem] font-medium text-foreground leading-snug">{f.title}</div>
+            <p className="mt-1.5 text-[0.9375rem] text-foreground/80 leading-[1.6]">{f.observation}</p>
+            {f.nervousSystemFraming && (
+              <p className="mt-1.5 text-[0.9375rem] text-[#D4C7A3] leading-[1.6]">{f.nervousSystemFraming}</p>
+            )}
+            {keyframes && track && f.keyframeIndex != null && f.bodyRegion && (
+              <div className="mt-3">
+                <AnnotatedFindingFrame finding={f} keyframes={keyframes} track={track} onJump={onJump} />
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -1636,7 +1594,7 @@ function SignalDeltaBadge({
   if (dir === "same") {
     return (
       <span title="No change vs last session">
-        <Minus className="w-3 h-3 text-muted-foreground/90 inline-block" strokeWidth={2} />
+        <Minus className="w-3 h-3 text-muted-foreground inline-block" strokeWidth={2} />
       </span>
     );
   }
@@ -1657,7 +1615,7 @@ function SignalDeltaBadge({
   // changed but no known ordering
   return (
     <span
-      className="text-xs text-muted-foreground/90"
+      className="text-xs text-muted-foreground"
       title={`Changed — was: ${prevValue}`}
     >
       ~
@@ -1715,7 +1673,7 @@ function SignalHistoryTrail({
             ? "text-[#D4C7A3]"
             : dir === "down"
               ? "text-[#E5645A]"
-              : "text-muted-foreground/90";
+              : "text-muted-foreground";
         const tappable = !isCurrent && step.id != null && onSelectSession != null;
         return (
           <span key={i} className="flex items-center gap-x-0.5">
@@ -1727,14 +1685,14 @@ function SignalHistoryTrail({
                 type="button"
                 onClick={() => onSelectSession!(step.id!)}
                 title="View this session's full read"
-                className={`text-xs leading-none text-muted-foreground/90 underline decoration-dotted underline-offset-2 hover:text-foreground/70 active:text-foreground/90 transition-colors cursor-pointer`}
+                className={`text-xs leading-none text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground/70 active:text-foreground/90 transition-colors cursor-pointer`}
               >
                 {step.value}
               </button>
             ) : (
               <span
                 className={`text-xs leading-none ${
-                  isCurrent ? "text-foreground/80" : "text-muted-foreground/90"
+                  isCurrent ? "text-foreground/80" : "text-muted-foreground"
                 }`}
               >
                 {step.value}
@@ -1830,7 +1788,7 @@ function RawSignalsTable({
                       />
                     ) : (
                       prev && dir !== "same" && (
-                        <div className="text-xs text-muted-foreground/90 mt-0.5 leading-snug">
+                        <div className="text-xs text-muted-foreground mt-0.5 leading-snug">
                           was: {prev.value}
                         </div>
                       )
@@ -1841,7 +1799,7 @@ function RawSignalsTable({
                       {dir != null ? (
                         <SignalDeltaBadge dir={dir} prevValue={prev?.value ?? ""} />
                       ) : (
-                        <span className="text-xs text-muted-foreground/90">—</span>
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
                   )}
@@ -1885,7 +1843,7 @@ function ComparisonSection({
             key={d.key}
             className="flex items-center justify-between gap-2 border border-border/50 px-3 py-2 rounded-2xl"
           >
-            <span className="eyebrow">
+            <span className="label">
               {d.label}
             </span>
             <span className="flex items-center gap-1 text-xs text-foreground/90">
@@ -1907,7 +1865,7 @@ function ComparisonSection({
 function ScoreProvenance({ analysis }: { analysis: VideoAnalysis }) {
   return (
     <section className="space-y-2 pt-1">
-      <div className="eyebrow">
+      <div className="label">
         How these scores were derived
       </div>
       <div className="space-y-1.5">
@@ -1920,7 +1878,7 @@ function ScoreProvenance({ analysis }: { analysis: VideoAnalysis }) {
           </div>
         ))}
       </div>
-      <div className="text-xs text-muted-foreground/90 pt-2 leading-relaxed">
+      <div className="text-xs text-muted-foreground pt-2 leading-relaxed">
         {analysis.metrics.poseFrames} of {analysis.metrics.framesAnalysed} frames locked a pose ·
         every number derived from measured movement, never invented
       </div>
@@ -1937,7 +1895,7 @@ const REPLAY_ROLE_META: Record<ReplayMoment["role"], { label: string; accent: st
   worst_habit: { label: "Worst habit", accent: "text-destructive/90 border-destructive/40" },
   biggest_opportunity: {
     label: "Biggest opportunity",
-    accent: "text-[#B9A477] border-primary/40",
+    accent: "text-[#B9A477] border-[#B9A477]/40",
   },
 };
 
@@ -1965,14 +1923,14 @@ function ReplayMomentRow({
       )}
       <div className="flex-1 min-w-0 space-y-1">
         <div
-          className={`inline-block text-xs border rounded-full px-2.5 py-0.5 ${meta.accent}`}
+          className={`chip ${meta.accent}`}
         >
           {meta.label}
         </div>
-        <div className="eyebrow">
+        <div className="label">
           {moment.timestamp.toFixed(1)}s{moment.label ? ` · ${moment.label}` : ""}
         </div>
-        <p className="text-[0.85rem] text-foreground/90 leading-snug">{moment.note}</p>
+        <p className="text-[0.9375rem] text-foreground/90 leading-[1.5]">{moment.note}</p>
       </div>
     </>
   );
@@ -1981,7 +1939,7 @@ function ReplayMomentRow({
       <button
         type="button"
         onClick={() => onSeek!(moment.timestamp, index)}
-        className="glass w-full flex gap-3 items-stretch text-left p-2.5 transition-colors hover:border-primary/40"
+        className="glass w-full flex gap-3 items-stretch text-left p-2.5 transition-colors hover:border-white/20"
       >
         {inner}
       </button>
@@ -2026,7 +1984,7 @@ function ReplaySection({
         })}
       </div>
       {onSeek && (
-        <div className="text-xs text-muted-foreground/90">
+        <div className="text-xs text-muted-foreground">
           tap a moment to jump to that frame
         </div>
       )}
@@ -2049,14 +2007,14 @@ function FeedbackCard({ analysis }: { analysis: VideoAnalysis }) {
 
   return (
     <section className="glass space-y-3 p-5">
-      <div className="eyebrow eyebrow-gold">
+      <div className="label !text-[#B9A477]">
         FRAME asks
       </div>
       <p className="text-[0.95rem] text-foreground/90 leading-relaxed">{question}</p>
 
       {recorded ? (
         <div className="space-y-1.5">
-          <div className="border-l-2 border-primary-light/70 pl-3 text-[0.9rem] text-foreground/90 leading-relaxed">
+          <div className="border-l-2 border-[#B9A477]/70 pl-3 text-[0.9rem] text-foreground/90 leading-relaxed">
             {recorded}
           </div>
           <div className="text-xs text-[#B9A477]">
@@ -2074,20 +2032,20 @@ function FeedbackCard({ analysis }: { analysis: VideoAnalysis }) {
             className="field-glass !min-h-0 !py-3 !text-[0.9rem] placeholder:text-muted-foreground resize-none"
           />
           <div className="flex items-center justify-between gap-3">
-            <div className="text-xs text-muted-foreground/90">
+            <div className="text-xs text-muted-foreground">
               {draft.trim().length}/500
             </div>
             <button
               type="button"
               disabled={!draft.trim() || answerMutation.isPending}
               onClick={() => answerMutation.mutate(draft.trim())}
-              className="btn-quiet btn-quiet-gold disabled:opacity-40"
+              className="btn-bronze !min-h-[44px] disabled:opacity-40"
             >
               {answerMutation.isPending ? "Recording…" : "Record"}
             </button>
           </div>
           {answerMutation.isError && (
-            <div className="text-xs text-destructive/80">
+            <div className="text-[0.875rem] text-[#E5645A]">
               could not record — try again
             </div>
           )}
@@ -2129,7 +2087,7 @@ function Report({
     try {
       const dataUrl = await toPng(cardRef.current, {
         pixelRatio: 2,
-        backgroundColor: "#060504",
+        backgroundColor: "#08090B",
         cacheBust: true,
       });
       const link = document.createElement("a");
@@ -2168,7 +2126,7 @@ function Report({
   return (
     <div className="space-y-7">
       <div className="flex items-start justify-between gap-4">
-        <div className="eyebrow">
+        <div className="label">
           {analysis.kind} · {analysis.durationSec.toFixed(0)}s read
           {analysis.focus && (
             <span className="block normal-case tracking-normal text-muted-foreground mt-1">
@@ -2200,7 +2158,7 @@ function Report({
         </button>
       </div>
 
-      <p className="glass glass-gold font-display not-italic text-[1rem] text-[#F4F4F1] leading-snug p-5">
+      <p className="glass text-[1.0625rem] font-medium text-[#F4F4F1] leading-[1.55] p-5">
         {analysis.summary}
       </p>
 
@@ -2249,7 +2207,7 @@ function Report({
                 alt={kf.caption}
                 className="w-full rounded border border-border/50"
               />
-              <figcaption className="eyebrow">
+              <figcaption className="label">
                 {kf.timestamp.toFixed(1)}s · {kf.caption}
               </figcaption>
               {localNotes[activeKf] && (
@@ -2266,11 +2224,11 @@ function Report({
                 type="button"
                 onClick={() => seekTo(k.timestamp, i)}
                 className={`flex-none w-20 overflow-hidden rounded-xl border transition-colors ${
-                  i === activeKf ? "border-primary/70" : "border-border/40 hover:border-primary/40"
+                  i === activeKf ? "border-[#B9A477]/70" : "border-border/40 hover:border-white/20"
                 }`}
               >
                 <img src={k.imageBase64} alt={k.caption} className="w-full" />
-                <div className="eyebrow px-1 py-1 truncate">
+                <div className="label px-1 py-1 truncate">
                   {k.caption}
                 </div>
                 {localNotes[i] && (
@@ -2283,7 +2241,7 @@ function Report({
           </div>
           {/* inline note editor for active keyframe */}
           <div className="flex items-center gap-2">
-            <div className="text-xs text-muted-foreground/90 flex-none">
+            <div className="text-xs text-muted-foreground flex-none">
               Note
             </div>
             <input
@@ -2371,7 +2329,7 @@ function SavedReport({
     return (
       <div className="py-16 flex flex-col items-center gap-4">
         <FrameOctagon size={56} spin spinSeconds={4} glow={false} />
-        <div className="eyebrow">
+        <div className="label">
           Loading read
         </div>
       </div>
@@ -2437,7 +2395,7 @@ function TrendSection({
     <section className="space-y-3">
       <div className="section-title">
         Trend
-        <span className="ml-2 normal-case tracking-normal text-muted-foreground/90">
+        <span className="ml-2 normal-case tracking-normal text-muted-foreground">
           · {chartData.length} sessions
         </span>
       </div>
@@ -2448,7 +2406,7 @@ function TrendSection({
           return (
             <div key={key} className="space-y-1.5">
               <div className="flex items-baseline justify-between">
-                <span className="eyebrow">
+                <span className="label">
                   {label}
                 </span>
                 {hasData && (
@@ -2501,7 +2459,7 @@ function TrendSection({
                 </ResponsiveContainer>
               ) : (
                 <div
-                  className="flex items-center justify-center text-xs text-muted-foreground/90 border border-border/20 rounded-2xl"
+                  className="flex items-center justify-center text-xs text-muted-foreground border border-border/20 rounded-2xl"
                   style={{ height: 44 }}
                 >
                   No data
@@ -2547,50 +2505,46 @@ function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: strin
       : null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#08090B]/95 backdrop-blur-xl flex flex-col items-center justify-center px-8 overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 frame-scanlines" />
-      <div className="pointer-events-none absolute inset-x-0 h-24 frame-scan-sweep" />
-
-      <div className="pointer-events-none absolute left-1/2 top-[34%] h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ background: "radial-gradient(closest-side, rgba(185,164,119,0.42), rgba(229,100,90,0.10) 60%, transparent)", filter: "blur(30px)" }} />
-      <div className="glass relative flex items-center justify-center w-32 h-32 !rounded-full">
+    <div
+      className="fixed inset-0 z-50 bg-[#08090B] flex flex-col items-center justify-center px-8 overflow-hidden"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="relative flex items-center justify-center w-28 h-28 rounded-[24px] border border-white/[0.08] bg-[#111316]">
         <img
           src={`${import.meta.env.BASE_URL.replace(/\/$/, "")}frame-logo.png`}
           alt="FRAME"
-          className="w-20 h-20 object-contain rounded-full mix-blend-screen"
-          style={{ animation: "frame-logo-pulse 2.4s ease-in-out infinite", opacity: 0.92 }}
+          className="w-16 h-16 object-contain rounded-full mix-blend-screen opacity-90"
           draggable={false}
         />
-        <style>{`
-          @keyframes frame-logo-pulse {
-            0%, 100% { opacity: 0.6; transform: scale(0.97); }
-            50% { opacity: 0.95; transform: scale(1.03); }
-          }
-          @media (prefers-reduced-motion: reduce) { img[alt="FRAME"] { animation: none !important; } }
-        `}</style>
       </div>
 
-      <div className="mt-10 text-center space-y-2 relative">
-        <div className="eyebrow">
-          {kindLabel}
-        </div>
-        <div className="text-base text-foreground/95">
+      <div className="mt-9 text-center space-y-2 relative max-w-xs">
+        <div className="label">{kindLabel}</div>
+        <div className="text-[1.375rem] font-semibold tracking-tight text-foreground">
           {PHASE_TITLE[key]}
         </div>
-        <div className="text-xs text-[#B9A477] h-4 transition-opacity">
+        <div className="text-[0.9375rem] text-muted-foreground min-h-[1.5rem] tnum">
           {phrases[phraseIdx]}
           {pct != null ? ` · ${pct}%` : ""}
         </div>
       </div>
 
-      <div className="mt-10 flex items-center gap-2 relative">
-        {steps.map((s, i) => (
-          <div
-            key={s}
-            className={`h-1 rounded-full transition-all duration-500 ${
-              i <= activeIdx ? "w-10 bg-[#B9A477]" : "w-6 bg-white/15"
-            }`}
-          />
-        ))}
+      <div className="mt-8 w-full max-w-xs relative space-y-3">
+        <div
+          className="bar-thin"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={pct ?? Math.round(((activeIdx + 0.5) / steps.length) * 100)}
+          aria-label="Analysis progress"
+        >
+          <span style={{ width: `${pct != null ? Math.max(4, pct) : Math.round(((activeIdx + 0.5) / steps.length) * 100)}%` }} />
+        </div>
+        <div className="flex items-center justify-between label tnum">
+          <span>Step {activeIdx + 1} of {steps.length}</span>
+          <span>Processed on this device</span>
+        </div>
       </div>
     </div>
   );
@@ -2617,7 +2571,7 @@ function SubjectToggle({
   ];
   return (
     <section className="space-y-2">
-      <div className="eyebrow">
+      <div className="label">
         Mode
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -2651,17 +2605,10 @@ function OpponentHistory({
 }) {
   if (loading) return null;
   if (items.length === 0) return null;
-  const SCOUT = "199,84%,56%";
   return (
     <section className="space-y-3 pt-2">
       <div className="flex items-center gap-3 pb-1">
-        <span
-          className="h-[5px] w-[5px] rounded-full flex-none"
-          style={{ background: `hsla(${SCOUT},0.7)` }}
-        />
-        <div className="section-title">
-          Scouting reads
-        </div>
+        <h2 className="section-title">Scouting reads</h2>
       </div>
       <div className="space-y-2.5">
         {items.map((a, idx) => (
@@ -2669,39 +2616,30 @@ function OpponentHistory({
             key={a.id}
             type="button"
             onClick={() => onOpen(a.id)}
-            className="glass w-full text-left px-5 py-4 transition-colors hover:border-primary/40"
+            className="glass w-full text-left px-4 py-4 transition-colors hover:border-white/20"
 >
             <div className="flex items-start gap-3">
-              <Crosshair
-                className="w-[14px] h-[14px] mt-0.5 flex-none"
-                style={{ color: `hsla(${SCOUT},0.6)` }}
-                strokeWidth={1.5}
-              />
+              <Crosshair className="w-4 h-4 mt-0.5 flex-none text-muted-foreground" strokeWidth={1.5} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-3 mb-1">
-                  <span className="text-xs text-foreground/80 truncate">
+                  <span className="text-[1rem] font-medium text-foreground truncate">
                     {a.opponentName || "Unnamed"}
-                    <span className="text-muted-foreground/90"> · {a.kind}</span>
+                    <span className="text-muted-foreground"> · {a.kind}</span>
                   </span>
                   <span className="flex items-baseline gap-2 flex-none">
                     {a.hasMatchup && (
-                      <span
-                        className="text-xs px-1.5 py-0.5"
-                        style={{ color: `hsla(${SCOUT},0.85)`, border: `1px solid hsla(${SCOUT},0.3)` }}
-                      >
-                        matchup
-                      </span>
+<span className="chip">Matchup</span>
                     )}
                     {a.nervousSystemLoad != null && (
                       <span
-                        className={`text-xs ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}
+                        className={`chip ${LOAD_CHIP[a.nervousSystemLoad]}`}
                       >
                         {LOAD_LABEL[a.nervousSystemLoad]}
                       </span>
                     )}
                   </span>
                 </div>
-                <div className="text-xs text-muted-foreground/90 mt-1.5">
+                <div className="text-xs text-muted-foreground mt-1.5">
                   {new Date(a.createdAt).toLocaleString(undefined, {
                     month: "short",
                     day: "numeric",
@@ -2741,29 +2679,27 @@ function History({
     <section className="space-y-3 pt-2">
       <div className="flex items-center justify-between gap-3 pb-1">
         <div className="flex items-center gap-3">
-          <span className="h-[6px] w-[6px] rounded-full bg-[#B9A477] flex-none" />
-          <div className="section-title">
-            Session log
-          </div>
+          <h2 className="section-title">Session log</h2>
         </div>
         {baselineItem && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-[#B9A477]">
+            <span className="text-[0.8125rem] text-[#D4C7A3]">
               Baseline: {baselineItem.kind} ·{" "}
               {new Date(baselineItem.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
             </span>
             <button
               type="button"
               onClick={() => onSetCompare(compareId!)}
-              className="text-xs text-muted-foreground/90 hover:text-foreground/70 transition-colors"
+              className="w-11 h-11 -mr-2 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
               title="Clear baseline"
+              aria-label="Clear baseline"
             >
-              <X className="w-3 h-3" strokeWidth={1.5} />
+              <X className="w-4 h-4" strokeWidth={1.5} />
             </button>
           </div>
         )}
       </div>
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         {items.map((a, idx) => {
           const isBaseline = a.id === compareId;
           if (a.locked) {
@@ -2773,20 +2709,20 @@ function History({
                 key={a.id}
                 type="button"
                 onClick={() => openUpgrade("analysis_history")}
-                className="glass w-full text-left px-5 py-4 opacity-85 transition-colors hover:border-primary/40"
+                className="glass w-full text-left px-4 py-4 opacity-90 transition-colors hover:border-white/20"
 >
                 <div className="flex items-center gap-3">
-                  <Lock className="w-[14px] h-[14px] flex-none text-muted-foreground/90" strokeWidth={1.5} />
+                  <Lock className="w-4 h-4 flex-none text-muted-foreground" strokeWidth={1.5} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="eyebrow">
+                      <span className="label">
                         {a.kind}
                       </span>
-                      <span className="text-xs text-[#B9A477] border border-primary/25 px-1.5 py-0.5 rounded-2xl">
+                      <span className="chip chip-gold">
                         FRAME+
                       </span>
                     </div>
-                    <div className="text-xs text-muted-foreground/90 mt-1.5">
+                    <div className="text-xs text-muted-foreground mt-1.5">
                       {new Date(a.createdAt).toLocaleString(undefined, {
                         month: "short",
                         day: "numeric",
@@ -2807,36 +2743,20 @@ function History({
               <button
                 type="button"
                 onClick={() => onOpen(a.id)}
-                className={`glass w-full text-left px-5 py-4 pr-16 transition-colors hover:border-primary/40 ${isBaseline ? "glass-gold" : ""}`}
->
-                <div className="flex items-start gap-3">
-                  <Film className="w-[14px] h-[14px] mt-0.5 flex-none" style={{ color: isBaseline ? "#D4C7A3" : "#B9A477" }} strokeWidth={1.5} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-3 mb-1">
-                      <span className="text-xs text-foreground/80">
-                        {a.kind}
-                        {a.styleProfile ? <span className="text-muted-foreground/90"> · {a.styleProfile}</span> : null}
-                        {isBaseline && (
-                          <span className="ml-2 text-xs text-[#B9A477] border border-primary/30 px-1 py-0.5 rounded-2xl">
-                            baseline
-                          </span>
-                        )}
-                      </span>
-                      <span className="flex items-baseline gap-2">
-                        {(a.sessionScore ?? 0) > 0 && (
-                          <span className="numeral numeral-m !text-[1.5rem]">{a.sessionScore}</span>
-                        )}
-                        {a.nervousSystemLoad != null && (
-                          <span className={`text-xs ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}>
-                            {LOAD_LABEL[a.nervousSystemLoad]}
-                          </span>
-                        )}
-                      </span>
+                className={`glass w-full text-left px-4 py-4 pr-16 transition-colors hover:border-white/20 ${isBaseline ? "glass-gold" : ""}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[1rem] font-medium text-foreground capitalize">{a.kind}</span>
+                      {isBaseline && <span className="chip chip-gold">Baseline</span>}
+                      {a.nervousSystemLoad != null && (
+                        <span className={`chip ${LOAD_CHIP[a.nervousSystemLoad]}`}>
+                          {LOAD_LABEL[a.nervousSystemLoad]}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-[0.8rem] text-foreground/70 leading-snug line-clamp-2">
-                      {a.summary}
-                    </p>
-                    <div className="text-xs text-muted-foreground/90 mt-1.5">
+                    <div className="label tnum mt-1">
                       {new Date(a.createdAt).toLocaleString(undefined, {
                         month: "short",
                         day: "numeric",
@@ -2845,7 +2765,18 @@ function History({
                       })}
                     </div>
                   </div>
+                  {(a.sessionScore ?? 0) > 0 && (
+                    <div className="flex-none text-right">
+                      <span className="numeral numeral-m !text-[1.75rem]">{a.sessionScore}</span>
+                      <div className="label -mt-0.5">score</div>
+                    </div>
+                  )}
                 </div>
+                {a.summary && (
+                  <p className="text-[0.9375rem] text-muted-foreground leading-[1.5] line-clamp-2 mt-2.5">
+                    {a.summary}
+                  </p>
+                )}
               </button>
 
               {/* "Set as baseline" button — appears on hover */}
@@ -2853,10 +2784,10 @@ function History({
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onSetCompare(a.id); }}
                 title={isBaseline ? "Clear baseline" : "Set as comparison baseline"}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] rounded-full text-xs border transition-all duration-150 ${
+                className={`absolute right-3 top-3 min-h-[44px] min-w-[44px] rounded-[12px] text-[0.875rem] font-medium border transition-colors duration-150 ${
                   isBaseline
-                    ? "opacity-100 border-primary-light/40 text-[#B9A477] bg-primary/10 hover:bg-primary/20"
-                    : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 border-border/60 text-muted-foreground hover:border-primary/40 hover:text-[#B9A477]"
+                    ? "border-[#B9A477]/40 text-[#D4C7A3] bg-[#B9A477]/10"
+                    : "border-white/[0.12] text-muted-foreground bg-[#191C20] hover:text-foreground"
                 }`}
               >
                 vs

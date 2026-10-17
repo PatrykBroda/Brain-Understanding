@@ -61,7 +61,7 @@ export function PeopleLegend() {
         <i className="inline-block w-3.5 h-[3px]" style={{ background: YOU_HEX }} />
         You (blue)
       </span>
-      <span className="text-muted-foreground/90">·</span>
+      <span className="text-muted-foreground">·</span>
       <span className="inline-flex items-center gap-1.5">
         <i className="inline-block w-3.5 h-[3px]" style={{ background: OPPONENT_HEX }} />
         Opponent (red)
@@ -413,7 +413,7 @@ export function GhostPlayer({
             playback.seek(Number(e.target.value));
           }}
           aria-label="Scrub movement replay"
-          className="flex-1 min-w-0 accent-[#d6a05a] h-6"
+          className="flex-1 min-w-0 accent-[#B9A477] h-6"
         />
         <span ref={timeRef} className="flex-none text-xs text-muted-foreground tabular-nums flex-none text-right whitespace-nowrap">
           {fmtTime(0)} / {fmtTime(endSec)}
@@ -484,7 +484,7 @@ export function FootageTimeline({
         aria-valuemin={0}
         aria-valuemax={Math.round(dur)}
         tabIndex={0}
-        className="relative h-11 bg-white/[0.035] border border-white/10 select-none cursor-pointer rounded-full overflow-hidden"
+        className="relative h-11 bg-white/[0.035] border border-white/10 select-none cursor-pointer rounded-[14px] overflow-hidden"
         style={{ touchAction: "pan-y" }}
         onPointerDown={(e) => {
           (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -547,7 +547,7 @@ export function FootageTimeline({
             <i className="inline-block w-2 h-2 rotate-45" style={{ background: ROLE_COLOR.best_decision }} /> replay moment
           </span>
         )}
-        <span className="text-muted-foreground/90">· tap to jump</span>
+        <span className="text-muted-foreground">· tap to jump</span>
       </div>
     </div>
   );
@@ -609,7 +609,7 @@ export function FootageBlock({
       ) : null}
       {videoUrl && !track && trackNote && (
         <p
-          className="text-xs leading-relaxed tracking-wide text-[#B9A477] glass glass-gold !rounded-2xl px-4 py-3"
+          className="text-[0.9375rem] leading-[1.55] text-[#D4C7A3] glass px-4 py-3"
           data-testid="track-note"
         >
           {trackNote}
@@ -621,7 +621,7 @@ export function FootageBlock({
           {opponent ? (
             <PeopleLegend />
           ) : (
-            <span className="text-xs text-muted-foreground/90 text-right">
+            <span className="text-[0.8125rem] text-muted-foreground text-right">
               measured pose · drawn live
             </span>
           )}

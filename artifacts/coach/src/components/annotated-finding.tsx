@@ -80,7 +80,7 @@ export function AnnotatedFindingFrame({
           </text>
         </svg>
       </div>
-      <figcaption className="eyebrow leading-relaxed">
+      <figcaption className="label leading-relaxed">
         {v.keyframe.timestamp.toFixed(1)}s · {v.keyframe.caption}
         {v.arrow && v.lookbackSec != null
           ? ` · arrow = measured travel over the previous ${v.lookbackSec.toFixed(1)}s`

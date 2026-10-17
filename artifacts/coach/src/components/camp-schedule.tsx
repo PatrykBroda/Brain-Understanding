@@ -70,6 +70,10 @@ export function CampSchedule({
   const updateSession = useUpdateSession();
   const deleteSession = useDeleteSession();
 
+  // The next open session is the focal point of the schedule.
+  const todayYmd = new Date().toISOString().slice(0, 10);
+  const nextId = sessions.find((x) => !x.completed && x.sessionDate >= todayYmd)?.id ?? null;
+
   // Sessions arrive ordered by date then time from the server.
   const groups: { date: string; items: TrainingSession[] }[] = [];
   for (const s of sessions) {
@@ -81,9 +85,7 @@ export function CampSchedule({
   return (
     <section className="space-y-5">
       <div className="flex items-center justify-between">
-        <div className="eyebrow">
-          Session schedule
-        </div>
+        <h2 className="section-title">Session schedule</h2>
         {!adding && (
           <button
             type="button"
@@ -91,9 +93,9 @@ export function CampSchedule({
               setEditingId(null);
               setAdding(true);
             }}
-            className="flex items-center gap-1.5 text-[#B9A477] hover:bg-primary/5 btn-quiet btn-quiet-gold btn-quiet-sm"
+            className="btn-quiet btn-quiet-gold"
           >
-            <Plus className="w-3 h-3" strokeWidth={1.5} />
+            <Plus className="w-4 h-4" strokeWidth={1.5} />
             Add
           </button>
         )}
@@ -115,20 +117,29 @@ export function CampSchedule({
       )}
 
       {sessions.length === 0 && !adding ? (
-        <div className="glass px-5 py-8 text-center">
-          <div className="eyebrow">
-            No sessions scheduled
-          </div>
-          <p className="mt-3 text-[12px] leading-relaxed text-foreground/70">
-            Build the camp timeline session by session through to fight day. Every entry is a
-            real block you plan to train — nothing is invented.
+        <div className="glass px-5 py-6">
+          <h3 className="section-title !text-[1.0625rem]">No sessions scheduled</h3>
+          <p className="mt-2 text-[1rem] leading-[1.6] text-muted-foreground">
+            Add the sessions you plan to train, one by one, through to fight day. The next one
+            shows up here first.
           </p>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingId(null);
+              setAdding(true);
+            }}
+            className="btn-bronze mt-5 w-full"
+          >
+            <Plus className="w-5 h-5" strokeWidth={1.75} />
+            Add your first session
+          </button>
         </div>
       ) : (
         <div className="space-y-6">
           {groups.map((group) => (
             <div key={group.date} className="space-y-2.5">
-              <div className="eyebrow border-b border-white/[0.10] pb-1.5">
+              <div className="label tnum border-b border-white/[0.06] pb-2">
                 {formatDay(group.date)}
               </div>
               {group.items.map((s) =>
@@ -158,6 +169,7 @@ export function CampSchedule({
                   <SessionRow
                     key={s.id}
                     session={s}
+                    isNext={s.id === nextId}
                     onToggle={() =>
                       updateSession.mutate({
                         id: s.id,
@@ -185,12 +197,14 @@ export function CampSchedule({
 
 function SessionRow({
   session: s,
+  isNext,
   onToggle,
   onEdit,
   onDelete,
   busy,
 }: {
   session: TrainingSession;
+  isNext: boolean;
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -207,13 +221,8 @@ function SessionRow({
 
   return (
     <div
-      className="flex items-start gap-3 border rounded-2xl px-4 py-3 transition-colors"
-      style={{
-        borderColor: s.completed ? "rgba(185,164,119,0.4)" : "rgba(255,255,255,0.10)",
-        background: s.completed
-          ? "linear-gradient(95deg, rgba(185,164,119,0.14), rgba(255,255,255,0.03) 70%)"
-          : "rgba(255,255,255,0.04)",
-      }}
+      className="glass flex items-start gap-3 px-4 py-3 transition-colors"
+      style={isNext && !s.completed ? { borderColor: "rgba(185,164,119,0.32)" } : undefined}
     >
       <button
         type="button"
@@ -221,68 +230,61 @@ function SessionRow({
         disabled={busy || imported}
         aria-pressed={s.completed}
         aria-label={s.completed ? "Mark not done" : "Mark done"}
-        className="flex-none -ml-2.5 -mt-2 w-11 h-11 flex items-center justify-center disabled:opacity-40"
+        className="flex-none -ml-1 -mt-0.5 w-11 h-11 flex items-center justify-center disabled:opacity-40"
       >
         <span
-          className="w-[22px] h-[22px] rounded-full border flex items-center justify-center transition-all duration-300"
+          className="w-[24px] h-[24px] rounded-[8px] border flex items-center justify-center transition-colors"
           style={{
-            borderColor: s.completed ? "#B9A477" : "rgba(255,255,255,0.35)",
-            background: s.completed ? "rgba(185,164,119,0.2)" : "transparent",
-            color: s.completed ? "#D4C7A3" : "transparent",
+            borderColor: s.completed ? "#B9A477" : "rgba(255,255,255,0.28)",
+            background: s.completed ? "#B9A477" : "transparent",
+            color: s.completed ? "#0B0C0E" : "transparent",
           }}
         >
-          <Check className="w-3 h-3" strokeWidth={2.8} />
+          <Check className="w-3.5 h-3.5" strokeWidth={2.8} />
         </span>
       </button>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+      <div className="flex-1 min-w-0 pt-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span
-            className="text-xs "
+            className="text-[1rem] font-medium"
             style={{
-              color: s.completed ? "hsla(0,0%,100%,0.6)" : "hsla(0,0%,100%,0.9)",
+              color: s.completed ? "#8A8F96" : "#F4F4F1",
               textDecoration: s.completed ? "line-through" : "none",
             }}
           >
             {SESSION_TYPE_LABEL[s.sessionType]}
           </span>
-          {imported && (
-            <span className="eyebrow border border-white/[0.10] px-1.5 py-0.5 rounded-2xl">
-              Imported
-            </span>
-          )}
+          {isNext && !s.completed && <span className="chip chip-gold">Next up</span>}
+          {imported && <span className="chip">Imported</span>}
         </div>
-        {meta && (
-          <div className="eyebrow mt-1">
-            {meta}
-          </div>
-        )}
+        {meta && <div className="label tnum mt-1">{meta}</div>}
         {s.objective.trim() && (
-          <div className="text-[12px] leading-relaxed text-foreground/70 mt-1.5">
+          <div className="text-[0.9375rem] leading-[1.55] text-muted-foreground mt-1.5">
             {s.objective}
           </div>
         )}
       </div>
 
       {!imported && (
-        <div className="flex-none flex items-center gap-1">
+        <div className="flex-none flex items-center -mr-2">
           <button
             type="button"
             onClick={onEdit}
             disabled={busy}
             aria-label="Edit session"
-            className="p-1.5 text-foreground/70 hover:text-foreground/85 transition-colors disabled:opacity-40"
+            className="w-11 h-11 flex items-center justify-center rounded-[12px] text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition-colors disabled:opacity-40"
           >
-            <Pencil className="w-3.5 h-3.5" strokeWidth={1.5} />
+            <Pencil className="w-4 h-4" strokeWidth={1.5} />
           </button>
           <button
             type="button"
             onClick={onDelete}
             disabled={busy}
             aria-label="Delete session"
-            className="p-1.5 text-foreground/70 hover:text-[hsl(var(--red-accent))] transition-colors disabled:opacity-40"
+            className="w-11 h-11 flex items-center justify-center rounded-[12px] text-muted-foreground hover:text-[#E5645A] hover:bg-white/[0.05] transition-colors disabled:opacity-40"
           >
-            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+            <Trash2 className="w-4 h-4" strokeWidth={1.5} />
           </button>
         </div>
       )}
@@ -335,7 +337,7 @@ function SessionForm({
             type="date"
             value={form.sessionDate}
             onChange={(e) => setForm({ ...form, sessionDate: e.target.value })}
-            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
+            className="field-glass !py-0"
           />
         </Field>
         <Field label="Time">
@@ -343,7 +345,7 @@ function SessionForm({
             type="time"
             value={form.startTime}
             onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
+            className="field-glass !py-0"
           />
         </Field>
       </div>
@@ -357,7 +359,7 @@ function SessionForm({
               setForm({ ...form, durationMin: e.target.value.replace(/[^0-9]/g, "") })
             }
             placeholder="60"
-            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
+            className="field-glass !py-0"
           />
         </Field>
         <Field label="Coach">
@@ -365,7 +367,7 @@ function SessionForm({
             value={form.coach}
             onChange={(e) => setForm({ ...form, coach: e.target.value })}
             placeholder="Optional"
-            className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
+            className="field-glass !py-0"
           />
         </Field>
       </div>
@@ -375,12 +377,12 @@ function SessionForm({
           value={form.objective}
           onChange={(e) => setForm({ ...form, objective: e.target.value })}
           placeholder="What this session is for"
-          className="field-glass !min-h-[48px] !py-0 !text-sm placeholder:text-muted-foreground"
+          className="field-glass !py-0"
         />
       </Field>
 
       {error && (
-        <div className="text-xs text-[hsl(var(--red-accent))]">
+        <div className="text-[0.875rem] text-[#E5645A]" role="alert">
           Could not save — check the date
         </div>
       )}
@@ -389,16 +391,16 @@ function SessionForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.10] py-3 text-xs text-foreground/70 hover:text-foreground/85 transition-colors rounded-2xl"
+          className="btn-glass flex-1 !min-h-[48px]"
         >
-          <X className="w-3 h-3" strokeWidth={1.5} />
+          <X className="w-4 h-4" strokeWidth={1.5} />
           Cancel
         </button>
         <button
           type="button"
           onClick={() => canSubmit && onSubmit(form)}
           disabled={!canSubmit || pending}
-          className="flex-1 text-[#B9A477] hover:bg-primary/5 disabled:opacity-40 btn-quiet btn-quiet-gold"
+          className="btn-bronze flex-1 !min-h-[48px]"
         >
           {pending ? "Saving" : submitLabel}
         </button>
@@ -410,9 +412,7 @@ function SessionForm({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="eyebrow block mb-1.5">
-        {label}
-      </span>
+      <span className="label block mb-1.5">{label}</span>
       {children}
     </label>
   );
