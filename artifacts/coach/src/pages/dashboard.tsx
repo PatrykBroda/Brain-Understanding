@@ -16,8 +16,7 @@ import { useMemory } from "@/hooks/use-memory";
 import { primaryFocus } from "@/lib/primary-focus";
 import { heroFileUrl, api, type DailyCheckin } from "@/lib/api";
 import { AuthedImage } from "@/components/authed-image";
-import { ArcGauge, Sparkline } from "@/components/frame-ui";
-import { MEDIA } from "@/components/media-backdrop";
+import { ArcGauge, Sparkline, EmptyState } from "@/components/frame-ui";
 import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -95,17 +94,17 @@ function CheckinForm({
   };
 
   return (
-    <div className="glass glass-flat space-y-6 p-5 sm:p-6">
-      <p className="text-sm leading-relaxed text-muted-foreground">
+    <div className="glass space-y-6 p-5">
+      <p className="text-sm leading-5 text-[var(--f-text-2)]">
         Rate how you actually feel. 100 = fully recovered.
       </p>
       {METRIC_LABELS.map(({ key, label, hint }) => (
         <div key={key}>
           <div className="flex items-baseline justify-between">
-            <label htmlFor={`checkin-${key}`} className="eyebrow !text-foreground/80">
+            <label htmlFor={`checkin-${key}`} className="label !text-foreground/90">
               {label}
             </label>
-            <span className="numeral numeral-m !text-[1.6rem]">{values[key]}</span>
+            <span className="numeral numeral-m">{values[key]}</span>
           </div>
           <input
             id={`checkin-${key}`}
@@ -124,8 +123,8 @@ function CheckinForm({
         </div>
       ))}
       <div>
-        <label htmlFor="checkin-hr" className="eyebrow mb-2 block !text-foreground/80">
-          Resting HR <span className="normal-case tracking-normal text-muted-foreground">(optional, bpm)</span>
+        <label htmlFor="checkin-hr" className="label mb-1.5 block !text-foreground/90">
+          Resting heart rate <span className="text-muted-foreground">(optional, bpm)</span>
         </label>
         <input
           id="checkin-hr"
@@ -140,19 +139,21 @@ function CheckinForm({
         />
       </div>
       {err && (
-        <p role="alert" className="text-sm text-[#E5645A]">
+        <p role="alert" className="text-sm text-[var(--f-red-text)]">
           {err}
         </p>
       )}
       <div className="flex items-center gap-3 pt-1">
-        <button type="button" onClick={submit} disabled={save.isPending} className="btn-bronze">
-          {save.isPending ? "Saving" : existing ? "Update" : "Log check-in"}
-        </button>
         <button
           type="button"
-          onClick={onDone}
-          className="min-h-[44px] px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          onClick={submit}
+          disabled={save.isPending}
+          data-loading={save.isPending ? "true" : undefined}
+          className="btn-bronze data-[loading=true]:!opacity-100"
         >
+          {existing ? "Update" : "Log check-in"}
+        </button>
+        <button type="button" onClick={onDone} className="btn-quiet">
           Cancel
         </button>
       </div>
@@ -171,8 +172,8 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
   if (points.length < 2) {
     return (
       <div>
-        <div className="eyebrow eyebrow-gold">Readiness trend</div>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+        <h2 className="section-title">Readiness trend</h2>
+        <p className="mt-2 text-sm leading-5 text-[var(--f-text-2)]">
           {points.length === 0
             ? "No check-ins in the last 30 days — log one to start the trend."
             : "One check-in logged — the trend starts at two."}
@@ -192,8 +193,8 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-4">
-        <div className="eyebrow eyebrow-gold">Readiness trend</div>
-        <div className="text-xs tabular-nums text-muted-foreground">
+        <h2 className="section-title">Readiness trend</h2>
+        <div className="tnum text-sm text-muted-foreground">
           {points.length} days · {delta === 0 ? "level" : delta > 0 ? `+${delta}` : `${delta}`}
         </div>
       </div>
@@ -204,7 +205,7 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
       >
         <Sparkline data={points.map((p) => p.score)} width={420} height={84} tone={delta < 0 ? "red" : "gold"} />
       </div>
-      <div className="mt-2 flex justify-between text-xs tabular-nums text-muted-foreground" aria-hidden>
+      <div className="tnum mt-2 flex justify-between text-xs text-[var(--f-text-3)]" aria-hidden>
         <span>{shortDay(first.date)}</span>
         <span>{shortDay(last.date)}</span>
       </div>
@@ -326,26 +327,43 @@ export default function DashboardPage() {
     if (dragRef.current?.pointerId === e.pointerId) dragRef.current = null;
   };
 
+  const sportText = fighter?.primarySport
+    ? fighter.primarySport
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+    : null;
   const metaParts = fighter
     ? [
-        fighter.primarySport ? fighter.primarySport.replace(/_/g, " ").toUpperCase() : null,
+        sportText,
+        fighter.level || null,
         fighter.weightClass || null,
-        fighter.stance ? fighter.stance.toUpperCase() : null,
+        fighter.stance ? fighter.stance.charAt(0).toUpperCase() + fighter.stance.slice(1) : null,
       ].filter((p): p is string => !!p)
     : [];
 
   const delay = (ms: number) => ({ animationDelay: `${ms}ms` });
+  const readinessLoading = checkinQuery.isLoading || analysesQuery.isLoading;
+  const readinessError = !readinessLoading && checkinQuery.isError && readiness == null;
 
   return (
-    <div className="flex flex-col h-[100dvh] text-foreground">
-      <main className="flex-1 min-h-0 overflow-y-auto">
-        <div className="mx-auto w-full max-w-5xl px-3 pb-10 sm:px-5">
-          {/* ─── Hero — the athlete's own uploaded image, cinematic crop ───── */}
-          <section className="frame-rise pt-[max(0.75rem,env(safe-area-inset-top))]">
+    <div className="flex h-[100dvh] flex-col text-foreground">
+      <main className="relative min-h-0 flex-1 overflow-y-auto">
+        {!hasHero && (
+        <div
+          className="atmo atmo-champagne-tr !bottom-auto h-[460px]"
+          style={{ WebkitMaskImage: "linear-gradient(#000 55%, transparent)", maskImage: "linear-gradient(#000 55%, transparent)" }}
+          aria-hidden
+        />
+        )}
+
+        <div className="relative z-10 mx-auto w-full max-w-5xl px-5 pb-10">
+          {/* ─── 1. Athlete context. ONE atmospheric light, on this key area only.
+              The athlete's own hero image (monochrome, dark scrim) when they have one. ─── */}
+          <section className="frame-rise relative z-10 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <div
               ref={heroBoxRef}
-              className={`relative overflow-hidden rounded-[2rem] border border-white/10 shadow-[0_24px_60px_-28px_rgba(0,0,0,0.9)] ${
-                hasHero ? "h-[42vh] min-h-[290px] max-h-[420px]" : "h-[270px]"
+              className={`relative overflow-hidden rounded-[20px] ${
+                hasHero ? "h-[min(42vh,380px)] min-h-[280px] border border-[var(--f-border)]" : ""
               }`}
               style={adjusting ? { touchAction: "none", cursor: "grab", userSelect: "none" } : undefined}
               onPointerDown={onHeroPointerDown}
@@ -353,62 +371,52 @@ export default function DashboardPage() {
               onPointerUp={onHeroPointerUp}
               onPointerCancel={onHeroPointerUp}
             >
-              {heroSrc ? (
-                <AuthedImage
-                  src={heroSrc}
-                  alt=""
-                  aria-hidden
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={{
-                    filter: "saturate(0.85) contrast(1.05)",
-                    objectPosition: `${framing.posX}% ${framing.posY}%`,
-                    transform: `scale(${framing.zoom / 100})`,
-                    transformOrigin: `${framing.posX}% ${framing.posY}%`,
-                    // Dimmed like the profile card — dark contrast is the default;
-                    // lifted while adjusting so the athlete can see what they frame.
-                    opacity: adjusting ? 0.85 : 0.5,
-                  }}
-                  draggable={false}
-                />
-              ) : (
+              {heroSrc && (
                 <>
-                  <img
-                    src={MEDIA.stillB}
+                  <AuthedImage
+                    src={heroSrc}
                     alt=""
                     aria-hidden
                     className="absolute inset-0 h-full w-full object-cover"
-                    style={{ objectPosition: "50% 30%", filter: "saturate(0.9) contrast(1.1)", opacity: 0.8 }}
+                    style={{
+                      filter: "grayscale(1) contrast(1.05)",
+                      objectPosition: `${framing.posX}% ${framing.posY}%`,
+                      transform: `scale(${framing.zoom / 100})`,
+                      transformOrigin: `${framing.posX}% ${framing.posY}%`,
+                      // Lifted while adjusting so the athlete can see what they frame.
+                      opacity: adjusting ? 0.85 : 0.6,
+                    }}
                     draggable={false}
                   />
+                  {/* dark scrim with a reserved text band at the bottom */}
                   <div
-                    className="absolute inset-0"
-                    style={{ background: "radial-gradient(70% 90% at 90% 0%, rgba(214,120,40,0.34), transparent 70%)", mixBlendMode: "screen" }}
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      background: adjusting
+                        ? "linear-gradient(180deg, rgba(8,9,11,0.45) 0%, rgba(8,9,11,0.05) 30%, rgba(8,9,11,0.05) 70%, rgba(8,9,11,0.6) 100%)"
+                        : "linear-gradient(180deg, rgba(8,9,11,0.6) 0%, rgba(8,9,11,0.1) 34%, rgba(8,9,11,0.6) 68%, rgba(8,9,11,0.95) 100%)",
+                    }}
                   />
                 </>
               )}
-              {/* Legibility washes — graphite, not flat black */}
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background: adjusting
-                    ? "linear-gradient(180deg, rgba(8,9,11,0.45) 0%, rgba(8,9,11,0.05) 30%, rgba(8,9,11,0.05) 70%, rgba(8,9,11,0.6) 100%)"
-                    : "linear-gradient(180deg, rgba(8,9,11,0.55) 0%, rgba(8,9,11,0.15) 38%, rgba(8,9,11,0.55) 70%, rgba(8,9,11,0.92) 100%)",
-                }}
-              />
 
-              {/* Header over hero */}
-              <header className="absolute top-0 inset-x-0 flex items-center justify-between px-5 pt-5">
-                <FrameWordmark size={30} />
-                <div className="flex items-center gap-2.5">
+              {/* Header */}
+              <header
+                className={`flex items-center justify-between ${
+                  hasHero ? "absolute inset-x-0 top-0 px-4 pt-4" : "relative pb-4"
+                }`}
+              >
+                <FrameWordmark size={28} />
+                <div className="flex items-center gap-2">
                   <FramePlusPill />
                   {hasHero && !adjusting && (
                     <button
                       type="button"
                       onClick={startAdjust}
                       aria-label="Adjust hero image framing"
-                      className="icon-round bg-[#08090B]/40 text-foreground/80 transition-colors hover:text-[hsl(var(--primary-light))]"
+                      className="icon-round !bg-[#08090B]/60"
                     >
-                      <Move className="w-4 h-4" strokeWidth={1.5} />
+                      <Move className="h-[18px] w-[18px]" strokeWidth={1.75} />
                     </button>
                   )}
                 </div>
@@ -416,11 +424,11 @@ export default function DashboardPage() {
 
               {/* Framing controls (adjust mode) */}
               {adjusting && (
-                <div className="absolute bottom-0 inset-x-0 p-3">
-                  <div className="glass space-y-3 p-4">
-                    <p className="eyebrow !text-foreground/80">Drag to reposition</p>
+                <div className="absolute inset-x-0 bottom-0 p-3">
+                  <div className="overlay-surface space-y-3 rounded-[18px] p-4">
+                    <p className="label !text-foreground/85">Drag the image to reposition</p>
                     <div className="flex items-center gap-3">
-                      <span className="eyebrow w-12">Zoom</span>
+                      <span className="label w-12">Zoom</span>
                       <input
                         type="range"
                         min={100}
@@ -433,26 +441,25 @@ export default function DashboardPage() {
                         className="frame-range flex-1"
                         aria-label="Hero image zoom"
                       />
-                      <span className="w-12 text-right text-[13px] tabular-nums text-foreground/90">
-                        {framing.zoom}%
-                      </span>
+                      <span className="tnum w-12 text-right text-sm text-foreground/90">{framing.zoom}%</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
                         onClick={saveFraming}
                         disabled={updateFighter.isPending}
+                        data-loading={updateFighter.isPending ? "true" : undefined}
                         onPointerDown={(e) => e.stopPropagation()}
-                        className="btn-bronze !min-h-[44px] !px-6"
+                        className="btn-bronze !min-h-[44px] !px-6 data-[loading=true]:!opacity-100"
                       >
-                        {updateFighter.isPending ? "Saving" : "Save framing"}
+                        Save framing
                       </button>
                       <button
                         type="button"
                         onClick={() => setAdjusting(false)}
                         disabled={updateFighter.isPending}
                         onPointerDown={(e) => e.stopPropagation()}
-                        className="min-h-[44px] px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                        className="btn-quiet"
                       >
                         Cancel
                       </button>
@@ -461,15 +468,13 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Identity overlay */}
+              {/* Identity: name, sport, level */}
               {!adjusting && (
-                <div className="absolute bottom-0 inset-x-0 px-6 pb-6">
-                  <div className="eyebrow eyebrow-gold mb-2">Athlete</div>
-                  <h1 className="punch text-[clamp(3.2rem,15vw,5.6rem)] text-[#F4F4F1]">
-                    {fighter?.name ?? "—"}
-                  </h1>
+                <div className={hasHero ? "absolute inset-x-0 bottom-0 px-5 pb-5" : "relative pb-1"}>
+                  <p className="label mb-1">{hasHero ? "Welcome back" : "Your corner"}</p>
+                  <h1 className="punch punch-xl text-[#F4F4F1]">{fighter?.name ?? "—"}</h1>
                   {metaParts.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-3 flex flex-wrap gap-2">
                       {metaParts.map((p) => (
                         <span key={p} className="chip">
                           {p}
@@ -482,186 +487,206 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          <div className="frame-rise mt-3" style={delay(60)}>
+          {/* ─── 2. Today's focus + 3. clear access to coaching ─── */}
+          <section className="glass frame-rise mt-4 p-5" style={delay(60)} title={hasFocus && focus ? focus.source : undefined}>
+            <h2 className="label">Today&apos;s focus</h2>
+            {hasFocus && focus ? (
+              <>
+                <p className="display-heading mt-1 !text-[1.375rem]">{focus.label}</p>
+                <p className="mt-1.5 text-sm leading-5 text-[var(--f-text-2)]">{focus.source}</p>
+              </>
+            ) : memoryQuery.isLoading ? (
+              <p className="display-heading mt-1 !text-[1.375rem] !text-[var(--f-text-3)]" role="status">
+                Finding your focus
+              </p>
+            ) : (
+              <>
+                <p className="display-heading mt-1 !text-[1.375rem]">Tell your coach what you are working on</p>
+                <p className="mt-1.5 text-sm leading-5 text-[var(--f-text-2)]">
+                  Your focus appears here once FRAME has learned a little about your training.
+                </p>
+              </>
+            )}
+            <Link href="/chat" className="btn-bronze mt-4 w-full">
+              {hasFocus ? "Work on it with your coach" : "Start coaching"}
+              <ChevronRight className="h-4 w-4" strokeWidth={2} aria-hidden />
+            </Link>
+          </section>
+
+          <div className="frame-rise relative mt-4" style={delay(100)}>
             <CompetitionBanner />
           </div>
 
-          <div className="mt-4 grid gap-4 lg:grid-cols-2 lg:items-stretch">
-            <div className="contents lg:flex lg:flex-col lg:gap-4">
-            {/* ─── Fight readiness — real composite or an honest prompt ──────── */}
-            <section className="glass glass-gold frame-rise flex flex-col overflow-hidden p-6 lg:flex-1" style={delay(120)}>
-              <div aria-hidden className="glow-orb -right-24 -top-24 h-64 w-64 opacity-60" />
-              <div className="relative flex items-baseline justify-between gap-3">
-                <h2 className="eyebrow eyebrow-gold">Fight readiness</h2>
-                {provenance && <span className="text-xs text-muted-foreground">{provenance}</span>}
-              </div>
-
-              <div className="relative flex flex-1 flex-col items-center justify-center pt-4 pb-1">
-                {readiness != null ? (
-                  <>
-                  <ArcGauge
-                    value={readiness}
-                    size={290}
-                    label={bandFor(readiness)}
-                    tone={readiness < 45 ? "red" : "gold"}
-                  />
-                  <div className="mt-4 flex flex-wrap justify-center gap-1.5" aria-hidden>
-                    {READINESS_BANDS.map((band) => (
-                      <span
-                        key={band}
-                        className={`chip !px-2.5 !py-1 !text-xs ${
-                          band === bandFor(readiness)
-                            ? "!border-primary/50 !bg-primary/20 !text-[hsl(var(--primary-pale))]"
-                            : "!text-muted-foreground"
-                        }`}
-                      >
-                        {band}
-                      </span>
-                    ))}
-                  </div>
-                  </>
-                ) : (
-                  <>
-                    <ArcGauge value={0} size={290} display="—" label="No data" />
-                    <p className="mt-2 max-w-[16rem] text-center text-sm leading-relaxed text-muted-foreground">
-                      No real data yet. Log a check-in or analyse a session.
-                    </p>
-                  </>
-                )}
-              </div>
-            </section>
-
-            {/* Readiness trend — advanced readiness insight (FRAME+). Built ONLY
-                from real logged check-ins; free tier sees a locked teaser. */}
-            <section className="glass frame-rise order-4 p-6 lg:order-none" style={delay(300)}>
-              {isFramePlus ? (
-                <ReadinessTrend checkins={historyCheckins} />
+          {/* ─── Supporting information ─── */}
+          <div className="relative mt-4 grid gap-4 lg:grid-cols-2 lg:items-start">
+            <div className="flex flex-col gap-4">
+              {/* Fight readiness: real composite or an honest prompt */}
+              {readinessLoading ? (
+                <EmptyState kind="loading" title="Loading readiness" />
+              ) : readinessError ? (
+                <EmptyState
+                  kind="error"
+                  title="Couldn't load readiness"
+                  body="Check your connection and try again."
+                  actionLabel="Try again"
+                  onAction={() => {
+                    void checkinQuery.refetch();
+                    void analysesQuery.refetch();
+                  }}
+                />
               ) : (
-                <button
-                  type="button"
-                  onClick={() => openUpgrade("fight_readiness")}
-                  className="group flex min-h-[44px] w-full items-center justify-between gap-4 text-left"
-                >
-                  <span className="flex items-center gap-3">
-                    <span className="icon-round">
-                      <Lock className="h-4 w-4 text-foreground/80" strokeWidth={1.5} />
-                    </span>
-                    <span className="eyebrow !text-foreground/80 transition-colors group-hover:!text-foreground">
-                      Readiness trend
-                    </span>
-                  </span>
-                  <span className="chip !border-primary/40 !bg-primary/10">FRAME+</span>
-                </button>
-              )}
-            </section>
-            </div>
+                <section className="glass frame-rise flex flex-col p-5" style={delay(140)}>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <h2 className="section-title">Fight readiness</h2>
+                    {provenance && <span className="label">{provenance}</span>}
+                  </div>
 
-            <div className="contents lg:flex lg:flex-col lg:gap-4">
-            {/* ─── Today's focus — the one insight, coach's voice ────────────── */}
-            {hasFocus && focus && (
-              <Link
-                href="/chat"
-                className="glass frame-rise group block p-6 outline-none transition-colors hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light))]"
-                style={delay(180)}
-                title={focus.source}
-              >
-                <h2 className="eyebrow eyebrow-gold">Today's focus</h2>
-                <div className="mt-3 flex items-center justify-between gap-4">
-                  <p className="display-heading !text-[1.65rem]">{focus.label}</p>
-                  <span className="icon-round flex-none transition-colors group-hover:text-[hsl(var(--primary-light))]">
-                    <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
-                  </span>
-                </div>
-                <div className="mt-3 text-xs text-muted-foreground">{focus.source}</div>
-              </Link>
-            )}
-
-            {/* Breakdown — athlete-entered values only */}
-            <section className="glass frame-rise p-6" style={delay(240)}>
-              <div className="grid grid-cols-2 gap-x-7 gap-y-6">
-                {METRIC_LABELS.map(({ key, label }) => {
-                  const v = checkin ? (INVERTED_METRICS[key] ? 100 - checkin[key] : checkin[key]) : null;
-                  return (
-                    <div key={key}>
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="eyebrow">{label}</span>
-                        <span className="numeral numeral-m !text-[1.7rem]">
-                          {v ?? <span className="text-muted-foreground">—</span>}
-                        </span>
-                      </div>
-                      <div className={`bar-thin mt-3 ${INVERTED_METRICS[key] ? "bar-thin-red" : ""}`} aria-hidden>
-                        <span style={{ width: `${v ?? 0}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-                <div className="col-span-2 flex items-baseline justify-between gap-2 border-t border-white/10 pt-5">
-                  <span className="eyebrow">Cardio HR</span>
-                  <span className="numeral numeral-m !text-[1.7rem]">
-                    {checkin?.restingHr != null ? (
+                  <div className="flex flex-col items-center justify-center pb-1 pt-4">
+                    {readiness != null ? (
                       <>
-                        {checkin.restingHr}
-                        <span className="ml-1.5 text-xs font-normal tracking-normal text-muted-foreground">bpm</span>
+                        <ArcGauge
+                          value={readiness}
+                          size={240}
+                          label={bandFor(readiness)}
+                          tone={readiness < 45 ? "red" : "gold"}
+                        />
+                        <div className="mt-3 flex flex-wrap justify-center gap-1.5" aria-hidden>
+                          {READINESS_BANDS.map((band) => (
+                            <span
+                              key={band}
+                              className={`chip ${band === bandFor(readiness) ? "chip-gold" : ""}`}
+                            >
+                              {band}
+                            </span>
+                          ))}
+                        </div>
                       </>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <>
+                        <ArcGauge value={0} size={200} display={"—"} label="No data yet" />
+                        <p className="mt-1 max-w-[26ch] text-center text-sm leading-5 text-[var(--f-text-2)]">
+                          Log a check-in or analyse a session and your readiness shows up here.
+                        </p>
+                        <button type="button" onClick={() => setEditing(true)} className="btn-glass mt-4 w-full">
+                          Log today&apos;s check-in
+                        </button>
+                      </>
                     )}
-                  </span>
-                </div>
-              </div>
-
-              {!editing && (
-                <button type="button" onClick={() => setEditing(true)} className="btn-glass mt-6 w-full">
-                  {checkin ? (
-                    <>
-                      <Pencil className="w-3.5 h-3.5" strokeWidth={1.5} />
-                      Edit today's check-in
-                    </>
-                  ) : (
-                    <>
-                      Log today's check-in
-                      <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.5} />
-                    </>
-                  )}
-                </button>
-              )}
-            </section>
-
-            {editing && (
-              <div className="order-3 lg:order-none">
-                <CheckinForm existing={checkin} onDone={() => setEditing(false)} />
-              </div>
-            )}
-
-            {/* ─── Competition context — real camp or a quiet empty state ────── */}
-            <section className="glass frame-rise order-5 p-6 lg:order-none" style={delay(360)}>
-              <h2 className="eyebrow eyebrow-gold">Competition context</h2>
-              {competition && pressure ? (
-                <Link
-                  href="/camp"
-                  className="group mt-4 flex items-center justify-between gap-4 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light))]"
-                >
-                  <div className="min-w-0">
-                    <div className="display-heading !text-[1.5rem] truncate">{competition.eventName}</div>
-                    <div className="eyebrow mt-2">{pressure.phase}</div>
                   </div>
-                  <div className="flex-none text-right">
-                    <div className="numeral numeral-l !text-[3rem] !text-[hsl(var(--primary-pale))]">
-                      {pressure.daysToEvent}
+                </section>
+              )}
+
+              {/* Readiness trend: advanced readiness insight (FRAME+). Built ONLY
+                  from real logged check-ins; free tier sees a locked teaser. */}
+              <section className="glass frame-rise order-4 p-5 lg:order-none" style={delay(300)}>
+                {isFramePlus ? (
+                  <ReadinessTrend checkins={historyCheckins} />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openUpgrade("fight_readiness")}
+                    className="group flex min-h-[44px] w-full items-center justify-between gap-4 text-left"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="icon-round">
+                        <Lock className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                      </span>
+                      <span className="text-base font-medium text-foreground">Readiness trend</span>
+                    </span>
+                    <span className="chip chip-gold">FRAME+</span>
+                  </button>
+                )}
+              </section>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {/* Check-in breakdown: athlete-entered values only */}
+              <section className="glass frame-rise p-5" style={delay(200)}>
+                <h2 className="section-title">Today&apos;s check-in</h2>
+                <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5">
+                  {METRIC_LABELS.map(({ key, label }) => {
+                    const v = checkin ? (INVERTED_METRICS[key] ? 100 - checkin[key] : checkin[key]) : null;
+                    return (
+                      <div key={key}>
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="label">{label}</span>
+                          <span className="numeral numeral-m">
+                            {v ?? <span className="text-[var(--f-text-3)]">{"—"}</span>}
+                          </span>
+                        </div>
+                        <div className={`bar-thin mt-2.5 ${INVERTED_METRICS[key] ? "bar-thin-red" : ""}`} aria-hidden>
+                          <span style={{ width: `${v ?? 0}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="col-span-2 flex items-baseline justify-between gap-2 border-t border-[var(--f-hairline)] pt-4">
+                    <span className="label">Resting heart rate</span>
+                    <span className="numeral numeral-m">
+                      {checkin?.restingHr != null ? (
+                        <>
+                          {checkin.restingHr}
+                          <span className="ml-1.5 text-sm font-normal text-muted-foreground">bpm</span>
+                        </>
+                      ) : (
+                        <span className="text-[var(--f-text-3)]">{"—"}</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {!checkin && !editing && (
+                  <p className="mt-4 text-sm leading-5 text-[var(--f-text-2)]">
+                    Nothing logged today. A 20-second check-in sharpens your readiness.
+                  </p>
+                )}
+
+                {!editing && (
+                  <button type="button" onClick={() => setEditing(true)} className="btn-glass mt-4 w-full">
+                    {checkin ? (
+                      <>
+                        <Pencil className="h-4 w-4" strokeWidth={1.75} />
+                        Edit today&apos;s check-in
+                      </>
+                    ) : (
+                      "Log today's check-in"
+                    )}
+                  </button>
+                )}
+              </section>
+
+              {editing && (
+                <div className="order-3 lg:order-none">
+                  <CheckinForm existing={checkin} onDone={() => setEditing(false)} />
+                </div>
+              )}
+
+              {/* Competition context: real camp or a quiet empty state */}
+              <section className="glass frame-rise order-5 p-5 lg:order-none" style={delay(360)}>
+                <h2 className="section-title">Camp</h2>
+                {competition && pressure ? (
+                  <Link
+                    href="/camp"
+                    className="group mt-3 flex items-center justify-between gap-4 rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--f-gold)]"
+                  >
+                    <div className="min-w-0">
+                      <div className="display-heading truncate !text-[1.25rem]">{competition.eventName}</div>
+                      <div className="label mt-1">{pressure.phase}</div>
                     </div>
-                    <div className="eyebrow mt-1">Days out</div>
-                  </div>
-                </Link>
-              ) : (
-                <div className="mt-4 flex items-center justify-between gap-4">
-                  <p className="text-sm text-muted-foreground">No active camp.</p>
-                  <Link href="/camp" className="btn-glass !min-h-[44px] !px-5">
-                    Set a camp
-                    <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    <div className="flex-none text-right">
+                      <div className="numeral numeral-l">{pressure.daysToEvent}</div>
+                      <div className="label mt-1">Days out</div>
+                    </div>
                   </Link>
-                </div>
-              )}
-            </section>
+                ) : (
+                  <div className="mt-2 flex items-center justify-between gap-4">
+                    <p className="text-sm leading-5 text-[var(--f-text-2)]">No active camp.</p>
+                    <Link href="/camp" className="btn-quiet shrink-0">
+                      Set a camp
+                    </Link>
+                  </div>
+                )}
+              </section>
             </div>
           </div>
         </div>

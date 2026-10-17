@@ -132,7 +132,7 @@ export default function SignUpPage() {
             type="submit"
             disabled={loading || !email || !password || !acceptedLegal}
             data-loading={loading ? "true" : undefined}
-            className="btn-bronze w-full"
+            className="btn-bronze w-full data-[loading=true]:!opacity-100"
           >
             Create account
           </button>

@@ -87,7 +87,7 @@ export default function SignInPage() {
             type="submit"
             disabled={loading || !email || !password}
             data-loading={loading ? "true" : undefined}
-            className="btn-bronze w-full"
+            className="btn-bronze w-full data-[loading=true]:!opacity-100"
           >
             Sign in
           </button>

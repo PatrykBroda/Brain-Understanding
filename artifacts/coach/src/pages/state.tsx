@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
 import { ChevronDown, ChevronRight, Shield } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -52,7 +52,6 @@ export default function StatePage() {
   useAutoWelcome();
   const frameState = useFrameState();
   const [expanded, setExpanded] = useState(false);
-  const panelRef = useRef<HTMLElement>(null);
 
   // Same cache key the state hook uses, so this is not a second fetch.
   const memoryQuery = useQuery({
@@ -94,16 +93,16 @@ export default function StatePage() {
   const readiness = applyReadinessModifier(baseReadiness, chatModifier);
 
   const label = frameState.label;
-  const toggle = () => {
-    setExpanded((v) => {
-      const next = !v;
-      if (next) window.setTimeout(() => panelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 60);
-      return next;
-    });
-  };
+  const toggle = () => setExpanded((v) => !v);
 
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden text-foreground">
+      {/* The ONE atmospheric light on this screen: champagne, behind the orb. Pinned (does not scroll). */}
+      <div
+        className="atmo atmo-champagne"
+        style={{ WebkitMaskImage: "linear-gradient(#000 60%, transparent)", maskImage: "linear-gradient(#000 60%, transparent)" }}
+        aria-hidden
+      />
       <header className="relative z-10 flex flex-none items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
         <FrameWordmark size={28} />
         <div className="flex items-center gap-2">
@@ -114,9 +113,7 @@ export default function StatePage() {
         </div>
       </header>
 
-      <main className="relative min-h-0 flex-1 overflow-y-auto">
-        {/* The ONE atmospheric light on this screen: champagne, behind the orb */}
-        <div className="atmo atmo-champagne" aria-hidden />
+      <main className="relative z-10 min-h-0 flex-1 overflow-y-auto">
         <div className="relative z-10 mx-auto flex w-full max-w-md flex-col items-center px-5 pb-6 pt-2">
           {/* Orb = button. idle -> pressed (scale .98 + brightness) -> expanded (factors panel) */}
           <button
@@ -125,7 +122,8 @@ export default function StatePage() {
             aria-expanded={expanded}
             aria-controls="state-factors"
             aria-label={`${label} state. ${expanded ? "Hide" : "Show"} what feeds this state.`}
-            className="group relative w-[min(66vw,280px)] rounded-full outline-none transition-[transform,filter] duration-[180ms] ease-out hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[var(--f-gold)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--f-bg)] active:scale-[0.98] active:brightness-125 motion-reduce:transition-none"
+            style={expanded ? { marginBottom: "calc(min(66vw, 280px) * -0.42)" } : undefined}
+            className={`group relative w-[min(66vw,280px)] origin-top rounded-full outline-none transition-[transform,filter] duration-[220ms] ease-out hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[var(--f-gold)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--f-bg)] ${expanded ? "scale-[0.58] active:scale-[0.56]" : "active:scale-[0.98]"} active:brightness-125 motion-reduce:transition-none`}
           >
             <CosmicOrb state={frameState.orb} className="w-full" />
           </button>
@@ -163,7 +161,6 @@ export default function StatePage() {
           {expanded && (
             <section
               id="state-factors"
-              ref={panelRef}
               aria-label="What feeds this state"
               className="frame-rise glass mt-5 w-full px-5 pb-2 pt-4"
             >
@@ -231,6 +228,8 @@ export default function StatePage() {
                   <span className="numeral numeral-m">{readiness}</span>
                   <span className="tnum text-xs text-[var(--f-text-3)]">/ 100 &middot; {readinessSource}</span>
                 </span>
+              ) : checkinQuery.isLoading || analysesQuery.isLoading ? (
+                <span className="text-sm text-[var(--f-text-3)]" role="status">Loading</span>
               ) : (
                 <span className="flex items-center gap-1 text-sm font-medium text-[var(--f-gold)]">
                   Analyse a session
