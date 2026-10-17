@@ -16,8 +16,8 @@ export function BottomNav() {
 
   return (
     <nav
-      className="flex-none border-t border-white/[0.06] pb-[env(safe-area-inset-bottom)]"
-      style={{ background: "#000" }}
+      className="flex-none border-t border-white/[0.10] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
+      style={{ background: "linear-gradient(180deg, rgba(16,14,12,0.88), rgba(10,9,8,0.96))" }}
       aria-label="Primary"
     >
       <div className="grid grid-cols-6 max-w-md mx-auto">
@@ -33,8 +33,8 @@ export function BottomNav() {
               href={path}
               aria-label={label}
               aria-current={active ? "page" : undefined}
-              className={`flex flex-col items-center justify-center gap-1 py-3 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:rounded-md ${
-                active ? "text-primary" : "text-foreground/45 hover:text-foreground/85"
+              className={`flex flex-col items-center justify-center gap-1 min-h-[56px] py-2.5 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:rounded-md ${
+                active ? "text-[hsl(var(--primary-light))]" : "text-muted-foreground hover:text-foreground/85"
               }`}
             >
               {Icon ? (
@@ -42,7 +42,7 @@ export function BottomNav() {
               ) : (
                 <FrameOctagon size={20} glow={false} color="currentColor" />
               )}
-              <span className="font-mono text-[9px] uppercase tracking-widest">{label}</span>
+              <span className="text-[10px] font-medium uppercase tracking-[0.12em]">{label}</span>
             </Link>
           );
         })}

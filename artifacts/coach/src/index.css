@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+@import "@fontsource-variable/outfit/index.css";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
 
 @layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
@@ -63,6 +66,7 @@
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
   --font-sans: var(--app-font-sans);
+  --font-display: var(--app-font-display);
   --font-mono: var(--app-font-mono);
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -106,36 +110,38 @@
   --input: 180 5% 85%;
   --ring: 39 49% 36%;
 
-  --app-font-sans: 'Outfit', sans-serif;
-  --app-font-mono: 'Space Mono', monospace;
-  --radius: 0rem; 
+  --app-font-sans: 'Outfit Variable', 'Outfit', system-ui, sans-serif;
+  --app-font-display: 'Instrument Serif', 'Times New Roman', serif;
+  /* labels were Space Mono; now Outfit so the small uppercase labels read refined. */
+  --app-font-mono: 'Outfit Variable', 'Outfit', system-ui, sans-serif;
+  --radius: 1.25rem;
 }
 
 /* DARK MODE PRIMARY — pure black foundation, no blue-grey tint */
 .dark, :root {
   color-scheme: dark;
-  --background: 0 0% 2%;     /* #050505 — true black foundation */
-  --foreground: 0 0% 88%;    /* clean near-white, no hue cast */
+  --background: 0 0% 2%;     /* #050505 — brand black; depth is layered on top by the body glow fields */
+  --foreground: 0 0% 88%;    /* #e0e0e0 */
 
-  --border: 0 0% 10%;        /* #1a1a1a — crisp neutral separation */
+  --border: 36 20% 90% / 0.10; /* 1px light edge on glass */
 
-  --card: 0 0% 4%;           /* #0a0a0a — slightly lifted surface */
+  --card: 30 14% 6%;         /* graphite1 #100e0c — lifted surface */
   --card-foreground: 0 0% 88%;
-  --card-border: 0 0% 10%;
+  --card-border: 36 20% 90% / 0.10;
 
-  --popover: 0 0% 5%;
+  --popover: 30 14% 7%;
   --popover-foreground: 0 0% 88%;
-  --popover-border: 0 0% 10%;
+  --popover-border: 36 20% 90% / 0.12;
 
   --primary: 39 49% 36%;     /* champions gold — restrained, earned */
   --primary-h: 39;
   --primary-foreground: 0 0% 2%;
 
-  --secondary: 0 0% 9%;      /* #171717 */
+  --secondary: 30 12% 9%;    /* graphite2 */
   --secondary-foreground: 0 0% 68%;
 
-  --muted: 0 0% 7%;          /* #121212 */
-  --muted-foreground: 0 0% 40%; /* neutral mid-grey */
+  --muted: 30 10% 8%;
+  --muted-foreground: 36 4% 56%; /* #8f8b84 - AA (5.9:1) on the dark surfaces */
 
   --accent: 39 49% 36%;
   --accent-foreground: 0 0% 2%;
@@ -146,9 +152,11 @@
   --red-accent: 0 74% 52%;   /* brighter crimson for danger states */
   --red-accent-foreground: 0 0% 100%;
 
-  --input: 0 0% 11%;
+  --input: 36 20% 90% / 0.12;
   --ring: 39 49% 36%;
 
+  --primary-light: 39 50% 56%;   /* #C7A15A text-safe gold */
+  --primary-pale: 41 55% 77%;    /* #E6D2A3 */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.7);
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.7), 0 1px 2px -1px rgb(0 0 0 / 0.7);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.7), 0 2px 4px -2px rgb(0 0 0 / 0.7);
@@ -161,6 +169,7 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-feature-settings: 'tnum' 1;
   }
 }
 
@@ -332,3 +341,207 @@
     border-color: hsl(var(--primary) / 0.32);
   }
 }
+
+
+/* ==========================================================================
+   FRAME design system — "Smoked Bronze" (mirrors artifacts/frame-mobile/constants/theme.ts)
+   Dark only. Depth = layered graphite + frosted glass + low-opacity bronze/crimson
+   glow fields + oversized thin numerals. No new hues.
+   ========================================================================== */
+
+/* Ambient glow fields. The body already carries the default; use these on a
+   full-bleed wrapper when a screen wants a different tone. */
+.frame-ambient {
+  background:
+    radial-gradient(90% 46% at 85% -4%, rgba(199, 161, 90, 0.20), transparent 70%),
+    radial-gradient(85% 42% at -8% 104%, rgba(138, 106, 47, 0.18), transparent 70%),
+    linear-gradient(180deg, #0d0b09 0%, #070605 55%, #050505 100%);
+}
+.frame-ambient-red {
+  background:
+    radial-gradient(90% 46% at 85% -4%, rgba(199, 161, 90, 0.16), transparent 70%),
+    radial-gradient(85% 42% at -8% 104%, rgba(191, 29, 29, 0.20), transparent 70%),
+    linear-gradient(180deg, #0d0b09 0%, #070605 55%, #050505 100%);
+}
+body {
+  background-color: #050505;
+  background-image:
+    radial-gradient(90% 46% at 85% -4%, rgba(199, 161, 90, 0.16), transparent 70%),
+    radial-gradient(85% 42% at -8% 104%, rgba(138, 106, 47, 0.14), transparent 70%),
+    linear-gradient(180deg, #0d0b09 0%, #070605 55%, #050505 100%);
+  background-attachment: fixed;
+}
+
+/* Frosted glass card: translucent graphite + diagonal sheen + 1px light edge,
+   brighter top edge, big radius, deep soft shadow. */
+.glass {
+  position: relative;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 244, 224, 0.10);
+  background:
+    linear-gradient(135deg, rgba(255, 246, 232, 0.085), rgba(255, 246, 232, 0.02)),
+    rgba(16, 14, 12, 0.72);
+  -webkit-backdrop-filter: blur(22px) saturate(1.15);
+  backdrop-filter: blur(22px) saturate(1.15);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 244, 224, 0.09);
+}
+.glass-gold {
+  border-color: rgba(199, 161, 90, 0.28);
+  background:
+    linear-gradient(135deg, rgba(138, 106, 47, 0.30), rgba(138, 106, 47, 0.04)),
+    rgba(16, 14, 12, 0.72);
+}
+.glass-red {
+  border-color: rgba(224, 86, 78, 0.30);
+  background:
+    linear-gradient(135deg, rgba(191, 29, 29, 0.26), rgba(191, 29, 29, 0.04)),
+    rgba(16, 14, 12, 0.72);
+}
+.glass-flat { border-radius: 1.25rem; box-shadow: none; }
+
+/* Type roles */
+.font-display { font-family: var(--app-font-display); font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
+.display-title { font-family: var(--app-font-display); font-style: italic; font-weight: 400; font-size: 2.4rem; line-height: 1.05; letter-spacing: -0.015em; color: #f1ede6; }
+.display-heading { font-family: var(--app-font-display); font-style: italic; font-weight: 400; font-size: 1.75rem; line-height: 1.12; color: #f1ede6; }
+.numeral { font-family: var(--app-font-sans); font-weight: 200; letter-spacing: -0.045em; line-height: 0.95; color: #f1ede6; font-variant-numeric: tabular-nums; }
+.numeral-hero { font-size: 5.5rem; }
+.numeral-l { font-size: 3.5rem; }
+.numeral-m { font-size: 2.1rem; font-weight: 300; letter-spacing: -0.03em; }
+.eyebrow { font-family: var(--app-font-sans); font-weight: 500; font-size: 0.6875rem; letter-spacing: 0.16em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+.eyebrow-gold { color: hsl(var(--primary-light)); }
+
+/* Pill tabs / chips */
+.pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 1.25rem; border-radius: 999px;
+  border: 1px solid rgba(255, 244, 224, 0.07);
+  background: rgba(255, 246, 232, 0.045);
+  color: #a8a49d; font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.02em;
+  transition: background-color 160ms, border-color 160ms, color 160ms;
+}
+.pill[aria-selected='true'], .pill[data-active='true'] {
+  background: rgba(138, 106, 47, 0.14); border-color: rgba(199, 161, 90, 0.28); color: #e6d2a3;
+}
+
+/* Primary bronze pill button + glass button + round icon button */
+.btn-bronze {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 52px; padding: 0 1.75rem; border-radius: 999px;
+  background: linear-gradient(135deg, #b38f4b, #8a6a2f); color: #0a0806;
+  font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase;
+  box-shadow: 0 10px 28px -10px rgba(138, 106, 47, 0.75), inset 0 1px 0 rgba(255, 240, 200, 0.35);
+  transition: transform 160ms, filter 160ms;
+}
+.btn-bronze:hover { filter: brightness(1.08); }
+.btn-bronze:active { transform: scale(0.98); }
+.btn-bronze:disabled { opacity: 0.45; }
+.btn-glass {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 52px; padding: 0 1.75rem; border-radius: 999px;
+  background: rgba(255, 246, 232, 0.075); border: 1px solid rgba(255, 244, 224, 0.10); color: #e0e0e0;
+  font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase;
+}
+.icon-round {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 999px;
+  background: rgba(255, 246, 232, 0.075); border: 1px solid rgba(255, 244, 224, 0.10); color: #e0e0e0;
+}
+.icon-round-solid { background: #b38f4b; color: #050505; border-color: transparent; box-shadow: 0 0 22px rgba(138, 106, 47, 0.55); }
+
+/* Glass field */
+.field-glass {
+  min-height: 54px; width: 100%; padding: 0 1.25rem; border-radius: 1.125rem;
+  background: rgba(255, 246, 232, 0.045); border: 1px solid rgba(255, 244, 224, 0.10);
+  color: #f1ede6; font-size: 1rem; outline: none;
+}
+.field-glass:focus { border-color: rgba(199, 161, 90, 0.28); background: rgba(255, 246, 232, 0.075); }
+
+/* One orchestrated entrance — add `frame-rise` to the hero and stagger siblings
+   with style={{ animationDelay: '70ms' }}. Disabled for reduced motion. */
+@keyframes frame-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.frame-rise { animation: frame-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .frame-rise { animation: none; }
+}
+
+/* Keyboard focus ring on the bronze */
+:focus-visible { outline: 2px solid hsl(var(--primary-light)); outline-offset: 2px; }
+
+/* ==========================================================================
+   Shell / home / state / auth area
+   ========================================================================== */
+.frame-range {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer;
+}
+.frame-range::-webkit-slider-runnable-track { height: 3px; border-radius: 999px; background: rgba(255, 244, 224, 0.14); }
+.frame-range::-moz-range-track { height: 3px; border-radius: 999px; background: rgba(255, 244, 224, 0.14); }
+.frame-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 20px; height: 20px; margin-top: -8.5px; border-radius: 999px;
+  background: #e6d2a3; border: 4px solid #8a6a2f; box-shadow: 0 0 18px rgba(199, 161, 90, 0.55);
+}
+.frame-range::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 999px; background: #e6d2a3; border: 4px solid #8a6a2f; box-shadow: 0 0 18px rgba(199, 161, 90, 0.55);
+}
+.chip {
+  display: inline-flex; align-items: center; padding: 0.3rem 0.8rem; border-radius: 999px;
+  border: 1px solid rgba(255, 244, 224, 0.12); background: rgba(5, 5, 5, 0.35);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  color: #e6d2a3; font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase;
+}
+.bar-thin { height: 3px; border-radius: 999px; background: rgba(255, 244, 224, 0.10); overflow: hidden; }
+.bar-thin > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #8a6a2f, #e6d2a3); }
+.bar-thin-red > span { background: linear-gradient(90deg, #bf1d1d, #e0564e); }
+.glow-orb {
+  position: absolute; border-radius: 999px; pointer-events: none; filter: blur(70px);
+  background: radial-gradient(circle, rgba(199, 161, 90, 0.42), transparent 70%);
+}
+
+/* ---- Analyse / camp / profile / chat / history / onboarding (Smoked Bronze) ---- */
+.btn-quiet {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 44px; padding: 0 1.25rem; border-radius: 999px;
+  border: 1px solid rgba(255, 244, 224, 0.12);
+  background: rgba(255, 246, 232, 0.05);
+  color: #d8d4cc; font-family: var(--app-font-sans); font-weight: 500; font-size: 0.6875rem;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  transition: background-color 160ms, border-color 160ms, color 160ms, transform 160ms;
+}
+.btn-quiet:hover:not(:disabled) { background: rgba(255, 246, 232, 0.09); border-color: rgba(199, 161, 90, 0.35); color: #f1ede6; }
+.btn-quiet:active:not(:disabled) { transform: scale(0.98); }
+.btn-quiet:disabled { opacity: 0.45; }
+.btn-quiet-gold { border-color: rgba(199, 161, 90, 0.32); background: rgba(138, 106, 47, 0.14); color: #e6d2a3; }
+.btn-quiet-red { border-color: rgba(224, 86, 78, 0.36); background: rgba(191, 29, 29, 0.14); color: #f0a49d; }
+.btn-quiet-sm { min-height: 36px; padding: 0 0.9rem; }
+/* tap area stays >=44px on small chips via a pseudo hit-box */
+.btn-quiet-sm::after { content: ""; position: absolute; inset: -4px 0; }
+.btn-quiet-sm { position: relative; }
+
+/* upload drop zone */
+.dropzone {
+  position: relative; overflow: hidden; border-radius: 1.75rem;
+  border: 1px dashed rgba(199, 161, 90, 0.34);
+  background:
+    radial-gradient(70% 90% at 50% 0%, rgba(138, 106, 47, 0.20), transparent 70%),
+    linear-gradient(160deg, rgba(255, 246, 232, 0.06), rgba(255, 246, 232, 0.015)),
+    rgba(16, 14, 12, 0.7);
+  box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 244, 224, 0.08);
+  transition: border-color 200ms, background-color 200ms;
+}
+.dropzone:hover:not(:disabled) { border-color: rgba(230, 210, 163, 0.6); }
+.dropzone .dz-icon {
+  width: 64px; height: 64px; border-radius: 999px; display: grid; place-items: center;
+  background: rgba(138, 106, 47, 0.18); border: 1px solid rgba(199, 161, 90, 0.3); color: #e6d2a3;
+  box-shadow: 0 0 36px rgba(138, 106, 47, 0.35);
+}
+
+/* hairline table / list rows inside glass */
+.glass-table { border-radius: 1.25rem; overflow: hidden; }
+.row-hair { border-bottom: 1px solid rgba(255, 244, 224, 0.07); }
+.row-hair:last-child { border-bottom: 0; }
+
+/* a short serif section title with a hairline rule */
+.section-title { font-family: var(--app-font-display); font-style: italic; font-weight: 400; font-size: 1.35rem; line-height: 1.15; color: #f1ede6; letter-spacing: -0.005em; }
+.section-rule { height: 1px; background: linear-gradient(90deg, rgba(199, 161, 90, 0.4), rgba(255, 244, 224, 0.06) 60%, transparent); }
+
+/* recharts, glass tooltip */
+.recharts-default-tooltip { border-radius: 14px !important; border: 1px solid rgba(255, 244, 224, 0.12) !important; background: rgba(16, 14, 12, 0.88) !important; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 12px 30px -10px #000; }
