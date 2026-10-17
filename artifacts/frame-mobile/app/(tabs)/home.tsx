@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Image as ExpoImage } from "expo-image";
 import {
   ActivityIndicator,
   Image,
@@ -22,7 +23,7 @@ import {
   ArcGauge,
   Body,
   Button,
-  Display,
+  Display, Punch,
   Eyebrow,
   FadeIn,
   Field,
@@ -32,6 +33,7 @@ import {
   Screen,
   Sparkline,
   TickScale,
+  media,
 } from "@/components/ui";
 import { fonts, palette, radius } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
@@ -430,7 +432,7 @@ export default function HomeScreen() {
     checkin ? (INVERTED_METRICS[key] ? 100 - checkin[key] : checkin[key]) : null;
 
   return (
-    <Screen>
+    <Screen photo={media.stillB}>
       <ScrollView
         style={styles.root}
         contentContainerStyle={{ paddingBottom: bottomPad, paddingTop: topPad + 8 }}
@@ -464,12 +466,14 @@ export default function HomeScreen() {
               />
             ) : (
               <>
-                <LinearGradient
-                  colors={[palette.graphite3, palette.graphite0]}
-                  style={StyleSheet.absoluteFill}
+                <ExpoImage
+                  source={media.stillA}
+                  style={[StyleSheet.absoluteFill, { opacity: 0.85 }]}
+                  contentFit="cover"
+                  contentPosition={{ top: 0, left: "45%" }}
                 />
                 <LinearGradient
-                  colors={["rgba(138,106,47,0.38)", "rgba(138,106,47,0)"]}
+                  colors={["rgba(214,120,40,0.36)", "rgba(214,120,40,0)"]}
                   start={{ x: 0.9, y: 0 }}
                   end={{ x: 0.2, y: 1 }}
                   style={StyleSheet.absoluteFill}
@@ -484,9 +488,9 @@ export default function HomeScreen() {
             />
             <View style={styles.heroIdentity}>
               <Eyebrow style={{ color: palette.goldLight }}>Athlete</Eyebrow>
-              <Display size="title" style={styles.heroName} numberOfLines={2}>
+              <Punch style={styles.heroName} numberOfLines={2}>
                 {fighter?.name ?? "—"}
-              </Display>
+              </Punch>
               {metaParts.length > 0 && (
                 <Text style={styles.heroMeta}>{metaParts.join("  ·  ")}</Text>
               )}
@@ -662,7 +666,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.graphite1,
   },
   heroIdentity: { padding: 22, gap: 4 },
-  heroName: { color: palette.textHi },
+  heroName: { fontSize: 58, lineHeight: 56, color: palette.textHi },
   heroMeta: {
     fontFamily: fonts.textMedium,
     fontSize: 11,

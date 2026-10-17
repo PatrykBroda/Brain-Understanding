@@ -60,9 +60,9 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   wordmark: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 54,
-    lineHeight: 58,
+    fontFamily: fonts.displayThin,
+    fontSize: 38,
+    lineHeight: 48,
     letterSpacing: -1,
     color: palette.textHi,
     marginBottom: 20,

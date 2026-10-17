@@ -20,7 +20,7 @@ import Svg, { Circle, Line, Path, Polygon, Text as SvgText } from "react-native-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
-import { ArcGauge, Display, Eyebrow, FadeIn, Screen } from "@/components/ui";
+import { ArcGauge, Display, Punch, Eyebrow, FadeIn, Screen, media } from "@/components/ui";
 import { fonts, palette, radius, shadow } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter, type Fighter } from "@/context/FighterContext";
@@ -253,10 +253,15 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
             resizeMode="cover"
           />
         ) : (
-          <LinearGradient
-            colors={["rgba(138,106,47,0.30)", "rgba(5,5,5,0.4)"]}
-            style={StyleSheet.absoluteFill}
-          />
+          <>
+            <Image source={media.gym} style={[StyleSheet.absoluteFill, { opacity: 0.7 }]} resizeMode="cover" />
+            <LinearGradient
+              colors={["rgba(214,120,40,0.32)", "rgba(5,5,5,0)"]}
+              start={{ x: 1, y: 0 }}
+              end={{ x: 0.3, y: 0.7 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </>
         )}
         <LinearGradient
           colors={["rgba(5,5,5,0.15)", "rgba(5,5,5,0.4)", "rgba(5,5,5,0.92)"]}
@@ -294,9 +299,9 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
 
         <View style={s.bandBody}>
           <Eyebrow style={s.bandKicker}>IDENTITY</Eyebrow>
-          <Display size="title" style={s.bandName} numberOfLines={2}>
+          <Punch style={s.bandName} numberOfLines={2}>
             {fighter.name}
-          </Display>
+          </Punch>
           {subtitle ? <Text style={s.bandArchetype}>{subtitle.toUpperCase()}</Text> : null}
         </View>
       </View>
@@ -498,7 +503,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <Screen>
+    <Screen photo={media.gym}>
     <ScrollView
       style={s.root}
       contentContainerStyle={[s.content, { paddingTop: topPad + 12, paddingBottom: bottomPad + 32 }]}
@@ -948,7 +953,7 @@ const s = StyleSheet.create({
   },
   bandBody: { paddingHorizontal: 16, paddingTop: 32, paddingBottom: 16 },
   bandKicker: { color: palette.goldLight, marginBottom: 4 },
-  bandName: { color: palette.textHi },
+  bandName: { fontSize: 50, lineHeight: 48, color: palette.textHi },
   bandArchetype: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.4, color: palette.goldLight, marginTop: 8 },
   bandError: {
     fontFamily: fonts.text,
@@ -993,7 +998,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   sectionOverline: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 6 },
-  sectionTitle: { fontFamily: fonts.displayItalic, fontSize: 28, lineHeight: 32, color: palette.textHi },
+  sectionTitle: { fontFamily: fonts.displayThin, fontSize: 20, lineHeight: 25, color: palette.textHi },
   viewHistory: { fontFamily: fonts.textMedium, fontSize: 11, letterSpacing: 1.8, color: palette.textLow },
 
   // Panel shell
@@ -1018,7 +1023,7 @@ const s = StyleSheet.create({
   // Section head (overline + title, inside panels)
   headBlock: {},
   headOverline: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.textLow, marginBottom: 8 },
-  headTitle: { fontFamily: fonts.displayItalic, fontSize: 22, lineHeight: 26, color: palette.textHi },
+  headTitle: { fontFamily: fonts.displayThin, fontSize: 15, lineHeight: 19, color: palette.textHi },
   headRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
   syncing: { fontFamily: fonts.textMedium, fontSize: 11.5, letterSpacing: 1.8, color: palette.goldLight },
 
@@ -1159,7 +1164,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     minHeight: 64,
   },
-  upgradeTitle: { fontFamily: fonts.displayItalic, fontSize: 24, lineHeight: 28, color: palette.goldPale },
+  upgradeTitle: { fontFamily: fonts.displayThin, fontSize: 17, lineHeight: 21, color: palette.goldPale },
   upgradeSub: { fontFamily: fonts.text, fontSize: 12.5, color: palette.textMid, marginTop: 6, lineHeight: 18 },
   restoreLink: { alignItems: "center", justifyContent: "center", minHeight: 48 },
   restoreLinkText: { fontFamily: fonts.textMedium, fontSize: 11.5, color: palette.textLow, letterSpacing: 1.8 },

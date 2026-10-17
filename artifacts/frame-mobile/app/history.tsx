@@ -16,7 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/lib/api";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { CATEGORY_LABELS, type ModelFact } from "@/lib/athleteModel";
-import { Display, Eyebrow, FadeIn, GlassCard, IconButton, Screen } from "@/components/ui";
+import { Display, Eyebrow, FadeIn, GlassCard, IconButton, Screen, media } from "@/components/ui";
 import { fonts, palette } from "@/constants/theme";
 
 
@@ -113,7 +113,7 @@ export default function HistoryScreen() {
   const buckets = useMemo(() => bucketByDay(activeFacts), [activeFacts]);
 
   return (
-    <Screen>
+    <Screen photo={media.stillA}>
       <View style={[s.root, { paddingTop: topPad }]}>
         <View style={s.header}>
           <IconButton icon="arrow-left" label="Back" onPress={() => router.back()} />

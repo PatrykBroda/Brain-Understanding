@@ -32,7 +32,7 @@ import { didVerifiedPriceChange, toShownPriceReport, verifyApplePrice, type Veri
 import { formatSubscriptionRenewal } from "@/lib/subscriptionDisclosure";
 import { reportCrash, reportPriceShown } from "@/lib/crashReporter";
 import { LinearGradient } from "expo-linear-gradient";
-import { Button, Display, Eyebrow, FadeIn, GlassCard, IconButton, Screen } from "@/components/ui";
+import { Button, Display, Eyebrow, FadeIn, GlassCard, IconButton, Screen, media } from "@/components/ui";
 import { fonts, palette, radius, shadow } from "@/constants/theme";
 
 const FRAME_PLUS_PERKS = [
@@ -183,7 +183,7 @@ export default function PaywallScreen() {
   }
 
   return (
-    <Screen>
+    <Screen photo={media.stillA}>
       <View style={[s.root, { paddingTop: insets.top + 8 }]}>
         <View style={s.closeRow}>
           <IconButton icon="x" label="Close" onPress={close} />

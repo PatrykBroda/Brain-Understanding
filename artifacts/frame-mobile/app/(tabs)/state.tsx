@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { OrbGL } from "@/components/OrbGL";
-import { Body, Button, Display, Eyebrow, FadeIn, GlassCard, IconButton, ArcGauge, Screen } from "@/components/ui";
+import { Body, Button, Display, Punch, Eyebrow, FadeIn, GlassCard, IconButton, ArcGauge, Screen, media } from "@/components/ui";
 import { fonts, palette } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
@@ -196,9 +196,9 @@ export default function StateScreen() {
 
           <FadeIn style={styles.stateBlock}>
             <Eyebrow style={{ color: palette.goldLight }}>State</Eyebrow>
-            <Display size="title" style={styles.stateLabel}>
+            <Punch style={styles.stateLabel}>
               {state}
-            </Display>
+            </Punch>
             <Body small style={styles.stateCue}>
               {STATE_CUE[state]}
             </Body>
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   subline: { marginTop: 4, fontSize: 9.5 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   stateBlock: { alignItems: "center", gap: 2 },
-  stateLabel: { textAlign: "center" },
+  stateLabel: { textAlign: "center", fontSize: 76, lineHeight: 74 },
   stateCue: { textAlign: "center", paddingHorizontal: 32, marginTop: 4 },
   readinessMiddle: { paddingHorizontal: 24, paddingVertical: 8 },
   readinessPress: { alignSelf: "stretch" },

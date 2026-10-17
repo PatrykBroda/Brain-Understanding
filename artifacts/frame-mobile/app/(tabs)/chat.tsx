@@ -39,7 +39,7 @@ import { CompetitionBanner } from "@/components/CompetitionBanner";
 import { OctagonSpinner } from "@/components/OctagonSpinner";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
-import { Display, Eyebrow, FadeIn, Screen } from "@/components/ui";
+import { Display, Eyebrow, FadeIn, Screen, media } from "@/components/ui";
 import { fonts, palette, radius } from "@/constants/theme";
 
 const FRAME_WORDMARK = require("@/assets/images/frame-wordmark.png");
@@ -717,7 +717,7 @@ export default function ChatScreen() {
       }}
       onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
     />
-    <Screen>
+    <Screen photo={media.gym}>
     <KeyboardAvoidingView
       style={[styles.root, { paddingTop: topPad }]}
       behavior="padding"

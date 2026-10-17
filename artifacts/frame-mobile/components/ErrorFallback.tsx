@@ -228,8 +228,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   modalTitle: {
-    fontSize: 24,
-    fontFamily: fonts.displayItalic,
+    fontSize: 17,
+    fontFamily: fonts.displayThin,
   },
   closeButton: {
     width: 44,

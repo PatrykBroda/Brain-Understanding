@@ -413,9 +413,9 @@ const beltStyles = StyleSheet.create({
     justifyContent: "space-between",
   },
   rankLabel: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 24,
-    lineHeight: 28,
+    fontFamily: fonts.displayThin,
+    fontSize: 17,
+    lineHeight: 21,
     color: palette.textHi,
   },
   nextLabel: {

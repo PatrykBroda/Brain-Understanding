@@ -5,7 +5,7 @@ import { ActivityIndicator, Linking, Platform, StyleSheet, View } from "react-na
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Body, Button, Display, FadeIn, GlassCard, Screen } from "@/components/ui";
+import { Body, Button, Display, FadeIn, GlassCard, Screen, media } from "@/components/ui";
 import { palette } from "@/constants/theme";
 
 import { useAuth } from "@/context/AuthContext";
@@ -124,7 +124,7 @@ export default function AnalyseScreen() {
 /** Glass notice card on the Smoked Bronze backdrop — loading/error/consent chrome. */
 function Notice({ children, top = 0, bottom = 0 }: { children: React.ReactNode; top?: number; bottom?: number }) {
   return (
-    <Screen>
+    <Screen photo={media.stillA}>
       <View style={[styles.center, { paddingTop: top, paddingBottom: bottom }]}>
         <FadeIn style={styles.fade}>
           <GlassCard tone="gold" radius={28} padding={28} style={styles.card}>

@@ -251,8 +251,8 @@ const s = StyleSheet.create({
     gap: 16,
   },
   anchored: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 34,
+    fontFamily: fonts.displayThin,
+    fontSize: 24,
     color: palette.goldPale,
   },
   groundActive: {

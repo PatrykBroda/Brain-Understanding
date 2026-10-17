@@ -13,7 +13,7 @@ export function Eyebrow({ style, ...p }: TextProps) {
   );
 }
 
-/** Elegant italic serif heading. `size`: title (38) · heading (28) · sub (21). */
+/** Thin wide display heading. `size`: title (28) · heading (21) · sub (15). */
 export function Display({
   size = "heading",
   style,
@@ -27,6 +27,22 @@ export function Display({
       style={[base as TextStyle, { color: palette.textHi }, style]}
     />
   );
+}
+
+/** Condensed bold italic caps (Nike / UFC headline). Use sparingly; pass fontSize in `style`. */
+export function Punch({ style, ...p }: TextProps) {
+  return (
+    <Text
+      accessibilityRole="header"
+      {...p}
+      style={[T.punch as TextStyle, { color: palette.textHi }, style]}
+    />
+  );
+}
+
+/** Wide thin wordmark text: FRAME. */
+export function Wordmark({ style, ...p }: TextProps) {
+  return <Text {...p} style={[T.wordmark as TextStyle, { color: palette.textHi, paddingLeft: 6 }, style]} />;
 }
 
 /** Oversized light-weight numeral. `size`: hero (88) · l (56) · m (34) · s (22). */

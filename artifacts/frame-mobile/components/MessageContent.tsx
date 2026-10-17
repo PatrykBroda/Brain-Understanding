@@ -232,8 +232,8 @@ const s = StyleSheet.create({
   },
   concept: {
     color: palette.goldLight,
-    fontFamily: fonts.displayItalic,
-    fontSize: 16.5,
+    fontFamily: fonts.displayThin,
+    fontSize: 12.5,
   },
   gloss: {
     color: palette.goldPale,
@@ -271,9 +271,9 @@ const s = StyleSheet.create({
     padding: 24,
   },
   sheetTerm: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 26,
-    lineHeight: 30,
+    fontFamily: fonts.displayThin,
+    fontSize: 18,
+    lineHeight: 22,
     color: palette.goldPale,
     marginBottom: 10,
   },

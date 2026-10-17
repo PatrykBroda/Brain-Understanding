@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { apiPost } from "@/lib/api";
 import { getAuthErrorMessage } from "@/lib/authErrors";
-import { Button, Display, Eyebrow, FadeIn, Field, GlassCard, Screen } from "@/components/ui";
+import { Button, Eyebrow, FadeIn, Field, GlassCard, Punch, Screen, VideoBackdrop, Wordmark } from "@/components/ui";
 import { fonts, palette, space } from "@/constants/theme";
 
 export default function SignInScreen() {
@@ -47,6 +47,7 @@ export default function SignInScreen() {
 
   return (
     <Screen>
+      <VideoBackdrop />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -65,19 +66,13 @@ export default function SignInScreen() {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Image
-              source={require("../assets/images/frame-wordmark.png")}
-              style={styles.wordmarkImg}
-              resizeMode="contain"
-            />
+            <Wordmark style={styles.wordmark}>Frame</Wordmark>
           </FadeIn>
 
           <FadeIn index={1} style={styles.cardWrap}>
             <GlassCard radius={32} padding={space.xl} blur>
               <Eyebrow style={{ color: palette.goldLight }}>Welcome back</Eyebrow>
-              <Display size="heading" style={styles.heading}>
-                Step back into your frame.
-              </Display>
+              <Punch style={styles.punch}>Sign in</Punch>
               <View style={styles.form}>
                 <Field
                   label="Email"
@@ -131,12 +126,12 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  inner: { alignItems: "center", paddingHorizontal: 24 },
+  inner: { alignItems: "center", paddingHorizontal: 24, flexGrow: 1, justifyContent: "space-between" },
   brand: { alignItems: "center" },
-  logo: { width: 72, height: 72, marginBottom: 12 },
-  wordmarkImg: { width: 180, height: 56, marginBottom: 32 },
+  logo: { width: 56, height: 56, marginBottom: 12 },
+  wordmark: { fontSize: 15, letterSpacing: 7, marginBottom: 8 },
   cardWrap: { width: "100%", maxWidth: 440 },
-  heading: { marginTop: 6, marginBottom: space.xl },
+  punch: { fontSize: 60, lineHeight: 58, marginTop: 4, marginBottom: space.xl },
   form: { gap: 16 },
   errorText: {
     color: palette.redLight,

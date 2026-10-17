@@ -33,10 +33,10 @@ export function GlassCard({
     <View style={[shadow.card, { borderRadius: radius }, style as ViewStyle]}>
       <View style={[styles.clip, { borderRadius: radius, borderColor: edge }]}>
         {blur && Platform.OS !== "web" ? (
-          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
         ) : null}
         <View
-          style={[StyleSheet.absoluteFill, { backgroundColor: palette.graphite1, opacity: blur ? 0.55 : 0.94 }]}
+          style={[StyleSheet.absoluteFill, { backgroundColor: palette.graphite1, opacity: blur ? 0.4 : 0.86 }]}
         />
         <LinearGradient
           colors={sheen}

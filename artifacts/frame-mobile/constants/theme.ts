@@ -103,14 +103,17 @@ export const shadow = {
 } as const;
 
 /**
- * Type. Display = Instrument Serif (italic, hairline-elegant, for headings).
- * Text = Outfit. Numerals = Outfit ExtraLight/Light at oversized sizes.
+ * Type. Display = Unbounded ExtraLight/Light (wide, thin, hi-tech) for headings.
+ * Punch = Barlow Condensed Bold Italic, caps, used sparingly for UFC/Nike
+ * headlines. Text = Outfit. Numerals = Outfit Thin/ExtraLight at oversized sizes.
  * Font keys are the names registered with expo-font in app/_layout.tsx.
  */
 export const fonts = {
-  display: "InstrumentSerif",
-  displayItalic: "InstrumentSerifItalic",
-  numeralXL: "OutfitExtraLight",
+  display: "UnboundedLight",
+  displayThin: "UnboundedExtraLight",
+  punch: "BarlowCondensedBoldItalic",
+  punchSemi: "BarlowCondensedSemiBoldItalic",
+  numeralXL: "OutfitThin",
   numeral: "OutfitLight",
   text: "Outfit",
   textMedium: "OutfitMedium",
@@ -120,16 +123,18 @@ export const fonts = {
 } as const;
 
 export const type = {
-  hero: { fontFamily: fonts.numeralXL, fontSize: 88, lineHeight: 92, letterSpacing: -3 },
-  numeralL: { fontFamily: fonts.numeralXL, fontSize: 56, lineHeight: 60, letterSpacing: -2 },
+  hero: { fontFamily: fonts.numeralXL, fontSize: 96, lineHeight: 100, letterSpacing: -4 },
+  numeralL: { fontFamily: fonts.numeralXL, fontSize: 60, lineHeight: 64, letterSpacing: -2.5 },
   numeralM: { fontFamily: fonts.numeral, fontSize: 34, lineHeight: 38, letterSpacing: -1 },
   numeralS: { fontFamily: fonts.numeral, fontSize: 22, lineHeight: 26, letterSpacing: -0.5 },
-  title: { fontFamily: fonts.displayItalic, fontSize: 38, lineHeight: 42, letterSpacing: -0.5 },
-  heading: { fontFamily: fonts.displayItalic, fontSize: 28, lineHeight: 32, letterSpacing: -0.3 },
-  subheading: { fontFamily: fonts.display, fontSize: 21, lineHeight: 26 },
+  title: { fontFamily: fonts.displayThin, fontSize: 28, lineHeight: 36, letterSpacing: -0.9 },
+  heading: { fontFamily: fonts.displayThin, fontSize: 21, lineHeight: 28, letterSpacing: -0.6 },
+  subheading: { fontFamily: fonts.display, fontSize: 15, lineHeight: 21, letterSpacing: -0.3 },
+  punch: { fontFamily: fonts.punch, fontSize: 52, lineHeight: 50, letterSpacing: 0.4, textTransform: "uppercase" },
+  wordmark: { fontFamily: fonts.displayThin, fontSize: 18, lineHeight: 22, letterSpacing: 6, textTransform: "uppercase" },
   body: { fontFamily: fonts.text, fontSize: 15, lineHeight: 23 },
   bodySm: { fontFamily: fonts.text, fontSize: 13, lineHeight: 19 },
-  label: { fontFamily: fonts.textMedium, fontSize: 11, lineHeight: 14, letterSpacing: 1.6 },
+  label: { fontFamily: fonts.text, fontSize: 11, lineHeight: 14, letterSpacing: 2.4 },
   button: { fontFamily: fonts.textMedium, fontSize: 14, lineHeight: 18, letterSpacing: 1.2 },
 } as const;
 

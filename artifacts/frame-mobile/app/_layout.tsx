@@ -1,14 +1,16 @@
 import {
+  Outfit_100Thin,
   Outfit_200ExtraLight,
   Outfit_300Light,
   Outfit_400Regular,
   Outfit_500Medium,
   Outfit_600SemiBold,
 } from "@expo-google-fonts/outfit";
+import { Unbounded_200ExtraLight, Unbounded_300Light } from "@expo-google-fonts/unbounded";
 import {
-  InstrumentSerif_400Regular,
-  InstrumentSerif_400Regular_Italic,
-} from "@expo-google-fonts/instrument-serif";
+  BarlowCondensed_600SemiBold_Italic,
+  BarlowCondensed_700Bold_Italic,
+} from "@expo-google-fonts/barlow-condensed";
 import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
 import Constants from "expo-constants";
 import { useFonts } from "expo-font";
@@ -320,12 +322,15 @@ export default function RootLayout() {
     Outfit_400Regular,
     Outfit_500Medium,
     Outfit_600SemiBold,
+    OutfitThin: Outfit_100Thin,
     OutfitExtraLight: Outfit_200ExtraLight,
     OutfitLight: Outfit_300Light,
     OutfitMedium: Outfit_500Medium,
     OutfitSemiBold: Outfit_600SemiBold,
-    InstrumentSerif: InstrumentSerif_400Regular,
-    InstrumentSerifItalic: InstrumentSerif_400Regular_Italic,
+    UnboundedExtraLight: Unbounded_200ExtraLight,
+    UnboundedLight: Unbounded_300Light,
+    BarlowCondensedBoldItalic: BarlowCondensed_700Bold_Italic,
+    BarlowCondensedSemiBoldItalic: BarlowCondensed_600SemiBold_Italic,
     SpaceMono: SpaceMono_400Regular,
     SpaceMono_400Regular,
   });

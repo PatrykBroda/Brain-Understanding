@@ -135,9 +135,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1.8,
   },
   event: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 18,
-    lineHeight: 21,
+    fontFamily: fonts.displayThin,
+    fontSize: 13,
+    lineHeight: 16,
     color: palette.textHi,
   },
   right: {

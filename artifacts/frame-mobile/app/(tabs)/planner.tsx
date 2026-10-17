@@ -41,7 +41,7 @@ import {
 import { GoogleCalendarSync } from "@/components/GoogleCalendarSync";
 import { useIsFramePlus } from "@/hooks/useEntitlement";
 import { LinearGradient } from "expo-linear-gradient";
-import { ArcGauge, IconButton, Screen } from "@/components/ui";
+import { ArcGauge, IconButton, Screen, media } from "@/components/ui";
 import { fonts, gradients, palette, radius } from "@/constants/theme";
 
 const TIER_ACCENT: Record<PressureTier, string> = {
@@ -113,7 +113,7 @@ export default function CampScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   return (
-    <Screen>
+    <Screen photo={media.stillB}>
     <View style={[shell.root, { paddingTop: topPad }]}>
       <View style={shell.header}>
         <IconButton
@@ -1592,9 +1592,9 @@ const shell = StyleSheet.create({
     opacity: 0.9,
   },
   title: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 28,
-    lineHeight: 30,
+    fontFamily: fonts.displayThin,
+    fontSize: 20,
+    lineHeight: 25,
     color: palette.textHi,
   },
   subtitle: {
@@ -1647,9 +1647,9 @@ const camp = StyleSheet.create({
     padding: 24,
   },
   emptyTitle: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 26,
-    lineHeight: 30,
+    fontFamily: fonts.displayThin,
+    fontSize: 18,
+    lineHeight: 22,
     color: palette.textHi,
     marginBottom: 10,
   },
@@ -1733,8 +1733,8 @@ const camp = StyleSheet.create({
     marginTop: 8,
   },
   countdownTier: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 20,
+    fontFamily: fonts.displayThin,
+    fontSize: 14,
     color: palette.textHi,
     textAlign: "center",
     marginTop: 6,
@@ -1748,8 +1748,8 @@ const camp = StyleSheet.create({
     marginTop: 12,
   },
   dashEventFallback: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 24,
+    fontFamily: fonts.displayThin,
+    fontSize: 17,
     color: palette.textHi,
     marginTop: 14,
   },
@@ -2274,9 +2274,9 @@ const mission = StyleSheet.create({
     marginBottom: 4,
   },
   headerTitle: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 26,
-    lineHeight: 30,
+    fontFamily: fonts.displayThin,
+    fontSize: 18,
+    lineHeight: 22,
     color: palette.textHi,
   },
   genBtn: {

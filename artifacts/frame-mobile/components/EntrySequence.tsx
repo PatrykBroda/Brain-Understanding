@@ -1,3 +1,4 @@
+import { VideoBackdrop } from "@/components/ui";
 import { fonts, palette } from "@/constants/theme";
 import React, { useEffect, useMemo, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -138,6 +139,7 @@ export function EntrySequence({
 
   return (
     <Animated.View style={[s.root, fadeStyle]}>
+      <VideoBackdrop blur={10} dim={0.3} />
       {/* spotlight + vignette via SVG radial gradients (RN has no CSS radial) */}
       <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
@@ -238,10 +240,11 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   heroLine: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 34,
-    lineHeight: 40,
+    fontFamily: fonts.punch,
+    fontSize: 60,
+    lineHeight: 58,
     letterSpacing: 0.5,
+    textTransform: "uppercase",
     textAlign: "center",
     color: palette.textHi,
   },
@@ -266,9 +269,12 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   wordmark: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 40,
-    lineHeight: 44,
+    fontFamily: fonts.displayThin,
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: 8,
+    paddingLeft: 8,
+    textTransform: "uppercase",
     color: palette.textHi,
   },
   mmaTag: {

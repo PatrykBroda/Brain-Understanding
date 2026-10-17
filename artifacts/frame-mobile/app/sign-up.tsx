@@ -21,7 +21,7 @@ import { apiPost, apiUrl } from "@/lib/api";
 import { getAuthErrorMessage } from "@/lib/authErrors";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
-import { Button, Display, Eyebrow, FadeIn, Field, GlassCard, Screen } from "@/components/ui";
+import { Button, Eyebrow, FadeIn, Field, GlassCard, Punch, Screen, VideoBackdrop, Wordmark } from "@/components/ui";
 import { fonts, palette, space } from "@/constants/theme";
 
 export default function SignUpScreen() {
@@ -78,6 +78,7 @@ export default function SignUpScreen() {
 
   return (
     <Screen>
+      <VideoBackdrop />
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -96,19 +97,13 @@ export default function SignUpScreen() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Image
-            source={require("../assets/images/frame-wordmark.png")}
-            style={styles.wordmarkImg}
-            resizeMode="contain"
-          />
+          <Wordmark style={styles.wordmark}>Frame</Wordmark>
         </FadeIn>
 
         <FadeIn index={1} style={styles.cardWrap}>
           <GlassCard radius={32} padding={space.xl} blur>
             <Eyebrow style={{ color: palette.goldLight }}>New athlete</Eyebrow>
-            <Display size="heading" style={styles.heading}>
-              Build your frame.
-            </Display>
+            <Punch style={styles.punch}>Join Frame</Punch>
             <View style={styles.form}>
               <Field
                 label="Email"
@@ -202,12 +197,12 @@ export default function SignUpScreen() {
 }
 
 const styles = StyleSheet.create({
-  inner: { alignItems: "center", paddingHorizontal: 24 },
+  inner: { alignItems: "center", paddingHorizontal: 24, flexGrow: 1, justifyContent: "space-between" },
   brand: { alignItems: "center" },
-  logo: { width: 64, height: 64, marginBottom: 10 },
-  wordmarkImg: { width: 170, height: 52, marginBottom: 24 },
+  logo: { width: 52, height: 52, marginBottom: 10 },
+  wordmark: { fontSize: 15, letterSpacing: 7, marginBottom: 8 },
   cardWrap: { width: "100%", maxWidth: 440 },
-  heading: { marginTop: 6, marginBottom: space.xl },
+  punch: { fontSize: 60, lineHeight: 58, marginTop: 4, marginBottom: space.xl },
   form: { gap: 16 },
   legalRow: {
     flexDirection: "row",

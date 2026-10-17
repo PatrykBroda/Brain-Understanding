@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  title: { fontFamily: fonts.displayItalic, fontSize: 22, lineHeight: 26 },
+  title: { fontFamily: fonts.displayThin, fontSize: 15, lineHeight: 19 },
   sub: { fontFamily: fonts.text, fontSize: 13, lineHeight: 19 },
   btnRow: { flexDirection: "row", gap: 8, marginTop: 2 },
   btn: {

@@ -1,6 +1,7 @@
 export { Screen } from "./Screen";
 export { GlassCard } from "./GlassCard";
-export { Eyebrow, Display, Numeral, Body } from "./Typography";
+export { Eyebrow, Display, Punch, Wordmark, Numeral, Body } from "./Typography";
+export { PhotoBackdrop, VideoBackdrop, media } from "./Backdrop";
 export { ArcGauge } from "./ArcGauge";
 export { TickScale } from "./TickScale";
 export { PillTabs } from "./PillTabs";

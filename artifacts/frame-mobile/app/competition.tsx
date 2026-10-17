@@ -26,6 +26,7 @@ import {
   GlassCard,
   IconButton,
   Screen,
+  media,
 } from "@/components/ui";
 import { fonts, palette, radius } from "@/constants/theme";
 
@@ -181,7 +182,7 @@ export default function CompetitionScreen() {
   const pastComps = competitions.filter((c) => c.status !== "active");
 
   return (
-    <Screen>
+    <Screen photo={media.stillB}>
       <View style={[styles.root, { paddingTop: topPad }]}>
         <View style={styles.header}>
           <IconButton icon="chevron-left" label="Back" onPress={() => router.back()} />
@@ -512,9 +513,9 @@ const styles = StyleSheet.create({
   },
   dial: { alignItems: "center", marginTop: 12, marginBottom: 4 },
   activeName: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 28,
-    lineHeight: 32,
+    fontFamily: fonts.displayThin,
+    fontSize: 20,
+    lineHeight: 25,
     color: palette.textHi,
     textAlign: "center",
     marginTop: 8,

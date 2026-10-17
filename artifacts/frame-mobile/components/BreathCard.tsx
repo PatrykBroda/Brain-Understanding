@@ -207,9 +207,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 2,
-    fontFamily: fonts.displayItalic,
-    fontSize: 24,
-    lineHeight: 28,
+    fontFamily: fonts.displayThin,
+    fontSize: 17,
+    lineHeight: 21,
     color: palette.textHi,
   },
   purpose: {

@@ -1,9 +1,10 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, View, type ViewStyle } from "react-native";
+import { StyleSheet, View, type ImageSourcePropType, type ViewStyle } from "react-native";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 
 import { gradients } from "@/constants/theme";
+import { PhotoBackdrop } from "./Backdrop";
 
 /**
  * Screen backdrop: a graphite wash plus two blurred bronze/crimson glow fields
@@ -13,10 +14,15 @@ import { gradients } from "@/constants/theme";
 export function Screen({
   children,
   tone = "gold",
+  photo,
+  photoPosition,
   style,
 }: {
   children: React.ReactNode;
   tone?: "gold" | "red";
+  /** blurred FRAME photo behind the whole screen (imagery-led) */
+  photo?: ImageSourcePropType;
+  photoPosition?: string;
   style?: ViewStyle | ViewStyle[];
 }) {
   const lower = tone === "red" ? "#BF1D1D" : "#8A6A2F";
@@ -37,6 +43,7 @@ export function Screen({
         <Rect x="0" y="0" width="100%" height="100%" fill="url(#gTop)" />
         <Rect x="0" y="0" width="100%" height="100%" fill="url(#gLow)" />
       </Svg>
+      {photo ? <PhotoBackdrop source={photo} position={photoPosition} /> : null}
       {children}
     </View>
   );
