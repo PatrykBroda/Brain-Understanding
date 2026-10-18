@@ -414,7 +414,7 @@ export default function OnboardingPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="onb-sport" className={FIELD_LABEL}>Primary combat sport (required)</label>
+                <label htmlFor="onb-sport" className={FIELD_LABEL}>Primary sport (required)</label>
                 <select
                   id="onb-sport"
                   className={INPUT_CLASS}
