@@ -1,3 +1,5 @@
+import { normaliseFighterAnswers, type FighterAnswers } from "@workspace/onboarding";
+
 /**
  * Fighter text columns that are NOT NULL with a default of "" (or false). The
  * generated insert/update schemas make them optional but not nullable, so a
@@ -28,4 +30,16 @@ export function nullTextToDefaults(body: unknown): unknown {
   }
   if (out["competes"] === null) out["competes"] = false;
   return out;
+}
+
+/**
+ * Everything a fighter write goes through before validation: null text becomes
+ * "" and the four onboarding answers (sport, art, level, frequency) are mapped
+ * onto the canonical set, so builds that still send "3-4" or "BJJ / Grappling"
+ * store the same strings as current ones. Unrecognised values are kept as sent.
+ */
+export function prepareFighterBody(body: unknown): unknown {
+  const filled = nullTextToDefaults(body);
+  if (typeof filled !== "object" || filled === null || Array.isArray(filled)) return filled;
+  return normaliseFighterAnswers(filled as Record<string, unknown> & FighterAnswers);
 }

@@ -26,6 +26,7 @@ import { LEGAL_CONSENT_VERSION } from "../lib/legalConsent";
 import { AI_CONSENT_VERSION } from "../lib/aiConsent";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { recordSignup } from "../lib/onboardingEvents";
 
 const router = Router();
 
@@ -51,7 +52,7 @@ export const DUMMY_HASH = bcrypt.hashSync(
 // In-process sliding-window counter.  The store is exported so tests can inject
 // an isolated Map per test and avoid cross-test interference.
 
-interface RateBucket {
+export interface RateBucket {
   count: number;
   resetAt: number;
 }
@@ -187,6 +188,7 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     acceptedPrivacy,
     acceptedAiConsent,
     aiConsentVersion,
+    app,
   } = (req.body ?? {}) as {
     email?: unknown;
     password?: unknown;
@@ -194,6 +196,7 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     acceptedPrivacy?: unknown;
     acceptedAiConsent?: unknown;
     aiConsentVersion?: unknown;
+    app?: unknown;
   };
   const emailForRateLimit = typeof email === "string" ? email : "<invalid>";
   if (!registrationRateLimitCheck(ip, emailForRateLimit)) {
@@ -257,6 +260,9 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     aiAnalysisConsentVersion: AI_CONSENT_VERSION,
     aiAnalysisConsentAt: acceptedAt,
   });
+
+  // Funnel: account created (analytics only, never throws).
+  await recordSignup(id, app, req.log);
 
   const token = await signToken(id, normalizedEmail);
   res.status(201).json({ token, userId: id });

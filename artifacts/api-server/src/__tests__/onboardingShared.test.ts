@@ -95,6 +95,19 @@ describe("normaliser: old strings -> canonical", () => {
     expect(mobileOld).toEqual({ art: "BJJ", primarySport: "bjj", level: "White", trainingFrequency: "3-4x / week" });
   });
 
+  it("is idempotent: normalising twice changes nothing (the backfill can be re-run)", () => {
+    const olds = [
+      { art: "bjj", primarySport: "bjj", level: "white", trainingFrequency: "3-4" },
+      { art: "BJJ / Grappling", primarySport: "BJJ / Grappling", level: "Amateur competitor", trainingFrequency: "5+ / week" },
+      { art: "MMA (Wrestling-heavy)", primarySport: "mma", level: "Beginner", trainingFrequency: "Daily / pro" },
+      { art: "", primarySport: "", level: "", trainingFrequency: "" },
+    ];
+    for (const o of olds) {
+      const once = normaliseFighterAnswers(o);
+      expect(normaliseFighterAnswers(once)).toEqual(once);
+    }
+  });
+
   it("only touches fields that are present", () => {
     expect(normaliseFighterAnswers({ trainingFrequency: "1-2" })).toEqual({ trainingFrequency: "1-2x / week" });
     expect(normaliseFighterAnswers({})).toEqual({});

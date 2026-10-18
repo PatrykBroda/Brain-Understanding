@@ -10,7 +10,8 @@ import { eq } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { deriveSpiritAnimal } from "../lib/spiritAnimals";
 import { hasAiConsentForUser } from "../lib/aiConsent";
-import { nullTextToDefaults } from "../lib/fighterBody";
+import { prepareFighterBody } from "../lib/fighterBody";
+import { recordFinish } from "../lib/onboardingEvents";
 
 const router: IRouter = Router();
 
@@ -35,7 +36,7 @@ router.get("/fighter", async (req, res) => {
 });
 
 router.post("/fighter", async (req, res) => {
-  const parsed = insertFighterSchema.safeParse(nullTextToDefaults(req.body));
+  const parsed = insertFighterSchema.safeParse(prepareFighterBody(req.body));
   if (!parsed.success) {
     res.status(400).json({ error: "invalid fighter", details: parsed.error.flatten() });
     return;
@@ -84,6 +85,9 @@ router.post("/fighter", async (req, res) => {
     .values({ ...values, userId })
     .returning();
 
+  // Funnel: first save of the profile = onboarding finished (analytics only, never throws).
+  if (created) await recordFinish(userId, req.log);
+
   if (created && aiConsent) {
     const derived = await deriveSpiritAnimal(created, req.log);
     if (derived) {
@@ -100,7 +104,7 @@ router.post("/fighter", async (req, res) => {
 });
 
 router.patch("/fighter", async (req, res) => {
-  const parsed = updateFighterSchema.safeParse(nullTextToDefaults(req.body));
+  const parsed = updateFighterSchema.safeParse(prepareFighterBody(req.body));
   if (!parsed.success) {
     res.status(400).json({ error: "invalid fighter", details: parsed.error.flatten() });
     return;

@@ -18,6 +18,7 @@ import { googlePublicRouter, googleRouter } from "./google";
 import authRouter from "./auth";
 import privacyRouter from "./privacy";
 import aiConsentRouter from "./aiConsent";
+import onboardingRouter from "./onboarding";
 import { requireAuth } from "../middlewares/authMiddleware";
 import { requireCurrentAiConsent } from "../lib/aiConsent";
 
@@ -42,6 +43,9 @@ router.use(requireAuth);
 // account. Auth/sign-out and legal pages are mounted above requireAuth.
 router.use(aiConsentRouter);
 router.use(accountRouter);
+// Funnel tracking + admin funnel read: also reachable before consent so sign-up
+// problems around the consent step are measurable.
+router.use(onboardingRouter);
 
 // All other authenticated FRAME use requires the current disclosure. Keep the
 // immediate provider-boundary checks in the individual AI services as well.
