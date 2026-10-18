@@ -8,6 +8,7 @@ import {
 } from "@workspace/ai-consent";
 import { AiConsentModal } from "@/components/ai-consent-modal";
 import type { AiConsentStatus } from "@/lib/api";
+import { validateSignUp } from "@/lib/onboarding-form";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -20,6 +21,7 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [showAiConsent, setShowAiConsent] = useState(false);
+  const [attempted, setAttempted] = useState(false);
 
   const signupConsentStatus: AiConsentStatus = {
     accepted: false,
@@ -30,8 +32,10 @@ export default function SignUpPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (loading || !acceptedLegal) return;
+    if (loading) return;
+    setAttempted(true);
     setError(null);
+    if (Object.keys(validateSignUp({ email, password, acceptedLegal })).length > 0) return;
     setShowAiConsent(true);
   }
 
@@ -44,7 +48,7 @@ export default function SignUpPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
+          email: email.trim(),
           password,
           acceptedTerms: acceptedLegal,
           acceptedPrivacy: acceptedLegal,
@@ -66,12 +70,17 @@ export default function SignUpPage() {
     }
   }
 
+  const problems = validateSignUp({ email, password, acceptedLegal });
+  const emailErr = attempted ? problems.email : undefined;
+  const passwordErr = password.length > 0 || attempted ? problems.password : undefined;
+  const legalErr = attempted ? problems.legal : undefined;
+
   return (
     <AuthLayout compact>
       <div className="glass glass-clear w-full px-5 pb-3 pt-5">
         <h1 className="display-title">Create your account</h1>
 
-        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3.5">
+        <form onSubmit={handleSubmit} noValidate className="mt-4 flex flex-col gap-3.5">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="signup-email" className="label">
               Email
@@ -81,11 +90,18 @@ export default function SignUpPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
               autoComplete="email"
-              aria-invalid={error ? true : undefined}
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-invalid={emailErr || error ? true : undefined}
+              aria-describedby={emailErr ? "signup-email-err" : undefined}
               className="field-glass"
             />
+            {emailErr && (
+              <span id="signup-email-err" role="alert" className="text-xs text-[var(--f-red-text)]">
+                {emailErr}
+              </span>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -97,13 +113,18 @@ export default function SignUpPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
               autoComplete="new-password"
-              aria-invalid={error ? true : undefined}
+              aria-invalid={passwordErr || error ? true : undefined}
+              aria-describedby="signup-password-hint"
               className="field-glass"
             />
-            <span className="text-xs text-[var(--f-text-3)]">Minimum 8 characters</span>
+            <span
+              id="signup-password-hint"
+              role={passwordErr ? "alert" : undefined}
+              className={`text-xs ${passwordErr ? "text-[var(--f-red-text)]" : "text-[var(--f-text-3)]"}`}
+            >
+              {passwordErr ?? "Minimum 8 characters"}
+            </span>
           </div>
 
           <label className="flex min-h-[44px] items-start gap-3 text-sm leading-5 text-[var(--f-text-2)]">
@@ -111,7 +132,6 @@ export default function SignUpPage() {
               type="checkbox"
               checked={acceptedLegal}
               onChange={(e) => setAcceptedLegal(e.target.checked)}
-              required
               className="mt-0.5 h-5 w-5 flex-none accent-[#B9A477]"
             />
             <span>
@@ -122,6 +142,12 @@ export default function SignUpPage() {
             </span>
           </label>
 
+          {legalErr && (
+            <p role="alert" className="-mt-2 text-sm text-[var(--f-red-text)]">
+              {legalErr}
+            </p>
+          )}
+
           {error && (
             <p role="alert" className="text-sm text-[var(--f-red-text)]">
               {error}
@@ -130,7 +156,7 @@ export default function SignUpPage() {
 
           <button
             type="submit"
-            disabled={loading || !email || !password || !acceptedLegal}
+            disabled={loading}
             data-loading={loading ? "true" : undefined}
             className="btn-bronze w-full data-[loading=true]:!opacity-100"
           >

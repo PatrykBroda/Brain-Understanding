@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { formatProviderList, type AiConsentDisclosure } from "@workspace/ai-consent";
 import type { AiConsentStatus } from "@/lib/api";
 
@@ -27,7 +28,9 @@ export function AiConsentModal({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [checked, setChecked] = useState(false);
 
-  return (
+  // Portal to <body>: on the sign-up page the modal sat inside a backdrop-filter ancestor, which
+  // turns `fixed inset-0` into "fill that ancestor" - on desktop the panel was clipped below the fold.
+  return createPortal(
     <div
       className={
         mandatory
@@ -42,8 +45,8 @@ export function AiConsentModal({
       <div
         className={
           mandatory
-            ? "overlay-surface w-full max-w-lg overflow-y-auto !rounded-none p-6 max-h-[100dvh] sm:max-h-[calc(100dvh-2rem)] sm:!rounded-[20px] sm:p-8"
-            : "overlay-surface w-full max-w-lg overflow-y-auto !rounded-b-none !rounded-t-[20px] p-6 max-h-[90dvh] sm:max-h-[calc(100dvh-2rem)] sm:!rounded-[20px] sm:p-8"
+            ? "overlay-surface !bg-[#191C20] w-full max-w-lg overflow-y-auto !rounded-none p-6 max-h-[100dvh] sm:max-h-[calc(100dvh-2rem)] sm:!rounded-[20px] sm:p-8"
+            : "overlay-surface !bg-[#191C20] w-full max-w-lg overflow-y-auto !rounded-b-none !rounded-t-[20px] p-6 max-h-[90dvh] sm:max-h-[calc(100dvh-2rem)] sm:!rounded-[20px] sm:p-8"
         }
         onClick={(event) => event.stopPropagation()}
       >
@@ -122,28 +125,31 @@ export function AiConsentModal({
           </a>
         </div>
 
-        <label className="mt-5 flex cursor-pointer items-start gap-3 text-[0.9375rem] leading-[1.55] text-foreground/85">
-          <input
-            type="checkbox"
-            checked={checked}
-            onChange={(event) => setChecked(event.target.checked)}
-            disabled={busy}
-            className="mt-0.5 h-5 w-5 flex-none accent-[#B9A477]"
-          />
-          <span>
-            I understand and agree to the sending of my data to{" "}
-            {formatProviderList(disclosure.providers)} for the purposes described above.
-          </span>
-        </label>
+        {/* Pinned so the agree checkbox and button are always on screen, not a screen and a half down. */}
+        <div className="sticky -bottom-6 z-10 -mx-6 mt-6 border-t border-[var(--f-border)] bg-[#191C20] px-6 pb-5 pt-4 sm:-bottom-8 sm:-mx-8 sm:px-8 sm:pb-6">
+          <label className="flex cursor-pointer items-start gap-3 text-[0.9375rem] leading-[1.55] text-foreground/85">
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(event) => setChecked(event.target.checked)}
+              disabled={busy}
+              className="mt-0.5 h-5 w-5 flex-none accent-[#B9A477]"
+            />
+            <span>
+              I understand and agree to the sending of my data to{" "}
+              {formatProviderList(disclosure.providers)} for the purposes described above.
+            </span>
+          </label>
 
-        <button
-          type="button"
-          onClick={onAccept}
-          disabled={busy || !checked}
-          className="btn-bronze mt-6 w-full disabled:cursor-wait"
-        >
-          {busy ? "Saving permission…" : "Agree & Continue"}
-        </button>
+          <button
+            type="button"
+            onClick={onAccept}
+            disabled={busy || !checked}
+            className="btn-bronze mt-4 w-full disabled:cursor-wait"
+          >
+            {busy ? "Saving permission…" : "Agree & Continue"}
+          </button>
+        </div>
 
         {mandatory ? (
           <div className="mt-2 flex flex-col gap-2">
@@ -205,6 +211,7 @@ export function AiConsentModal({
           )
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

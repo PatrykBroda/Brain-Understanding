@@ -1,3 +1,5 @@
+import { SAVE_TIMEOUT_MS } from "./onboarding-form";
+
 const base = import.meta.env.BASE_URL;
 
 export { AI_CONSENT_VERSION } from "@workspace/ai-consent";
@@ -396,11 +398,21 @@ export const api = {
     }),
   deleteAccount: () => jsonFetch<{ deleted: boolean }>("api/account", { method: "DELETE" }),
   getFighter: () => jsonFetch<{ fighter: Fighter | null }>("api/fighter"),
-  saveFighter: (input: FighterInput) =>
-    jsonFetch<{ fighter: Fighter }>("api/fighter", {
-      method: "POST",
-      body: JSON.stringify(input),
-    }),
+  // The last onboarding step: bound the wait (jsonFetch's own 70s cap is for analysis) so a
+  // hung request shows an error the athlete can retry instead of an endless spinner.
+  saveFighter: async (input: FighterInput) => {
+    const abort = new AbortController();
+    const timer = window.setTimeout(() => abort.abort(), SAVE_TIMEOUT_MS);
+    try {
+      return await jsonFetch<{ fighter: Fighter }>("api/fighter", {
+        method: "POST",
+        body: JSON.stringify(input),
+        signal: abort.signal,
+      });
+    } finally {
+      window.clearTimeout(timer);
+    }
+  },
   updateFighter: (input: FighterUpdate) =>
     jsonFetch<{ fighter: Fighter }>("api/fighter", {
       method: "PATCH",

@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/context/auth-context";
 import { useSaveFighter } from "@/hooks/use-fighter";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronLeft } from "lucide-react";
@@ -15,6 +17,18 @@ import {
   sportLabel,
   ageFromDob,
 } from "@/lib/fighter-options";
+import {
+  ADVANCE_DELAY_MS,
+  NAME_MAX,
+  describeSaveError,
+  dobProblem,
+  draftHasProgress,
+  draftKeyFor,
+  nameProblem,
+  nextStep,
+  parseDraft,
+  prevStep,
+} from "@/lib/onboarding-form";
 
 const FIELD_LABEL = "label block mb-1.5";
 const INPUT_CLASS = "field-glass";
@@ -71,6 +85,8 @@ const QUESTIONS: Question[] = [
 
 export default function OnboardingPage() {
   const save = useSaveFighter();
+  const { userId, signOut } = useAuth();
+  const [, setLocation] = useLocation();
   const [started, setStarted] = useState(false); // false = opening screen
   const [step, setStep] = useState(0); // 0..N-1 = questions, N = details
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -96,6 +112,64 @@ export default function OnboardingPage() {
   const totalSteps = QUESTIONS.length + 1; // questions + details
   const detailsStep = QUESTIONS.length;
 
+  // Field-level problems, shown after the first "Enter FRAME" tap.
+  const [attempted, setAttempted] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const advanceTimer = useRef<number | null>(null);
+  const draftReady = useRef(false);
+
+  const clearAdvance = () => {
+    if (advanceTimer.current != null) {
+      window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = null;
+    }
+  };
+  useEffect(() => clearAdvance, []);
+
+  // Resume where they left off: restore a saved draft once, then keep it in sync.
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      const d = parseDraft(localStorage.getItem(draftKeyFor(userId)), {
+        questionIds: QUESTIONS.map((q) => q.id),
+        choicesPerQuestion: 4,
+        sports: SPORTS.map((x) => x.value),
+        frequencies: FREQUENCIES,
+      });
+      if (d && draftHasProgress(d)) {
+        setStarted(d.started || d.step > 0);
+        setStep(d.step);
+        setAnswers(d.answers);
+        setBackground(d.background);
+        setForm((f) => ({
+          ...f,
+          ...d.form,
+          level: levelsForSport(d.form.primarySport).includes(d.form.level)
+            ? d.form.level
+            : levelsForSport(d.form.primarySport)[0],
+        }));
+      }
+    } catch {
+      // storage blocked: start fresh
+    }
+    draftReady.current = true;
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !draftReady.current) return;
+    try {
+      localStorage.setItem(
+        draftKeyFor(userId),
+        JSON.stringify({ started, step, answers, background, form }),
+      );
+    } catch {
+      // storage blocked: nothing to do
+    }
+  }, [userId, started, step, answers, background, form]);
+
+  const nameErr = attempted ? nameProblem(form.name) : null;
+  const dobErr = attempted ? dobProblem(form.dateOfBirth) : null;
+
   const toggleBackground = (label: string) =>
     setBackground((b) =>
       b.includes(label) ? b.filter((x) => x !== label) : [...b, label],
@@ -112,23 +186,55 @@ export default function OnboardingPage() {
 
   const answerQuestion = (q: Question, idx: number) => {
     setAnswers((a) => ({ ...a, [q.id]: idx }));
-    // Auto-advance after a beat so the selection registers visually.
-    window.setTimeout(() => setStep((s) => s + 1), 220);
+    // Auto-advance after a beat so the selection registers visually. A second tap
+    // during that beat used to queue a second advance (skipping a question, or on
+    // the last one landing past the details step on a blank page): one advance only,
+    // always computed from the step that was answered.
+    if (advanceTimer.current != null) return;
+    const answered = step;
+    advanceTimer.current = window.setTimeout(() => {
+      advanceTimer.current = null;
+      setStep(nextStep(answered, detailsStep));
+    }, ADVANCE_DELAY_MS);
+  };
+
+  const goBack = () => {
+    clearAdvance();
+    setStep((s) => prevStep(s));
   };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || save.isPending) return;
-    // DOB is required and is the source of truth; the server derives age from it.
-    if (ageFromDob(form.dateOfBirth) == null) return;
+    if (save.isPending) return;
+    setAttempted(true);
+    setSaveError(null);
+    // Name and DOB are required (DOB is the source of truth; the server derives age from it).
+    if (nameProblem(form.name) || dobProblem(form.dateOfBirth) || ageFromDob(form.dateOfBirth) == null) {
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLElement>("[data-field-error]")?.scrollIntoView({ block: "center", behavior: "smooth" }),
+      );
+      return;
+    }
     const sport = form.primarySport ?? "mma";
-    save.mutate({
-      ...form,
-      name: form.name.trim(),
-      art: sportLabel(sport),
-      trainingBackground: background.join(", "),
-      personality: composePersonality(),
-    });
+    save.mutate(
+      {
+        ...form,
+        name: form.name.trim(),
+        art: sportLabel(sport),
+        trainingBackground: background.join(", "),
+        personality: composePersonality(),
+      },
+      {
+        onSuccess: () => {
+          try {
+            if (userId) localStorage.removeItem(draftKeyFor(userId));
+          } catch {
+            // ignore
+          }
+        },
+        onError: (err) => setSaveError(describeSaveError(err)),
+      },
+    );
   };
 
   // Opening screen: monochrome athlete imagery, brand lines, one primary route in
@@ -153,13 +259,17 @@ export default function OnboardingPage() {
               Get started
             </button>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <span>Already have an account?</span>
-              <a
-                href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/sign-in`}
+              <span>Wrong account?</span>
+              <button
+                type="button"
+                onClick={() => {
+                  signOut();
+                  setLocation("/sign-in");
+                }}
                 className="inline-flex min-h-[44px] items-center font-semibold text-[var(--f-gold)] transition-colors hover:text-[var(--f-gold-pale)]"
               >
-                Sign in
-              </a>
+                Sign out
+              </button>
             </div>
           </div>
         </section>
@@ -231,7 +341,7 @@ export default function OnboardingPage() {
               {step > 0 && (
                 <button
                   type="button"
-                  onClick={() => setStep((s) => Math.max(0, s - 1))}
+                  onClick={goBack}
                   className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <ChevronLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden /> Back
@@ -252,7 +362,7 @@ export default function OnboardingPage() {
 
         {/* Practical details */}
         {step === detailsStep && (
-          <form onSubmit={submit} className="space-y-6">
+          <form onSubmit={submit} noValidate className="space-y-6">
             <div className="space-y-2 mb-2">
               <h2 className="display-title !text-[1.625rem] !leading-tight">
                 Tell FRAME about your training
@@ -263,32 +373,49 @@ export default function OnboardingPage() {
             </div>
 
             <div>
-              <label className={FIELD_LABEL}>Name or callsign</label>
+              <label htmlFor="onb-name" className={FIELD_LABEL}>Name or callsign (required)</label>
               <input
+                id="onb-name"
                 className={INPUT_CLASS}
                 value={form.name}
                 onChange={(e) => update("name", e.target.value)}
                 placeholder="What you go by on the mat"
-                required
-                autoFocus
+                maxLength={NAME_MAX}
+                autoComplete="given-name"
+                aria-invalid={nameErr ? true : undefined}
+                aria-describedby={nameErr ? "onb-name-err" : undefined}
               />
+              {nameErr && (
+                <p id="onb-name-err" data-field-error role="alert" className="mt-1.5 text-sm text-[var(--f-red-text)]">
+                  {nameErr}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={FIELD_LABEL}>Date of birth</label>
+                <label htmlFor="onb-dob" className={FIELD_LABEL}>Date of birth (required)</label>
                 <input
+                  id="onb-dob"
                   type="date"
                   className={INPUT_CLASS}
                   value={form.dateOfBirth ?? ""}
+                  min="1900-01-01"
                   max={new Date().toISOString().slice(0, 10)}
                   onChange={(e) => update("dateOfBirth", e.target.value)}
-                  required
+                  aria-invalid={dobErr ? true : undefined}
+                  aria-describedby={dobErr ? "onb-dob-err" : undefined}
                 />
-                {ageFromDob(form.dateOfBirth) != null && (
-                  <p className="mt-1.5 text-xs text-muted-foreground">
-                    {ageFromDob(form.dateOfBirth)} years old
+                {dobErr ? (
+                  <p id="onb-dob-err" data-field-error role="alert" className="mt-1.5 text-sm text-[var(--f-red-text)]">
+                    {dobErr}
                   </p>
+                ) : (
+                  ageFromDob(form.dateOfBirth) != null && (
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      {ageFromDob(form.dateOfBirth)} years old
+                    </p>
+                  )
                 )}
               </div>
               <div>
@@ -373,9 +500,9 @@ export default function OnboardingPage() {
             </div>
 
             <div>
-              <label className={FIELD_LABEL}>Goals — what does winning look like in 6 months</label>
+              <label className={FIELD_LABEL}>Goals — what does winning look like in 6 months (optional)</label>
               <textarea
-                className={`${AREA_CLASS} min-h-[88px]`}
+                className={`${AREA_CLASS} min-h-[104px]`}
                 value={form.goals}
                 onChange={(e) => update("goals", e.target.value)}
                 placeholder="e.g. compete this season, stop gassing in round 3, build a reliable A-game"
@@ -383,9 +510,9 @@ export default function OnboardingPage() {
             </div>
 
             <div>
-              <label className={FIELD_LABEL}>Weaknesses — what's leaking right now</label>
+              <label className={FIELD_LABEL}>Weaknesses — what's leaking right now (optional)</label>
               <textarea
-                className={`${AREA_CLASS} min-h-[88px]`}
+                className={`${AREA_CLASS} min-h-[104px]`}
                 value={form.weaknesses}
                 onChange={(e) => update("weaknesses", e.target.value)}
                 placeholder="e.g. fragment under top pressure, no takedowns, hesitate to commit to submissions"
@@ -422,16 +549,17 @@ export default function OnboardingPage() {
               <span>I compete (or plan to within 6 months)</span>
             </label>
 
-            {save.isError && (
+            {saveError && (
               <div role="alert" className="text-sm text-[var(--f-red-text)]">
-                {(save.error as Error).message}
+                {saveError}
               </div>
             )}
 
-            <div className="flex items-center gap-3">
+            {/* Pinned so Enter FRAME is always on screen on a long form, with or without the keyboard open. */}
+            <div className="sticky bottom-0 z-10 -mx-5 flex items-center gap-3 border-t border-[var(--f-border)] bg-[var(--f-bg)] px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
               <button
                 type="button"
-                onClick={() => setStep((s) => Math.max(0, s - 1))}
+                onClick={goBack}
                 className="btn-glass shrink-0 !px-5"
               >
                 Back
@@ -440,7 +568,6 @@ export default function OnboardingPage() {
                 type="submit"
                 size="lg"
                 loading={save.isPending}
-                disabled={!form.name.trim()}
                 className="flex-1"
               >
                 Enter FRAME
