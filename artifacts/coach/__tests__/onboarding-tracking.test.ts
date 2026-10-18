@@ -31,7 +31,7 @@ describe("coach onboarding tracker is fire-and-forget", () => {
       signal = sig;
       return new Promise(() => {});
     }).track("details", "view");
-    vi.advanceTimersByTime(8_001);
+    vi.advanceTimersByTime(5_001);
     expect(signal?.aborted).toBe(true);
   });
 });

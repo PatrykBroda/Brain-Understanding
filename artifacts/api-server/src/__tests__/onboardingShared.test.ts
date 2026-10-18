@@ -4,14 +4,17 @@
  * personality composition, and the funnel aggregation. One test file for the
  * package, kept next to the server tests that consume it.
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ALL_LEVELS,
   FLOWS,
   FREQUENCIES,
   QUESTIONS,
   SPORTS,
+  EVENT_TIMEOUT_MS,
+  MAX_IN_FLIGHT,
   buildFunnel,
+  createStepTracker,
   composePersonality,
   formatFunnel,
   isClientStep,
@@ -252,5 +255,37 @@ describe("funnel aggregation", () => {
     const text = formatFunnel(buildFunnel([ev("A", "name"), ev("A", "dob")]));
     expect(text).toContain("MOBILE  started 1");
     expect(text).toMatch(/dob\s+1\s+1\s+100\.0%/);
+  });
+});
+
+describe("step tracker never starves the real request", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("caps in-flight tracking calls when the endpoint hangs, and frees the slots after the timeout", () => {
+    vi.useFakeTimers();
+    const send = vi.fn(() => new Promise<never>(() => {}));
+    const t = createStepTracker(send);
+    for (const step of ["name", "dob", "sport", "frequency", "q_tired", "q_imposed"]) t.track(step, "view");
+    expect(send).toHaveBeenCalledTimes(MAX_IN_FLIGHT);
+    expect(MAX_IN_FLIGHT).toBeLessThan(6); // a browser keeps ~6 connections per host: leave room for the save
+    vi.advanceTimersByTime(EVENT_TIMEOUT_MS + 1);
+    t.track("q_proud", "view");
+    expect(send).toHaveBeenCalledTimes(MAX_IN_FLIGHT + 1);
+  });
+
+  it("frees a slot as soon as a request settles", async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const t = createStepTracker(send);
+    for (let i = 0; i < 3; i++) t.track("s" + i, "view");
+    await new Promise((r) => setTimeout(r, 5));
+    t.track("s3", "view");
+    expect(send).toHaveBeenCalledTimes(4);
+  });
+
+  it("dropping an over-cap event does not throw", () => {
+    const t = createStepTracker(() => new Promise(() => {}));
+    expect(() => {
+      for (let i = 0; i < 10; i++) t.track("s" + i, "view");
+    }).not.toThrow();
   });
 });

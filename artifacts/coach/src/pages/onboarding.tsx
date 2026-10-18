@@ -458,7 +458,7 @@ export default function OnboardingPage() {
                   aria-invalid={choiceProblems.level ? true : undefined}
                 >
                   <option value="" disabled>
-                    {form.primarySport ? "Select…" : "Choose a sport first"}
+                    {form.primarySport ? "Select…" : "Pick a sport first"}
                   </option>
                   {(form.primarySport ? levelsForSport(form.primarySport) : []).map((l) => (
                     <option key={l} value={l}>

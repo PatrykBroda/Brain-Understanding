@@ -46,7 +46,7 @@ describe("onboarding tracker is fire-and-forget", () => {
     });
     t.track("frequency", "view");
     expect(signal?.aborted).toBe(false);
-    vi.advanceTimersByTime(8_001);
+    vi.advanceTimersByTime(5_001);
     expect(signal?.aborted).toBe(true);
   });
 });
