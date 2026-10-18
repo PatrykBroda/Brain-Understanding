@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@workspace/db": "workspace:*",
-    "@workspace/onboarding": "workspace:*"
+    "@workspace/onboarding": "workspace:*",
+    "drizzle-orm": "catalog:"
   }
 }
