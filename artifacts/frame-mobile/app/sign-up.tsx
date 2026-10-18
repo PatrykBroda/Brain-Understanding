@@ -19,6 +19,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { apiPost, apiUrl } from "@/lib/api";
 import { getAuthErrorMessage } from "@/lib/authErrors";
+import { hasSignUpErrors, validateSignUp } from "@/lib/signUpForm";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 import { EntryBrand } from "@/components/EntryBrand";
@@ -36,6 +37,7 @@ export default function SignUpScreen() {
   const [error, setError] = useState<string | null>(null);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [showAiConsent, setShowAiConsent] = useState(false);
+  const [attempted, setAttempted] = useState(false);
 
   const signupConsentStatus: AiConsentStatus = {
     accepted: false,
@@ -45,8 +47,10 @@ export default function SignUpScreen() {
   };
 
   function handleSignUp() {
-    if (loading || !email || password.length < 8 || !acceptedLegal) return;
+    if (loading) return;
+    setAttempted(true);
     setError(null);
+    if (hasSignUpErrors(validateSignUp({ email, password, acceptedLegal }))) return;
     setShowAiConsent(true);
   }
 
@@ -58,7 +62,7 @@ export default function SignUpScreen() {
       const data = await apiPost<{ token: string; userId: string }>(
         "/auth/register",
         {
-          email,
+          email: email.trim(),
           password,
           acceptedTerms: acceptedLegal,
           acceptedPrivacy: acceptedLegal,
@@ -75,8 +79,11 @@ export default function SignUpScreen() {
     }
   }
 
-  const passwordTooShort = password.length > 0 && password.length < 8;
-  const submitDisabled = loading || !email || !password || !acceptedLegal || password.length < 8;
+  const formErrors = validateSignUp({ email, password, acceptedLegal });
+  // Show a problem once the field was used (password length) or after the first Create account tap.
+  const passwordError = password.length > 0 || attempted ? formErrors.password : undefined;
+  const emailError = attempted ? formErrors.email : undefined;
+  const legalError = attempted ? formErrors.legal : undefined;
 
   return (
     <Screen light={null}>
@@ -102,8 +109,12 @@ export default function SignUpScreen() {
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
+                  autoCorrect={false}
+                  spellCheck={false}
                   keyboardType="email-address"
                   autoComplete="email"
+                  textContentType="emailAddress"
+                  error={emailError}
                 />
                 <Field
                   label="Password"
@@ -112,7 +123,8 @@ export default function SignUpScreen() {
                   onChangeText={setPassword}
                   secureTextEntry
                   autoComplete="new-password"
-                  error={passwordTooShort ? "Use at least 8 characters." : null}
+                  textContentType="newPassword"
+                  error={passwordError}
                 />
                 <Pressable
                   style={styles.legalRow}
@@ -126,6 +138,11 @@ export default function SignUpScreen() {
                   </View>
                   <Text style={styles.legalCopy}>I accept the Terms of Service and Privacy Policy.</Text>
                 </Pressable>
+                {legalError ? (
+                  <Text style={styles.errorText} accessibilityRole="alert">
+                    {legalError}
+                  </Text>
+                ) : null}
                 <View style={styles.policyLinks}>
                   <Pressable
                     style={styles.policyBtn}
@@ -149,7 +166,7 @@ export default function SignUpScreen() {
                   </Text>
                 ) : null}
 
-                <Button title="Create account" onPress={handleSignUp} loading={loading} disabled={submitDisabled} />
+                <Button title="Create account" onPress={handleSignUp} loading={loading} />
               </View>
             </AuthPanel>
             <Button

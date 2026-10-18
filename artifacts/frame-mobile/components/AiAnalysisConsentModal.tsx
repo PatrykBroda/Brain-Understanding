@@ -153,6 +153,40 @@ export function AiConsentModal({
               </View>
             )}
 
+            <View style={s.links}>
+              <Pressable style={s.linkRow} onPress={onPrivacy} accessibilityRole="link" accessibilityLabel="Read our Privacy Policy">
+                <Feather name="file-text" size={18} color={palette.textMid} />
+                <Text style={s.linkText}>Read our Privacy Policy</Text>
+                <Feather name="chevron-right" size={18} color={palette.textLow} />
+              </Pressable>
+              {(mandatory || signup) && onTerms && (
+                <Pressable style={[s.linkRow, s.rule]} onPress={onTerms} accessibilityRole="link" accessibilityLabel="Read our Terms of Service">
+                  <Feather name="file-text" size={18} color={palette.textMid} />
+                  <Text style={s.linkText}>Read our Terms of Service</Text>
+                  <Feather name="chevron-right" size={18} color={palette.textLow} />
+                </Pressable>
+              )}
+            </View>
+
+            {!mandatory && onDecline ? (
+              <Button
+                title={signup ? "Go back" : "Not now"}
+                variant="secondary"
+                onPress={onDecline}
+                disabled={busy}
+                style={s.secondBtn}
+              />
+            ) : null}
+
+            {mandatory && (
+              <View style={s.mandatoryActions}>
+                {onSignOut && <Button title="Sign out" variant="secondary" onPress={onSignOut} disabled={busy} />}
+                {onDeleteAccount && <Button title="Delete account" variant="danger" onPress={onDeleteAccount} disabled={busy} />}
+              </View>
+            )}
+          </ScrollView>
+          {/* Pinned so the agree checkbox and button are always on screen, not a screen and a half down. */}
+          <View style={s.footer}>
             <Pressable
               style={s.checkboxRow}
               onPress={() => {
@@ -175,21 +209,6 @@ export function AiConsentModal({
               </Text>
             </Pressable>
 
-            <View style={s.links}>
-              <Pressable style={s.linkRow} onPress={onPrivacy} accessibilityRole="link" accessibilityLabel="Read our Privacy Policy">
-                <Feather name="file-text" size={18} color={palette.textMid} />
-                <Text style={s.linkText}>Read our Privacy Policy</Text>
-                <Feather name="chevron-right" size={18} color={palette.textLow} />
-              </Pressable>
-              {(mandatory || signup) && onTerms && (
-                <Pressable style={[s.linkRow, s.rule]} onPress={onTerms} accessibilityRole="link" accessibilityLabel="Read our Terms of Service">
-                  <Feather name="file-text" size={18} color={palette.textMid} />
-                  <Text style={s.linkText}>Read our Terms of Service</Text>
-                  <Feather name="chevron-right" size={18} color={palette.textLow} />
-                </Pressable>
-              )}
-            </View>
-
             <Button
               title="Agree and continue"
               accessibilityLabel="Agree and continue"
@@ -197,24 +216,7 @@ export function AiConsentModal({
               disabled={!canAccept}
               loading={busy}
             />
-
-            {!mandatory && onDecline ? (
-              <Button
-                title={signup ? "Go back" : "Not now"}
-                variant="secondary"
-                onPress={onDecline}
-                disabled={busy}
-                style={s.secondBtn}
-              />
-            ) : null}
-
-            {mandatory && (
-              <View style={s.mandatoryActions}>
-                {onSignOut && <Button title="Sign out" variant="secondary" onPress={onSignOut} disabled={busy} />}
-                {onDeleteAccount && <Button title="Delete account" variant="danger" onPress={onDeleteAccount} disabled={busy} />}
-              </View>
-            )}
-          </ScrollView>
+          </View>
         </View>
       </View>
     </Modal>
@@ -244,7 +246,7 @@ const s = StyleSheet.create({
     borderColor: palette.borderStrong,
     overflow: "hidden",
   },
-  scroll: { flexGrow: 0 },
+  scroll: { flexGrow: 0, flexShrink: 1 },
   content: { padding: 24, paddingBottom: 24 },
 
   header: { alignItems: "center", marginBottom: 20 },
@@ -314,6 +316,14 @@ const s = StyleSheet.create({
   linkRow: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: MIN_TAP + 4 },
   linkText: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: palette.textHi },
 
-  secondBtn: { marginTop: 10 },
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: 14,
+    paddingBottom: 20,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: palette.borderStrong,
+    backgroundColor: palette.raised,
+  },
+  secondBtn: { marginTop: 0 },
   mandatoryActions: { gap: 10, marginTop: 10 },
 });

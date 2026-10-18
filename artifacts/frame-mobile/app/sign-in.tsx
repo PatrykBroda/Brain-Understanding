@@ -29,10 +29,14 @@ export default function SignInScreen() {
 
   async function handleSignIn() {
     if (loading) return;
+    if (!email.trim() || !password) {
+      setError("Enter your email and password.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const data = await apiPost<{ token: string; userId: string }>("/auth/login", { email, password });
+      const data = await apiPost<{ token: string; userId: string }>("/auth/login", { email: email.trim(), password });
       await signIn(data.token);
       router.replace("/(tabs)/home");
     } catch (e: unknown) {
@@ -96,8 +100,11 @@ export default function SignInScreen() {
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
+                    autoCorrect={false}
+                    spellCheck={false}
                     keyboardType="email-address"
                     autoComplete="email"
+                    textContentType="emailAddress"
                   />
                   <Field
                     label="Password"
@@ -106,6 +113,9 @@ export default function SignInScreen() {
                     onChangeText={setPassword}
                     secureTextEntry
                     autoComplete="password"
+                    textContentType="password"
+                    returnKeyType="go"
+                    onSubmitEditing={handleSignIn}
                   />
                   {message ? (
                     <Text style={styles.errorText} accessibilityRole="alert">
@@ -116,7 +126,6 @@ export default function SignInScreen() {
                     title="Sign in"
                     onPress={handleSignIn}
                     loading={loading}
-                    disabled={!email || !password}
                     style={{ marginTop: space.sm }}
                   />
                 </View>
