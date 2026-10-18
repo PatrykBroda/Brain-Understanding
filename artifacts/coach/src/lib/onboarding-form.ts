@@ -51,6 +51,27 @@ export function dobProblem(value: string | null | undefined, today = new Date())
   return null;
 }
 
+// ── Details form: nothing is pre-selected ────────────────────────────────────
+
+export type DetailsChoiceProblems = { sport?: string; level?: string; frequency?: string };
+
+const LEVEL_NOUN = (sport: string) => (sport === "bjj" ? "belt" : sport === "judo" ? "rank" : "experience level");
+
+/** What the details form is still missing among the three choices, in plain words (empty object = all chosen). */
+export function detailsChoiceProblems(
+  form: { primarySport?: string | null; level?: string | null; trainingFrequency?: string | null },
+  levelsForSport: (sport: string) => string[],
+): DetailsChoiceProblems {
+  const out: DetailsChoiceProblems = {};
+  const sport = form.primarySport ?? "";
+  if (!sport) out.sport = "Choose your primary sport.";
+  if (!form.level || (sport && !levelsForSport(sport).includes(form.level))) {
+    out.level = sport ? `Choose your ${LEVEL_NOUN(sport)}.` : "Choose your sport first, then your level.";
+  }
+  if (!form.trainingFrequency) out.frequency = "Choose how often you train.";
+  return out;
+}
+
 // ── Question flow ────────────────────────────────────────────────────────────
 
 /** Next step after an answer, clamped so a stray extra tap can never land past the details step. */
@@ -109,7 +130,9 @@ export type OnboardingDraft = {
   };
 };
 
-export const draftKeyFor = (userId: string) => `frame:onboarding-draft:${userId}`;
+// v2: drafts saved before the defaults were removed hold a pre-selected MMA / Beginner / 3-4x that
+// the athlete may never have chosen, so they are not restored.
+export const draftKeyFor = (userId: string) => `frame:onboarding-draft:v2:${userId}`;
 
 const s = (v: unknown, max = 4000) => (typeof v === "string" ? v.slice(0, max) : "");
 
@@ -148,9 +171,10 @@ export function parseDraft(
     form: {
       name: s(f.name, NAME_MAX),
       dateOfBirth: s(f.dateOfBirth, 12),
-      primarySport: opts.sports.includes(sport) ? sport : "mma",
+      // Never fall back to a default sport / frequency: an unknown value means "not chosen yet".
+      primarySport: opts.sports.includes(sport) ? sport : "",
       level: s(f.level, 60),
-      trainingFrequency: opts.frequencies.includes(freq) ? freq : opts.frequencies[1] ?? opts.frequencies[0],
+      trainingFrequency: opts.frequencies.includes(freq) ? freq : "",
       goals: s(f.goals),
       weaknesses: s(f.weaknesses),
       bio: s(f.bio),

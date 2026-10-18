@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { QUESTIONS, composePersonality } from "@workspace/onboarding";
+import { levelsForSport } from "../src/lib/fighter-options";
 import {
   describeSaveError,
+  detailsChoiceProblems,
+  draftKeyFor,
   dobProblem,
   draftHasProgress,
   nameProblem,
@@ -109,13 +113,68 @@ describe("parseDraft", () => {
     const d = parseDraft(JSON.stringify({ step: 99, answers: { tired: 9, chaos: 0, nope: 1 }, form: { primarySport: "quidditch", trainingFrequency: "daily" } }), OPTS)!;
     expect(d.step).toBe(4);
     expect(d.answers).toEqual({ chaos: 0 });
-    expect(d.form.primarySport).toBe("mma");
-    expect(d.form.trainingFrequency).toBe("3-4x / week");
+    // unknown values mean "not chosen", never a default
+    expect(d.form.primarySport).toBe("");
+    expect(d.form.trainingFrequency).toBe("");
   });
   it("returns null for junk and an untouched draft has no progress", () => {
     expect(parseDraft(null, OPTS)).toBeNull();
     expect(parseDraft("{x", OPTS)).toBeNull();
     expect(parseDraft("7", OPTS)).toBeNull();
     expect(draftHasProgress(parseDraft("{}", OPTS)!)).toBe(false);
+  });
+});
+
+describe("no silent defaults", () => {
+  it("restores a real choice from a draft", () => {
+    const d = parseDraft(
+      JSON.stringify({ step: 4, form: { primarySport: "bjj", level: "Blue", trainingFrequency: "5-6x / week" } }),
+      OPTS,
+    )!;
+    expect(d.form).toMatchObject({ primarySport: "bjj", level: "Blue", trainingFrequency: "5-6x / week" });
+  });
+
+  it("a draft with no choices comes back with none (not MMA / Beginner / 3-4x)", () => {
+    const d = parseDraft(JSON.stringify({ started: true, step: 2, answers: { tired: 1 } }), OPTS)!;
+    expect(d.form.primarySport).toBe("");
+    expect(d.form.level).toBe("");
+    expect(d.form.trainingFrequency).toBe("");
+  });
+
+  it("uses a new draft key so drafts holding the old pre-selected defaults are not restored", () => {
+    expect(draftKeyFor("u1")).toBe("frame:onboarding-draft:v2:u1");
+  });
+});
+
+describe("detailsChoiceProblems says exactly what is missing", () => {
+  it("everything missing on an untouched form", () => {
+    expect(detailsChoiceProblems({ primarySport: "", level: "", trainingFrequency: "" }, levelsForSport)).toEqual({
+      sport: "Choose your primary sport.",
+      level: "Choose your sport first, then your level.",
+      frequency: "Choose how often you train.",
+    });
+  });
+  it("names the level for the chosen sport", () => {
+    const f = (sport: string) => detailsChoiceProblems({ primarySport: sport, level: "", trainingFrequency: "3-4x / week" }, levelsForSport);
+    expect(f("bjj")).toEqual({ level: "Choose your belt." });
+    expect(f("judo")).toEqual({ level: "Choose your rank." });
+    expect(f("mma")).toEqual({ level: "Choose your experience level." });
+  });
+  it("a level that does not belong to the sport counts as missing", () => {
+    expect(detailsChoiceProblems({ primarySport: "boxing", level: "Purple", trainingFrequency: "1-2x / week" }, levelsForSport)).toEqual({
+      level: "Choose your experience level.",
+    });
+  });
+  it("is empty when all three are chosen", () => {
+    expect(detailsChoiceProblems({ primarySport: "bjj", level: "White", trainingFrequency: "3-4x / week" }, levelsForSport)).toEqual({});
+  });
+});
+
+describe("the 4 questions are the shared set", () => {
+  it("coach composes personality with the shared composer (same text mobile sends)", () => {
+    expect(QUESTIONS.map((q) => q.id)).toEqual(OPTS.questionIds);
+    const text = composePersonality({ tired: 0, imposed: 0, proud: 0, chaos: 0 }, "Left-handed");
+    expect(text.startsWith(QUESTIONS[0].choices[0].read)).toBe(true);
+    expect(text.endsWith("Left-handed")).toBe(true);
   });
 });

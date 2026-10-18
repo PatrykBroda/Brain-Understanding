@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CHOICES_PER_QUESTION, QUESTIONS, QUESTION_IDS, composePersonality, questionStep, type Question } from "@workspace/onboarding";
 import { useLocation } from "wouter";
 import { useAuth } from "@/context/auth-context";
 import { useSaveFighter } from "@/hooks/use-fighter";
@@ -8,6 +9,7 @@ import { VideoBackdrop } from "@/components/media-backdrop";
 import { TAGLINE, SUBLINE } from "@/components/auth-layout";
 import { Atmosphere } from "@/components/frame-ui";
 import type { FighterInput } from "@/lib/api";
+import { createOnboardingTracker } from "@/lib/onboarding-tracking";
 import {
   FREQUENCIES,
   SPORTS,
@@ -21,6 +23,7 @@ import {
   ADVANCE_DELAY_MS,
   NAME_MAX,
   describeSaveError,
+  detailsChoiceProblems,
   dobProblem,
   draftHasProgress,
   draftKeyFor,
@@ -34,55 +37,6 @@ const FIELD_LABEL = "label block mb-1.5";
 const INPUT_CLASS = "field-glass";
 const AREA_CLASS = "field-glass !py-3 leading-6 resize-y";
 
-// Behavioral calibration. Each answer carries a short "read" sentence that gets
-// composed into the personality signal the system uses to assign an archetype.
-// The questions are about what the athlete BECOMES under load — not trivia.
-type Choice = { label: string; read: string };
-type Question = { id: string; prompt: string; choices: Choice[] };
-
-const QUESTIONS: Question[] = [
-  {
-    id: "tired",
-    prompt: "You're gassed and there's still a round left. What happens to you?",
-    choices: [
-      { label: "I press harder — pace is the weapon", read: "Under fatigue they raise the pace instead of dropping it — pressure-forward." },
-      { label: "I shell up and survive the storm", read: "Under fatigue they go defensive and ride it out — survival-minded under load." },
-      { label: "I slow down and pick my shots", read: "Under fatigue they get patient and selective — calm and economical." },
-      { label: "I start forcing it, emotions creep in", read: "Under fatigue they force things and get emotional — reactive when tired." },
-    ],
-  },
-  {
-    id: "imposed",
-    prompt: "Someone imposes their pace on you. First instinct?",
-    choices: [
-      { label: "Meet it head-on, collide", read: "Meets imposed pressure head-on — collision over evasion." },
-      { label: "Circle out, reset, re-angle", read: "Slips imposed pressure and re-angles — movement over collision." },
-      { label: "Sit still, bait, then counter", read: "Absorbs pressure and counters off the bait — patient counter-fighter." },
-      { label: "Match it and outlast them", read: "Matches imposed pace and turns it into attrition — endurance war." },
-    ],
-  },
-  {
-    id: "proud",
-    prompt: "The roll you're proudest of — you won it by...",
-    choices: [
-      { label: "Drowning them in relentless pace", read: "Best wins come from relentless pace — a chainer." },
-      { label: "Catching the one clean opening", read: "Best wins come from precise timing — a one-shot finisher." },
-      { label: "Out-thinking them, two moves ahead", read: "Best wins come from reading the pattern — high fight-IQ." },
-      { label: "Refusing to break when they pushed", read: "Best wins come from refusing to break — pure will." },
-    ],
-  },
-  {
-    id: "chaos",
-    prompt: "When it all goes chaotic, you become...",
-    choices: [
-      { label: "More aggressive", read: "Chaos makes them more aggressive." },
-      { label: "More still and quiet", read: "Chaos makes them go still and quiet." },
-      { label: "More analytical", read: "Chaos makes them more analytical." },
-      { label: "More stubborn", read: "Chaos makes them dig in and get stubborn." },
-    ],
-  },
-];
-
 export default function OnboardingPage() {
   const save = useSaveFighter();
   const { userId, signOut } = useAuth();
@@ -95,10 +49,11 @@ export default function OnboardingPage() {
   const [form, setForm] = useState<FighterInput>({
     name: "",
     dateOfBirth: "",
-    art: "MMA",
-    primarySport: "mma",
-    level: "Beginner",
-    trainingFrequency: "3-4x / week",
+    // Nothing is pre-selected: sport, level and frequency must be chosen.
+    art: "",
+    primarySport: "",
+    level: "",
+    trainingFrequency: "",
     goals: "",
     weaknesses: "",
     competes: false,
@@ -116,6 +71,7 @@ export default function OnboardingPage() {
   const [attempted, setAttempted] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const advanceTimer = useRef<number | null>(null);
+  const tracker = useRef(createOnboardingTracker());
   const draftReady = useRef(false);
 
   const clearAdvance = () => {
@@ -131,8 +87,8 @@ export default function OnboardingPage() {
     if (!userId) return;
     try {
       const d = parseDraft(localStorage.getItem(draftKeyFor(userId)), {
-        questionIds: QUESTIONS.map((q) => q.id),
-        choicesPerQuestion: 4,
+        questionIds: [...QUESTION_IDS],
+        choicesPerQuestion: CHOICES_PER_QUESTION,
         sports: SPORTS.map((x) => x.value),
         frequencies: FREQUENCIES,
       });
@@ -144,9 +100,7 @@ export default function OnboardingPage() {
         setForm((f) => ({
           ...f,
           ...d.form,
-          level: levelsForSport(d.form.primarySport).includes(d.form.level)
-            ? d.form.level
-            : levelsForSport(d.form.primarySport)[0],
+          level: d.form.primarySport && levelsForSport(d.form.primarySport).includes(d.form.level) ? d.form.level : "",
         }));
       }
     } catch {
@@ -167,6 +121,14 @@ export default function OnboardingPage() {
     }
   }, [userId, started, step, answers, background, form]);
 
+  // Funnel: one 'view' per screen the person lands on (fire-and-forget; see lib/onboarding-tracking).
+  const stepKey = !started ? "welcome" : step < QUESTIONS.length ? questionStep(QUESTIONS[step].id) : "details";
+  useEffect(() => {
+    if (!userId) return;
+    tracker.current.track(stepKey, "view");
+  }, [userId, stepKey]);
+
+  const choiceProblems = attempted ? detailsChoiceProblems(form, levelsForSport) : {};
   const nameErr = attempted ? nameProblem(form.name) : null;
   const dobErr = attempted ? dobProblem(form.dateOfBirth) : null;
 
@@ -174,15 +136,6 @@ export default function OnboardingPage() {
     setBackground((b) =>
       b.includes(label) ? b.filter((x) => x !== label) : [...b, label],
     );
-
-  const composePersonality = (): string => {
-    const reads = QUESTIONS.map((q) => {
-      const idx = answers[q.id];
-      return idx == null ? null : q.choices[idx].read;
-    }).filter(Boolean) as string[];
-    const extra = form.personality?.trim();
-    return [...reads, extra].filter(Boolean).join(" ");
-  };
 
   const answerQuestion = (q: Question, idx: number) => {
     setAnswers((a) => ({ ...a, [q.id]: idx }));
@@ -194,6 +147,7 @@ export default function OnboardingPage() {
     const answered = step;
     advanceTimer.current = window.setTimeout(() => {
       advanceTimer.current = null;
+      tracker.current.track(questionStep(QUESTIONS[answered].id), "complete");
       setStep(nextStep(answered, detailsStep));
     }, ADVANCE_DELAY_MS);
   };
@@ -209,20 +163,28 @@ export default function OnboardingPage() {
     setAttempted(true);
     setSaveError(null);
     // Name and DOB are required (DOB is the source of truth; the server derives age from it).
-    if (nameProblem(form.name) || dobProblem(form.dateOfBirth) || ageFromDob(form.dateOfBirth) == null) {
+    const missingChoices = detailsChoiceProblems(form, levelsForSport);
+    if (
+      nameProblem(form.name) ||
+      dobProblem(form.dateOfBirth) ||
+      ageFromDob(form.dateOfBirth) == null ||
+      Object.keys(missingChoices).length > 0
+    ) {
+      tracker.current.track("details", "error");
       requestAnimationFrame(() =>
         document.querySelector<HTMLElement>("[data-field-error]")?.scrollIntoView({ block: "center", behavior: "smooth" }),
       );
       return;
     }
-    const sport = form.primarySport ?? "mma";
+    const sport = form.primarySport ?? "";
+    tracker.current.track("details", "complete");
     save.mutate(
       {
         ...form,
         name: form.name.trim(),
         art: sportLabel(sport),
         trainingBackground: background.join(", "),
-        personality: composePersonality(),
+        personality: composePersonality(answers, form.personality),
       },
       {
         onSuccess: () => {
@@ -232,7 +194,10 @@ export default function OnboardingPage() {
             // ignore
           }
         },
-        onError: (err) => setSaveError(describeSaveError(err)),
+        onError: (err) => {
+          tracker.current.track("details", "error");
+          setSaveError(describeSaveError(err));
+        },
       },
     );
   };
@@ -255,7 +220,10 @@ export default function OnboardingPage() {
             <p className="mt-3 text-base leading-6 text-[var(--f-text-2)]">{SUBLINE}</p>
           </div>
           <div className="frame-rise flex flex-col gap-1" style={{ animationDelay: "80ms" }}>
-            <button type="button" className="btn-bronze w-full" onClick={() => setStarted(true)}>
+            <button type="button" className="btn-bronze w-full" onClick={() => {
+                tracker.current.track("welcome", "complete");
+                setStarted(true);
+              }}>
               Get started
             </button>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -419,25 +387,36 @@ export default function OnboardingPage() {
                 )}
               </div>
               <div>
-                <label className={FIELD_LABEL}>Training frequency</label>
+                <label htmlFor="onb-freq" className={FIELD_LABEL}>Training frequency (required)</label>
                 <select
+                  id="onb-freq"
                   className={INPUT_CLASS}
                   value={form.trainingFrequency}
                   onChange={(e) => update("trainingFrequency", e.target.value)}
+                  aria-invalid={choiceProblems.frequency ? true : undefined}
                 >
+                  <option value="" disabled>
+                    Select…
+                  </option>
                   {FREQUENCIES.map((f) => (
                     <option key={f} value={f}>
                       {f}
                     </option>
                   ))}
                 </select>
+                {choiceProblems.frequency && (
+                  <p data-field-error role="alert" className="mt-1.5 text-sm text-[var(--f-red-text)]">
+                    {choiceProblems.frequency}
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={FIELD_LABEL}>Primary combat sport</label>
+                <label htmlFor="onb-sport" className={FIELD_LABEL}>Primary combat sport (required)</label>
                 <select
+                  id="onb-sport"
                   className={INPUT_CLASS}
                   value={form.primarySport}
                   onChange={(e) => {
@@ -445,33 +424,53 @@ export default function OnboardingPage() {
                     setForm((f) => ({
                       ...f,
                       primarySport: sport,
-                      // Level ladders differ per sport — reset to the first option.
-                      level: levelsForSport(sport)[0],
+                      // Level ladders differ per sport — the new sport's level must be chosen again.
+                      level: sport === f.primarySport ? f.level : "",
                     }));
                   }}
+                  aria-invalid={choiceProblems.sport ? true : undefined}
                 >
+                  <option value="" disabled>
+                    Select…
+                  </option>
                   {SPORTS.map((s) => (
                     <option key={s.value} value={s.value}>
                       {s.label}
                     </option>
                   ))}
                 </select>
+                {choiceProblems.sport && (
+                  <p data-field-error role="alert" className="mt-1.5 text-sm text-[var(--f-red-text)]">
+                    {choiceProblems.sport}
+                  </p>
+                )}
               </div>
               <div>
-                <label className={FIELD_LABEL}>
-                  {levelLabelForSport(form.primarySport)}
+                <label htmlFor="onb-level" className={FIELD_LABEL}>
+                  {levelLabelForSport(form.primarySport)} (required)
                 </label>
                 <select
+                  id="onb-level"
                   className={INPUT_CLASS}
                   value={form.level}
                   onChange={(e) => update("level", e.target.value)}
+                  disabled={!form.primarySport}
+                  aria-invalid={choiceProblems.level ? true : undefined}
                 >
-                  {levelsForSport(form.primarySport ?? "mma").map((l) => (
+                  <option value="" disabled>
+                    {form.primarySport ? "Select…" : "Choose a sport first"}
+                  </option>
+                  {(form.primarySport ? levelsForSport(form.primarySport) : []).map((l) => (
                     <option key={l} value={l}>
                       {l}
                     </option>
                   ))}
                 </select>
+                {choiceProblems.level && (
+                  <p data-field-error role="alert" className="mt-1.5 text-sm text-[var(--f-red-text)]">
+                    {choiceProblems.level}
+                  </p>
+                )}
               </div>
             </div>
 

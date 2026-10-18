@@ -54,6 +54,8 @@ export default function SignUpPage() {
           acceptedPrivacy: acceptedLegal,
           acceptedAiConsent: true,
           aiConsentVersion: AI_CONSENT_VERSION,
+          // Funnel: lets the server record "account created" against this app.
+          app: "coach",
         }),
       });
       const data = (await res.json()) as { token?: string; error?: string };

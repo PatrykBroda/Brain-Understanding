@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { normaliseFrequency } from "@workspace/onboarding";
 import { useUpdateFighter } from "@/hooks/use-fighter";
 import type { Fighter, FighterUpdate } from "@/lib/api";
 import {
@@ -54,7 +55,8 @@ function toForm(f: Fighter): FormState {
     primarySport: f.primarySport || "",
     art: f.art,
     level: f.level,
-    trainingFrequency: f.trainingFrequency,
+    // Rows written by older mobile builds hold "3-4" etc.; show the matching option.
+    trainingFrequency: normaliseFrequency(f.trainingFrequency),
     goals: f.goals,
     weaknesses: f.weaknesses,
     bio: f.bio ?? "",
