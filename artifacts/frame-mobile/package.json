@@ -26,6 +26,7 @@
     "@workspace/ai-consent": "workspace:*",
     "@workspace/api-client-react": "workspace:*",
     "@workspace/breath": "workspace:*",
+    "@workspace/onboarding": "workspace:*",
     "expo": "~54.0.36",
     "expo-asset": "~12.0.13",
     "expo-blur": "~15.0.8",

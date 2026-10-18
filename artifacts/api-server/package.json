@@ -18,6 +18,7 @@
     "@workspace/api-zod": "workspace:*",
     "@workspace/archetypes": "workspace:*",
     "@workspace/db": "workspace:*",
+    "@workspace/onboarding": "workspace:*",
     "@workspace/ontology": "workspace:*",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",

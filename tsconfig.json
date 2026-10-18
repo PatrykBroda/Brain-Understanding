@@ -19,6 +19,9 @@
       "path": "./lib/breath"
     },
     {
+      "path": "./lib/onboarding"
+    },
+    {
       "path": "./lib/api-client-react"
     },
     {
