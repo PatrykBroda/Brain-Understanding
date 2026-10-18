@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { deriveSpiritAnimal } from "../lib/spiritAnimals";
 import { hasAiConsentForUser } from "../lib/aiConsent";
+import { nullTextToDefaults } from "../lib/fighterBody";
 
 const router: IRouter = Router();
 
@@ -34,7 +35,7 @@ router.get("/fighter", async (req, res) => {
 });
 
 router.post("/fighter", async (req, res) => {
-  const parsed = insertFighterSchema.safeParse(req.body);
+  const parsed = insertFighterSchema.safeParse(nullTextToDefaults(req.body));
   if (!parsed.success) {
     res.status(400).json({ error: "invalid fighter", details: parsed.error.flatten() });
     return;
@@ -99,7 +100,7 @@ router.post("/fighter", async (req, res) => {
 });
 
 router.patch("/fighter", async (req, res) => {
-  const parsed = updateFighterSchema.safeParse(req.body);
+  const parsed = updateFighterSchema.safeParse(nullTextToDefaults(req.body));
   if (!parsed.success) {
     res.status(400).json({ error: "invalid fighter", details: parsed.error.flatten() });
     return;
