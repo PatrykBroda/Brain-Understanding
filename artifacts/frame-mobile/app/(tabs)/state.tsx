@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { StateOrb } from "@/components/StateOrb";
+import { STATE_TIPS, stateTipPrompt } from "@/lib/stateTips";
 import {
   ArcGauge,
   Body,
@@ -13,12 +14,12 @@ import {
   Eyebrow,
   FadeIn,
   GlassCard,
-  Label,
   Punch,
   Screen,
+  haptic,
   useReducedMotion,
 } from "@/components/ui";
-import { fonts, motion, palette, SCREEN_PAD } from "@/constants/theme";
+import { fonts, motion, palette, radius, SCREEN_PAD } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { useTodayCheckin } from "@/hooks/useCheckin";
@@ -46,19 +47,6 @@ type OrbState =
   | "Volatile"
   | "Composed"
   | "Overextended";
-
-// One coaching cue per interpretive state. Deterministic — keyed to the same
-// honestly-derived state as the label, never generated, never a metric.
-const STATE_CUE: Record<OrbState, string> = {
-  Dormant: "Step in. The frame reads what you feed it.",
-  Stable: "Narrow the decision tree.",
-  Loaded: "Trade speed for position.",
-  Recovering: "Protect the rebuild.",
-  Tight: "Commit earlier than comfort wants.",
-  Volatile: "Anchor the breath before the exchange.",
-  Composed: "Hold the standard. Add pressure, not pace.",
-  Overextended: "Cut volume. Keep structure.",
-};
 
 function deriveState(facts: Fact[]): { state: OrbState; source: string } {
   const active = facts.filter((f) => f.status === "active");
@@ -259,10 +247,30 @@ export default function StateScreen() {
                 <Punch style={[styles.stateLabel, loading && { color: palette.textLow }]}>
                   {loading ? "Reading…" : state}
                 </Punch>
-                <Body style={styles.stateCue}>{loading ? "Checking your athlete model." : STATE_CUE[state]}</Body>
-                {!loading && state === "Dormant" ? (
-                  <Label style={styles.stateSource}>No athlete data yet. Chat with your coach to build your model.</Label>
-                ) : null}
+                {loading ? (
+                  <Body style={styles.stateCue}>Checking your athlete model.</Body>
+                ) : (
+                  <Pressable
+                    onPress={() => {
+                      haptic.select();
+                      router.push({
+                        pathname: "/(tabs)/chat",
+                        params: { prefill: stateTipPrompt(state), n: String(Date.now()) },
+                      });
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Tip: ${STATE_TIPS[state].tip} ${STATE_TIPS[state].why}`}
+                    accessibilityHint="Opens your coach with this tip ready to send"
+                    style={({ pressed }) => [styles.tip, pressed && styles.tipPressed]}
+                  >
+                    <View style={styles.tipHead}>
+                      <Eyebrow>Tip</Eyebrow>
+                      <Feather name="arrow-up-right" size={16} color={palette.textMid} />
+                    </View>
+                    <Text style={styles.tipText}>{STATE_TIPS[state].tip}</Text>
+                    <Text style={styles.tipWhy}>{STATE_TIPS[state].why}</Text>
+                  </Pressable>
+                )}
                 <Pressable
                   onPress={() => setExpanded((e) => !e)}
                   accessibilityRole="button"
@@ -282,7 +290,7 @@ export default function StateScreen() {
                 <GlassCard raised padding={20}>
                   <View style={styles.panelHead}>
                     <Text style={styles.panelState}>{state}</Text>
-                    <Text style={styles.panelCue}>{STATE_CUE[state]}</Text>
+                    <Text style={styles.panelCue}>{STATE_TIPS[state].tip}</Text>
                   </View>
 
                   <Eyebrow style={styles.groupLabel}>Your state</Eyebrow>
@@ -379,8 +387,22 @@ const styles = StyleSheet.create({
   center: { alignItems: "center", paddingTop: 8 },
   stateBlock: { alignItems: "center", gap: 6, paddingHorizontal: SCREEN_PAD + 4, marginTop: 8 },
   stateLabel: { textAlign: "center", marginTop: 2 },
+  tip: {
+    alignSelf: "stretch",
+    marginTop: 10,
+    marginHorizontal: -4,
+    padding: 16,
+    gap: 6,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
+  },
+  tipPressed: { backgroundColor: palette.raised },
+  tipHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  tipText: { fontFamily: fonts.semi, fontSize: 18, lineHeight: 25, letterSpacing: -0.2, color: palette.textHi },
+  tipWhy: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: palette.textMid },
   stateCue: { textAlign: "center", fontSize: 17, lineHeight: 24, color: palette.textMid },
-  stateSource: { textAlign: "center", color: palette.textLow },
   whyBtn: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 12, marginTop: 4 },
   whyText: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid },
   panelHead: { marginBottom: 18, gap: 4 },

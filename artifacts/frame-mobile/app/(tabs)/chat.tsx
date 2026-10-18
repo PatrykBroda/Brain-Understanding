@@ -1,6 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -292,6 +292,16 @@ export default function ChatScreen() {
   const sendInFlightRef = useRef(false);
   const consentAcceptingRef = useRef(false);
   const inputRef = useRef<TextInput>(null);
+
+  // A coaching prompt handed over by another screen (the State tip). Only fills
+  // the composer; the athlete still taps send. `n` makes a repeat tap re-apply.
+  const { prefill, n: prefillNonce } = useLocalSearchParams<{ prefill?: string; n?: string }>();
+  useEffect(() => {
+    if (typeof prefill !== "string" || !prefill) return;
+    setInput(prefill);
+    const t = setTimeout(() => inputRef.current?.focus(), 150);
+    return () => clearTimeout(t);
+  }, [prefill, prefillNonce]);
 
   useEffect(() => {
     if (isSignedIn) return;
