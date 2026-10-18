@@ -103,12 +103,17 @@ export async function apiGet<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+export async function apiPost<T>(
+  path: string,
+  body?: unknown,
+  opts?: { signal?: AbortSignal },
+): Promise<T> {
   const headers = await authHeaders();
   const res = await fetch(`${_base}${path}`, {
     method: "POST",
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
+    signal: opts?.signal,
   });
   if (!res.ok) {
     throw await responseError(res);

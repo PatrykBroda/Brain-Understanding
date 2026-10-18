@@ -53,6 +53,7 @@ import {
   applyReadinessModifier,
   type ChatMessageLike,
 } from "@/lib/readinessModifier";
+import { sportDisplayName } from "@/lib/onboarding";
 
 // ── Real-composite band read (interpretation, not fabrication) ─────────────
 function bandFor(score: number): string {
@@ -469,7 +470,7 @@ export default function HomeScreen() {
 
   const metaParts = fighter
     ? [
-        fighter.primarySport ? titleCase(fighter.primarySport) : null,
+        fighter.primarySport ? sportDisplayName(fighter.primarySport) : null,
         fighter.level || null,
         fighter.weightClass || null,
         fighter.stance ? titleCase(fighter.stance) : null,

@@ -1,6 +1,7 @@
 import { Redirect, useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
@@ -24,6 +26,21 @@ import {
 } from "@/lib/dateOfBirth";
 import { commitFighterProfile } from "@/lib/fighterProfileCache";
 import { shouldLeaveOnboarding } from "@/lib/onboardingRoute";
+import { NAME_MAX } from "@/lib/fighterName";
+import {
+  SAVE_TIMEOUT_MS,
+  TOTAL_STEPS,
+  buildFighterPayload,
+  describeSaveFailure,
+  dobStepError,
+  draftHasProgress,
+  draftKeyFor,
+  isDoubleTap,
+  nameStepError,
+  parseDraft,
+  sentenceCaseLabel,
+  withTimeout,
+} from "@/lib/onboarding";
 import {
   SPORTS,
   defaultLevelForSport,
@@ -52,12 +69,10 @@ const FREQS = [
   { key: "5+", label: "5+ / week" },
 ];
 
-const TOTAL_STEPS = 5;
-
 const STEP_HEADINGS = [
   "What do they call you?",
   "When were you born?",
-  "Where do you compete?",
+  "What do you train?",
   "How often do you train?",
   "What are you here to build?",
 ];
@@ -90,12 +105,6 @@ const pb = StyleSheet.create({
   seg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: palette.borderStrong },
   segOn: { backgroundColor: palette.gold },
 });
-
-/** "BJJ BELT" -> "BJJ belt" (lib labels are shouty; screens use sentence case). */
-function sentenceCase(s: string): string {
-  const t = s.toLowerCase();
-  return (t.charAt(0).toUpperCase() + t.slice(1)).replace(/bjj/i, "BJJ");
-}
 
 function ChipSelector({
   options,
@@ -171,10 +180,62 @@ export default function OnboardingScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dobError, setDobError] = useState<string | null>(null);
+  const [nameErr, setNameErr] = useState<string | null>(null);
   const submittingRef = useRef(false);
+  const lastTapRef = useRef(0);
+  const draftReadyRef = useRef(false);
   const profileSaveCompletedRef = useRef(false);
   const monthInputRef = useRef<TextInput>(null);
   const yearInputRef = useRef<TextInput>(null);
+
+  // Resume where they left off: restore a saved draft once, then keep it in sync.
+  useEffect(() => {
+    if (!userId) return;
+    let alive = true;
+    AsyncStorage.getItem(draftKeyFor(userId))
+      .then((raw) => {
+        if (!alive) return;
+        const d = parseDraft(raw);
+        if (d && draftHasProgress(d)) {
+          setName(d.name);
+          setDob(d.dob);
+          setSport(d.sport);
+          setLevel(d.level || defaultLevelForSport(d.sport));
+          setFreq(d.freq || "3-4");
+          setGoals(d.goals);
+          setWeaknesses(d.weaknesses);
+          setStep(d.step);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (alive) draftReadyRef.current = true;
+      });
+    return () => {
+      alive = false;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !draftReadyRef.current) return;
+    AsyncStorage.setItem(
+      draftKeyFor(userId),
+      JSON.stringify({ step, name, dob, sport, level, freq, goals, weaknesses }),
+    ).catch(() => {});
+  }, [userId, step, name, dob, sport, level, freq, goals, weaknesses]);
+
+  // Android hardware back moves to the previous step instead of leaving onboarding.
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (step > 0) {
+        setStep(step - 1);
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [step]);
 
   const dobDate = dateOfBirthFromParts(dob);
   const age = dobDate ? ageFromDateOfBirth(dobDate) : null;
@@ -203,19 +264,40 @@ export default function OnboardingScreen() {
     }
   }
 
+  /** Swallow a second tap that lands before the screen has changed (double-tap skipped a whole step). */
+  function tapAllowed(): boolean {
+    const now = Date.now();
+    if (isDoubleTap(lastTapRef.current, now)) return false;
+    lastTapRef.current = now;
+    return true;
+  }
+
   function next() {
+    if (!tapAllowed()) return;
+    if (step === 0) {
+      const problem = nameStepError(name);
+      if (problem) {
+        setNameErr(problem);
+        return;
+      }
+      setNameErr(null);
+    }
     if (step === 1) {
-      if (!dobDate) {
-        setDobError("Enter a valid date of birth.");
+      const problem = dobStepError(dob);
+      if (problem || !dobDate) {
+        setDobError(problem ?? "Enter a valid date of birth.");
         return;
       }
       setDobError(null);
     }
-    if (step < TOTAL_STEPS - 1) setStep((s) => s + 1);
+    setError(null);
+    setStep(Math.min(step + 1, TOTAL_STEPS - 1));
   }
 
   function back() {
-    if (step > 0) setStep((s) => s - 1);
+    if (!tapAllowed()) return;
+    setError(null);
+    setStep(Math.max(step - 1, 0));
   }
 
   async function handleSubmit() {
@@ -223,48 +305,58 @@ export default function OnboardingScreen() {
     submittingRef.current = true;
     setLoading(true);
     setError(null);
+    const abort = new AbortController();
     try {
+      const nameProblem = nameStepError(name);
+      if (nameProblem) {
+        setNameErr(nameProblem);
+        setStep(0);
+        return;
+      }
       if (!dobDate) {
-        setError("Date of birth is missing or invalid. Go back and choose a valid date.");
+        setDobError(dobStepError(dob) ?? "Enter a valid date of birth.");
+        setStep(1);
         return;
       }
 
-      const response = await apiPost<{ fighter: Fighter }>("/fighter", {
-          name: name.trim(),
-          dateOfBirth: dobDate,
-          art: sport,
-          primarySport: sport,
-          level,
-          trainingFrequency: freq,
-          goals: goals.trim() || null,
-          weaknesses: weaknesses.trim() || null,
-          personality: `Training ${freq} per week. Sport: ${sport}. ${levelLabelForSport(sport)}: ${level}.`,
-        });
+      const response = await withTimeout(
+        apiPost<{ fighter: Fighter }>(
+          "/fighter",
+          buildFighterPayload({ step, name, dob, sport, level, freq, goals, weaknesses }, dobDate),
+          { signal: abort.signal },
+        ),
+        SAVE_TIMEOUT_MS,
+      );
 
       if (!userId || !response.fighter) {
         throw new Error("Your fighter profile was saved, but could not be opened.");
       }
 
       profileSaveCompletedRef.current = true;
+      if (userId) AsyncStorage.removeItem(draftKeyFor(userId)).catch(() => {});
       await commitFighterProfile(qc, userId, response.fighter);
       router.replace("/(tabs)/home");
     } catch (e: unknown) {
-      setError((e as Error).message ?? "Setup failed. Try again.");
+      abort.abort();
+      const failure = describeSaveFailure(e);
+      if (failure.goToStep === 0) setNameErr(failure.message);
+      else if (failure.goToStep === 1) setDobError(failure.message);
+      else setError(failure.message);
+      if (failure.goToStep != null) setStep(failure.goToStep);
     } finally {
       submittingRef.current = false;
       setLoading(false);
     }
   }
 
-  const nextDisabled = step === 0 && !name.trim();
-
   return (
     <Screen light={null}>
       <VideoBackdrop />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView
-          contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
           {/* Brand + positioning line over the looping video (full-screen backdrop, dark scrim) */}
@@ -292,9 +384,16 @@ export default function OnboardingScreen() {
                 <Field
                   label="Your name"
                   value={name}
-                  onChangeText={setName}
+                  onChangeText={(v) => {
+                    setName(v);
+                    setNameErr(null);
+                  }}
                   placeholder="What do they call you?"
                   autoCapitalize="words"
+                  maxLength={NAME_MAX}
+                  returnKeyType="next"
+                  onSubmitEditing={next}
+                  error={nameErr}
                 />
               </View>
             )}
@@ -363,7 +462,7 @@ export default function OnboardingScreen() {
                   }}
                 />
 
-                <Label style={[styles.label, { marginTop: space.xl }]}>{sentenceCase(levelLabelForSport(sport))}</Label>
+                <Label style={[styles.label, { marginTop: space.xl }]}>{sentenceCaseLabel(levelLabelForSport(sport))}</Label>
                 <ChipSelector options={levelsForSport(sport)} value={level} onSelect={setLevel} />
               </View>
             )}
@@ -377,8 +476,9 @@ export default function OnboardingScreen() {
 
             {step === 4 && (
               <View style={[styles.section, { gap: 20 }]}>
+                <Label style={styles.optionalNote}>Both answers are optional. Skip either one and add it later.</Label>
                 <Field
-                  label="Primary goals"
+                  label="Primary goals (optional)"
                   style={styles.textarea}
                   value={goals}
                   onChangeText={setGoals}
@@ -387,7 +487,7 @@ export default function OnboardingScreen() {
                   numberOfLines={3}
                 />
                 <Field
-                  label="Known weaknesses"
+                  label="Known weaknesses (optional)"
                   style={styles.textarea}
                   value={weaknesses}
                   onChangeText={setWeaknesses}
@@ -395,15 +495,20 @@ export default function OnboardingScreen() {
                   multiline
                   numberOfLines={3}
                 />
-
-                {error ? (
-                  <Text style={styles.errorText} accessibilityRole="alert">
-                    {error}
-                  </Text>
-                ) : null}
               </View>
             )}
 
+            </AuthPanel>
+          </FadeIn>
+        </ScrollView>
+        {/* Pinned under the card: Back/Next/Finish and any save error stay on screen with the keyboard open or the card scrolled. */}
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}>
+          <View style={styles.footerInner}>
+            {error ? (
+              <Text style={[styles.errorText, styles.navError]} accessibilityRole="alert">
+                {error}
+              </Text>
+            ) : null}
             <View style={styles.nav}>
               {step > 0 ? (
                 <Button title="Back" variant="ghost" onPress={back} style={styles.backBtn} />
@@ -412,14 +517,13 @@ export default function OnboardingScreen() {
               )}
 
               {step < TOTAL_STEPS - 1 ? (
-                <Button title="Next" onPress={next} disabled={nextDisabled} style={styles.nextBtn} />
+                <Button title="Next" onPress={next} style={styles.nextBtn} />
               ) : (
                 <Button title="Finish setup" onPress={handleSubmit} loading={loading} style={styles.nextBtn} />
               )}
             </View>
-            </AuthPanel>
-          </FadeIn>
-        </ScrollView>
+          </View>
+        </View>
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -443,13 +547,22 @@ const styles = StyleSheet.create({
   inputError: { borderColor: palette.redHair },
   ageConfirmation: { marginTop: 14, fontFamily: fonts.medium, fontSize: 14, color: palette.goldPale, fontVariant: ["tabular-nums"] },
   textarea: { minHeight: 96, textAlignVertical: "top", paddingTop: 16 },
+  optionalNote: { marginBottom: space.md },
+  navError: { marginBottom: space.sm },
+  footer: {
+    paddingHorizontal: SCREEN_PAD + 2,
+    paddingTop: space.md,
+    backgroundColor: "rgba(8,9,11,0.94)",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: palette.borderStrong,
+  },
+  footerInner: { width: "100%", maxWidth: 480, alignSelf: "center" },
   errorText: { color: palette.redText, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, marginTop: 8 },
   nav: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     width: "100%",
-    marginTop: space.xxl,
   },
   backBtn: { minWidth: 88 },
   nextBtn: { minWidth: 160 },
