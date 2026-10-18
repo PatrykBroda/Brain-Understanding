@@ -162,7 +162,7 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const qc = useQueryClient();
-  const { userId } = useAuth();
+  const { userId, signOut } = useAuth();
   const { fighter } = useFighter();
 
   const [step, setStep] = useState(0);
@@ -513,7 +513,15 @@ export default function OnboardingScreen() {
               {step > 0 ? (
                 <Button title="Back" variant="ghost" onPress={back} style={styles.backBtn} />
               ) : (
-                <View />
+                // Step 1 has no Back: offer a way out for someone who signed up with the wrong email.
+                <Button
+                  title="Sign out"
+                  variant="ghost"
+                  onPress={() => {
+                    void signOut().then(() => router.replace("/sign-in"));
+                  }}
+                  style={styles.backBtn}
+                />
               )}
 
               {step < TOTAL_STEPS - 1 ? (
