@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { ArrowUp, ArrowUpRight, Square, RefreshCcw, ChevronLeft, Paperclip, X, Mic } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
@@ -94,6 +94,20 @@ export default function ChatPage() {
 
   useAutoWelcome();
 
+  // A coaching prompt handed over by another page (the State tip): fill the
+  // composer, then drop the query so a refresh doesn't re-apply it. The athlete
+  // still taps send.
+  const search = useSearch();
+  const [, navigate] = useLocation();
+  useEffect(() => {
+    const prefill = new URLSearchParams(search).get("prefill");
+    if (!prefill) return;
+    setInput(prefill);
+    navigate("/chat", { replace: true });
+    requestAnimationFrame(() => composerRef.current?.focus());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
   // EntrySequence is a first-ever-entry experience: show once, never repeat.
   // Backed by localStorage so it survives same-day reopens and re-navigation.
   // Must NOT reset on navigation — that is the root of the repeat-loading bug.
@@ -120,6 +134,7 @@ export default function ChatPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   // State updates are asynchronous, so use a synchronous guard to cover the
   // awaited consent lookup and the complete stream lifecycle.
   const sendInFlightRef = useRef(false);
@@ -447,6 +462,7 @@ export default function ChatPage() {
                   )}
                 </button>
                 <textarea
+                  ref={composerRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}

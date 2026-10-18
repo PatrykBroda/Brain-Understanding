@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowUpRight, ChevronDown, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { CosmicOrb } from "@/components/cosmic-orb";
 import { FramePlusPill } from "@/components/frame-plus-modal";
@@ -13,20 +13,8 @@ import { useFrameState, type FrameStateLabel } from "@/hooks/use-frame-state";
 import { useAnalyses } from "@/hooks/use-analysis";
 import { useTodayCheckin } from "@/hooks/use-checkin";
 import { api } from "@/lib/api";
+import { STATE_TIPS, stateTipPrompt } from "@/lib/state-tips";
 import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
-
-// One coaching cue per interpretive state. Deterministic - keyed to the same
-// honestly-derived state as the orb label, never generated, never a metric.
-const STATE_CUE: Record<FrameStateLabel, string> = {
-  Dormant: "Step in. The frame reads what you feed it.",
-  Stable: "Narrow the decision tree.",
-  Loaded: "Trade speed for position.",
-  Recovering: "Protect the rebuild.",
-  Tight: "Commit earlier than comfort wants.",
-  Volatile: "Anchor the breath before the exchange.",
-  Composed: "Hold the standard. Add pressure, not pace.",
-  Overextended: "Cut volume. Keep structure.",
-};
 
 const NO_DATA = "No data yet";
 
@@ -143,7 +131,20 @@ export default function StatePage() {
                 <h1 className="punch punch-xl mt-1" title={frameState.source}>
                   {label}
                 </h1>
-                <p className="mx-auto mt-3 max-w-[28ch] text-[17px] leading-6 text-[var(--f-text-2)]">{STATE_CUE[label]}</p>
+                <Link
+                  href={`/chat?prefill=${encodeURIComponent(stateTipPrompt(label))}&n=${Date.now()}`}
+                  aria-label={`Tip: ${STATE_TIPS[label].tip} ${STATE_TIPS[label].why} Opens your coach with this tip ready to send.`}
+                  className="glass mt-4 block w-full px-4 py-4 text-left outline-none transition-colors hover:bg-white/[0.04] active:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-[var(--f-gold)] motion-reduce:transition-none"
+                >
+                  <span className="flex items-center justify-between">
+                    <span className="eyebrow">Tip</span>
+                    <ArrowUpRight className="h-4 w-4 text-[var(--f-text-2)]" strokeWidth={1.75} aria-hidden />
+                  </span>
+                  <span className="mt-1.5 block text-[18px] font-semibold leading-[1.4] tracking-[-0.01em] text-foreground">
+                    {STATE_TIPS[label].tip}
+                  </span>
+                  <span className="mt-1.5 block text-sm leading-5 text-[var(--f-text-2)]">{STATE_TIPS[label].why}</span>
+                </Link>
               </>
             )}
             {memoryError && (
@@ -205,7 +206,7 @@ export default function StatePage() {
               </dl>
               <div className="border-t border-[var(--f-hairline)] py-3">
                 <p className="label">Coaching cue</p>
-                <p className="mt-0.5 text-[15px] leading-snug text-foreground">{STATE_CUE[label]}</p>
+                <p className="mt-0.5 text-[15px] leading-snug text-foreground">{STATE_TIPS[label].tip}</p>
               </div>
             </section>
           )}
