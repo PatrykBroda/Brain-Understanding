@@ -1,73 +1,35 @@
+import {
+  FREQUENCIES,
+  LEGACY_SPORTS as SHARED_LEGACY_SPORTS,
+  SPORTS as SHARED_SPORTS,
+  levelsForSport as sharedLevelsForSport,
+} from "@workspace/onboarding";
+
 export type FighterOption = { key: string; label: string };
 
-export const SPORTS: FighterOption[] = [
-  { key: "bjj", label: "BJJ" },
-  { key: "mma", label: "MMA" },
-  { key: "boxing", label: "Boxing" },
-  { key: "muay_thai", label: "Muay Thai" },
-  { key: "kickboxing", label: "Kickboxing" },
-  { key: "wrestling", label: "Wrestling" },
-  { key: "judo", label: "Judo" },
-  { key: "taekwondo", label: "Taekwondo" },
-  { key: "other", label: "Other" },
-];
+// The values themselves (sport keys, level strings, frequencies) live in
+// @workspace/onboarding so this app and the coach web store identical strings.
+export const SPORTS: FighterOption[] = SHARED_SPORTS.map((s) => ({ key: s.key, label: s.label }));
 
-export const LEGACY_SPORTS: FighterOption[] = [
-  { key: "karate", label: "Karate" },
-  { key: "sambo", label: "Sambo" },
-  { key: "mixed", label: "Mixed / multiple" },
-];
+export const LEGACY_SPORTS: FighterOption[] = SHARED_LEGACY_SPORTS.map((s) => ({ key: s.key, label: s.label }));
 
-const BJJ_LEVELS: FighterOption[] = [
-  { key: "White", label: "White" },
-  { key: "Blue", label: "Blue" },
-  { key: "Purple", label: "Purple" },
-  { key: "Brown", label: "Brown" },
-  { key: "Black", label: "Black" },
-  { key: "No belt / other", label: "No belt / other" },
-];
+export const FREQUENCY_OPTIONS: FighterOption[] = FREQUENCIES.map((f) => ({ key: f, label: f }));
 
-const JUDO_LEVELS: FighterOption[] = [
-  { key: "White", label: "White" },
-  { key: "Yellow", label: "Yellow" },
-  { key: "Orange", label: "Orange" },
-  { key: "Green", label: "Green" },
-  { key: "Blue", label: "Blue" },
-  { key: "Brown", label: "Brown" },
-  { key: "Black", label: "Black" },
-  { key: "No belt / other", label: "No rank / other" },
-];
-
-const EXPERIENCE_LEVELS: FighterOption[] = [
-  { key: "Beginner", label: "Beginner" },
-  { key: "Intermediate", label: "Intermediate" },
-  { key: "Advanced", label: "Advanced" },
-  { key: "Amateur Competitor", label: "Amateur competitor" },
-  { key: "Professional", label: "Professional" },
-];
-
-const WRESTLING_LEVELS: FighterOption[] = [
-  { key: "Beginner", label: "Beginner" },
-  { key: "Intermediate", label: "Intermediate" },
-  { key: "Advanced", label: "Advanced" },
-  { key: "Competitive", label: "Competitive" },
-];
+// What the chip says. The stored value stays the shared string.
+const LEVEL_LABELS: Record<string, string> = {
+  "Amateur Competitor": "Amateur competitor",
+};
 
 export function isBjjSport(sport: string | null | undefined): boolean {
   return sport?.trim().toLowerCase() === "bjj";
 }
 
 export function levelsForSport(sport: string | null | undefined): FighterOption[] {
-  switch (sport?.trim().toLowerCase()) {
-    case "bjj":
-      return BJJ_LEVELS;
-    case "judo":
-      return JUDO_LEVELS;
-    case "wrestling":
-      return WRESTLING_LEVELS;
-    default:
-      return EXPERIENCE_LEVELS;
-  }
+  const judo = sport?.trim().toLowerCase() === "judo";
+  return sharedLevelsForSport(sport).map((key) => ({
+    key,
+    label: judo && key === "No belt / other" ? "No rank / other" : (LEVEL_LABELS[key] ?? key),
+  }));
 }
 
 export function levelLabelForSport(sport: string | null | undefined): string {
@@ -78,4 +40,11 @@ export function levelLabelForSport(sport: string | null | undefined): string {
 
 export function defaultLevelForSport(sport: string | null | undefined): string {
   return levelsForSport(sport)[0].key;
+}
+
+/** Noun for the level question in "Choose your ___ to continue." */
+export function levelNounForSport(sport: string | null | undefined): string {
+  if (isBjjSport(sport)) return "belt";
+  if (sport?.trim().toLowerCase() === "judo") return "rank";
+  return "experience level";
 }

@@ -1,9 +1,40 @@
+import {
+  FLOWS,
+  FREQUENCIES,
+  QUESTIONS,
+  composePersonality,
+  normaliseFrequency,
+  sanitiseAnswers,
+  sportLabelFor,
+  type Answers,
+  type Question,
+} from "@workspace/onboarding";
 import { dateOfBirthFromParts, type DateOfBirthParts } from "./dateOfBirth";
 import { NAME_MAX, nameError } from "./fighterName";
-import { SPORTS, LEGACY_SPORTS, levelLabelForSport } from "./fighterOptions";
+import { SPORTS, LEGACY_SPORTS, levelNounForSport, levelsForSport } from "./fighterOptions";
 
-/** Number of onboarding steps (name, date of birth, sport, frequency, goals). */
-export const TOTAL_STEPS = 5;
+/**
+ * The onboarding screens, in order. Keys are the funnel step keys shared with
+ * the server (name, dob, sport, frequency, q_tired.., goals).
+ */
+export const STEP_KEYS: readonly string[] = FLOWS.mobile.filter((s) => s !== "signup" && s !== "finish");
+/** Number of onboarding steps: name, date of birth, sport + belt, frequency, the 4 questions, goals. */
+export const TOTAL_STEPS = STEP_KEYS.length;
+/** Index of the first of the 4 behavioural questions. */
+export const FIRST_QUESTION_STEP = STEP_KEYS.indexOf("q_tired");
+/** How long a tapped answer stays highlighted before the next question appears. */
+export const ADVANCE_DELAY_MS = 220;
+
+/** The question shown on `step`, or null when the step is not a question. */
+export function questionForStep(step: number): Question | null {
+  const i = step - FIRST_QUESTION_STEP;
+  return i >= 0 && i < QUESTIONS.length ? QUESTIONS[i] : null;
+}
+
+/** Next step after an answer, clamped so a stray extra tap can never run past the last step. */
+export function stepAfter(from: number): number {
+  return Math.min(Math.max(from + 1, 0), TOTAL_STEPS - 1);
+}
 /** The save must never leave the athlete on a spinner forever. */
 export const SAVE_TIMEOUT_MS = 20_000;
 /** Taps closer together than this on Back/Next count as one (double-tap). */
@@ -13,12 +44,29 @@ export type OnboardingDraft = {
   step: number;
   name: string;
   dob: DateOfBirthParts;
+  /** "" until the athlete taps a choice: nothing is pre-selected. */
   sport: string;
   level: string;
   freq: string;
+  answers: Answers;
   goals: string;
   weaknesses: string;
 };
+
+/** A blank draft: no sport, level, frequency or answers chosen. */
+export function emptyDraft(): OnboardingDraft {
+  return {
+    step: 0,
+    name: "",
+    dob: { day: "", month: "", year: "" },
+    sport: "",
+    level: "",
+    freq: "",
+    answers: {},
+    goals: "",
+    weaknesses: "",
+  };
+}
 
 // ── Validation ───────────────────────────────────────────────────────────────
 
@@ -47,6 +95,24 @@ export function dobStepError(parts: DateOfBirthParts, today = new Date()): strin
   return null;
 }
 
+/**
+ * What is missing on a choice step, in plain words, or null when the step is
+ * complete. Name and date of birth have their own messages (nameStepError,
+ * dobStepError); goals is optional.
+ */
+export function choiceStepError(draft: OnboardingDraft, step: number): string | null {
+  const key = STEP_KEYS[step];
+  if (key === "sport") {
+    if (!draft.sport) return "Choose what you train to continue.";
+    if (!draft.level) return `Choose your ${levelNounForSport(draft.sport)} to continue.`;
+    return null;
+  }
+  if (key === "frequency") return draft.freq ? null : "Choose how often you train to continue.";
+  const q = questionForStep(step);
+  if (q) return draft.answers[q.id] == null ? "Pick an answer to continue." : null;
+  return null;
+}
+
 // ── Save payload ─────────────────────────────────────────────────────────────
 
 /**
@@ -58,13 +124,15 @@ export function buildFighterPayload(draft: OnboardingDraft, dateOfBirth: string)
   return {
     name: draft.name.trim(),
     dateOfBirth,
-    art: draft.sport,
+    // Same strings as the coach web: art is the sport's label, primarySport its key.
+    art: sportLabelFor(draft.sport) ?? draft.sport,
     primarySport: draft.sport,
     level: draft.level,
     trainingFrequency: draft.freq,
     goals: draft.goals.trim(),
     weaknesses: draft.weaknesses.trim(),
-    personality: `Training ${draft.freq} per week. Sport: ${draft.sport}. ${levelLabelForSport(draft.sport)}: ${draft.level}.`,
+    // Built from the 4 answers exactly like the coach web, so the spirit-animal read gets the same input.
+    personality: composePersonality(draft.answers),
   };
 }
 
@@ -136,7 +204,9 @@ export function isDoubleTap(lastTapAt: number, now: number, gap = STEP_TAP_GAP_M
 
 // ── Draft (resume where they left off) ──────────────────────────────────────
 
-export const draftKeyFor = (userId: string) => `frame:onboarding-draft:${userId}`;
+// v2: drafts saved before the defaults were removed hold a pre-selected BJJ / White / 3-4 that
+// the athlete may never have chosen, so they are not restored.
+export const draftKeyFor = (userId: string) => `frame:onboarding-draft:v2:${userId}`;
 
 const str = (v: unknown, max = 2000): string => (typeof v === "string" ? v.slice(0, max) : "");
 
@@ -153,15 +223,18 @@ export function parseDraft(raw: string | null | undefined): OnboardingDraft | nu
   const d = o as Record<string, unknown>;
   const dob = (d.dob ?? {}) as Record<string, unknown>;
   const sport = str(d.sport, 40);
+  const level = str(d.level, 60);
+  const freq = str(d.freq, 40);
   const known = [...SPORTS, ...LEGACY_SPORTS].some((s) => s.key === sport);
   const step = typeof d.step === "number" && Number.isInteger(d.step) ? d.step : 0;
   return {
     step: Math.min(Math.max(step, 0), TOTAL_STEPS - 1),
     name: str(d.name, NAME_MAX),
     dob: { day: str(dob.day, 2), month: str(dob.month, 2), year: str(dob.year, 4) },
-    sport: known ? sport : "bjj",
-    level: str(d.level, 60),
-    freq: str(d.freq, 10),
+    sport: known ? sport : "",
+    level: known && levelsForSport(sport).some((l) => l.key === level) ? level : "",
+    freq: FREQUENCIES.includes(normaliseFrequency(freq)) ? normaliseFrequency(freq) : "",
+    answers: sanitiseAnswers(d.answers),
     goals: str(d.goals),
     weaknesses: str(d.weaknesses),
   };
@@ -169,7 +242,7 @@ export function parseDraft(raw: string | null | undefined): OnboardingDraft | nu
 
 /** True when the draft holds anything worth restoring (don't resume an untouched form). */
 export function draftHasProgress(d: OnboardingDraft): boolean {
-  return d.step > 0 || !!d.name.trim() || !!d.dob.day || !!d.dob.month || !!d.dob.year || !!d.goals.trim() || !!d.weaknesses.trim();
+  return d.step > 0 || !!d.name.trim() || !!d.dob.day || !!d.dob.month || !!d.dob.year || !!d.sport || !!d.freq || Object.keys(d.answers).length > 0 || !!d.goals.trim() || !!d.weaknesses.trim();
 }
 
 /** "bjj" -> "BJJ", "muay_thai" -> "Muay Thai", unknown keys title-cased. */

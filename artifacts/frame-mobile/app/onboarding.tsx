@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { QUESTIONS, type Answers } from "@workspace/onboarding";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter, type Fighter } from "@/context/FighterContext";
 import { apiPost } from "@/lib/api";
@@ -28,9 +29,13 @@ import { commitFighterProfile } from "@/lib/fighterProfileCache";
 import { shouldLeaveOnboarding } from "@/lib/onboardingRoute";
 import { NAME_MAX } from "@/lib/fighterName";
 import {
+  ADVANCE_DELAY_MS,
+  FIRST_QUESTION_STEP,
   SAVE_TIMEOUT_MS,
+  STEP_KEYS,
   TOTAL_STEPS,
   buildFighterPayload,
+  choiceStepError,
   describeSaveFailure,
   dobStepError,
   draftHasProgress,
@@ -38,12 +43,15 @@ import {
   isDoubleTap,
   nameStepError,
   parseDraft,
+  questionForStep,
   sentenceCaseLabel,
+  stepAfter,
   withTimeout,
 } from "@/lib/onboarding";
+import { createOnboardingTracker } from "@/lib/onboardingTracking";
 import {
+  FREQUENCY_OPTIONS,
   SPORTS,
-  defaultLevelForSport,
   levelLabelForSport,
   levelsForSport,
 } from "@/lib/fighterOptions";
@@ -63,19 +71,14 @@ import {
 } from "@/components/ui";
 import { fonts, MIN_TAP, palette, radius, SCREEN_PAD, space } from "@/constants/theme";
 
-const FREQS = [
-  { key: "1-2", label: "1-2x / week" },
-  { key: "3-4", label: "3-4x / week" },
-  { key: "5+", label: "5+ / week" },
-];
-
-const STEP_HEADINGS = [
-  "What do they call you?",
-  "When were you born?",
-  "What do you train?",
-  "How often do you train?",
-  "What are you here to build?",
-];
+// Headings for the plain steps; the four question steps use the question text itself.
+const STEP_HEADINGS: Record<string, string> = {
+  name: "What do they call you?",
+  dob: "When were you born?",
+  sport: "What do you train?",
+  frequency: "How often do you train?",
+  goals: "What are you here to build?",
+};
 
 function ProgressBar({ step }: { step: number }) {
   return (
@@ -158,6 +161,44 @@ const chip = StyleSheet.create({
   selectedText: { color: palette.goldPale },
 });
 
+/** One full-width answer for a behavioural question. Tap = answer (the screen auto-advances). */
+function AnswerOption({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      style={({ pressed }) => [ans.item, selected && ans.selected, pressed && !selected && ans.pressed]}
+      onPress={() => {
+        haptic.select();
+        onPress();
+      }}
+    >
+      <Text style={[ans.text, selected && ans.selectedText]}>{label}</Text>
+      {selected ? <Feather name="check" size={18} color={palette.goldPale} /> : null}
+    </Pressable>
+  );
+}
+
+const ans = StyleSheet.create({
+  item: {
+    minHeight: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  pressed: { backgroundColor: palette.raised },
+  selected: { borderColor: palette.goldHair, backgroundColor: palette.goldWash },
+  text: { flex: 1, fontFamily: fonts.medium, fontSize: 16, lineHeight: 22, color: palette.textMid },
+  selectedText: { color: palette.goldPale },
+});
+
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -172,9 +213,12 @@ export default function OnboardingScreen() {
     month: "",
     year: "",
   });
-  const [sport, setSport] = useState("bjj");
-  const [level, setLevel] = useState(() => defaultLevelForSport("bjj"));
-  const [freq, setFreq] = useState("3-4");
+  // Nothing is pre-selected: sport, level, frequency and the 4 answers start empty.
+  const [sport, setSport] = useState("");
+  const [level, setLevel] = useState("");
+  const [freq, setFreq] = useState("");
+  const [answers, setAnswers] = useState<Answers>({});
+  const [choiceErr, setChoiceErr] = useState<string | null>(null);
   const [goals, setGoals] = useState("");
   const [weaknesses, setWeaknesses] = useState("");
   const [loading, setLoading] = useState(false);
@@ -185,6 +229,8 @@ export default function OnboardingScreen() {
   const lastTapRef = useRef(0);
   const draftReadyRef = useRef(false);
   const profileSaveCompletedRef = useRef(false);
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const trackerRef = useRef(createOnboardingTracker());
   const monthInputRef = useRef<TextInput>(null);
   const yearInputRef = useRef<TextInput>(null);
 
@@ -200,8 +246,9 @@ export default function OnboardingScreen() {
           setName(d.name);
           setDob(d.dob);
           setSport(d.sport);
-          setLevel(d.level || defaultLevelForSport(d.sport));
-          setFreq(d.freq || "3-4");
+          setLevel(d.level);
+          setFreq(d.freq);
+          setAnswers(d.answers);
           setGoals(d.goals);
           setWeaknesses(d.weaknesses);
           setStep(d.step);
@@ -220,15 +267,29 @@ export default function OnboardingScreen() {
     if (!userId || !draftReadyRef.current) return;
     AsyncStorage.setItem(
       draftKeyFor(userId),
-      JSON.stringify({ step, name, dob, sport, level, freq, goals, weaknesses }),
+      JSON.stringify({ step, name, dob, sport, level, freq, answers, goals, weaknesses }),
     ).catch(() => {});
-  }, [userId, step, name, dob, sport, level, freq, goals, weaknesses]);
+  }, [userId, step, name, dob, sport, level, freq, answers, goals, weaknesses]);
+
+  // Funnel: one 'view' per step the person lands on (fire-and-forget; see lib/onboardingTracking).
+  useEffect(() => {
+    if (!userId) return;
+    trackerRef.current.track(STEP_KEYS[step], "view");
+  }, [userId, step]);
+
+  useEffect(
+    () => () => {
+      if (advanceTimerRef.current != null) clearTimeout(advanceTimerRef.current);
+    },
+    [],
+  );
 
   // Android hardware back moves to the previous step instead of leaving onboarding.
   useEffect(() => {
     if (Platform.OS !== "android") return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
       if (step > 0) {
+        clearAdvance();
         setStep(step - 1);
         return true;
       }
@@ -272,8 +333,38 @@ export default function OnboardingScreen() {
     return true;
   }
 
+  function clearAdvance() {
+    if (advanceTimerRef.current != null) {
+      clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+  }
+
+  const currentDraft = () => ({ step, name, dob, sport, level, freq, answers, goals, weaknesses });
+
+  function pickSport(nextSport: string) {
+    // Belts/levels differ per sport: clear the old pick, the new one must be chosen.
+    if (nextSport !== sport) setLevel("");
+    setSport(nextSport);
+    setChoiceErr(null);
+  }
+
+  /** Tap on a behavioural answer: record it, then advance once after a beat (a second tap in that beat never queues a second advance). */
+  function answerQuestion(questionId: string, index: number) {
+    setAnswers((a) => ({ ...a, [questionId]: index }));
+    setChoiceErr(null);
+    if (advanceTimerRef.current != null) return;
+    const answered = step;
+    advanceTimerRef.current = setTimeout(() => {
+      advanceTimerRef.current = null;
+      trackerRef.current.track(STEP_KEYS[answered], "complete");
+      setStep(stepAfter(answered));
+    }, ADVANCE_DELAY_MS);
+  }
+
   function next() {
     if (!tapAllowed()) return;
+    clearAdvance();
     if (step === 0) {
       const problem = nameStepError(name);
       if (problem) {
@@ -290,12 +381,22 @@ export default function OnboardingScreen() {
       }
       setDobError(null);
     }
+    const choiceProblem = choiceStepError(currentDraft(), step);
+    if (choiceProblem) {
+      setChoiceErr(choiceProblem);
+      trackerRef.current.track(STEP_KEYS[step], "error");
+      return;
+    }
+    setChoiceErr(null);
     setError(null);
-    setStep(Math.min(step + 1, TOTAL_STEPS - 1));
+    trackerRef.current.track(STEP_KEYS[step], "complete");
+    setStep(stepAfter(step));
   }
 
   function back() {
     if (!tapAllowed()) return;
+    clearAdvance();
+    setChoiceErr(null);
     setError(null);
     setStep(Math.max(step - 1, 0));
   }
@@ -307,6 +408,8 @@ export default function OnboardingScreen() {
     setError(null);
     const abort = new AbortController();
     try {
+      // Last step: completed by tapping Finish (the server records 'finish' once the profile is saved).
+      trackerRef.current.track(STEP_KEYS[TOTAL_STEPS - 1], "complete");
       const nameProblem = nameStepError(name);
       if (nameProblem) {
         setNameErr(nameProblem);
@@ -322,7 +425,7 @@ export default function OnboardingScreen() {
       const response = await withTimeout(
         apiPost<{ fighter: Fighter }>(
           "/fighter",
-          buildFighterPayload({ step, name, dob, sport, level, freq, goals, weaknesses }, dobDate),
+          buildFighterPayload(currentDraft(), dobDate),
           { signal: abort.signal },
         ),
         SAVE_TIMEOUT_MS,
@@ -338,6 +441,7 @@ export default function OnboardingScreen() {
       router.replace("/(tabs)/home");
     } catch (e: unknown) {
       abort.abort();
+      trackerRef.current.track("goals", "error");
       const failure = describeSaveFailure(e);
       if (failure.goToStep === 0) setNameErr(failure.message);
       else if (failure.goToStep === 1) setDobError(failure.message);
@@ -376,7 +480,7 @@ export default function OnboardingScreen() {
             <AuthPanel>
             <ProgressBar step={step} />
             <Display size="title" style={styles.heading}>
-              {STEP_HEADINGS[step]}
+              {questionForStep(step)?.prompt ?? STEP_HEADINGS[STEP_KEYS[step]]}
             </Display>
 
             {step === 0 && (
@@ -450,31 +554,75 @@ export default function OnboardingScreen() {
               </View>
             )}
 
-            {step === 2 && (
+            {STEP_KEYS[step] === "sport" && (
               <View style={styles.section}>
                 <Label style={styles.label}>Primary sport</Label>
-                <ChipSelector
-                  options={SPORTS}
-                  value={sport}
-                  onSelect={(nextSport) => {
-                    setSport(nextSport);
-                    setLevel(defaultLevelForSport(nextSport));
-                  }}
-                />
+                <ChipSelector options={SPORTS} value={sport} onSelect={pickSport} />
 
-                <Label style={[styles.label, { marginTop: space.xl }]}>{sentenceCaseLabel(levelLabelForSport(sport))}</Label>
-                <ChipSelector options={levelsForSport(sport)} value={level} onSelect={setLevel} />
+                {sport ? (
+                  <>
+                    <Label style={[styles.label, { marginTop: space.xl }]}>{sentenceCaseLabel(levelLabelForSport(sport))}</Label>
+                    <ChipSelector
+                      options={levelsForSport(sport)}
+                      value={level}
+                      onSelect={(l) => {
+                        setLevel(l);
+                        setChoiceErr(null);
+                      }}
+                    />
+                  </>
+                ) : null}
+                {choiceErr ? (
+                  <Text style={styles.errorText} accessibilityRole="alert">
+                    {choiceErr}
+                  </Text>
+                ) : null}
               </View>
             )}
 
-            {step === 3 && (
+            {STEP_KEYS[step] === "frequency" && (
               <View style={styles.section}>
                 <Label style={styles.label}>Training frequency</Label>
-                <ChipSelector options={FREQS} value={freq} onSelect={setFreq} />
+                <ChipSelector
+                  options={FREQUENCY_OPTIONS}
+                  value={freq}
+                  onSelect={(f) => {
+                    setFreq(f);
+                    setChoiceErr(null);
+                  }}
+                />
+                {choiceErr ? (
+                  <Text style={styles.errorText} accessibilityRole="alert">
+                    {choiceErr}
+                  </Text>
+                ) : null}
               </View>
             )}
 
-            {step === 4 && (
+            {questionForStep(step) && (
+              <View style={styles.section}>
+                <Label style={styles.label}>
+                  Question {step - FIRST_QUESTION_STEP + 1} of {QUESTIONS.length}
+                </Label>
+                <View style={styles.answers}>
+                  {questionForStep(step)!.choices.map((c, idx) => (
+                    <AnswerOption
+                      key={c.label}
+                      label={c.label}
+                      selected={answers[questionForStep(step)!.id] === idx}
+                      onPress={() => answerQuestion(questionForStep(step)!.id, idx)}
+                    />
+                  ))}
+                </View>
+                {choiceErr ? (
+                  <Text style={styles.errorText} accessibilityRole="alert">
+                    {choiceErr}
+                  </Text>
+                ) : null}
+              </View>
+            )}
+
+            {STEP_KEYS[step] === "goals" && (
               <View style={[styles.section, { gap: 20 }]}>
                 <Label style={styles.optionalNote}>Both answers are optional. Skip either one and add it later.</Label>
                 <Field
@@ -547,6 +695,7 @@ const styles = StyleSheet.create({
   cardWrap: { width: "100%", maxWidth: 480, alignSelf: "center", paddingHorizontal: SCREEN_PAD + 2, paddingTop: space.md },
   heading: { marginTop: space.lg, marginBottom: space.xl },
   section: { width: "100%" },
+  answers: { gap: 10 },
   label: { marginBottom: 12 },
   dobRow: { flexDirection: "row", gap: 10 },
   dobField: { flex: 1 },

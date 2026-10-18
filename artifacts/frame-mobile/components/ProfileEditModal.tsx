@@ -17,7 +17,9 @@ import { NAME_MAX, nameError } from "@/lib/fighterName";
 import { Button, Display, Field, Label, haptic } from "@/components/ui";
 import { fonts, MIN_TAP, palette, radius } from "@/constants/theme";
 import type { Fighter } from "@/context/FighterContext";
+import { normaliseFrequency, sportLabelFor } from "@workspace/onboarding";
 import {
+  FREQUENCY_OPTIONS,
   SPORTS,
   LEGACY_SPORTS,
   defaultLevelForSport,
@@ -33,12 +35,7 @@ function sentenceLabel(s: string): string {
 
 const PROFILE_SPORTS = [...SPORTS, ...LEGACY_SPORTS];
 
-const FREQS = [
-  { key: "1-2x / week", label: "1-2x" },
-  { key: "3-4x / week", label: "3-4x" },
-  { key: "5-6x / week", label: "5-6x" },
-  { key: "Daily / pro", label: "Daily / pro" },
-];
+const FREQS = FREQUENCY_OPTIONS;
 
 function ChipSelector({
   options,
@@ -103,7 +100,8 @@ function toForm(f: Fighter): FormState {
     primarySport: f.primarySport ?? "bjj",
     art: f.art ?? f.primarySport ?? "bjj",
     level: f.level ?? defaultLevelForSport(f.primarySport),
-    trainingFrequency: f.trainingFrequency ?? "3-4x / week",
+    // Rows written by older builds hold "3-4" etc.; show the matching chip as selected.
+    trainingFrequency: normaliseFrequency(f.trainingFrequency ?? "3-4x / week"),
     goals: f.goals ?? "",
     weaknesses: f.weaknesses ?? "",
   };
@@ -214,7 +212,7 @@ export function ProfileEditModal({
                     setForm((current) => ({
                       ...current,
                       primarySport: k,
-                      art: k,
+                      art: sportLabelFor(k) ?? k,
                       level: defaultLevelForSport(k),
                     }));
                   }}

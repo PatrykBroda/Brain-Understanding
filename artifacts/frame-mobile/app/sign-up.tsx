@@ -68,6 +68,8 @@ export default function SignUpScreen() {
           acceptedPrivacy: acceptedLegal,
           acceptedAiConsent: true,
           aiConsentVersion: AI_CONSENT_VERSION,
+          // Funnel: lets the server record "account created" against this app.
+          app: "mobile",
         },
       );
       await signIn(data.token);
