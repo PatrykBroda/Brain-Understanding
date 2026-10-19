@@ -99,7 +99,7 @@ export default function SignInScreen() {
               </View>
             </FadeIn>
           ) : (
-            <FadeIn index={1} style={styles.band}>
+            <FadeIn index={1} style={[styles.band, styles.formBand]}>
               <AuthPanel>
                 <Display size="title" style={styles.formTitle}>
                   Welcome back
@@ -156,6 +156,9 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   inner: { paddingHorizontal: SCREEN_PAD + 2, flexGrow: 1, justifyContent: "space-between" },
   band: { width: "100%", maxWidth: 440, alignSelf: "center", marginTop: space.xxl, alignItems: "stretch" },
+  // Sign-in form sits in the vertical middle of the screen (Patryk, 19 Oct);
+  // the bottom pad offsets the brand row so it centres on the screen, not the leftover space.
+  formBand: { flex: 1, justifyContent: "center", marginTop: 0, paddingBottom: 56 },
   headline: { fontSize: 36, lineHeight: 40, letterSpacing: -1.2 },
   sub: { marginTop: space.lg, fontSize: 17, lineHeight: 24, color: palette.textHi, textAlign: "center" },
   actions: { flexDirection: "row", gap: space.md, marginTop: space.xl },
