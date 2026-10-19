@@ -10,15 +10,18 @@ export const ADVANCE_DELAY_MS = 220;
 
 // ── Sign-up form ─────────────────────────────────────────────────────────────
 
-export type SignUpErrors = { email?: string; password?: string; legal?: string };
+export type SignUpErrors = { name?: string; email?: string; password?: string; legal?: string };
 
 export function isPlausibleEmail(raw: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(raw.trim());
 }
 
 /** What is still missing from the sign-up form, in plain words (the button used to just stay greyed out). */
-export function validateSignUp(input: { email: string; password: string; acceptedLegal: boolean }): SignUpErrors {
+export function validateSignUp(input: { name: string; email: string; password: string; acceptedLegal: boolean }): SignUpErrors {
   const errors: SignUpErrors = {};
+  const name = input.name.trim();
+  if (!name) errors.name = "Enter your name.";
+  else if (name.length > NAME_MAX) errors.name = `Use ${NAME_MAX} characters or fewer.`;
   if (!input.email.trim()) errors.email = "Enter your email.";
   else if (!isPlausibleEmail(input.email)) errors.email = "That email doesn't look right. Check it for typos.";
   if (!input.password) errors.password = "Choose a password.";

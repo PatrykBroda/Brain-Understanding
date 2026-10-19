@@ -36,7 +36,8 @@ router.get("/fighter", async (req, res) => {
 });
 
 router.post("/fighter", async (req, res) => {
-  const parsed = insertFighterSchema.safeParse(prepareFighterBody(req.body));
+  const current = await getUserFighter(req);
+  const parsed = insertFighterSchema.safeParse(prepareFighterBody(req.body, current ?? undefined));
   if (!parsed.success) {
     res.status(400).json({ error: "invalid fighter", details: parsed.error.flatten() });
     return;
@@ -110,12 +111,12 @@ router.post("/fighter", async (req, res) => {
 });
 
 router.patch("/fighter", async (req, res) => {
-  const parsed = updateFighterSchema.safeParse(prepareFighterBody(req.body));
+  const existing = await getUserFighter(req);
+  const parsed = updateFighterSchema.safeParse(prepareFighterBody(req.body, existing ?? undefined));
   if (!parsed.success) {
     res.status(400).json({ error: "invalid fighter", details: parsed.error.flatten() });
     return;
   }
-  const existing = await getUserFighter(req);
   if (!existing) {
     res.status(404).json({ error: "no fighter to update" });
     return;

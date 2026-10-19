@@ -11,6 +11,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { Belt } from "@/components/belt";
 import { ProfileEdit } from "@/components/profile-edit";
 import { AthleteModel } from "@/components/athlete-model";
+import { AnswersSection } from "@/components/answers-section";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
 import { primaryFocus, primaryStrength } from "@/lib/primary-focus";
 import { Link } from "wouter";
@@ -278,6 +279,11 @@ export default function ProfilePage() {
                   <span className="text-[1rem] font-medium text-[#D4C7A3]">Continue calibration</span>
                   <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-[#B9A477] transition-colors" strokeWidth={1.5} />
                 </Link>
+              </div>
+
+              {/* ─── YOUR ANSWERS — the onboarding questionnaire, editable any time ─── */}
+              <div className="pt-6">
+                <AnswersSection fighter={fighter} />
               </div>
 
               {/* ─── ATHLETE MODEL — what FRAME knows ──────────────── */}

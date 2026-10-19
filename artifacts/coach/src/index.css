@@ -580,3 +580,17 @@ body {
 
 /* recharts tooltip: solid overlay, no blur */
 .recharts-default-tooltip { border-radius: 12px !important; border: 1px solid var(--f-border-strong) !important; background: var(--f-overlay) !important; box-shadow: 0 12px 30px -10px #000; }
+
+/* Keyboard open on a phone: every scroll area gains the keyboard's height as room at the end,
+   so the last field and the Save / Continue control stay reachable (see lib/keyboard.ts). */
+html[data-keyboard="open"] main,
+html[data-keyboard="open"] [data-scroll] {
+  padding-bottom: calc(var(--kb-inset, 0px) + 16px);
+}
+
+/* Onboarding: more squared controls, black and white (selected = white fill, black text), no gold. */
+.onb-square .field-glass,
+.onb-square select,
+.onb-square .chip {
+  border-radius: 8px;
+}

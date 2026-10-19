@@ -9,6 +9,8 @@ import {
   useTogglePlannerItem,
 } from "@/hooks/use-planner";
 import { api, ApiError, type PlanCategory, type PlanItem } from "@/lib/api";
+import { missionErrorMessage } from "@/lib/mission";
+import { Link } from "wouter";
 
 const CATEGORY_ORDER: PlanCategory[] = ["fix", "goal_step", "train", "technique", "regulate"];
 
@@ -182,9 +184,23 @@ export function CampMission() {
 
         {regen.isError &&
           !(regen.error instanceof ApiError && regen.error.kind === "upgrade_required") && (
-          <div role="alert" className="glass glass-red px-4 py-3 text-[0.9375rem] text-foreground/90">
-            <span className="font-medium text-[#E5645A]">Could not generate the mission.</span>{" "}
-            {(regen.error as Error).message || "Try again in a moment."}
+          <div role="alert" className="glass glass-red space-y-3 px-4 py-3.5 text-[0.9375rem] text-foreground/90">
+            <div>
+              <span className="font-medium text-[#E5645A]">Couldn&apos;t build your mission.</span>{" "}
+              {missionErrorMessage(regen.error)}
+            </div>
+            <button type="button" onClick={() => void requestGenerate()} disabled={regen.isPending} className="btn-quiet btn-quiet-red">
+              <RefreshCcw className="w-4 h-4" strokeWidth={1.5} />
+              Try again
+            </button>
+          </div>
+        )}
+
+        {regen.isPending && !plan && (
+          <div className="glass px-5 py-6 text-center" role="status" aria-live="polite">
+            <span className="mx-auto mb-3 block h-5 w-5 rounded-full border-2 border-white/15 border-t-[#B9A477] animate-spin motion-reduce:animate-none" aria-hidden />
+            <div className="font-medium text-foreground">Building your mission</div>
+            <p className="mt-1 text-sm text-muted-foreground">FRAME is reading what it knows about you. This can take up to a minute.</p>
           </div>
         )}
 
@@ -217,6 +233,14 @@ export function CampMission() {
               <RefreshCcw className="w-4 h-4" strokeWidth={1.5} />
               Retry
             </button>
+          </div>
+        ) : !plan && regen.isPending ? null : !plan && planner.data?.canGenerate === false ? (
+          <div className="glass p-5 space-y-3">
+            <h3 className="section-title">Nothing to build from yet</h3>
+            <p className="text-[1rem] text-muted-foreground leading-[1.6]">
+              Tell your coach about your training, or add your goals and weaknesses to your profile, then come back.
+            </p>
+            <Link href="/chat" className="btn-bronze w-full">Talk to your coach</Link>
           </div>
         ) : !plan ? (
           <div className="glass p-5 space-y-3">

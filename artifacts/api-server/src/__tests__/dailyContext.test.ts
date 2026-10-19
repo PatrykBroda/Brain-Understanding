@@ -79,6 +79,11 @@ describe("state", () => {
     expect(deriveState({ ...base, checkin: { sleep: 80, energy: 80, soreness: 80, stress: 30 } }).state).toBe("Tight");
     expect(deriveState({ ...base, checkin: { sleep: 80, energy: 80, soreness: 80, stress: 80 } }).state).toBe("Stable");
   });
+  it("very low sleep or energy alone reads Recovering even when the average looks middling", () => {
+    const r = deriveState({ ...base, checkin: { sleep: 20, energy: 90, soreness: 90, stress: 90 } });
+    expect(r.state).toBe("Recovering");
+    expect(r.source).toMatch(/very low sleep or energy/);
+  });
   it("says what it was read from", () => {
     expect(deriveState({ ...base, checkin: { sleep: 30, energy: 35, soreness: 40, stress: 45 } }).source).toMatch(/check-in/);
   });

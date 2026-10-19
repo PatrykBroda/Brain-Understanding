@@ -62,18 +62,23 @@ describe("nameProblem", () => {
 
 describe("validateSignUp", () => {
   it("names what is missing instead of leaving Create account greyed out", () => {
-    const e = validateSignUp({ email: "me@example.com", password: "password1", acceptedLegal: false });
+    const e = validateSignUp({ name: "Pat", email: "me@example.com", password: "password1", acceptedLegal: false });
     expect(Object.keys(e)).toEqual(["legal"]);
-    expect(validateSignUp({ email: "", password: "", acceptedLegal: false })).toMatchObject({
+    expect(validateSignUp({ name: "", email: "", password: "", acceptedLegal: false })).toMatchObject({
+      name: expect.stringMatching(/Enter your name/),
       email: expect.any(String),
       password: expect.any(String),
       legal: expect.any(String),
     });
-    expect(validateSignUp({ email: "me@gmail", password: "short", acceptedLegal: true })).toMatchObject({
+    expect(validateSignUp({ name: "Pat", email: "me@gmail", password: "short", acceptedLegal: true })).toMatchObject({
       email: expect.stringMatching(/typos/),
       password: expect.stringMatching(/at least 8/),
     });
-    expect(validateSignUp({ email: " a@b.co ", password: "12345678", acceptedLegal: true })).toEqual({});
+    expect(validateSignUp({ name: "Pat", email: " a@b.co ", password: "12345678", acceptedLegal: true })).toEqual({});
+  });
+  it("sign-up asks for name, email and password and nothing else (plus the consent tick)", () => {
+    expect(Object.keys(validateSignUp({ name: " ", email: "a@b.co", password: "password1", acceptedLegal: true }))).toEqual(["name"]);
+    expect(validateSignUp({ name: "x".repeat(61), email: "a@b.co", password: "password1", acceptedLegal: true }).name).toMatch(/60/);
   });
 });
 

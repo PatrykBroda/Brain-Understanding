@@ -8,13 +8,14 @@ import {
 } from "@workspace/ai-consent";
 import { AiConsentModal } from "@/components/ai-consent-modal";
 import type { AiConsentStatus } from "@/lib/api";
-import { validateSignUp } from "@/lib/onboarding-form";
+import { NAME_MAX, validateSignUp } from "@/lib/onboarding-form";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function SignUpPage() {
   const { signIn } = useAuth();
   const [, setLocation] = useLocation();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,7 +36,7 @@ export default function SignUpPage() {
     if (loading) return;
     setAttempted(true);
     setError(null);
-    if (Object.keys(validateSignUp({ email, password, acceptedLegal })).length > 0) return;
+    if (Object.keys(validateSignUp({ name, email, password, acceptedLegal })).length > 0) return;
     setShowAiConsent(true);
   }
 
@@ -48,6 +49,8 @@ export default function SignUpPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          // Sign-up asks for name, email and password only; onboarding starts from this name.
+          name: name.trim(),
           email: email.trim(),
           password,
           acceptedTerms: acceptedLegal,
@@ -72,7 +75,8 @@ export default function SignUpPage() {
     }
   }
 
-  const problems = validateSignUp({ email, password, acceptedLegal });
+  const problems = validateSignUp({ name, email, password, acceptedLegal });
+  const nameErr = attempted ? problems.name : undefined;
   const emailErr = attempted ? problems.email : undefined;
   const passwordErr = password.length > 0 || attempted ? problems.password : undefined;
   const legalErr = attempted ? problems.legal : undefined;
@@ -83,6 +87,29 @@ export default function SignUpPage() {
         <h1 className="display-title">Create your account</h1>
 
         <form onSubmit={handleSubmit} noValidate className="mt-4 flex flex-col gap-3.5">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="signup-name" className="label">
+              Name
+            </label>
+            <input
+              id="signup-name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
+              maxLength={NAME_MAX}
+              placeholder="What should we call you?"
+              aria-invalid={nameErr ? true : undefined}
+              aria-describedby={nameErr ? "signup-name-err" : undefined}
+              className="field-glass"
+            />
+            {nameErr && (
+              <span id="signup-name-err" role="alert" className="text-xs text-[var(--f-red-text)]">
+                {nameErr}
+              </span>
+            )}
+          </div>
+
           <div className="flex flex-col gap-1.5">
             <label htmlFor="signup-email" className="label">
               Email

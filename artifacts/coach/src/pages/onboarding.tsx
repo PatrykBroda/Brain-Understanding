@@ -8,7 +8,7 @@ import { Check, ChevronLeft } from "lucide-react";
 import { VideoBackdrop } from "@/components/media-backdrop";
 import { TAGLINE, SUBLINE } from "@/components/auth-layout";
 import { Atmosphere } from "@/components/frame-ui";
-import type { FighterInput } from "@/lib/api";
+import { api, type FighterInput } from "@/lib/api";
 import { createOnboardingTracker } from "@/lib/onboarding-tracking";
 import {
   FREQUENCIES,
@@ -92,6 +92,13 @@ export default function OnboardingPage() {
         sports: SPORTS.map((x) => x.value),
         frequencies: FREQUENCIES,
       });
+      if (!d || !draftHasProgress(d)) {
+        // A new account starts from the name typed on the sign-up form, so name is never asked twice.
+        api.me().then((me) => {
+          const n = me?.name?.trim();
+          if (n) setForm((f) => (f.name.trim() ? f : { ...f, name: n }));
+        }).catch(() => {});
+      }
       if (d && draftHasProgress(d)) {
         setStarted(d.started || d.step > 0);
         setStep(d.step);
@@ -184,6 +191,10 @@ export default function OnboardingPage() {
         name: form.name.trim(),
         art: sportLabel(sport),
         trainingBackground: background.join(", "),
+        // The answers themselves (editable later from Profile) plus any free-text line;
+        // the server recomposes `personality` from them.
+        onboardingAnswers: answers,
+        personalityNote: form.personality.trim(),
         personality: composePersonality(answers, form.personality),
       },
       {
@@ -247,7 +258,7 @@ export default function OnboardingPage() {
 
   // Shared shell
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden text-foreground">
+    <div className="onb-square relative min-h-[100dvh] overflow-hidden text-foreground">
       <div className="atmo atmo-silver-left" aria-hidden />
       <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-xl flex-col px-5 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
         {/* Wordmark + progress */}
@@ -265,7 +276,7 @@ export default function OnboardingPage() {
               <span
                 key={i}
                 className="h-[3px] flex-1 rounded-full transition-colors duration-300"
-                style={{ background: i <= step ? "var(--f-gold)" : "rgba(255,255,255,0.1)" }}
+                style={{ background: i <= step ? "var(--f-text)" : "rgba(255,255,255,0.1)" }}
               />
             ))}
           </div>
@@ -294,14 +305,14 @@ export default function OnboardingPage() {
                       type="button"
                       onClick={() => answerQuestion(q, idx)}
                       aria-pressed={isSel}
-                      className={`flex w-full items-center justify-between gap-3 rounded-[16px] border px-4 py-3.5 min-h-[56px] text-left text-base transition-colors duration-200 active:scale-[0.99] motion-reduce:transition-none ${
+                      className={`flex w-full items-center justify-between gap-3 rounded-[8px] border px-4 py-3.5 min-h-[56px] text-left text-base transition-colors duration-200 active:scale-[0.99] motion-reduce:transition-none ${
                         isSel
-                          ? "border-[rgba(185,164,119,0.5)] bg-[var(--f-raised)] text-foreground"
-                          : "border-[var(--f-border)] bg-[var(--f-surface)] text-foreground/90 hover:bg-[var(--f-raised)]"
+                          ? "border-[#F4F4F1] bg-[#F4F4F1] text-[#08090B]"
+                          : "border-[var(--f-border-strong,rgba(255,255,255,0.12))] bg-[var(--f-surface)] text-foreground/90 hover:bg-[var(--f-raised)]"
                       }`}
                     >
                       <span>{c.label}</span>
-                      {isSel && <Check className="h-5 w-5 shrink-0 text-[var(--f-gold)]" strokeWidth={2} aria-hidden />}
+                      {isSel && <Check className="h-5 w-5 shrink-0 text-[#08090B]" strokeWidth={2} aria-hidden />}
                     </button>
                   );
                 })}
@@ -485,9 +496,9 @@ export default function OnboardingPage() {
                       type="button"
                       onClick={() => toggleBackground(label)}
                       aria-pressed={on}
-                      className={`px-4 min-h-[44px] rounded-full border text-sm transition-colors duration-200 ${
+                      className={`px-4 min-h-[44px] rounded-[8px] border text-sm transition-colors duration-200 ${
                         on
-                          ? "border-[rgba(185,164,119,0.5)] bg-[var(--f-raised)] text-foreground"
+                          ? "border-[#F4F4F1] bg-[#F4F4F1] text-[#08090B]"
                           : "border-[var(--f-border)] bg-[var(--f-surface)] text-foreground/70 hover:bg-[var(--f-raised)]"
                       }`}
                     >

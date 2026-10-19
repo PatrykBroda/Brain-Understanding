@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ChevronRight, Pencil, Move, Lock } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
 import { CompetitionBanner } from "@/components/competition-banner";
@@ -11,9 +11,10 @@ import { useFighter, useUpdateFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { useAnalyses } from "@/hooks/use-analysis";
 import { useActiveCompetition } from "@/hooks/use-competition";
-import { useTodayCheckin, useSaveCheckin, useCheckinHistory } from "@/hooks/use-checkin";
-import { useMemory } from "@/hooks/use-memory";
-import { primaryFocus } from "@/lib/primary-focus";
+import { useSaveCheckin, useCheckinHistory } from "@/hooks/use-checkin";
+import { useToday } from "@/hooks/use-today";
+import { DisclosureNotice, FocusCard } from "@/components/today-cards";
+import { formatDay } from "@/lib/local-day";
 import { heroFileUrl, api, type DailyCheckin } from "@/lib/api";
 import { AuthedImage } from "@/components/authed-image";
 import { ArcGauge, Sparkline, EmptyState } from "@/components/frame-ui";
@@ -223,8 +224,12 @@ export default function DashboardPage() {
   const latest =
     analysesQuery.data?.analyses?.find((a) => !a.locked && a.sessionScore != null) ?? null;
 
-  const checkinQuery = useTodayCheckin();
-  const checkin = checkinQuery.data?.checkin ?? null;
+  // State, Today's Focus and readiness for the athlete's local day. The server is the one
+  // authority on what "today" is: an older check-in is never returned as today's.
+  const todayQuery = useToday();
+  const today = todayQuery.data ?? null;
+  const checkin = today?.readiness.today?.checkin ?? null;
+  const lastCheckin = today?.readiness.latest ?? null;
 
   // Readiness trend is FRAME+ — only fetch when entitled; free shows a teaser.
   const { isFramePlus } = useSubscription();
@@ -236,20 +241,20 @@ export default function DashboardPage() {
   const competition = activeComp.data?.competition ?? null;
   const pressure = activeComp.data?.pressure ?? null;
 
-  const memoryQuery = useMemory(!!fighter);
-  const rawFacts = memoryQuery.data?.facts;
-  const facts = Array.isArray(rawFacts) ? rawFacts : [];
-  // The one highest-value insight — the coach's voice, not an analytics dump.
-  const focus = fighter ? primaryFocus(fighter, facts) : null;
-  const hasFocus = !!focus && focus.label !== "Not yet identified";
-
   const [editing, setEditing] = useState(false);
+  // "Check in now" on State lands here with the form open.
+  const [location, setLocation] = useLocation();
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("checkin") === "1") {
+      setEditing(true);
+      setLocation(location, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Readiness is only ever a real composite: today's self-reported check-in
-  // first, else the most recent analysed session. No data — no number.
-  const checkinScore = checkin
-    ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
-    : null;
+  // Today's number comes from today's check-in only. An older check-in or an old session
+  // score is never presented as today's readiness (it is shown dated, below).
+  const checkinScore = today?.readiness.today?.score ?? null;
   const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
 
   // Same lightweight ±10 chat modifier the STATE tab applies, so the Fight
@@ -261,13 +266,9 @@ export default function DashboardPage() {
     enabled: !!fighter,
   });
   const chatModifier = readinessModifier(conversationQuery.data?.messages ?? []);
-  const readiness = applyReadinessModifier(checkinScore ?? sessionScore, chatModifier);
+  const readiness = applyReadinessModifier(checkinScore, chatModifier);
   const provenance =
-    checkinScore != null
-      ? "Today's check-in"
-      : sessionScore != null
-        ? "Last session"
-        : null;
+    checkinScore != null ? "Today's check-in" : lastCheckin ? `Last check-in ${formatDay(lastCheckin.date)}` : null;
 
   const hasHero = !!fighter && fighter.heroImageUrl.trim() !== "";
   const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
@@ -342,8 +343,8 @@ export default function DashboardPage() {
     : [];
 
   const delay = (ms: number) => ({ animationDelay: `${ms}ms` });
-  const readinessLoading = checkinQuery.isLoading || analysesQuery.isLoading;
-  const readinessError = !readinessLoading && checkinQuery.isError && readiness == null;
+  const readinessLoading = todayQuery.isLoading;
+  const readinessError = !readinessLoading && todayQuery.isError && readiness == null;
 
   return (
     <div className="flex h-[100dvh] flex-col text-foreground">
@@ -488,30 +489,20 @@ export default function DashboardPage() {
           </section>
 
           {/* ─── 2. Today's focus + 3. clear access to coaching ─── */}
-          <section className="glass frame-rise mt-4 p-5" style={delay(60)} title={hasFocus && focus ? focus.source : undefined}>
-            <h2 className="label">Today&apos;s focus</h2>
-            {hasFocus && focus ? (
-              <>
-                <p className="display-heading mt-1 !text-[1.375rem]">{focus.label}</p>
-                <p className="mt-1.5 text-sm leading-5 text-[var(--f-text-2)]">{focus.source}</p>
-              </>
-            ) : memoryQuery.isLoading ? (
-              <p className="display-heading mt-1 !text-[1.375rem] !text-[var(--f-text-3)]" role="status">
-                Finding your focus
-              </p>
-            ) : (
-              <>
-                <p className="display-heading mt-1 !text-[1.375rem]">Tell your coach what you are working on</p>
-                <p className="mt-1.5 text-sm leading-5 text-[var(--f-text-2)]">
-                  Your focus appears here once FRAME has learned a little about your training.
-                </p>
-              </>
+          <div className="frame-rise mt-4 flex flex-col gap-3" style={delay(60)}>
+            {today && today.disclosure.code !== "none" && (
+              <DisclosureNotice disclosure={today.disclosure} onCheckIn={() => setEditing(true)} />
             )}
-            <Link href="/chat" className="btn-bronze mt-4 w-full">
-              {hasFocus ? "Work on it with your coach" : "Start coaching"}
+            <FocusCard
+              focus={today?.focus ?? null}
+              loading={todayQuery.isLoading}
+              askHref={(prompt) => `/chat?prefill=${encodeURIComponent(prompt)}&n=${Date.now()}`}
+            />
+            <Link href="/chat" className="btn-bronze w-full">
+              {today?.focus?.current ? "Work on it with your coach" : "Start coaching"}
               <ChevronRight className="h-4 w-4" strokeWidth={2} aria-hidden />
             </Link>
-          </section>
+          </div>
 
           <div className="frame-rise relative mt-4" style={delay(100)}>
             <CompetitionBanner />
@@ -530,7 +521,7 @@ export default function DashboardPage() {
                   body="Check your connection and try again."
                   actionLabel="Try again"
                   onAction={() => {
-                    void checkinQuery.refetch();
+                    void todayQuery.refetch();
                     void analysesQuery.refetch();
                   }}
                 />
@@ -637,7 +628,9 @@ export default function DashboardPage() {
 
                 {!checkin && !editing && (
                   <p className="mt-4 text-sm leading-5 text-[var(--f-text-2)]">
-                    Nothing logged today. A 20-second check-in sharpens your readiness.
+                    {lastCheckin
+                      ? `Nothing logged today. Your last check-in was ${formatDay(lastCheckin.date)} (${lastCheckin.score} / 100). That is not today's readiness.`
+                      : "Nothing logged today. A 20-second check-in sharpens your readiness."}
                   </p>
                 )}
 

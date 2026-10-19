@@ -222,8 +222,13 @@ export function useChat() {
           qc.invalidateQueries({ queryKey: ["conversation"] });
           qc.invalidateQueries({ queryKey: ["calibration", "next"] });
           // The memory extractor runs after the reply is sent; refresh the model once it has written.
+          // What the athlete just said is something new today for State and Today's Focus.
+          qc.invalidateQueries({ queryKey: ["today"] });
           for (const ms of POST_CHAT_MEMORY_REFRESH_MS) {
-            window.setTimeout(() => qc.invalidateQueries({ queryKey: ["memory"] }), ms);
+            window.setTimeout(() => {
+              qc.invalidateQueries({ queryKey: ["memory"] });
+              qc.invalidateQueries({ queryKey: ["today"] });
+            }, ms);
           }
         } else if (outcome === "server-error") {
           failTurn("Something jammed on my end. Send that again.");

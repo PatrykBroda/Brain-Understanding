@@ -39,11 +39,24 @@ export function nullTextToDefaults(body: unknown): unknown {
  * onto the canonical set, so builds that still send "3-4" or "BJJ / Grappling"
  * store the same strings as current ones. Unrecognised values are kept as sent.
  */
-export function prepareFighterBody(body: unknown): unknown {
+export function prepareFighterBody(body: unknown, existing?: StoredQuestionnaire): unknown {
   const filled = nullTextToDefaults(body);
   if (typeof filled !== "object" || filled === null || Array.isArray(filled)) return filled;
   const normalised = normaliseFighterAnswers(filled as Record<string, unknown> & FighterAnswers) as Record<string, unknown>;
-  return withQuestionnaire(normalised);
+  return withQuestionnaire(normalised, existing);
+}
+
+export type StoredQuestionnaire = { personality: string; onboardingAnswers: Record<string, number> | null };
+
+/**
+ * Free text an athlete added after the composed answer reads (the coach web asks for an
+ * optional line about how they compete). Recovered from the stored personality so editing
+ * an answer later does not drop it.
+ */
+export function personalityNoteOf(stored: StoredQuestionnaire): string {
+  const composed = composePersonality(sanitiseAnswers(stored.onboardingAnswers ?? {}));
+  const p = stored.personality ?? "";
+  return composed && p.startsWith(composed) ? p.slice(composed.length).trim() : composed ? "" : p.trim();
 }
 
 /**
@@ -54,13 +67,22 @@ export function prepareFighterBody(body: unknown): unknown {
  * stored. A body without answers is left alone (older builds send `personality` directly).
  * `timezone` is only ever accepted as a valid IANA name.
  */
-export function withQuestionnaire(body: Record<string, unknown>): Record<string, unknown> {
+export function withQuestionnaire(body: Record<string, unknown>, existing?: StoredQuestionnaire): Record<string, unknown> {
   const out = { ...body };
   if ("onboardingAnswers" in out) {
     const answers = sanitiseAnswers(out["onboardingAnswers"]);
     out["onboardingAnswers"] = answers;
-    if (Object.keys(answers).length > 0) out["personality"] = composePersonality(answers);
+    if (Object.keys(answers).length > 0) {
+      const note =
+        typeof out["personalityNote"] === "string"
+          ? out["personalityNote"].trim()
+          : existing
+            ? personalityNoteOf(existing)
+            : "";
+      out["personality"] = composePersonality(answers, note);
+    }
   }
+  delete out["personalityNote"];
   if ("timezone" in out && !isValidTimeZone(out["timezone"])) delete out["timezone"];
   return out;
 }

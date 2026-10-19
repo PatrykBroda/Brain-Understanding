@@ -139,6 +139,9 @@ export function deriveState(sig: StateSignals): DerivedState {
   if (sig.checkin) {
     const score = readinessScore(sig.checkin);
     if (score < 45) return { state: "Recovering", source: `today's check-in (readiness ${score}/100)` };
+    if (Math.min(sig.checkin.sleep, sig.checkin.energy) < 35) {
+      return { state: "Recovering", source: "today's check-in (very low sleep or energy)" };
+    }
     if (sig.checkin.stress < 40) return { state: "Tight", source: "today's check-in (high stress logged)" };
     if (sig.checkin.soreness < 40) return { state: "Loaded", source: "today's check-in (high soreness logged)" };
   }
@@ -388,7 +391,7 @@ export function disclosureFor(args: {
   if (!args.hasCheckinToday) {
     return {
       code: "no_checkin_today",
-      message: "No readiness check-in today. This read comes from what you told your coach. A check-in sharpens it.",
+      message: "No readiness check-in today. This read comes from what you have told FRAME so far. A check-in sharpens it.",
       action: "check_in",
     };
   }

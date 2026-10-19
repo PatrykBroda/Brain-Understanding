@@ -147,6 +147,23 @@ describe("the questionnaire on Profile", () => {
     expect(sys).not.toContain("go still and quiet");
   });
 
+  it("a free-text line the athlete added about how they compete survives editing an answer", async () => {
+    const { r } = await register("Note");
+    const token = r.json.token as string;
+    const created = await req(
+      "POST",
+      "/fighter",
+      { name: "Note", dateOfBirth: "1992-04-01", primarySport: "bjj", art: "BJJ", level: "Blue", trainingFrequency: "3-4x / week", onboardingAnswers: { tired: 0 }, personalityNote: "Southpaw, hates being rushed." },
+      token,
+    );
+    expect(created.json.fighter.personality).toContain("Southpaw, hates being rushed.");
+    expect(created.json.fighter).not.toHaveProperty("personalityNote");
+    const edited = await req("PATCH", "/fighter", { onboardingAnswers: { tired: 1 } }, token);
+    expect(edited.json.fighter.personality).toContain("Southpaw, hates being rushed.");
+    expect(edited.json.fighter.personality).toContain(QUESTIONS[0]!.choices[1]!.read);
+    expect(edited.json.fighter.personality).not.toContain(QUESTIONS[0]!.choices[0]!.read);
+  });
+
   it("invalid answers are dropped, not stored; canonical values are enforced", async () => {
     const { r } = await register("Val");
     const token = r.json.token as string;
