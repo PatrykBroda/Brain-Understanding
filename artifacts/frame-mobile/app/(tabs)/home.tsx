@@ -41,7 +41,6 @@ import { useFighter } from "@/context/FighterContext";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { useIsFramePlus } from "@/hooks/useEntitlement";
 import {
-  useTodayCheckin,
   useSaveCheckin,
   useCheckinHistory,
   type DailyCheckin,
@@ -395,8 +394,11 @@ export default function HomeScreen() {
   const latest =
     analysesQuery.data?.find((a) => !a.locked && a.sessionScore != null) ?? null;
 
-  const checkinQuery = useTodayCheckin();
-  const checkin = checkinQuery.data?.checkin ?? null;
+  // State, Today's Focus and readiness for the athlete's local day (the server is the one
+  // authority on what "today" is; an older check-in is never returned as today's).
+  const todayQuery = useToday();
+  const today = todayQuery.data ?? null;
+  const checkin = today?.readiness.today?.checkin ?? null;
 
   const isFramePlus = useIsFramePlus();
   const historyQuery = useCheckinHistory(isFramePlus);
@@ -405,10 +407,6 @@ export default function HomeScreen() {
   const activeComp = useActiveCompetition();
   const competition = activeComp.data?.competition ?? null;
 
-  // State, Today's Focus and readiness for the athlete's local day, with an honest
-  // disclosure when FRAME holds nothing new today.
-  const todayQuery = useToday();
-  const today = todayQuery.data ?? null;
   const latestCheckin = today?.readiness.latest ?? null;
 
   const [editing, setEditing] = useState(false);
@@ -459,8 +457,8 @@ export default function HomeScreen() {
         ? `Last check-in ${formatDay(latestCheckin.date)}`
         : null;
 
-  const readinessLoading = checkinQuery.isLoading && analysesQuery.isLoading;
-  const readinessFailed = !readinessLoading && checkinQuery.isError && analysesQuery.isError && readiness == null;
+  const readinessLoading = todayQuery.isLoading;
+  const readinessFailed = !readinessLoading && todayQuery.isError && readiness == null;
 
   const hasHero = !!fighter && (fighter.heroImageUrl ?? "").trim() !== "";
   const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
@@ -580,7 +578,7 @@ export default function HomeScreen() {
               body="Check your connection and try again."
               actionLabel="Try again"
               onAction={() => {
-                void checkinQuery.refetch();
+                void todayQuery.refetch();
                 void analysesQuery.refetch();
               }}
             />

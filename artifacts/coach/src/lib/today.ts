@@ -64,3 +64,6 @@ export function stateHeadline(state: TodayView["state"]): string {
   if (state.name) return "No read today";
   return "No read yet";
 }
+
+/** sessionStorage flag State sets so the dashboard opens its check-in form on arrival. */
+export const OPEN_CHECKIN_FLAG = "frame:open-checkin";

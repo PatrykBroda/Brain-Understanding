@@ -236,7 +236,12 @@ export default function StateScreen() {
                 <Punch style={[styles.stateLabel, (loading || !current) && { color: palette.textLow }]}>
                   {loading ? "Reading…" : state ? stateHeadline(state) : "No read yet"}
                 </Punch>
-                {!loading && !current && state?.name ? (
+                {!loading && current && state?.source ? (
+                  <Text style={styles.lastRead} accessibilityRole="text">
+                    Read from {state.source}.
+                  </Text>
+                ) : null}
+                {!loading && !current && state?.name && state.name !== "Dormant" ? (
                   <Text style={styles.lastRead} accessibilityRole="text">
                     Last read: {state.name}, {state.asOf ? formatDay(state.asOf) : ""}. Not today&apos;s state.
                   </Text>

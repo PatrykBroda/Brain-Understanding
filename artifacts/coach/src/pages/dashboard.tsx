@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { ChevronRight, Pencil, Move, Lock } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
 import { CompetitionBanner } from "@/components/competition-banner";
@@ -14,6 +14,7 @@ import { useActiveCompetition } from "@/hooks/use-competition";
 import { useSaveCheckin, useCheckinHistory } from "@/hooks/use-checkin";
 import { useToday } from "@/hooks/use-today";
 import { DisclosureNotice, FocusCard } from "@/components/today-cards";
+import { OPEN_CHECKIN_FLAG } from "@/lib/today";
 import { formatDay } from "@/lib/local-day";
 import { heroFileUrl, api, type DailyCheckin } from "@/lib/api";
 import { AuthedImage } from "@/components/authed-image";
@@ -243,13 +244,15 @@ export default function DashboardPage() {
 
   const [editing, setEditing] = useState(false);
   // "Check in now" on State lands here with the form open.
-  const [location, setLocation] = useLocation();
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("checkin") === "1") {
-      setEditing(true);
-      setLocation(location, { replace: true });
+    try {
+      if (sessionStorage.getItem(OPEN_CHECKIN_FLAG) === "1") {
+        sessionStorage.removeItem(OPEN_CHECKIN_FLAG);
+        setEditing(true);
+      }
+    } catch {
+      // storage blocked
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Today's number comes from today's check-in only. An older check-in or an old session

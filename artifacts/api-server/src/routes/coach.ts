@@ -438,6 +438,7 @@ router.post("/coach/chat", async (req, res) => {
   // Today's date, the readiness check-in and the State/Focus FRAME holds. A failure
   // here must never cost the athlete their reply, so it degrades to "no block".
   let todayBlock: string | null = null;
+  let todayLine: string | undefined;
   try {
     const dayCtx = await loadCoachDayContext(fighter, {
       now: req.frameNow ?? new Date(),
@@ -445,6 +446,10 @@ router.post("/coach/chat", async (req, res) => {
       today: todayFor(req, fighter.timezone),
     });
     todayBlock = buildTodayBlock(dayCtx);
+    const ct = dayCtx.view.readiness.today;
+    todayLine = `Today (athlete's local date): ${dayCtx.today}. Readiness check-in today: ${
+      ct ? `sleep ${ct.checkin.sleep}, energy ${ct.checkin.energy}, soreness ${100 - ct.checkin.soreness}/100 sore, stress ${100 - ct.checkin.stress}/100 stressed` : "none logged"
+    }.`;
   } catch (err) {
     req.log.error({ err }, "coach day context failed; replying without it");
   }
@@ -633,6 +638,7 @@ router.post("/coach/chat", async (req, res) => {
         userText: userContent,
         assistantText: assembled,
         log: req.log,
+        todayLine,
       }).catch((err) => req.log.error({ err }, "extractMemory rejected"));
     }
   } catch (err) {

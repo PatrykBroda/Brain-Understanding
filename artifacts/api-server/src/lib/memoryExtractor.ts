@@ -32,6 +32,8 @@ Rules:
 - When the observation clearly fits one of the ontology domains, set subcategory; otherwise omit it.
 - For technical_knowledge facts: topic = the position/concept (e.g. "half-guard pass", "deep half"). Content describes WHAT the athlete knows and at what level (foundational / working / advanced).
 - Be terse. One sentence per fact. No padding.
+- Time matters. Today's date is given below. Observations are dated by when they are recorded: when the athlete reports something that changes an older observation (an injury healing, a weakness improving, a camp moving, a new problem), SUPERSEDE or RESOLVE the old one rather than leaving it standing, and record time-bound updates (an injury, a camp, a life change) as event / context facts with the day in the sentence ("Tweaked left knee on 20 Oct").
+- A logged readiness check-in is a number the athlete entered, not an observation: do not turn a single day's scores into a durable fact. A repeated pattern across days (several poor-sleep days) is a fact once the athlete says so.
 - If nothing durable happened this turn, call no tools.
 
 You have these tools: add_fact, confirm_fact, supersede_fact, resolve_fact. Use them. Do not write prose.`;
@@ -187,15 +189,18 @@ export async function extractMemory(args: {
   userText: string;
   assistantText: string;
   log: Logger;
+  /** One line with the athlete's local date and today's check-in (or that there is none). */
+  todayLine?: string;
 }): Promise<void> {
-  const { fighter, userText, assistantText, log } = args;
+  const { fighter, userText, assistantText, log, todayLine } = args;
   try {
     const facts = await getActiveFacts(fighter.id);
     const userMessage = `Athlete profile baseline:
 name=${fighter.name} | age=${fighter.age} | art=${fighter.art} | level=${fighter.level} | competes=${fighter.competes}
 stated goals: ${fighter.goals || "(none)"}
 stated weaknesses: ${fighter.weaknesses || "(none)"}
-
+${todayLine ? `${todayLine}
+` : ""}
 Current active facts (most recent first):
 ${formatFacts(facts)}
 

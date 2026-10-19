@@ -18,7 +18,7 @@ import { useToday } from "@/hooks/use-today";
 import { api } from "@/lib/api";
 import { formatDay } from "@/lib/local-day";
 import { STATE_TIPS, stateTipPrompt } from "@/lib/state-tips";
-import { stateDateLine, stateHeadline } from "@/lib/today";
+import { OPEN_CHECKIN_FLAG, stateDateLine, stateHeadline } from "@/lib/today";
 import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
 
 const NO_DATA = "No data yet";
@@ -88,7 +88,15 @@ export default function StatePage() {
   const historyCheckins = historyQuery.data?.checkins ?? [];
 
   const toggle = () => setExpanded((v) => !v);
-  const goCheckIn = () => setLocation("/home?checkin=1");
+  const goCheckIn = () => {
+    // The dashboard opens the form when it mounts (a flag, not a URL: the welcome overlay may rewrite the URL).
+    try {
+      sessionStorage.setItem(OPEN_CHECKIN_FLAG, "1");
+    } catch {
+      // storage blocked: the dashboard still has its own button
+    }
+    setLocation("/home");
+  };
   const dateLine = state ? stateDateLine(state, formatDay) : null;
 
   return (
@@ -149,7 +157,7 @@ export default function StatePage() {
                 {current && state?.source && (
                   <p className="mt-1 text-sm text-[var(--f-text-2)]">Read from {state.source}.</p>
                 )}
-                {!current && state?.name && (
+                {!current && state?.name && state.name !== "Dormant" && (
                   <p className="mt-1 text-sm text-[var(--f-text-2)]">
                     Last read: {state.name}, {state.asOf ? formatDay(state.asOf) : ""}. Not today&apos;s state.
                   </p>

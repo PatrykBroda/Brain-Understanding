@@ -25,31 +25,31 @@ export const STATE_TIPS: Record<StateTipKey, StateTip> = {
   },
   Stable: {
     tip: "Narrow the decision tree.",
-    why: "Your notes show a steady pattern with no strong flag. That's the moment to simplify: pick two things to own this session and drop the rest.",
+    why: "What you've told FRAME shows a steady pattern with no strong flag. That's the moment to simplify: pick two things to own this session and drop the rest.",
   },
   Loaded: {
     tip: "Trade speed for position.",
-    why: "Your notes point to heavy load or over-intensity. When load is high, speed is the first thing to slip, so lean on position and let clean work carry the session.",
+    why: "What you've told FRAME points to heavy load or over-intensity. When load is high, speed is the first thing to slip, so lean on position and let clean work carry the session.",
   },
   Recovering: {
     tip: "Protect the rebuild.",
-    why: "Your notes mention recovery, fatigue or an injury. Recovery is where the gains lock in, so keep this session light on volume and clean on technique.",
+    why: "What you've told FRAME mentions recovery, fatigue or an injury. Recovery is where the gains lock in, so keep this session light on volume and clean on technique.",
   },
   Tight: {
     tip: "Commit earlier than comfort wants.",
-    why: "Your notes point to tension or hesitation. Tight tends to show up as second-guessing, so decide sooner and move on the first clean read.",
+    why: "What you've told FRAME points to tension or hesitation. Tight tends to show up as second-guessing, so decide sooner and move on the first clean read.",
   },
   Volatile: {
     tip: "Anchor the breath before the exchange.",
-    why: "Your notes point to things coming apart under pressure, with emotion or focus drifting mid-exchange. A slow breath before you engage gives you a reset point to come back to.",
+    why: "What you've told FRAME points to things coming apart under pressure, with emotion or focus drifting mid-exchange. A slow breath before you engage gives you a reset point to come back to.",
   },
   Composed: {
     tip: "Hold the standard. Add pressure, not pace.",
-    why: "Your notes read calm and controlled. Keep that base and raise the stakes in training rather than the speed, so your composure gets tested.",
+    why: "What you've told FRAME reads calm and controlled. Keep that base and raise the stakes in training rather than the speed, so your composure gets tested.",
   },
   Overextended: {
     tip: "Cut volume. Keep structure.",
-    why: "Your notes suggest you're past what you can absorb. Trim the load but keep the technical shape, so you stay sharp without digging deeper.",
+    why: "What you've told FRAME suggests you're past what you can absorb. Trim the load but keep the technical shape, so you stay sharp without digging deeper.",
   },
 };
 
