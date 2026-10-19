@@ -115,7 +115,7 @@ export default function SignInScreen() {
                     spellCheck={false}
                     keyboardType="email-address"
                     autoComplete="email"
-                    textContentType="emailAddress"
+                    textContentType="username"
                   />
                   <Field
                     label="Password"
@@ -123,7 +123,7 @@ export default function SignInScreen() {
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry
-                    autoComplete="password"
+                    autoComplete="current-password"
                     textContentType="password"
                     returnKeyType="go"
                     onSubmitEditing={handleSignIn}

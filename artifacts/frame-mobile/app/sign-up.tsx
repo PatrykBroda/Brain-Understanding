@@ -129,7 +129,7 @@ export default function SignUpScreen() {
                   spellCheck={false}
                   keyboardType="email-address"
                   autoComplete="email"
-                  textContentType="emailAddress"
+                  textContentType="username"
                   error={emailError}
                 />
                 <Field

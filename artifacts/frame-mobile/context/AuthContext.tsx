@@ -1,6 +1,8 @@
 /**
- * Custom auth context for the mobile app — replaces @clerk/clerk-expo.
- * JWT is stored in SecureStore under "frame:token".
+ * Custom auth context — replaces @clerk/clerk-expo.
+ * JWT is kept via lib/tokenBackend (SecureStore, AFTER_FIRST_UNLOCK, on a phone; localStorage on
+ * the web build) under "frame:token", and refreshed from the server on every launch so an
+ * athlete who keeps opening the app is never forced to sign in again.
  * Provides: isLoaded, isSignedIn, userId, email, getToken, signOut.
  */
 
@@ -13,13 +15,26 @@ import React, {
   useRef,
   type ReactNode,
 } from "react";
-import * as SecureStore from "expo-secure-store";
+import { AppState } from "react-native";
 import {
   establishSession,
-  parseSessionToken,
+  refreshSessionToken,
+  restoreSession,
+  retryOnce,
+  type RefreshOutcome,
 } from "@/lib/authSession";
+import { apiUrl } from "@/lib/api";
+import { tokenBackend } from "@/lib/tokenBackend";
 
-const TOKEN_KEY = "frame:token";
+/** POST /auth/refresh with the saved token. Throws `{ status }` on an HTTP failure. */
+async function requestRefresh(token: string): Promise<{ token?: unknown }> {
+  const res = await fetch(apiUrl("/auth/refresh"), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw Object.assign(new Error(`refresh ${res.status}`), { status: res.status });
+  return (await res.json()) as { token?: unknown };
+}
 
 interface AuthState {
   isLoaded: boolean;
@@ -39,51 +54,77 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const SIGNED_OUT: AuthState = {
+  isLoaded: true,
+  isSignedIn: false,
+  userId: null,
+  email: null,
+  sessionRestoreError: null,
+  sessionPersistenceWarning: null,
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({
-    isLoaded: false,
-    isSignedIn: false,
-    userId: null,
-    email: null,
-    sessionRestoreError: null,
-    sessionPersistenceWarning: null,
-  });
+  const [state, setState] = useState<AuthState>({ ...SIGNED_OUT, isLoaded: false });
 
-  // Keep a ref to the raw token so getToken() doesn't need to re-read SecureStore.
+  // Keep a ref to the raw token so getToken() doesn't need to re-read the store.
   const tokenRef = useRef<string | null>(null);
+  const restoredRef = useRef(false);
 
-  // Load token from SecureStore on mount.
-  useEffect(() => {
-    SecureStore.getItemAsync(TOKEN_KEY)
-      .then((raw) => {
-        if (raw) {
-          const parsed = parseSessionToken(raw);
-          if (parsed) {
-            tokenRef.current = raw;
-            setState({
-              isLoaded: true,
-              isSignedIn: true,
-              userId: parsed.sub,
-              email: parsed.email,
-              sessionRestoreError: null,
-              sessionPersistenceWarning: null,
-            });
-            return;
-          }
-          // Expired/invalid — clear it.
-          SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => null);
-        }
-        setState((s) => ({ ...s, isLoaded: true }));
-      })
-      .catch(() => {
-        setState((s) => ({
-          ...s,
-          isLoaded: true,
-          sessionRestoreError:
-            "Your saved login could not be opened. Please sign in again.",
-        }));
-      });
+  const refreshInBackground = useCallback(async (token: string) => {
+    const outcome: RefreshOutcome = await refreshSessionToken(token, requestRefresh);
+    if (tokenRef.current !== token) return; // signed out / replaced meanwhile
+    if (outcome.status === "refreshed") {
+      tokenRef.current = outcome.token;
+      await retryOnce(() => tokenBackend.set(outcome.token)).catch(() => undefined);
+    } else if (outcome.status === "rejected") {
+      // A real 401 from the server: the account is gone or the token is dead.
+      tokenRef.current = null;
+      await tokenBackend.remove().catch(() => undefined);
+      setState({ ...SIGNED_OUT });
+    } else {
+      // Offline or a server hiccup: keep the login, and re-save it so an old item is
+      // upgraded to AFTER_FIRST_UNLOCK.
+      await retryOnce(() => tokenBackend.set(token)).catch(() => undefined);
+    }
   }, []);
+
+  const restore = useCallback(async () => {
+    const result = await restoreSession(tokenBackend);
+    if (restoredRef.current) return; // a sign-in beat us to it
+    if (result.status === "restored") {
+      restoredRef.current = true;
+      tokenRef.current = result.token;
+      setState({
+        ...SIGNED_OUT,
+        isSignedIn: true,
+        userId: result.identity.sub,
+        email: result.identity.email,
+      });
+      void refreshInBackground(result.token);
+    } else if (result.status === "unreadable") {
+      // Storage failed twice. The saved login is left in place (retried when the app returns to
+      // the foreground); this is the only case that shows the "could not be opened" notice.
+      setState((s) => ({
+        ...s,
+        isLoaded: true,
+        sessionRestoreError: "Your saved login could not be opened. Please sign in again.",
+      }));
+    } else {
+      // "none" (normal first open) or "invalid" (expired): quietly signed out, no scary message.
+      restoredRef.current = true;
+      setState((s) => ({ ...s, isLoaded: true, sessionRestoreError: null }));
+    }
+  }, [refreshInBackground]);
+
+  // Load the saved login on mount; if the keychain was unreadable, try again whenever the app
+  // comes back to the foreground (the device is unlocked by then).
+  useEffect(() => {
+    void restore();
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active" && !restoredRef.current) void restore();
+    });
+    return () => sub.remove();
+  }, [restore]);
 
   const getToken = useCallback(async (): Promise<string | null> => {
     return tokenRef.current;
@@ -93,10 +134,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     token: string,
   ): Promise<"secure" | "memory-only"> => {
     const { identity, persistence } = await establishSession(token, {
-      setItem: (value) => SecureStore.setItemAsync(TOKEN_KEY, value),
-      deleteItem: () => SecureStore.deleteItemAsync(TOKEN_KEY),
+      setItem: (value) => tokenBackend.set(value),
+      deleteItem: () => tokenBackend.remove(),
     });
 
+    restoredRef.current = true;
     tokenRef.current = token;
     setState({
       isLoaded: true,
@@ -121,15 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     tokenRef.current = null;
-    await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => null);
-    setState({
-      isLoaded: true,
-      isSignedIn: false,
-      userId: null,
-      email: null,
-      sessionRestoreError: null,
-      sessionPersistenceWarning: null,
-    });
+    await retryOnce(() => tokenBackend.remove()).catch(() => null);
+    setState({ ...SIGNED_OUT });
   }, []);
 
   return (

@@ -55,7 +55,7 @@ export default function SignInPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              autoComplete="email"
+              autoComplete="username"
               aria-invalid={error ? true : undefined}
               className="field-glass"
             />

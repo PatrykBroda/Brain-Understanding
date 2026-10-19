@@ -31,7 +31,9 @@ import { recordSignup } from "../lib/onboardingEvents";
 const router = Router();
 
 const BCRYPT_ROUNDS = 10;
-const TOKEN_TTL = "30d";
+// Sliding session: every app/web launch swaps the token for a fresh one (POST /auth/refresh), so
+// this is the longest an athlete can go WITHOUT opening FRAME before signing in again.
+const TOKEN_TTL = "90d";
 const MIN_PASSWORD_LENGTH = 8;
 
 /**
@@ -322,6 +324,23 @@ router.post("/auth/login", async (req: Request, res: Response) => {
 // POST /api/auth/logout — client-side token drop; server is stateless
 router.post("/auth/logout", (_req: Request, res: Response) => {
   res.json({ ok: true });
+});
+
+// POST /api/auth/refresh — swap a still-valid token for a fresh one (sliding session). 401 only
+// when the token is invalid/expired or its account is gone; clients keep the login on any other
+// failure (offline, 5xx).
+router.post("/auth/refresh", async (req: Request, res: Response) => {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith("Bearer ")) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const payload = await verifyLiveUserToken(auth.slice(7));
+  if (!payload) {
+    res.status(401).json({ error: "Invalid or expired token" });
+    return;
+  }
+  res.json({ token: await signToken(payload.userId, payload.email), userId: payload.userId });
 });
 
 // GET /api/auth/me — returns identity from the Bearer token
