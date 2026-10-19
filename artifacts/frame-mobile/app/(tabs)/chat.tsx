@@ -32,6 +32,7 @@ import {
   type AttachmentDto,
 } from "@/lib/api";
 import { sendErrorMessage, streamErrorMessage, uploadErrorMessage } from "@/lib/chatErrors";
+import { ANALYSE_SESSION_PROMPT, REGULATE_PROMPT } from "@/lib/chat-prompts";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { MessageContent } from "@/components/MessageContent";
 import { CompetitionBanner } from "@/components/CompetitionBanner";
@@ -66,10 +67,7 @@ function uid() {
 }
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
-  {
-    label: "Analyse session",
-    prompt: "Debrief my last training session — what fragmented, what held, what's the next rep.",
-  },
+  { label: "Analyse session", prompt: ANALYSE_SESSION_PROMPT },
   { label: "Build drill", prompt: "Build me a drill for my biggest current weakness. Use the drill block." },
   {
     label: "Fix my game",
@@ -80,7 +78,7 @@ const QUICK_ACTIONS: { label: string; prompt: string }[] = [
     prompt:
       "Walk me through how to prepare my composure, decision-making, and tactics for an upcoming competition.",
   },
-  { label: "Regulate", prompt: "I need to regulate right now. Produce a regulate block." },
+  { label: "Regulate", prompt: REGULATE_PROMPT },
   {
     label: "Reflect",
     prompt: "Ask me one sharp question to surface what I'm not seeing about my training this week.",

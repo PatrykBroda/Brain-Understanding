@@ -153,3 +153,13 @@ export const GLOSSARY: Record<string, GlossEntry> = {
 export const GLOSSARY_KEYS = Object.keys(GLOSSARY).sort(
   (a, b) => b.length - a.length,
 );
+
+/**
+ * True when a glossary match is the product name, not the generic term. The
+ * generic fighting term is only ever the lowercase word "frame"; "FRAME" and
+ * "Frame" (the app, "FRAME's", "the FRAME app", "Frame+") must never open the
+ * definition. Other terms are unaffected.
+ */
+export function isBrandMention(matched: string): boolean {
+  return matched.toLowerCase() === "frame" && matched !== "frame";
+}

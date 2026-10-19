@@ -13,13 +13,14 @@ import { FrameWordmark } from "@/components/frame-wordmark";
 import { api, attachmentFileUrl, type AttachmentDto } from "@/lib/api";
 import { useAuthedObjectUrl } from "@/lib/useAuthedObjectUrl";
 import { useQueryClient } from "@tanstack/react-query";
+import { ANALYSE_SESSION_PROMPT, REGULATE_PROMPT } from "@/lib/chat-prompts";
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
-  { label: "Analyse session", prompt: "Debrief my last training session — what fragmented, what held, what's the next rep." },
+  { label: "Analyse session", prompt: ANALYSE_SESSION_PROMPT },
   { label: "Build drill", prompt: "Prescribe me a drill for my biggest current weakness. Use the drill block." },
   { label: "Fix my game", prompt: "Diagnose the recurring leak in my game right now and tell me the protocol to close it." },
   { label: "Competition prep", prompt: "Walk me through how to prepare my nervous system and tactics for an upcoming competition." },
-  { label: "Regulate", prompt: "I need to regulate right now. Produce a regulate block." },
+  { label: "Regulate", prompt: REGULATE_PROMPT },
   { label: "Reflect", prompt: "Ask me one sharp question to surface what I'm not seeing about my training this week." },
 ];
 

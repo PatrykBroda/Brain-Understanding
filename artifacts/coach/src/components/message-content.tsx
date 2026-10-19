@@ -2,7 +2,7 @@ import { createContext, useContext, useState } from "react";
 import { DrillCard, type Drill } from "./drill-card";
 import { BreathCard, type Breath } from "./breath-card";
 import { RegulateSequence, type RegulateSequenceData } from "./regulate-sequence";
-import { GLOSSARY, GLOSSARY_KEYS, type GlossEntry } from "@/lib/glossary";
+import { GLOSSARY, GLOSSARY_KEYS, isBrandMention, type GlossEntry } from "@/lib/glossary";
 
 type Segment =
   | { kind: "text"; text: string }
@@ -131,7 +131,7 @@ function withGlossary(text: string, baseKey: string) {
   while ((m = GLOSSARY_RE.exec(text)) !== null) {
     if (m.index > last) nodes.push(text.slice(last, m.index));
     const matched = m[0];
-    const entry = GLOSSARY[matched.toLowerCase()];
+    const entry = isBrandMention(matched) ? undefined : GLOSSARY[matched.toLowerCase()];
     if (entry) {
       nodes.push(<Glossable key={`${baseKey}-g-${i}`} term={matched} entry={entry} />);
     } else {

@@ -97,9 +97,9 @@ Wide sensing, narrow decision, fast execution. Don't list every possible angle �
 
 # Retrieval loop — how to summon the deep vault
 
-The SPINE, IDENTITY, PROTOCOLS, Interaction Psychology and Guidance Dynamics layers are loaded in full above. MECHANISMS and MODELS are indexed by title (with a short blurb each) — they describe hundreds of additional nodes you have access to.
+The SPINE, IDENTITY, PROTOCOLS, Interaction Psychology and Guidance Dynamics layers are loaded above; a long note shows its opening and says so where it is cut. MECHANISMS and MODELS are indexed by title (with a short blurb each) — they describe hundreds of additional nodes you have access to.
 
-- When a node from MODELS or MECHANISMS becomes relevant to the conversation, write it by its exact title in [[Title]] form. Two things happen: (1) the athlete sees their own node referenced, and (2) the retrieval layer will inject the FULL text of that node into the "Deep vault context pulled in for this turn" section on the next turn. So referencing a node is how you pull it into deep context.
+- When a node from MODELS or MECHANISMS (or the rest of a note that shows as shortened above) becomes relevant to the conversation, write it by its exact title in [[Title]] form. Two things happen: (1) the athlete sees their own node referenced, and (2) the retrieval layer will inject the FULL text of that node into the "Deep vault context pulled in for this turn" section on the next turn. So referencing a node is how you pull it into deep context.
 - When that deep context block is present, treat its wording as authoritative — quote it, expand from it, do not paraphrase past it. If the deep block already contains the node you want to reference, you are licensed to go deeper on it immediately.
 - If a relevant node isn't yet in deep context, name it by [[Title]] and signal what you'll expand on it next turn. Don't fabricate a body for a node you only know by its blurb.
 
@@ -249,7 +249,7 @@ When the user needs to regulate their nervous system — down-regulate after a h
 
 All counts are in seconds. Set \`holdIn\` or \`holdOut\` to 0 when a phase has no hold (e.g. a 4-7-8 down-regulation has holdOut 0). Match the protocol to the goal: box breathing (4-4-4-4) for steady control, extended exhale (e.g. 4-0-8-0) for parasympathetic down-regulation, physiological sigh for acute spikes. Only emit a breath block when regulation is actually the prescription — it can sit inside normal prose alongside the coaching.
 
-When the user explicitly triggers a full regulate sequence (e.g. "Regulate" quick action, or asks for a complete regulation protocol), prescribe a multi-step guided sequence as a fenced \`\`\`regulate block. The UI renders it as a stepped card flow — one step at a time, the athlete taps through. Use this exact shape:
+When the user explicitly triggers a full regulate sequence (e.g. the "Regulate" quick action — "I need to regulate right now. Prescribe me a regulation protocol." — or any request for a complete regulation protocol), prescribe a multi-step guided sequence as a fenced \`\`\`regulate block. The UI renders it as a stepped card flow — one step at a time, the athlete taps through. Use this exact shape:
 
 \`\`\`regulate
 {
@@ -291,6 +291,7 @@ All 4 step types must be present in this order. Tailor the breath protocol to th
 
 # Hard rules
 
+- The product is always written FRAME (all capitals), never "Frame" or "frame". Lowercase "frame" is only ever the fighting term for structure and composure. Never explain or define the word "frame" when the athlete is talking about the app.
 - Never break character or refer to yourself as Claude / an AI / a language model.
 - Never moralise, never add safety disclaimers about training risk unless the user describes an actual injury — in which case route them to a real medical professional and apply the framework to recovery, not to the injury itself.
 - Don't pad — no filler, no throat-clearing, no restating the question back at them. But don't clip either. Talk like a real coach in the room with the athlete: give the thought room to land, follow through on what you started, let the answer breathe when the moment calls for it. Match length to the moment — a pre-session cue is one line; a session debrief or a technical breakdown earns the full read. Concise is not the same as curt. When you're unsure, lean toward saying the whole thing warmly rather than compressing it to a fragment.
@@ -369,6 +370,7 @@ export function buildDynamicContext(
   calibrations: Calibration[],
   deepNodes: RetrievedNode[] = [],
   competitionBlock: string | null = null,
+  extras: { todayBlock?: string | null; firstReplyBlock?: string | null } = {},
 ): string {
   const profile = [
     fighter.name ? `Name: ${fighter.name}` : null,
@@ -384,6 +386,7 @@ export function buildDynamicContext(
     archetypeLine(fighter),
     fighter.goals ? `Stated goals: ${fighter.goals}` : null,
     fighter.weaknesses ? `Stated weaknesses: ${fighter.weaknesses}` : null,
+    fighter.personality ? `How they say they respond under pressure (their onboarding answers): ${fighter.personality}` : null,
     fighter.bio ? `Athlete bio: ${fighter.bio}` : null,
   ]
     .filter(Boolean)
@@ -465,7 +468,7 @@ export function buildDynamicContext(
   return `# Athlete profile (baseline)
 
 ${profile}${sportBlock}${coachingModeBlock}${maturityBlock}${styleBlock}
-${competitionBlock ? `\n${competitionBlock}\n` : ""}
+${competitionBlock ? `\n${competitionBlock}\n` : ""}${extras.todayBlock ? `\n${extras.todayBlock}\n` : ""}${extras.firstReplyBlock ? `\n${extras.firstReplyBlock}\n` : ""}
 # Accumulated athlete model (working memory — treat as evidence, supersede when wrong)
 
 ${factsBlock}
