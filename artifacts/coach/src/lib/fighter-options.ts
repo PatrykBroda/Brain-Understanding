@@ -1,64 +1,33 @@
-export const FREQUENCIES = ["1-2x / week", "3-4x / week", "5-6x / week", "Daily / pro"];
+import {
+  FREQUENCIES as SHARED_FREQUENCIES,
+  LEGACY_SPORTS,
+  SPORTS as SHARED_SPORTS,
+  levelsForSport as sharedLevelsForSport,
+  sportLabelFor,
+} from "@workspace/onboarding";
 
-// Primary combat sport options (FINAL_UPDATE spec order).
-export const SPORTS: { value: string; label: string }[] = [
-  { value: "mma", label: "MMA" },
-  { value: "bjj", label: "BJJ / Grappling" },
-  { value: "boxing", label: "Boxing" },
-  { value: "muay_thai", label: "Muay Thai" },
-  { value: "kickboxing", label: "Kickboxing" },
-  { value: "wrestling", label: "Wrestling" },
-  { value: "judo", label: "Judo" },
-  { value: "taekwondo", label: "Taekwondo" },
-  { value: "other", label: "Other" },
-];
+// The values (sport keys and labels, level strings, frequencies) live in
+// @workspace/onboarding so this app and the mobile app store identical strings.
+export const FREQUENCIES: string[] = [...SHARED_FREQUENCIES];
 
-// Labels for sport keys that existing profiles may still carry but that are no
-// longer offered as choices. Keeps old profiles rendering correctly.
-const LEGACY_SPORT_LABELS: Record<string, string> = {
-  karate: "Karate",
-  sambo: "Sambo",
-  mixed: "Mixed / multiple",
-};
+// Primary combat sport options.
+export const SPORTS: { value: string; label: string }[] = SHARED_SPORTS.map((s) => ({ value: s.key, label: s.label }));
 
+// Sport keys that existing profiles may still carry but that are no longer
+// offered as choices. Keeps old profiles rendering correctly.
 export function sportLabel(key: string): string {
-  return (
-    SPORTS.find((s) => s.value === key)?.label ?? LEGACY_SPORT_LABELS[key] ?? key
-  );
+  return sportLabelFor(key) ?? LEGACY_SPORTS.find((s) => s.key === key)?.label ?? key;
 }
 
-// ---------------------------------------------------------------------------
-// Per-sport skill levels (FINAL_UPDATE spec): belt sports get belts, the
-// striking/MMA arts get an experience ladder, wrestling gets its own ladder.
-// ---------------------------------------------------------------------------
-
-const BELT_LEVELS = ["White", "Blue", "Purple", "Brown", "Black", "No belt / other"];
-const JUDO_BELT_LEVELS = ["White", "Yellow", "Orange", "Green", "Blue", "Brown", "Black", "No belt / other"];
-const EXPERIENCE_LEVELS = [
-  "Beginner",
-  "Intermediate",
-  "Advanced",
-  "Amateur Competitor",
-  "Professional",
-];
-const WRESTLING_LEVELS = ["Beginner", "Intermediate", "Advanced", "Competitive"];
+// Per-sport skill levels: belt sports get belts, the striking/MMA arts get an
+// experience ladder, wrestling gets its own ladder.
+export function levelsForSport(sport: string): string[] {
+  return [...sharedLevelsForSport(sport)];
+}
 
 // Back-compat: the historical flat list (BJJ belts) — some legacy profiles
 // store these regardless of sport.
-export const LEVELS = BELT_LEVELS;
-
-export function levelsForSport(sport: string): string[] {
-  switch (sport) {
-    case "bjj":
-      return BELT_LEVELS;
-    case "judo":
-      return JUDO_BELT_LEVELS;
-    case "wrestling":
-      return WRESTLING_LEVELS;
-    default:
-      return EXPERIENCE_LEVELS;
-  }
-}
+export const LEVELS = levelsForSport("bjj");
 
 export function isBjjSport(sport: string | null | undefined): boolean {
   return sport?.trim().toLowerCase() === "bjj";
@@ -72,7 +41,8 @@ export function levelLabelForSport(sport: string | null | undefined): string {
 
 // Optional multi-select "Training background" — other arts the athlete has trained.
 // Same sport list as the primary select (labels are what gets stored).
-export const TRAINING_BACKGROUND_OPTIONS = SPORTS.map((s) => s.label);
+// The stored labels are unchanged from before ("BJJ / Grappling"), so existing profiles keep matching.
+export const TRAINING_BACKGROUND_OPTIONS = SPORTS.map((s) => (s.value === "bjj" ? "BJJ / Grappling" : s.label));
 
 export const STANCES = ["Orthodox", "Southpaw", "Switch", "Open"];
 

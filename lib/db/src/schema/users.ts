@@ -7,6 +7,8 @@ export const usersTable = pgTable("users", {
   id: text("id").primaryKey(), // UUID generated on register (crypto.randomUUID())
   email: text("email").notNull().unique(),
   hashedPassword: text("hashed_password").notNull(),
+  // Name typed on the sign-up form; onboarding starts from it. fighters.name is the source of truth afterwards.
+  displayName: text("display_name").notNull().default(""),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   subscriptionStatus: text("subscription_status"),
   plan: text("plan").notNull().default("free"),

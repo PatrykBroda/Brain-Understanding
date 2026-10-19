@@ -41,7 +41,10 @@ export type BodyRegion = (typeof BODY_REGIONS)[number];
 export type AnalysisFinding = {
   title: string;
   observation: string;
+  // Legacy name, kept for stored rows: "why this matters in a fight", in plain words.
   nervousSystemFraming: string;
+  // The one drill / constraint / cue for the next session (optional: older analyses do not have it).
+  fix?: string;
   severity: "low" | "medium" | "high";
   area: string;
   // Knowledge Loop: id of an EXISTING athlete_facts row this finding is new

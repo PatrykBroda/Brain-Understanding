@@ -5,10 +5,17 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "onboarding-funnel": "tsx ./src/onboarding-funnel.ts",
+    "backfill-onboarding-values": "tsx ./src/backfill-onboarding-values.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "tsx": "catalog:"
+  },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "@workspace/onboarding": "workspace:*",
+    "drizzle-orm": "catalog:"
   }
 }

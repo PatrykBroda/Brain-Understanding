@@ -104,11 +104,87 @@ export async function establishSession(
   }
 
   try {
-    await storage.setItem(token);
+    await retryOnce(() => storage.setItem(token));
   } catch {
     await storage.deleteItem().catch(() => undefined);
     return { identity, persistence: "memory-only" };
   }
 
   return { identity, persistence: "secure" };
+}
+
+// ─── Saved-login persistence (restore / refresh) ─────────────────────────────
+
+/** Where the JWT is kept: SecureStore on a phone, localStorage on the web build. */
+export type TokenBackend = {
+  get: () => Promise<string | null>;
+  set: (token: string) => Promise<void>;
+  remove: () => Promise<void>;
+};
+
+/** Run `fn`, and once more after a short pause if it throws (a keychain can fail transiently). */
+export async function retryOnce<T>(fn: () => Promise<T>, pauseMs = 150): Promise<T> {
+  try {
+    return await fn();
+  } catch {
+    if (pauseMs > 0) await new Promise((resolve) => setTimeout(resolve, pauseMs));
+    return fn();
+  }
+}
+
+export type RestoredSession =
+  | { status: "none" } // nothing was saved: a normal first open, not an error
+  | { status: "restored"; token: string; identity: SessionIdentity }
+  | { status: "invalid" } // a saved token existed but is expired/garbled; it was cleared
+  | { status: "unreadable" }; // storage failed twice; the saved token is left untouched
+
+/**
+ * Read the saved login. A read that fails (twice) is "unreadable" and NEVER deletes the token:
+ * the keychain can be briefly unavailable (device locked, app woken in the background) and the
+ * login is still there next time. Only a token that was read and is provably expired/garbled
+ * is cleared.
+ */
+export async function restoreSession(
+  backend: TokenBackend,
+  now = Date.now(),
+  pauseMs = 150,
+): Promise<RestoredSession> {
+  let raw: string | null;
+  try {
+    raw = await retryOnce(() => backend.get(), pauseMs);
+  } catch {
+    return { status: "unreadable" };
+  }
+  if (!raw) return { status: "none" };
+  const identity = parseSessionToken(raw, now);
+  if (!identity) {
+    await backend.remove().catch(() => undefined);
+    return { status: "invalid" };
+  }
+  return { status: "restored", token: raw, identity };
+}
+
+export type RefreshOutcome =
+  | { status: "refreshed"; token: string }
+  | { status: "rejected" } // the server said 401: the login is truly dead
+  | { status: "unavailable" }; // offline / 5xx / anything else: keep the login as it is
+
+/**
+ * Exchange the saved token for a fresh one. `call` performs the request and throws an error
+ * carrying `status` for an HTTP failure. Only a real 401 rejects the session.
+ */
+export async function refreshSessionToken(
+  token: string,
+  call: (token: string) => Promise<{ token?: unknown }>,
+): Promise<RefreshOutcome> {
+  try {
+    const res = await call(token);
+    if (typeof res?.token === "string" && parseSessionToken(res.token)) {
+      return { status: "refreshed", token: res.token };
+    }
+    return { status: "unavailable" };
+  } catch (e) {
+    const status = (e as { status?: unknown } | null)?.status;
+    return status === 401 ? { status: "rejected" } : { status: "unavailable" };
+  }
 }

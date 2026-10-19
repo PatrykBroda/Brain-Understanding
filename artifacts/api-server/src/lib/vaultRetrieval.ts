@@ -15,8 +15,39 @@ const STOPWORDS = new Set([
 
 const WIKI_LINK = /\[\[([^\]]+)\]\]/g;
 
+/** Notes longer than this have their body-match score damped (not their explicit or title matches). */
+const LONG_NOTE_CHARS = 6000;
+/** Per-note and per-turn caps on deep-vault text injected into the prompt. */
+export const DEEP_NODE_MAX_CHARS = 6000;
+export const DEEP_TOTAL_MAX_CHARS = 20000;
+
+/**
+ * Cap what is injected for the selected nodes: each note to DEEP_NODE_MAX_CHARS and the
+ * whole block to DEEP_TOTAL_MAX_CHARS, keeping the best-scored first. Pure.
+ */
+export function budgetNodes(
+  nodes: RetrievedNode[],
+  maxNode = DEEP_NODE_MAX_CHARS,
+  maxTotal = DEEP_TOTAL_MAX_CHARS,
+): RetrievedNode[] {
+  const out: RetrievedNode[] = [];
+  let used = 0;
+  for (const n of nodes) {
+    const room = maxTotal - used;
+    if (room < 800) break;
+    const limit = Math.min(maxNode, room);
+    const body =
+      n.body.length <= limit
+        ? n.body
+        : `${n.body.slice(0, limit).trimEnd()}\n[… cut for length — ask about a specific part to go deeper]`;
+    out.push({ ...n, body });
+    used += body.length;
+  }
+  return out;
+}
+
 interface DeepNode {
-  folder: "MODELS" | "MECHANISMS";
+  folder: string;
   title: string;
   titleLower: string;
   body: string;
@@ -37,8 +68,9 @@ function tokenize(s: string): string[] {
 function getNodes(): DeepNode[] {
   if (CACHE) return CACHE;
   const out: DeepNode[] = [];
-  for (const folder of ["MODELS", "MECHANISMS"] as const) {
-    const map = SYNOCHI_DEEP[folder];
+  // MODELS / MECHANISMS plus the shelved tails of the always-loaded layers.
+  for (const folder of Object.keys(SYNOCHI_DEEP)) {
+    const map = SYNOCHI_DEEP[folder]!;
     for (const title of Object.keys(map)) {
       const body = map[title] ?? "";
       out.push({
@@ -56,7 +88,7 @@ function getNodes(): DeepNode[] {
 }
 
 export interface RetrievedNode {
-  folder: "MODELS" | "MECHANISMS";
+  folder: string;
   title: string;
   body: string;
   score: number;
@@ -145,7 +177,9 @@ export function selectRelevantNodes(queryText: string, k = 8): RetrievedNode[] {
       const c = countWordOccurrences(n.bodyLower, tok, 4);
       if (c > 0) bodyHits += c * f;
     }
-    score += bodyHits;
+    // A very long note matches almost every query on sheer word count. Damp that so
+    // length alone does not put one note into every turn (it was in 19 of 19 test turns).
+    score += bodyHits / Math.max(1, Math.sqrt(n.bodyLower.length / LONG_NOTE_CHARS));
 
     if (score > 0) {
       scored.push({

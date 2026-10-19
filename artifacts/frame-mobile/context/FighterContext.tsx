@@ -39,6 +39,9 @@ export interface Fighter {
   heroZoom?: number;
   weightClass?: string | null;
   stance?: string | null;
+  // Onboarding questionnaire answers (question id -> option index); editable from Profile.
+  onboardingAnswers?: Record<string, number>;
+  timezone?: string;
   createdAt: string;
   updatedAt: string;
 }

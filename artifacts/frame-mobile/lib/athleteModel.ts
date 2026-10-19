@@ -24,6 +24,7 @@ export interface ModelFact {
   sources?: readonly { type: string }[] | null;
   updatedAt?: string;
   createdAt?: string;
+  lastConfirmedAt?: string | null;
 }
 
 // ─── Category labels + order (matches web athlete-model.tsx) ──────────────────
@@ -401,6 +402,9 @@ const RADAR_DIMS: {
 ];
 
 const TARGET_PER_CATEGORY = 15; // 3 facts × confidence 5
+
+/** An archetype (animal) is only assigned and shown at or above this model-confidence percentage. Mirrors lib/ontology ARCHETYPE_UNLOCK_UNDERSTANDING (a test keeps the two in step). */
+export const ARCHETYPE_UNLOCK_UNDERSTANDING = 25;
 const RADAR_TARGET = 12; // confidence points that fill one DNA dimension
 
 // ─── Small helpers (ported from athlete-model.tsx) ───────────────────────────
@@ -419,6 +423,29 @@ export function formatHeartbeat(dateStr: string): string {
   if (days < 30) return `${days} days ago`;
   const months = Math.floor(days / 30);
   return `${months} month${months === 1 ? "" : "s"} ago`;
+}
+
+/** When the observation was last seen (a re-sighting moves it forward; creation is the floor). */
+export function factLastSeen(f: Pick<ModelFact, "lastConfirmedAt" | "createdAt" | "updatedAt">): string | undefined {
+  const times = [f.lastConfirmedAt, f.createdAt]
+    .filter((t): t is string => !!t && !Number.isNaN(new Date(t).getTime()))
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  return times[0] ?? f.updatedAt;
+}
+
+/** "seen today" / "seen 3 days ago" — shown on every observation so staleness is visible. */
+export function factSeenLabel(
+  f: Pick<ModelFact, "lastConfirmedAt" | "createdAt" | "updatedAt">,
+  now: number = Date.now(),
+): string {
+  const seen = factLastSeen(f);
+  if (!seen) return "";
+  const days = Math.floor((now - new Date(seen).getTime()) / 86_400_000);
+  if (days <= 0) return "seen today";
+  if (days === 1) return "seen yesterday";
+  if (days < 30) return `seen ${days} days ago`;
+  const months = Math.floor(days / 30);
+  return `seen ${months} month${months === 1 ? "" : "s"} ago`;
 }
 
 export function leadClause(text: string): string {

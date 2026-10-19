@@ -21,7 +21,12 @@ import { extractMemory } from "../lib/memoryExtractor";
 import { UPLOADS_DIR } from "../lib/uploads";
 import { prepareImageForModel } from "../lib/modelImage";
 import { classifyCoachStreamError } from "../lib/coachStreamError";
-import { selectRelevantNodes, buildRetrievalQuery } from "../lib/vaultRetrieval";
+import { selectRelevantNodes, buildRetrievalQuery, budgetNodes } from "../lib/vaultRetrieval";
+import { budgetEnabled, estimateTokens, trimHistory } from "../lib/promptBudget";
+import { describeProviderError, isRetryableProviderError, runWithRetry } from "../lib/aiRetry";
+import { buildFirstReplyBlock, buildTodayBlock, loadCoachDayContext } from "../lib/coachContext";
+import { effectiveTimeZone, rememberTimezone, todayFor } from "../middlewares/timezone";
+import { localDayBounds } from "../lib/localTime";
 import { openai, OPENAI_COACH_MODEL } from "../lib/openaiClient";
 import {
   getActiveCompetition,
@@ -65,6 +70,17 @@ if (!baseURL || !apiKey) {
 }
 
 const client = new Anthropic({ baseURL, apiKey, maxRetries: AI_PROVIDER_MAX_RETRIES });
+
+const CLAUDE_COACH_MODEL = "claude-sonnet-4-6";
+type Provider = "claude" | "openai";
+const providerConfigured = (p: Provider): boolean =>
+  p === "claude"
+    ? Boolean(process.env["AI_INTEGRATIONS_ANTHROPIC_BASE_URL"] && process.env["AI_INTEGRATIONS_ANTHROPIC_API_KEY"])
+    : Boolean(process.env["AI_INTEGRATIONS_OPENAI_BASE_URL"] && process.env["AI_INTEGRATIONS_OPENAI_API_KEY"]);
+// Up to three tries on the athlete's chosen provider, then two on the other one,
+// all inside 40s so the apps' own 60s first-reply watchdog never trips mid-retry.
+const PROVIDER_ATTEMPTS = 3;
+const PROVIDER_RETRY_DEADLINE_MS = 40_000;
 
 const WELCOME_LOCK_NAMESPACE = 7411;
 
@@ -263,11 +279,13 @@ router.post("/coach/chat", async (req, res) => {
   // constructing provider payloads. Consent covers both Claude and OpenAI.
   if (!(await requireAiConsent(req, res))) return;
 
-  // Server-enforced free-tier gate: 5 coaching messages per UTC day.
-  // Checked BEFORE the SSE stream starts so the client gets clean JSON.
+  // Server-enforced free-tier gate: 5 coaching messages per day (the athlete's own
+  // local day). Checked BEFORE the SSE stream starts so the client gets clean JSON.
+  await rememberTimezone(req, fighter);
   const entitlement = await getEntitlementForUserId(req.userId as string);
   if (entitlement.plan === "free") {
-    const used = await countUserMessagesToday(fighter.id);
+    const dayStart = localDayBounds(todayFor(req, fighter.timezone), effectiveTimeZone(req, fighter.timezone)).start;
+    const used = await countUserMessagesToday(fighter.id, dayStart);
     if (used >= FREE_DAILY_COACHING_LIMIT) {
       res.status(402).json({
         error: `Daily coaching limit reached (${FREE_DAILY_COACHING_LIMIT} messages on the free tier). FRAME+ removes the cap.`,
@@ -340,11 +358,13 @@ router.post("/coach/chat", async (req, res) => {
       );
   }
 
-  const history = await db
+  const fullHistory = await db
     .select()
     .from(messagesTable)
     .where(eq(messagesTable.conversationId, conversation.id))
     .orderBy(asc(messagesTable.createdAt));
+  // Cap what earlier conversation rides along on every turn (newest always kept).
+  const history = budgetEnabled() ? trimHistory(fullHistory) : fullHistory;
 
   const allAttachments = await db
     .select()
@@ -371,17 +391,18 @@ router.post("/coach/chat", async (req, res) => {
 
   // Build retrieval context: profile signals + last 6 turns + the new user message,
   // with the new message weighted highest. selectRelevantNodes scores MODELS/MECHANISMS
-  // and returns full-text for top matches to inline in the dynamic system block.
-  const recentForRetrieval = history.slice(-6).map((m) => ({
+  // (and the shelved tails of the always-loaded layers) and returns full-text for the
+  // top matches to inline in the dynamic system block.
+  const recentForRetrieval = fullHistory.slice(-6).map((m) => ({
     role: m.role as "user" | "assistant",
     content: m.content,
   }));
   const profileText = [fighter.goals, fighter.weaknesses].filter(Boolean).join(" ");
   const retrievalQuery = `${profileText}\n${buildRetrievalQuery(recentForRetrieval, userContent)}`;
-  // Top-6 score-sorted nodes: the deepest depth lives in the highest-scoring
-  // matches, so trimming the two lowest-scored shrinks the uncached dynamic
-  // block (faster first token) without dropping what the coach actually draws on.
-  const deepNodes = selectRelevantNodes(retrievalQuery, 6);
+  // Top-6 score-sorted nodes, then capped per note and per turn so one long note can
+  // never dominate the prompt.
+  const scoredNodes = selectRelevantNodes(retrievalQuery, 6);
+  const deepNodes = budgetEnabled() ? budgetNodes(scoredNodes) : scoredNodes;
   req.log.info(
     {
       deepNodeCount: deepNodes.length,
@@ -414,105 +435,191 @@ router.post("/coach/chat", async (req, res) => {
       .catch((err) => req.log.error({ err }, "vocab level persist failed"));
   }
 
+  // Today's date, the readiness check-in and the State/Focus FRAME holds. A failure
+  // here must never cost the athlete their reply, so it degrades to "no block".
+  let todayBlock: string | null = null;
+  let todayLine: string | undefined;
   try {
-    const dynamicText =
-      buildDynamicContext(fighter, facts, calibrations, deepNodes, compBlock) +
-      "\n\n" +
-      vocabularyPromptBlock(vocab);
+    const dayCtx = await loadCoachDayContext(fighter, {
+      now: req.frameNow ?? new Date(),
+      tz: effectiveTimeZone(req, fighter.timezone),
+      today: todayFor(req, fighter.timezone),
+    });
+    todayBlock = buildTodayBlock(dayCtx);
+    const ct = dayCtx.view.readiness.today;
+    todayLine = `Today (athlete's local date): ${dayCtx.today}. Readiness check-in today: ${
+      ct ? `sleep ${ct.checkin.sleep}, energy ${ct.checkin.energy}, soreness ${100 - ct.checkin.soreness}/100 sore, stress ${100 - ct.checkin.stress}/100 stressed` : "none logged"
+    }.`;
+  } catch (err) {
+    req.log.error({ err }, "coach day context failed; replying without it");
+  }
+  const userTurns = fullHistory.filter((m) => m.role === "user").length;
+  const firstReplyBlock = userTurns === 1 ? buildFirstReplyBlock() : null;
 
-    if (conversation.aiProvider === "openai") {
-      const openaiMessages: ChatCompletionMessageParam[] = [
-        { role: "system", content: COACH_SYSTEM_PROMPT_STATIC },
-        { role: "system", content: dynamicText },
-      ];
-      for (const m of history) {
-        const role = m.role as "user" | "assistant";
-        const atts = byMsg.get(m.id) ?? [];
-        if (role === "assistant") {
-          openaiMessages.push({ role: "assistant", content: m.content });
-          continue;
+  const dynamicText =
+    buildDynamicContext(fighter, facts, calibrations, deepNodes, compBlock, { todayBlock, firstReplyBlock }) +
+    "\n\n" +
+    vocabularyPromptBlock(vocab);
+
+  const historyChars = history.reduce((n, m) => n + m.content.length, 0);
+  const sizes = {
+    staticTokens: estimateTokens(COACH_SYSTEM_PROMPT_STATIC.length),
+    dynamicTokens: estimateTokens(dynamicText.length),
+    historyTokens: estimateTokens(historyChars),
+    historyMessages: history.length,
+    historyTrimmed: fullHistory.length - history.length,
+  };
+  const estInputTokens = sizes.staticTokens + sizes.dynamicTokens + sizes.historyTokens;
+  req.log.info({ ...sizes, estInputTokens, budget: budgetEnabled() }, "coach prompt size (estimated tokens)");
+
+  const primary: Provider = conversation.aiProvider === "openai" ? "openai" : "claude";
+  const other: Provider = primary === "openai" ? "claude" : "openai";
+  const startedAt = Date.now();
+  let usedProvider: Provider = primary;
+
+  // Consent can be withdrawn between attempts, so it is re-checked before every one.
+  const checkConsent = async () => {
+    if (!(await hasAiConsentForUser(req.userId as string))) {
+      const error = new Error("AI consent is required before using this feature.");
+      (error as Error & { code: string }).code = "AI_CONSENT_REQUIRED";
+      throw error;
+    }
+  };
+
+  const streamOpenAI = async () => {
+    const openaiMessages: ChatCompletionMessageParam[] = [
+      { role: "system", content: COACH_SYSTEM_PROMPT_STATIC },
+      { role: "system", content: dynamicText },
+    ];
+    for (const m of history) {
+      const role = m.role as "user" | "assistant";
+      const atts = byMsg.get(m.id) ?? [];
+      if (role === "assistant") {
+        openaiMessages.push({ role: "assistant", content: m.content });
+        continue;
+      }
+      const includeImageBytes = m.id === lastUserMsgId;
+      const content = await buildOpenAIUserContent(m.content, atts, includeImageBytes);
+      openaiMessages.push({ role: "user", content } as ChatCompletionMessageParam);
+    }
+    const stream = await openai.chat.completions.create({
+      model: OPENAI_COACH_MODEL,
+      max_completion_tokens: 8192,
+      messages: openaiMessages,
+      stream: true,
+    });
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) {
+        assembled += delta;
+        send({ content: delta });
+      }
+    }
+  };
+
+  const streamClaude = async () => {
+    const claudeMessages: Anthropic.MessageParam[] = [];
+    for (const m of history) {
+      const role = m.role as "user" | "assistant";
+      const atts = byMsg.get(m.id) ?? [];
+      if (role === "assistant") {
+        claudeMessages.push({ role, content: m.content });
+        continue;
+      }
+      const includeImageBytes = m.id === lastUserMsgId;
+      const content = await buildUserMessageContent(m.content, atts, includeImageBytes);
+      claudeMessages.push({ role, content });
+    }
+    const stream = client.messages.stream({
+      model: CLAUDE_COACH_MODEL,
+      max_tokens: 8192,
+      system: [
+        {
+          type: "text",
+          text: COACH_SYSTEM_PROMPT_STATIC,
+          cache_control: { type: "ephemeral" },
+        },
+        { type: "text", text: dynamicText },
+      ],
+      messages: claudeMessages,
+    });
+
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        assembled += event.delta.text;
+        send({ content: event.delta.text });
+      }
+    }
+
+    // Confirm prompt caching is actually being hit. A warm static block shows
+    // cache_read_input_tokens ~= the static prompt size and near-zero
+    // cache_creation; a cold/expired cache shows the inverse (slow first token).
+    try {
+      const finalMsg = await stream.finalMessage();
+      req.log.info(
+        {
+          cacheRead: finalMsg.usage.cache_read_input_tokens,
+          cacheCreate: finalMsg.usage.cache_creation_input_tokens,
+          inputTokens: finalMsg.usage.input_tokens,
+          outputTokens: finalMsg.usage.output_tokens,
+        },
+        "coach stream usage (claude)",
+      );
+    } catch {
+      // usage logging is best-effort; never let it break the turn
+    }
+  };
+
+  const run = (provider: Provider, maxAttempts: number) =>
+    runWithRetry(
+      async (attempt) => {
+        usedProvider = provider;
+        const t0 = Date.now();
+        try {
+          if (provider === "openai") await streamOpenAI();
+          else await streamClaude();
+        } catch (err) {
+          const info = describeProviderError(err);
+          req.log.warn(
+            {
+              provider,
+              model: provider === "openai" ? OPENAI_COACH_MODEL : CLAUDE_COACH_MODEL,
+              attempt: attempt + 1,
+              status: info.status,
+              kind: info.kind,
+              retryAfterMs: info.retryAfterMs,
+              providerRequestId: info.requestId,
+              estInputTokens,
+              ms: Date.now() - t0,
+              streamedChars: assembled.length,
+            },
+            "coach provider call failed",
+          );
+          throw err;
         }
-        const includeImageBytes = m.id === lastUserMsgId;
-        const content = await buildOpenAIUserContent(m.content, atts, includeImageBytes);
-        openaiMessages.push({ role: "user", content } as ChatCompletionMessageParam);
-      }
+      },
+      {
+        maxAttempts,
+        deadlineMs: PROVIDER_RETRY_DEADLINE_MS,
+        beforeAttempt: checkConsent,
+        // Never retry once text has reached the athlete: that would repeat the reply.
+        canRetry: () => assembled.length === 0,
+        onRetry: ({ attempt, waitMs, error }) =>
+          req.log.info({ provider, attempt: attempt + 1, waitMs, kind: error.kind }, "retrying coach provider call"),
+      },
+    );
 
-      // The initial route guard is not sufficient: consent may have been
-      // withdrawn while the request was being prepared.
-      if (!(await hasAiConsentForUser(req.userId as string))) {
-        const error = new Error("AI consent is required before using this feature.");
-        (error as Error & { code: string }).code = "AI_CONSENT_REQUIRED";
-        throw error;
-      }
-      const stream = await openai.chat.completions.create({
-        model: OPENAI_COACH_MODEL,
-        max_completion_tokens: 8192,
-        messages: openaiMessages,
-        stream: true,
-      });
-      for await (const chunk of stream) {
-        const delta = chunk.choices[0]?.delta?.content;
-        if (delta) {
-          assembled += delta;
-          send({ content: delta });
-        }
-      }
-    } else {
-      const claudeMessages: Anthropic.MessageParam[] = [];
-      for (const m of history) {
-        const role = m.role as "user" | "assistant";
-        const atts = byMsg.get(m.id) ?? [];
-        if (role === "assistant") {
-          claudeMessages.push({ role, content: m.content });
-          continue;
-        }
-        const includeImageBytes = m.id === lastUserMsgId;
-        const content = await buildUserMessageContent(m.content, atts, includeImageBytes);
-        claudeMessages.push({ role, content });
-      }
-
-      if (!(await hasAiConsentForUser(req.userId as string))) {
-        const error = new Error("AI consent is required before using this feature.");
-        (error as Error & { code: string }).code = "AI_CONSENT_REQUIRED";
-        throw error;
-      }
-      const stream = client.messages.stream({
-        model: "claude-sonnet-4-6",
-        max_tokens: 8192,
-        system: [
-          {
-            type: "text",
-            text: COACH_SYSTEM_PROMPT_STATIC,
-            cache_control: { type: "ephemeral" },
-          },
-          { type: "text", text: dynamicText },
-        ],
-        messages: claudeMessages,
-      });
-
-      for await (const event of stream) {
-        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-          assembled += event.delta.text;
-          send({ content: event.delta.text });
-        }
-      }
-
-      // Confirm prompt caching is actually being hit. A warm static block shows
-      // cache_read_input_tokens ~= the static prompt size and near-zero
-      // cache_creation; a cold/expired cache shows the inverse (slow first token).
-      try {
-        const finalMsg = await stream.finalMessage();
-        req.log.info(
-          {
-            cacheRead: finalMsg.usage.cache_read_input_tokens,
-            cacheCreate: finalMsg.usage.cache_creation_input_tokens,
-            inputTokens: finalMsg.usage.input_tokens,
-            outputTokens: finalMsg.usage.output_tokens,
-          },
-          "coach stream usage (claude)",
-        );
-      } catch {
-        // usage logging is best-effort; never let it break the turn
+  try {
+    try {
+      await run(primary, PROVIDER_ATTEMPTS);
+    } catch (err) {
+      // The athlete's chosen provider is busy or down and nothing has been shown yet:
+      // answer from the other one rather than a dead end. Their setting is left alone.
+      if (assembled.length === 0 && isRetryableProviderError(err) && providerConfigured(other)) {
+        req.log.warn({ from: primary, to: other, afterMs: Date.now() - startedAt }, "coach falling back to the other provider");
+        await run(other, 2);
+      } else {
+        throw err;
       }
     }
 
@@ -522,7 +629,7 @@ router.post("/coach/chat", async (req, res) => {
       content: assembled,
     });
 
-    send({ done: true });
+    send({ done: true, provider: usedProvider, fallback: usedProvider !== primary });
     res.end();
 
     if (assembled.trim().length > 0) {
@@ -531,6 +638,7 @@ router.post("/coach/chat", async (req, res) => {
         userText: userContent,
         assistantText: assembled,
         log: req.log,
+        todayLine,
       }).catch((err) => req.log.error({ err }, "extractMemory rejected"));
     }
   } catch (err) {

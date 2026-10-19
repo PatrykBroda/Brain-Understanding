@@ -1,8 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "@/lib/api";
 import { useFighter } from "@/context/FighterContext";
+import { useLocalDay } from "@/hooks/useLocalDay";
+import { localDateString } from "@/lib/localDay";
+import { TODAY_QUERY_KEY } from "@/hooks/useToday";
 
-// Daily readiness check-in — all values athlete-entered, one row per UTC day.
+// Daily readiness check-in — all values athlete-entered, one row per local day.
 // Mirrors the web checkin API (GET /checkin/today, GET /checkin/history,
 // POST /checkin). The server owns the calendar day.
 export interface DailyCheckin {
@@ -28,12 +31,12 @@ export interface DailyCheckinInput {
 
 export function useTodayCheckin() {
   const { fighter } = useFighter();
-  // The server keys "today" to the UTC calendar day; carry that same day in the
-  // query key so an app left open across UTC midnight doesn't keep presenting
+  // The server keys "today" to the athlete's local calendar day; carry that same day in
+  // the query key so an app left open across their midnight doesn't keep presenting
   // yesterday's row as today's.
-  const utcDay = new Date().toISOString().slice(0, 10);
+  const day = useLocalDay();
   return useQuery({
-    queryKey: ["checkin", "today", utcDay],
+    queryKey: ["checkin", "today", day],
     queryFn: () => apiGet<{ checkin: DailyCheckin | null; date: string }>("/checkin/today"),
     enabled: !!fighter,
   });
@@ -57,8 +60,12 @@ export function useSaveCheckin() {
     mutationFn: (input: DailyCheckinInput) =>
       apiPost<{ checkin: DailyCheckin; date: string }>("/checkin", input),
     onSuccess: (data) => {
-      qc.setQueryData(["checkin", "today", data.date], data);
+      // Keyed on the same local day the read hook uses, then re-read so the server stays the authority.
+      qc.setQueryData(["checkin", "today", localDateString()], data);
+      qc.invalidateQueries({ queryKey: ["checkin", "today"] });
       qc.invalidateQueries({ queryKey: ["checkin", "history"] });
+      // A check-in changes State, Today's Focus and readiness.
+      qc.invalidateQueries({ queryKey: TODAY_QUERY_KEY });
     },
   });
 }

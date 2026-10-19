@@ -9,7 +9,7 @@ import {
 describe("mobile fighter options", () => {
   it("offers BJJ belts only for BJJ", () => {
     expect(isBjjSport("bjj")).toBe(true);
-    expect(levelLabelForSport("bjj")).toBe("BJJ BELT");
+    expect(levelLabelForSport("bjj")).toBe("BJJ belt");
     expect(levelsForSport("bjj").map((option) => option.label)).toContain("Purple");
   });
 
@@ -18,7 +18,7 @@ describe("mobile fighter options", () => {
     (sport) => {
       const labels = levelsForSport(sport).map((option) => option.label);
       expect(isBjjSport(sport)).toBe(false);
-      expect(levelLabelForSport(sport)).toBe("EXPERIENCE LEVEL");
+      expect(levelLabelForSport(sport)).toBe("Experience level");
       expect(labels).toEqual([
         "Beginner",
         "Intermediate",
@@ -32,7 +32,7 @@ describe("mobile fighter options", () => {
   );
 
   it("uses neutral rank wording for judo", () => {
-    expect(levelLabelForSport("judo")).toBe("RANK");
+    expect(levelLabelForSport("judo")).toBe("Rank");
     expect(levelsForSport("judo").at(-1)?.label).toBe("No rank / other");
   });
 });

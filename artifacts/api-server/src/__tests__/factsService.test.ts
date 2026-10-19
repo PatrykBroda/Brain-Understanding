@@ -102,3 +102,71 @@ describe("normalizeTopic", () => {
     expect(normalizeTopic("GUARD   DROPS")).toBe("guard drops");
   });
 });
+
+import {
+  FADE_GRACE_DAYS,
+  RESOLVE_AFTER_DAYS,
+  fadePoints,
+  idleDays,
+  isStale,
+  lastSeenAt,
+  withFreshness,
+} from "../lib/factsService";
+import type { AthleteFact } from "@workspace/db";
+
+describe("freshness", () => {
+  const now = new Date("2026-10-17T12:00:00Z");
+  const daysAgo = (d: number) => new Date(now.getTime() - d * 86_400_000);
+  const fact = (over: Partial<AthleteFact> & { seen: number }): AthleteFact => {
+    const { seen, ...rest } = over;
+    const at = daysAgo(seen);
+    return {
+      id: 1,
+      fighterId: 1,
+      category: "weakness",
+      topic: "t",
+      content: "c",
+      confidence: 4,
+      status: "active",
+      source: "video:1",
+      sources: [{ type: "video", ref: "video:1", at: at.toISOString() }],
+      evidenceCount: 1,
+      lastConfirmedAt: null,
+      subcategory: null,
+      supersededById: null,
+      resolvedReason: null,
+      createdAt: at,
+      updatedAt: at,
+      ...rest,
+    } as AthleteFact;
+  };
+
+  it("fadePoints: none inside the grace window, then one point per 30 idle days", () => {
+    expect(fadePoints(0)).toBe(0);
+    expect(fadePoints(FADE_GRACE_DAYS)).toBe(0);
+    expect(fadePoints(FADE_GRACE_DAYS + 1)).toBe(1);
+    expect(fadePoints(60)).toBe(1);
+    expect(fadePoints(61)).toBe(2);
+    expect(fadePoints(91)).toBe(3);
+  });
+
+  it("lastSeenAt is the latest of creation, confirmation and every sighting", () => {
+    const f = fact({ seen: 50, lastConfirmedAt: daysAgo(10) });
+    expect(idleDays(f, now)).toBe(10);
+    const g = fact({ seen: 50, sources: [{ type: "chat", ref: "", at: daysAgo(3).toISOString() }] });
+    expect(lastSeenAt(g).getTime()).toBe(daysAgo(3).getTime());
+  });
+
+  it("withFreshness reduces confidence (floor 1) for evidence categories only", () => {
+    expect(withFreshness(fact({ seen: 10 }), now).confidence).toBe(4);
+    expect(withFreshness(fact({ seen: 45 }), now).confidence).toBe(3);
+    expect(withFreshness(fact({ seen: 110 }), now).confidence).toBe(1);
+    expect(withFreshness(fact({ seen: 110, category: "goal" }), now).confidence).toBe(4);
+  });
+
+  it("isStale resolves only aging categories, only past the cutoff", () => {
+    expect(isStale(fact({ seen: RESOLVE_AFTER_DAYS - 1 }), now)).toBe(false);
+    expect(isStale(fact({ seen: RESOLVE_AFTER_DAYS }), now)).toBe(true);
+    expect(isStale(fact({ seen: 999, category: "technical_knowledge" }), now)).toBe(false);
+  });
+});

@@ -7,7 +7,11 @@ export function usePlanner() {
   return useQuery<PlannerResponse>({
     queryKey: KEY,
     queryFn: plannerApi.get,
-    staleTime: 30_000,
+    // Reading never builds a mission, so it is cheap: always show what the server holds, and
+    // do not retry a failing read for long (the screen offers Retry instead of a long spinner).
+    staleTime: 0,
+    refetchOnMount: "always",
+    retry: 1,
   });
 }
 

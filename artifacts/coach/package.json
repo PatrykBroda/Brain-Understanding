@@ -54,6 +54,7 @@
     "@workspace/api-client-react": "workspace:*",
     "@workspace/archetypes": "workspace:*",
     "@workspace/breath": "workspace:*",
+    "@workspace/onboarding": "workspace:*",
     "@workspace/ontology": "workspace:*",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
@@ -83,6 +84,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@fontsource-variable/inter-tight": "^5.3.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "three": "^0.184.0"
