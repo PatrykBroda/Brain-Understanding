@@ -12,6 +12,7 @@ import analysisRouter from "./analysis";
 import reportRouter from "./report";
 import competitionRouter from "./competition";
 import checkinRouter from "./checkin";
+import todayRouter from "./today";
 import billingRouter from "./billing";
 import accountRouter from "./account";
 import { googlePublicRouter, googleRouter } from "./google";
@@ -20,6 +21,7 @@ import privacyRouter from "./privacy";
 import aiConsentRouter from "./aiConsent";
 import onboardingRouter from "./onboarding";
 import { requireAuth } from "../middlewares/authMiddleware";
+import { attachTimezone } from "../middlewares/timezone";
 import { requireCurrentAiConsent } from "../lib/aiConsent";
 
 const router: IRouter = Router();
@@ -37,6 +39,7 @@ router.use(googlePublicRouter);
 
 // everything below requires a valid JWT
 router.use(requireAuth);
+router.use(attachTimezone);
 
 // These authenticated routes must remain reachable without current consent:
 // users need to be able to read/update consent and permanently delete their
@@ -61,6 +64,7 @@ router.use(analysisRouter);
 router.use(reportRouter);
 router.use(competitionRouter);
 router.use(checkinRouter);
+router.use(todayRouter);
 router.use(billingRouter);
 router.use(googleRouter);
 router.use(coachRouter);

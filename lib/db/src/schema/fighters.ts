@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, timestamp, date } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp, date, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -42,7 +42,15 @@ export const fightersTable = pgTable("fighters", {
   weaknesses: text("weaknesses").notNull().default(""),
   competes: boolean("competes").notNull().default(false),
   // Free-text self-description captured at onboarding; seeds the spirit-animal read.
+  // Composed from `onboardingAnswers` (+ any free text) so the two stay in step.
   personality: text("personality").notNull().default(""),
+  // The four behavioural questions' answers: question id -> chosen option index.
+  // Stored so the athlete can review and change any answer from Profile; the
+  // coach, State and Focus read the composed `personality` text.
+  onboardingAnswers: jsonb("onboarding_answers").$type<Record<string, number>>().notNull().default({}),
+  // IANA timezone ("Europe/London") the athlete's days roll over in. Sent by the apps
+  // with each request; "" until first seen. Drives State / Focus / check-in dates.
+  timezone: text("timezone").notNull().default(""),
   // Optional multi-select "Training background" — other arts the athlete has trained,
   // stored as a comma-separated list of sport labels (e.g. "Boxing, Wrestling").
   trainingBackground: text("training_background").notNull().default(""),
