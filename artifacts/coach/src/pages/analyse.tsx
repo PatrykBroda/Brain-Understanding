@@ -1560,6 +1560,12 @@ function FindingsTable({
             {f.nervousSystemFraming && (
               <p className="mt-1.5 text-[0.9375rem] text-[#D4C7A3] leading-[1.6]">{f.nervousSystemFraming}</p>
             )}
+            {f.fix && (
+              <p className="mt-2.5 rounded-[12px] border border-[rgba(185,164,119,0.28)] bg-[rgba(185,164,119,0.08)] px-3.5 py-2.5 text-[0.9375rem] leading-[1.55] text-foreground">
+                <span className="mb-0.5 block text-[0.8125rem] font-medium text-[#D4C7A3]">Next session</span>
+                {f.fix}
+              </p>
+            )}
             {keyframes && track && f.keyframeIndex != null && f.bodyRegion && (
               <div className="mt-3">
                 <AnnotatedFindingFrame finding={f} keyframes={keyframes} track={track} onJump={onJump} />

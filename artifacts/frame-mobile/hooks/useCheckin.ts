@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "@/lib/api";
 import { useFighter } from "@/context/FighterContext";
 import { useLocalDay } from "@/hooks/useLocalDay";
+import { localDateString } from "@/lib/localDay";
 import { TODAY_QUERY_KEY } from "@/hooks/useToday";
 
 // Daily readiness check-in — all values athlete-entered, one row per local day.
@@ -59,7 +60,9 @@ export function useSaveCheckin() {
     mutationFn: (input: DailyCheckinInput) =>
       apiPost<{ checkin: DailyCheckin; date: string }>("/checkin", input),
     onSuccess: (data) => {
-      qc.setQueryData(["checkin", "today", data.date], data);
+      // Keyed on the same local day the read hook uses, then re-read so the server stays the authority.
+      qc.setQueryData(["checkin", "today", localDateString()], data);
+      qc.invalidateQueries({ queryKey: ["checkin", "today"] });
       qc.invalidateQueries({ queryKey: ["checkin", "history"] });
       // A check-in changes State, Today's Focus and readiness.
       qc.invalidateQueries({ queryKey: TODAY_QUERY_KEY });

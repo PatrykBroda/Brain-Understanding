@@ -552,7 +552,10 @@ export type NervousSystemLoad = "low" | "moderate" | "elevated" | "high";
 export type AnalysisFinding = {
   title: string;
   observation: string;
+  // "Why it matters in a fight", in plain words (legacy field name).
   nervousSystemFraming: string;
+  // The one drill / constraint / cue for the next session (absent on older analyses).
+  fix?: string;
   severity: "low" | "medium" | "high";
   area: string;
   // Optional grounded visual (both or neither): the real keyframe + body region.

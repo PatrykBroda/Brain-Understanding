@@ -32,9 +32,15 @@ function headOf(text, cap) {
 /** folder -> title -> full text, for notes whose tail was cut from the always-loaded layer. */
 const shelved = {};
 
+// Empty and link-only stubs carry no knowledge (the vault author lists the empty ones as unresolved):
+// they are not loaded into any prompt and not offered for retrieval. See knowledge/knowledge-manifest.md.
+function hasContent(file) {
+  return readFileSync(file, "utf8").replace(/\s+/g, "").length >= 40;
+}
+
 function listMd(dir) {
   try {
-    return readdirSync(dir).filter((f) => f.endsWith(".md")).map((f) => path.join(dir, f)).sort();
+    return readdirSync(dir).filter((f) => f.endsWith(".md")).map((f) => path.join(dir, f)).filter(hasContent).sort();
   } catch {
     return [];
   }

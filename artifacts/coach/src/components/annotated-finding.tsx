@@ -69,7 +69,7 @@ export function AnnotatedFindingFrame({
             y={v.labelPos.y}
             textAnchor={v.labelPos.anchor}
             fontSize={4.2}
-            fontFamily="ui-monospace, monospace"
+            fontFamily="inherit"
             letterSpacing={0.4}
             fill={RING}
             stroke="rgba(0,0,0,0.85)"

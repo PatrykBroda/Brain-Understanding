@@ -211,6 +211,41 @@ describe("POST /analysis with a pose track (real Postgres)", () => {
     expect(JSON.stringify(createMock.mock.calls[0]![0].system)).not.toContain("two fighters in this clip");
   });
 
+  it("reviews footage with a lean, practical prompt plus a budgeted Combat Intelligence reference, not the whole chat vault", async () => {
+    createMock.mockClear();
+    await postSelf({ poseTrack: wireTrack() });
+    const call = createMock.mock.calls[0]![0];
+    const system = (call.system as { text: string }[]).map((b) => b.text).join("\n");
+    // practical, plain-language instructions
+    expect(system).toContain("practical film review");
+    expect(system).toContain("fix = the one drill");
+    expect(system).toMatch(/Do NOT use physiology jargon: never write "nervous system"/);
+    expect(system).not.toContain("FRAME it as nervous-system behaviour");
+    // Combat Intelligence is in, inside its budget
+    expect(system).toContain("# Combat Intelligence");
+    const block = system.slice(system.indexOf("# Combat Intelligence"), system.indexOf("# Combat Intelligence") + 60_000);
+    expect(block.length / 4).toBeLessThan(7_500);
+    // and the chat vault is not (analysis got ~10x smaller)
+    expect(system).not.toContain("# SYNOCHI — Personal Operating System");
+    expect(system.length / 4).toBeLessThan(25_000);
+    // the schema lets the model give a next-session fix
+    expect(JSON.stringify(call.tools)).toContain('"fix"');
+  });
+
+  it("keeps the model's next-session fix on each finding", async () => {
+    createMock.mockClear();
+    createMock.mockResolvedValueOnce(
+      toolUse("emit_analysis", {
+        ...SELF_NARRATIVE,
+        findings: [{ ...SELF_NARRATIVE.findings[0], fix: "3 x 2 min shadowboxing, rear hand glued to the chin after every combination." }],
+      }),
+    );
+    const r = await call("POST", "/api/analysis", body({ poseTrack: wireTrack() }));
+    if (r.json?.analysis?.id) createdIds.push(r.json.analysis.id);
+    expect(r.status).toBe(200);
+    expect(r.json.analysis.findings[0].fix).toMatch(/rear hand glued to the chin/);
+  });
+
   it("saves the analysis without visuals when the track is malformed or oversize", async () => {
     const bad = await postSelf({ poseTrack: { v: 1, w: 1280, h: 720, lead: "left", t: [0, 1, 2], d: "!!!" } });
     expect(bad.status).toBe(200);

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
-    "prebuild": "node ./build-synochi.mjs",
+    "prebuild": "node ./build-synochi.mjs && node ./build-combat.mjs",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps \"${API_SERVER_DIST:-./dist}/index.mjs\"",
     "test": "pnpm -w run test:api-server",
