@@ -6,7 +6,8 @@ import { useSaveFighter } from "@/hooks/use-fighter";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronLeft } from "lucide-react";
 import { VideoBackdrop } from "@/components/media-backdrop";
-import { TAGLINE, SUBLINE } from "@/components/auth-layout";
+import { SUBLINE } from "@/components/auth-layout";
+import { TrainWithFrame } from "@/components/train-with-frame";
 import { Atmosphere } from "@/components/frame-ui";
 import { api, type FighterInput } from "@/lib/api";
 import { createOnboardingTracker } from "@/lib/onboarding-tracking";
@@ -227,8 +228,8 @@ export default function OnboardingPage() {
         <div />
         <section className="relative z-10 mx-auto flex w-full max-w-[460px] flex-col gap-5 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <div className="frame-rise">
-            <h1 className="punch punch-xl text-balance">{TAGLINE}</h1>
-            <p className="mt-3 text-base leading-6 text-[var(--f-text-2)]">{SUBLINE}</p>
+            <TrainWithFrame className="mx-auto w-full max-w-[400px]" />
+            <p className="mt-4 text-center text-base leading-6 text-[var(--f-text-2)]">{SUBLINE}</p>
           </div>
           <div className="frame-rise flex flex-col gap-1" style={{ animationDelay: "80ms" }}>
             <button type="button" className="btn-bronze w-full" onClick={() => {

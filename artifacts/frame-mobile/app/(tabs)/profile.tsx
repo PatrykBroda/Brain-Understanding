@@ -39,6 +39,7 @@ import { apiDelete, apiGet, apiPatch, apiUrl, getAuthToken, heroFileUrl, uploadH
 import type { AiConsentStatus } from "@/lib/aiConsent";
 import { primaryFocus } from "@/lib/primaryFocus";
 import { observationPrompt } from "@/lib/factHistory";
+import { externalLinks } from "@/lib/links";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
 import { FactConfidence } from "@/components/FactConfidence";
@@ -522,6 +523,7 @@ export default function ProfileScreen() {
   }
 
   const linkRows: { label: string; url: string; a11y?: string }[] = [
+    ...externalLinks().map((l) => ({ label: l.label, url: l.url })),
     { label: "Privacy policy", url: apiUrl("/privacy") },
     { label: "Support", url: apiUrl("/support") },
     { label: "Terms of service", url: apiUrl("/terms") },

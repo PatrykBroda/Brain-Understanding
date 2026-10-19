@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -57,6 +58,7 @@ import {
   levelsForSport,
 } from "@/lib/fighterOptions";
 import { EntryBrand } from "@/components/EntryBrand";
+import { SUBLINE, TrainWithFrame } from "@/components/TrainWithFrame";
 import {
   Body,
   Button,
@@ -203,6 +205,7 @@ const ans = StyleSheet.create({
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
+  const { width: screenW } = useWindowDimensions();
   const router = useRouter();
   const qc = useQueryClient();
   const { userId, signOut } = useAuth();
@@ -479,8 +482,8 @@ export default function OnboardingScreen() {
               <EntryBrand compact />
               {step === 0 ? (
                 <View style={{ marginTop: "auto" }}>
-                  <Punch style={styles.headline}>Your corner team between training sessions.</Punch>
-                  <Body style={styles.sub}>AI coaching for fighters and athletes.</Body>
+                  <TrainWithFrame width={Math.min(360, screenW - 2 * (SCREEN_PAD + 2))} />
+                  <Body style={styles.sub}>{SUBLINE}</Body>
                 </View>
               ) : null}
             </View>

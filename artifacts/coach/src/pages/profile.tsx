@@ -12,6 +12,7 @@ import { Belt } from "@/components/belt";
 import { ProfileEdit } from "@/components/profile-edit";
 import { AthleteModel } from "@/components/athlete-model";
 import { AnswersSection } from "@/components/answers-section";
+import { externalLinks } from "@/lib/links";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
 import { primaryFocus, primaryStrength } from "@/lib/primary-focus";
 import { Link } from "wouter";
@@ -323,6 +324,13 @@ export default function ProfilePage() {
 
               {/* ─── ACCOUNT ───────────────────────────────────────── */}
               <div className="space-y-2.5 pt-6 pb-2">
+                <div className="flex flex-wrap justify-center gap-x-6 text-[0.875rem]">
+                  {externalLinks().map((l) => (
+                    <a key={l.key} href={l.url} target="_blank" rel="noreferrer" className="min-h-[44px] inline-flex items-center text-muted-foreground hover:text-foreground underline underline-offset-4 decoration-white/20">
+                      {l.label}
+                    </a>
+                  ))}
+                </div>
                 <div className="flex justify-center gap-6 text-[0.875rem]">
                   <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="min-h-[44px] inline-flex items-center text-muted-foreground hover:text-foreground underline underline-offset-4 decoration-white/20">
                     Privacy and AI permissions

@@ -47,6 +47,7 @@ import {
 } from "@/hooks/useCheckin";
 import { apiGet, getAuthToken, heroFileUrl } from "@/lib/api";
 import { DisclosureNotice, FocusCard } from "@/components/TodayCards";
+import { FirstUsePointers } from "@/components/FirstUsePointers";
 import { useToday } from "@/hooks/useToday";
 import { formatDay } from "@/lib/localDay";
 import {
@@ -379,7 +380,7 @@ function titleCase(s: string): string {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, userId } = useAuth();
   const { fighter } = useFighter();
 
   const analysesQuery = useQuery<AnalysisListItem[]>({
@@ -563,6 +564,21 @@ export default function HomeScreen() {
           <Button
             title={hasChat ? "Continue with your coach" : "Start with your coach"}
             onPress={() => router.push("/(tabs)/chat")}
+          />
+        </FadeIn>
+
+        {/* First-use pointers: where to log training, check in, update the profile. Dismissible. */}
+        <FadeIn index={3} style={styles.pad}>
+          <FirstUsePointers
+            userId={userId}
+            hasCheckinToday={!!checkin}
+            hasEverCheckedIn={!!latestCheckin}
+            hasChatted={hasChat}
+            onAction={(id) => {
+              if (id === "log-training") router.push("/(tabs)/chat");
+              else if (id === "checkin") setEditing(true);
+              else router.push("/(tabs)/profile");
+            }}
           />
         </FadeIn>
 

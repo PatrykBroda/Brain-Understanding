@@ -1,13 +1,14 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EntryBrand } from "@/components/EntryBrand";
+import { SUBLINE, TrainWithFrame } from "@/components/TrainWithFrame";
 import { Body, Button, Display, FadeIn, AuthPanel, Field, Punch, Screen, VideoBackdrop } from "@/components/ui";
 import { fonts, palette, SCREEN_PAD, space } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
-import { apiPost } from "@/lib/api";
+import { apiPost, apiUrl } from "@/lib/api";
 import { getAuthErrorMessage } from "@/lib/authErrors";
 
 /**
@@ -20,6 +21,7 @@ export default function SignInScreen() {
   const { signIn, sessionRestoreError } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: screenW } = useWindowDimensions();
 
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState("");
@@ -66,8 +68,8 @@ export default function SignInScreen() {
 
           {!showForm ? (
             <FadeIn index={1} style={styles.band}>
-              <Punch style={styles.headline}>Your corner team between training sessions.</Punch>
-              <Body style={styles.sub}>AI coaching for fighters and athletes.</Body>
+              <TrainWithFrame width={Math.min(400, screenW - 2 * (SCREEN_PAD + 2))} />
+              <Body style={styles.sub}>{SUBLINE}</Body>
               {message ? (
                 <Text style={styles.errorText} accessibilityRole="alert">
                   {message}
@@ -75,16 +77,25 @@ export default function SignInScreen() {
               ) : null}
               <View style={styles.actions}>
                 <Button
-                  title="Sign in"
+                  title="Sign up"
+                  onPress={() => router.push("/sign-up")}
+                  style={styles.startBtn}
+                />
+                <Button
+                  title="Log in"
                   variant="secondary"
                   onPress={() => setShowForm(true)}
                   style={styles.signInBtn}
                 />
-                <Button
-                  title="Get started"
-                  onPress={() => router.push("/sign-up")}
-                  style={styles.startBtn}
-                />
+              </View>
+              <View style={styles.legalRow}>
+                <Pressable accessibilityRole="link" hitSlop={8} onPress={() => void Linking.openURL(apiUrl("/terms"))} style={styles.legalBtn}>
+                  <Text style={styles.legalLink}>Terms</Text>
+                </Pressable>
+                <Text style={styles.legalDot}>·</Text>
+                <Pressable accessibilityRole="link" hitSlop={8} onPress={() => void Linking.openURL(apiUrl("/privacy"))} style={styles.legalBtn}>
+                  <Text style={styles.legalLink}>Privacy</Text>
+                </Pressable>
               </View>
             </FadeIn>
           ) : (
@@ -144,14 +155,18 @@ export default function SignInScreen() {
 
 const styles = StyleSheet.create({
   inner: { paddingHorizontal: SCREEN_PAD + 2, flexGrow: 1, justifyContent: "space-between" },
-  band: { width: "100%", maxWidth: 440, alignSelf: "center", marginTop: space.xxl },
+  band: { width: "100%", maxWidth: 440, alignSelf: "center", marginTop: space.xxl, alignItems: "stretch" },
   headline: { fontSize: 36, lineHeight: 40, letterSpacing: -1.2 },
-  sub: { marginTop: space.md, fontSize: 17, lineHeight: 24, color: palette.textMid },
+  sub: { marginTop: space.lg, fontSize: 17, lineHeight: 24, color: palette.textHi, textAlign: "center" },
   actions: { flexDirection: "row", gap: space.md, marginTop: space.xl },
   signInBtn: { flex: 1 },
   startBtn: { flex: 1.35 },
   formTitle: { marginBottom: space.lg },
   form: { gap: space.lg },
   formLinks: { flexDirection: "row", justifyContent: "space-between", marginTop: space.sm },
+  legalRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: space.lg },
+  legalBtn: { minHeight: 44, minWidth: 56, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
+  legalLink: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid, textDecorationLine: "underline" },
+  legalDot: { color: palette.textLow },
   errorText: { color: palette.redText, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, marginTop: space.md },
 });

@@ -1,5 +1,6 @@
 import { VideoBackdrop } from "@/components/media-backdrop";
-import { TAGLINE, SUBLINE } from "@/components/auth-layout";
+import { SUBLINE } from "@/components/auth-layout";
+import { TrainWithFrame } from "@/components/train-with-frame";
 import { useEffect, useRef, useState } from "react";
 
 interface EntrySequenceProps {
@@ -83,8 +84,8 @@ export function OpeningScene({
       <section className="relative z-10 mx-auto flex w-full max-w-[460px] flex-col gap-5 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div className="frame-rise">
           {first && <p className="label mb-2">Welcome, {first}</p>}
-          <h1 className="punch punch-xl text-balance">{TAGLINE}</h1>
-          <p className="mt-3 text-base leading-6 text-[var(--f-text-2)]">{SUBLINE}</p>
+          <TrainWithFrame className="mx-auto w-full max-w-[400px]" />
+          <p className="mt-4 text-center text-base leading-6 text-[var(--f-text-2)]">{SUBLINE}</p>
         </div>
         <button
           type="button"

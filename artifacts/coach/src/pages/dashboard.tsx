@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ChevronRight, Pencil, Move, Lock } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
 import { CompetitionBanner } from "@/components/competition-banner";
@@ -14,6 +14,8 @@ import { useActiveCompetition } from "@/hooks/use-competition";
 import { useSaveCheckin, useCheckinHistory } from "@/hooks/use-checkin";
 import { useToday } from "@/hooks/use-today";
 import { DisclosureNotice, FocusCard } from "@/components/today-cards";
+import { FirstUsePointers } from "@/components/first-use-pointers";
+import { useAuth } from "@/context/auth-context";
 import { OPEN_CHECKIN_FLAG } from "@/lib/today";
 import { formatDay } from "@/lib/local-day";
 import { heroFileUrl, api, type DailyCheckin } from "@/lib/api";
@@ -217,6 +219,8 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
 
 export default function DashboardPage() {
   const { data: fighterData } = useFighter();
+  const { userId } = useAuth();
+  const [, setLocation] = useLocation();
   // Login lands here now — fire the one-time deterministic welcome (server-guarded, idempotent)
   useAutoWelcome();
   const fighter = fighterData?.fighter ?? null;
@@ -505,6 +509,17 @@ export default function DashboardPage() {
               {today?.focus?.current ? "Work on it with your coach" : "Start coaching"}
               <ChevronRight className="h-4 w-4" strokeWidth={2} aria-hidden />
             </Link>
+            <FirstUsePointers
+              userId={userId}
+              hasCheckinToday={!!checkin}
+              hasEverCheckedIn={!!lastCheckin}
+              hasChatted={(conversationQuery.data?.messages?.length ?? 0) > 0}
+              onAction={(id) => {
+                if (id === "log-training") setLocation("/chat");
+                else if (id === "checkin") setEditing(true);
+                else setLocation("/profile");
+              }}
+            />
           </div>
 
           <div className="frame-rise relative mt-4" style={delay(100)}>

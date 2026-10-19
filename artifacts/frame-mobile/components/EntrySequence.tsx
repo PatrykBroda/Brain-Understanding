@@ -1,7 +1,8 @@
-import { Atmosphere, Body, Button, Label, Punch, VideoBackdrop } from "@/components/ui";
+import { Atmosphere, Body, Button, Label, VideoBackdrop } from "@/components/ui";
 import { palette, SCREEN_PAD, space } from "@/constants/theme";
 import React, { useEffect, useRef } from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { Image, StyleSheet, useWindowDimensions, View } from "react-native";
+import { SUBLINE, TrainWithFrame } from "@/components/TrainWithFrame";
 import Animated, {
   Easing,
   runOnJS,
@@ -48,6 +49,7 @@ export function EntrySequence({
   minMs?: number;
 }) {
   const insets = useSafeAreaInsets();
+  const { width: screenW } = useWindowDimensions();
   const reduced = useReanimatedReducedMotion();
   const fade = useSharedValue(1);
   const progress = useSharedValue(0);
@@ -96,10 +98,10 @@ export function EntrySequence({
 
       <View style={[s.band, { paddingBottom: insets.bottom + 20 }]}>
         <Rise index={0}>
-          <Punch style={s.headline}>Your corner team between training sessions.</Punch>
+          <TrainWithFrame width={Math.min(400, screenW - 2 * (SCREEN_PAD + 4))} />
         </Rise>
         <Rise index={1}>
-          <Body style={s.sub}>AI coaching for fighters and athletes.</Body>
+          <Body style={s.sub}>{SUBLINE}</Body>
         </Rise>
         <View
           style={s.track}
@@ -129,7 +131,7 @@ const s = StyleSheet.create({
   spacer: { flex: 1 },
   band: { paddingHorizontal: SCREEN_PAD + 4 },
   headline: { fontSize: 36, lineHeight: 40, letterSpacing: -1.2 },
-  sub: { marginTop: space.md, fontSize: 17, lineHeight: 24, color: palette.textHi },
+  sub: { marginTop: space.lg, fontSize: 17, lineHeight: 24, color: palette.textHi, textAlign: "center" },
   track: {
     height: 2,
     marginTop: space.xl,

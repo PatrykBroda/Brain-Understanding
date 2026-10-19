@@ -23,6 +23,7 @@ import { FramePlusProvider } from "@/components/frame-plus-modal";
 import { AuthProvider, useAuth } from "@/context/auth-context";
 import { useAiConsent, useSetAiConsent } from "@/hooks/use-ai-consent";
 import { AiConsentModal } from "@/components/ai-consent-modal";
+import { FrameOctagon } from "@/components/frame-octagon";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -39,6 +40,7 @@ function GateShell({ children }: { children: React.ReactNode }) {
 function BootScreen({ label }: { label: string }) {
   return (
     <GateShell>
+      <FrameOctagon size={56} spin spinSeconds={6} color="#B9A477" />
       <span className="label relative">{label}</span>
       <div className="frame-loader-track relative" role="status" aria-label="Loading">
         <div className="frame-loader-bar" />

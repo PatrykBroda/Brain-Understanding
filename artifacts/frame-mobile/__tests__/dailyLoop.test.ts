@@ -105,3 +105,21 @@ describe("tapping an observation opens the coach with that observation and its d
     expect(other).not.toContain("guard retention");
   });
 });
+import { parseDismissed, pointersToShow, type PointerId } from "../lib/pointers";
+
+describe("first-use pointers", () => {
+  const none = { dismissed: [] as PointerId[], hasCheckinToday: false, hasEverCheckedIn: false, hasChatted: false };
+  it("a new athlete gets all three: log training, check in, update profile", () => {
+    expect(pointersToShow(none).map((p) => p.id)).toEqual(["log-training", "checkin", "profile"]);
+  });
+  it("never points at something already done, and a dismissed one stays dismissed", () => {
+    expect(pointersToShow({ ...none, hasChatted: true }).map((p) => p.id)).toEqual(["checkin", "profile"]);
+    expect(pointersToShow({ ...none, hasCheckinToday: true }).map((p) => p.id)).toEqual(["log-training", "profile"]);
+    expect(pointersToShow({ ...none, dismissed: ["profile", "checkin", "log-training"] })).toEqual([]);
+  });
+  it("tolerates junk in storage", () => {
+    expect(parseDismissed("not json")).toEqual([]);
+    expect(parseDismissed(JSON.stringify(["profile", "nope", 3]))).toEqual(["profile"]);
+    expect(parseDismissed(null)).toEqual([]);
+  });
+});
