@@ -53,8 +53,8 @@ export function TrainWithFrame({ width = 320, showTagline = true }: { width?: nu
         </SvgText>
       </Svg>
       {showTagline ? (
-        <Text style={s.tagline} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-          {TAGLINE_CAPS.toUpperCase()}
+        <Text style={s.tagline} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {TAGLINE_CAPS}
         </Text>
       ) : null}
     </View>
@@ -65,8 +65,8 @@ const s = StyleSheet.create({
   tagline: {
     marginTop: 10,
     fontFamily: fonts.medium,
-    fontSize: 11.5,
-    letterSpacing: 2.6,
+    fontSize: 13,
+    letterSpacing: 0.4,
     color: palette.gold,
     textAlign: "center",
   },
