@@ -1,20 +1,34 @@
 {
   "policy": "see header of build-combat.mjs",
   "summary": {
-    "notes": 921,
+    "notes": 928,
     "chatAlwaysLoaded": 268,
     "chatOnDemand": 374,
     "analysisAvailable": 262,
-    "excluded": 13,
+    "excluded": 20,
     "notUsed": 4,
-    "empty": 1,
-    "reviewRequiredOrWrongContent": 1,
+    "empty": 6,
+    "reviewRequiredOrWrongContent": 3,
     "historicalExcludedFromAnalysis": 11,
     "combatNotesTotal": 273,
     "combatNotesAvailableToAnalysis": 261,
     "analysisCharsTotal": 929809
   },
-  "packageDiff": null,
+  "packageDiff": {
+    "packageNotes": 928,
+    "repoNotes": 921,
+    "inPackageNotInRepo": [
+      "Interaction Psychology/Social Dominance Circuits.md",
+      "MECHANISMS/Functional vs Trusted Capacity.md",
+      "MODELS/Power Threshold.md",
+      "MODELS/Relationship Compunding.md",
+      "MODELS/State Shapes Performance.md",
+      "PROTOCOLS/Physiological Regulation.md",
+      "SPINE/Spine Rule.md"
+    ],
+    "inRepoNotInPackage": [],
+    "changedBytes": []
+  },
   "notes": [
     {
       "path": "COMBAT INTELLIGENCE/BJJ Intelligence/50 50 Guard.md",
@@ -11111,6 +11125,111 @@
       "status": "included",
       "reasons": [],
       "chars": 3253
+    },
+    {
+      "path": "Interaction Psychology/Social Dominance Circuits.md",
+      "folder": "Interaction Psychology",
+      "subfolder": null,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "chat": null,
+      "analysis": "excluded",
+      "status": "excluded",
+      "reasons": [
+        "empty note (nothing is invented to fill it)",
+        "present in the supplied package only"
+      ],
+      "chars": 0
+    },
+    {
+      "path": "MECHANISMS/Functional vs Trusted Capacity.md",
+      "folder": "MECHANISMS",
+      "subfolder": null,
+      "bytes": 338,
+      "sha256": "4a38a821d3b5beff1a9a4e49b6eb54ee67009329c9ed95d56d203e21b20a567d",
+      "chat": null,
+      "analysis": "excluded",
+      "status": "excluded",
+      "reasons": [
+        "wrong content: byte-identical to MECHANISMS/Opponent Realisation.md (Unresolved Issues #1)",
+        "present in the supplied package only"
+      ],
+      "chars": 338
+    },
+    {
+      "path": "MODELS/Power Threshold.md",
+      "folder": "MODELS",
+      "subfolder": null,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "chat": null,
+      "analysis": "excluded",
+      "status": "excluded",
+      "reasons": [
+        "empty note (nothing is invented to fill it)",
+        "present in the supplied package only"
+      ],
+      "chars": 0
+    },
+    {
+      "path": "MODELS/Relationship Compunding.md",
+      "folder": "MODELS",
+      "subfolder": null,
+      "bytes": 328,
+      "sha256": "a064d41c71731ed6e63ef43242ce8d2f3e1d21e9a21c4bdc36789a3ebd829555",
+      "chat": null,
+      "analysis": "excluded",
+      "status": "excluded",
+      "reasons": [
+        "wrong content: byte-identical to MODELS/Operator Layer Acquisition.md (Unresolved Issues #1)",
+        "present in the supplied package only"
+      ],
+      "chars": 328
+    },
+    {
+      "path": "MODELS/State Shapes Performance.md",
+      "folder": "MODELS",
+      "subfolder": null,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "chat": null,
+      "analysis": "excluded",
+      "status": "excluded",
+      "reasons": [
+        "empty note (nothing is invented to fill it)",
+        "present in the supplied package only"
+      ],
+      "chars": 0
+    },
+    {
+      "path": "PROTOCOLS/Physiological Regulation.md",
+      "folder": "PROTOCOLS",
+      "subfolder": null,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "chat": null,
+      "analysis": "excluded",
+      "status": "excluded",
+      "reasons": [
+        "empty note (nothing is invented to fill it)",
+        "present in the supplied package only"
+      ],
+      "chars": 0
+    },
+    {
+      "path": "SPINE/Spine Rule.md",
+      "folder": "SPINE",
+      "subfolder": null,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "chat": null,
+      "analysis": "excluded",
+      "status": "excluded",
+      "reasons": [
+        "empty note (nothing is invented to fill it)",
+        "present in the supplied package only"
+      ],
+      "chars": 0
     }
   ]
 }

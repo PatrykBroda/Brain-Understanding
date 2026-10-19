@@ -22,7 +22,7 @@
 //     build-synochi.mjs. The manifest records which of them each note belongs to.
 
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -180,9 +180,15 @@ const ts =
   `export const COMBAT_NOTES: CombatNote[] = ${JSON.stringify(notes)};\n`;
 const tmp = `${OUT_TS}.tmp-${process.pid}`;
 writeFileSync(tmp, ts);
-import("node:fs").then(({ renameSync }) => renameSync(tmp, OUT_TS));
+renameSync(tmp, OUT_TS);
 
 // ---- manifest ----
+// The manifest records the ingest of the SUPPLIED package, so only a run given --package rewrites it.
+// A plain build (prebuild) regenerates combat.generated.ts alone and leaves the committed manifest as is.
+if (!packageDiff) {
+  console.log(`combat: ${included.length} notes available to video analysis; manifest left unchanged (run with --package to refresh it)`);
+  process.exit(0);
+}
 mkdirSync(OUT_DIR, { recursive: true });
 const pub = rows.map(({ _text, ...r }) => r);
 const count = (f) => pub.filter(f).length;
