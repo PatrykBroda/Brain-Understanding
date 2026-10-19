@@ -4,15 +4,6 @@ import { BAR_DAYS, barSlots, checkinScore } from "../src/lib/readiness-bars";
 import { stateDateLine, stateHeadline, type DailyCheckinRow, type TodayView } from "../src/lib/today";
 import { CATEGORY_LABEL, formatWeekRange, groupItems, missionErrorMessage, type PlanItem } from "../src/lib/mission";
 import { keyboardInset, shouldDismissKeyboard } from "../src/lib/keyboard";
-import {
-  answeredCount,
-  chosenLabel,
-  dobPatch,
-  frequencyPatch,
-  questionPatch,
-  sportPatch,
-  textPatch,
-} from "../src/lib/profile-answers";
 
 describe("local day", () => {
   it("formats the wall-clock date and counts to the next midnight", () => {
@@ -82,26 +73,6 @@ describe("keyboard helpers", () => {
     expect(shouldDismissKeyboard(field, button)).toBe(false);
     expect(shouldDismissKeyboard({ matches: () => false }, blank)).toBe(false);
     expect(shouldDismissKeyboard(null, blank)).toBe(false);
-  });
-});
-
-describe("Profile questionnaire edits use onboarding's fields and validation", () => {
-  const today = new Date("2026-10-20T00:00:00Z");
-  it("sport needs its level; frequency, text, date", () => {
-    expect(sportPatch("bjj", "")).toMatchObject({ ok: false });
-    expect(sportPatch("muay_thai", "Advanced")).toEqual({ ok: true, body: { primarySport: "muay_thai", art: "Muay Thai", level: "Advanced" } });
-    expect(frequencyPatch("3-4x / week")).toEqual({ ok: true, body: { trainingFrequency: "3-4x / week" } });
-    expect(textPatch("weaknesses", "   ")).toEqual({ ok: true, body: { weaknesses: "" } });
-    expect(dobPatch("1995-03-14", today)).toEqual({ ok: true, body: { dateOfBirth: "1995-03-14" } });
-    expect(dobPatch("2030-01-01", today)).toMatchObject({ ok: false, error: "That date is in the future." });
-    expect(dobPatch("0002-01-01", today)).toMatchObject({ ok: false });
-  });
-  it("changing one answer sends all of them", () => {
-    const current = { onboardingAnswers: { tired: 0, imposed: 1 } };
-    expect(questionPatch(current, "chaos", 2)).toEqual({ ok: true, body: { onboardingAnswers: { tired: 0, imposed: 1, chaos: 2 } } });
-    expect(questionPatch(current, "chaos", 9)).toMatchObject({ ok: false });
-    expect(answeredCount(current)).toBe(2);
-    expect(chosenLabel({}, "tired")).toBeNull();
   });
 });
 

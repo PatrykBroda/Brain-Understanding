@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import ChatPage from "@/pages/chat";
-import OnboardingPage from "@/pages/onboarding";
 import StatePage from "@/pages/state";
 import OrbPage from "@/pages/orb";
 import DashboardPage from "@/pages/dashboard";
@@ -23,8 +22,24 @@ import { FramePlusProvider } from "@/components/frame-plus-modal";
 import { AuthProvider, useAuth } from "@/context/auth-context";
 import { useAiConsent, useSetAiConsent } from "@/hooks/use-ai-consent";
 import { AiConsentModal } from "@/components/ai-consent-modal";
+import { FrameOctagon } from "@/components/frame-octagon";
+import { FrameLogo } from "@/components/frame-logo";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+/** Loading screen: new wordmark + octagon spinner (entry look, scoped via .entry-theme). */
+function BootScreen({ label }: { label: string }) {
+  return (
+    <div className="entry-theme relative flex h-[100dvh] flex-col items-center justify-center gap-5 overflow-hidden px-6 text-center">
+      <FrameLogo height={16} />
+      <FrameOctagon size={56} spin spinSeconds={6} color="#B9A477" />
+      <span className="entry-label relative">{label}</span>
+      <div className="entry-loader-track relative" role="status" aria-label="Loading">
+        <div className="entry-loader-bar" />
+      </div>
+    </div>
+  );
+}
 
 function ConsentGate({ children }: { children: React.ReactNode }) {
   const { data, isLoading, isError, error, refetch, isFetching } = useAiConsent();
@@ -39,12 +54,7 @@ function ConsentGate({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex h-[100dvh] flex-col items-center justify-center gap-4 bg-background text-muted-foreground font-mono text-[10px] uppercase tracking-[0.3em]">
-        <span>Checking permissions</span>
-        <div className="frame-loader-track" role="status" aria-label="Loading">
-          <div className="frame-loader-bar" />
-        </div>
-      </div>
+      <BootScreen label="Checking permissions" />
     );
   }
 
@@ -168,12 +178,7 @@ function Gate({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
   if (isLoading) {
     return (
-      <div className="flex h-[100dvh] flex-col items-center justify-center gap-4 bg-background text-muted-foreground font-mono text-[10px] uppercase tracking-[0.3em]">
-        <span>Booting system</span>
-        <div className="frame-loader-track" role="status" aria-label="Loading">
-          <div className="frame-loader-bar" />
-        </div>
-      </div>
+      <BootScreen label="Starting FRAME" />
     );
   }
   if (isError) {
@@ -231,7 +236,7 @@ function Gate({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  if (!data?.fighter) return <OnboardingPage />;
+  // Every account has a fighter row (stub created at sign-up); nobody is routed into an onboarding flow.
   return <>{children}</>;
 }
 

@@ -185,6 +185,18 @@ export async function applyMemoryToolCalls(
   return tally;
 }
 
+/** One line of known profile facts; unanswered fields are left out (never "age=0" or blanks). */
+export function baselineLine(fighter: Fighter): string {
+  const parts = [
+    fighter.name ? `name=${fighter.name}` : null,
+    fighter.age > 0 ? `age=${fighter.age}` : null,
+    fighter.art?.trim() ? `art=${fighter.art}` : null,
+    fighter.level?.trim() ? `level=${fighter.level}` : null,
+    fighter.competes ? "competes=true" : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" | ") : "(profile not answered yet)";
+}
+
 export async function extractMemory(args: {
   fighter: Fighter;
   userText: string;
@@ -197,7 +209,7 @@ export async function extractMemory(args: {
   try {
     const facts = await getActiveFacts(fighter.id);
     const userMessage = `Athlete profile baseline:
-name=${fighter.name} | age=${fighter.age} | art=${fighter.art} | level=${fighter.level} | competes=${fighter.competes}
+${baselineLine(fighter)}
 stated goals: ${fighter.goals || "(none)"}
 stated weaknesses: ${fighter.weaknesses || "(none)"}
 ${todayLine ? `${todayLine}

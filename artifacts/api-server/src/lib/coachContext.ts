@@ -6,6 +6,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db, dailyCheckinsTable, type DailyCheckin, type Fighter } from "@workspace/db";
 import { getDailyView, readinessBand, readinessGuidance, readinessScore, type DailyView } from "./dailyContext";
+import { questionnaireAnswered } from "@workspace/onboarding";
 import { daysBetween, formatLocalDate } from "./localTime";
 
 export interface CoachDayContext {
@@ -108,10 +109,17 @@ export function buildTodayBlock(ctx: CoachDayContext): string {
 }
 
 /** Extra instruction for the very first coaching reply after onboarding. */
-export function buildFirstReplyBlock(): string {
+export function buildFirstReplyBlock(fighter?: Pick<Fighter, "primarySport" | "level" | "trainingFrequency" | "dateOfBirth" | "goals" | "weaknesses" | "personality"> | null): string {
+  if (fighter && !questionnaireAnswered(fighter)) {
+    return [
+      "# First coaching reply",
+      "",
+      "This is the athlete's first message to you and they have NOT answered their onboarding questions yet, so you know nothing about their sport, level, age or training rhythm. Do not guess or assume any of it, and do not mention an age or a sport. Reply naturally to what they actually said. Then, once and briefly, invite them to answer the onboarding questions in the Profile tab so you can coach them properly. Give ONE small thing they can do or notice in the next 48 hours if their message allows it, and at most one question, last.",
+    ].join("\n");
+  }
   return [
     "# First coaching reply",
     "",
-    "This is the athlete's first message to you since they finished onboarding. Open by showing you took in what they told you: their sport and level, how often they train, a goal and a weakness in their own words, and one thing from how they said they behave under pressure — in two or three natural sentences, not a list. Then give ONE clear next step they can do in the next 48 hours (specific and doable), and at most one question, last. Do not ask for anything the profile already holds, and do not recite the profile back field by field.",
+    "This is the athlete's first message to you since they answered their onboarding questions. Open by showing you took in what they told you: their sport and level, how often they train, any goal or weakness they gave in their own words, and (only if they answered it) one thing from how they said they behave under pressure — in two or three natural sentences, not a list. Then give ONE clear next step they can do in the next 48 hours (specific and doable), and at most one question, last. Do not ask for anything the profile already holds, and do not recite the profile back field by field.",
   ].join("\n");
 }

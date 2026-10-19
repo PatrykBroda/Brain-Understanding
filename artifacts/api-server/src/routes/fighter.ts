@@ -14,7 +14,7 @@ import { archetypeStateFor, shapeFighter } from "../lib/archetypeGate";
 import { getActiveFacts } from "../lib/factsService";
 import type { Fighter } from "@workspace/db";
 import { prepareFighterBody, questionnaireChanged } from "../lib/fighterBody";
-import { recordFinish } from "../lib/onboardingEvents";
+import { recordFinishIfCompleted } from "../lib/onboardingEvents";
 
 const router: IRouter = Router();
 
@@ -37,7 +37,7 @@ function ageFromDob(dob: string | null | undefined): number | null {
  * What every /fighter response sends: the row with the archetype (animal) withheld until
  * FRAME's understanding of the athlete reaches 25%, plus `understanding` and
  * `archetypeUnlocked` so the apps can say why. The animal is also only (re)assigned here
- * once unlocked; onboarding no longer assigns one (there is nothing to read yet).
+ * once unlocked; sign-up and the questionnaire no longer assign one (there is nothing to read yet).
  */
 async function respondFighter(row: Fighter, opts: { personalityChanged?: boolean }, log: { warn: (o: object, m: string) => void }) {
   const facts = await getActiveFacts(row.id);
@@ -98,6 +98,7 @@ router.post("/fighter", async (req, res) => {
       .returning();
     const personalityChanged =
       (parsed.data.personality ?? existing.personality) !== existing.personality;
+    if (updated) await recordFinishIfCompleted(userId, existing, updated, req.log);
     res.json({ fighter: updated ? await respondFighter(updated, { personalityChanged }, req.log) : existing });
     return;
   }
@@ -107,8 +108,8 @@ router.post("/fighter", async (req, res) => {
     .values({ ...values, userId })
     .returning();
 
-  // Funnel: first save of the profile = onboarding finished (analytics only, never throws).
-  if (created) await recordFinish(userId, req.log);
+  // Funnel: required answers present for the first time (analytics only, never throws).
+  if (created) await recordFinishIfCompleted(userId, null, created, req.log);
 
   // No archetype at sign-up: FRAME has nothing to read yet (see respondFighter).
   res.json({ fighter: created ? await respondFighter(created, {}, req.log) : created });
@@ -139,7 +140,7 @@ router.patch("/fighter", async (req, res) => {
   }
 
   if (Object.keys(patch).length === 0) {
-    res.json({ fighter: existing });
+    res.json({ fighter: await respondFighter(existing, {}, req.log) });
     return;
   }
   if (questionnaireChanged(existing as unknown as Record<string, unknown>, patch)) {
@@ -155,6 +156,7 @@ router.patch("/fighter", async (req, res) => {
   // The archetype is re-read when the answers behind it changed AND understanding allows one.
   const personalityChanged =
     patch.personality != null && patch.personality !== existing.personality;
+  if (updated) await recordFinishIfCompleted(req.userId!, existing, updated, req.log);
   res.json({ fighter: updated ? await respondFighter(updated, { personalityChanged }, req.log) : existing });
 });
 

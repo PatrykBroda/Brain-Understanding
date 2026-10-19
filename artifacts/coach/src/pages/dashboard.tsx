@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ChevronRight, Pencil, Move, Lock } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
 import { CompetitionBanner } from "@/components/competition-banner";
@@ -9,11 +9,16 @@ import { FrameWordmark } from "@/components/frame-wordmark";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useFighter, useUpdateFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
-import { useAnalyses } from "@/hooks/use-analysis";
 import { useActiveCompetition } from "@/hooks/use-competition";
-import { useTodayCheckin, useSaveCheckin, useCheckinHistory } from "@/hooks/use-checkin";
-import { useMemory } from "@/hooks/use-memory";
-import { primaryFocus } from "@/lib/primary-focus";
+import { useSaveCheckin, useCheckinHistory } from "@/hooks/use-checkin";
+import { useLocalDay, useToday } from "@/hooks/use-today";
+import { DisclosureNotice, FocusSection } from "@/components/today-cards";
+import { FirstUsePointers } from "@/components/first-use-pointers";
+import { ReadinessBars } from "@/components/readiness-bars";
+import { questionnaireAnswered } from "@workspace/onboarding";
+import { useAuth } from "@/context/auth-context";
+import { OPEN_CHECKIN_FLAG } from "@/lib/today";
+import { formatDay } from "@/lib/local-day";
 import { heroFileUrl, api, type DailyCheckin } from "@/lib/api";
 import { AuthedImage } from "@/components/authed-image";
 import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
@@ -241,12 +246,17 @@ export default function DashboardPage() {
   useAutoWelcome();
   const fighter = fighterData?.fighter ?? null;
 
-  const analysesQuery = useAnalyses();
-  const latest =
-    analysesQuery.data?.analyses?.find((a) => !a.locked && a.sessionScore != null) ?? null;
+  const { userId } = useAuth();
+  const [, setLocation] = useLocation();
 
-  const checkinQuery = useTodayCheckin();
-  const checkin = checkinQuery.data?.checkin ?? null;
+  // State, Today's Focus and readiness for the athlete's local day. The server is the one
+  // authority on what "today" is: an older check-in is never returned as today's.
+  const todayQuery = useToday();
+  const today = todayQuery.data ?? null;
+  const checkin = today?.readiness.today?.checkin ?? null;
+  const lastCheckin = today?.readiness.latest ?? null;
+  const localDay = useLocalDay();
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   // Readiness trend is FRAME+ — only fetch when entitled; free shows a teaser.
   const { isFramePlus } = useSubscription();
@@ -258,21 +268,23 @@ export default function DashboardPage() {
   const competition = activeComp.data?.competition ?? null;
   const pressure = activeComp.data?.pressure ?? null;
 
-  const memoryQuery = useMemory(!!fighter);
-  const rawFacts = memoryQuery.data?.facts;
-  const facts = Array.isArray(rawFacts) ? rawFacts : [];
-  // The one highest-value insight — the coach's voice, not an analytics dump.
-  const focus = fighter ? primaryFocus(fighter, facts) : null;
-  const hasFocus = !!focus && focus.label !== "Not yet identified";
-
   const [editing, setEditing] = useState(false);
+  // "Check in now" on State lands here with the form open. The flag lives in sessionStorage,
+  // so it survives the welcome redirect between State and Home.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(OPEN_CHECKIN_FLAG) === "1") {
+        sessionStorage.removeItem(OPEN_CHECKIN_FLAG);
+        setEditing(true);
+      }
+    } catch {
+      // storage blocked
+    }
+  }, []);
 
-  // Readiness is only ever a real composite: today's self-reported check-in
-  // first, else the most recent analysed session. No data — no number.
-  const checkinScore = checkin
-    ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
-    : null;
-  const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
+  // Today's number comes from today's check-in only. An older check-in is never presented
+  // as today's readiness (it is shown dated, below).
+  const checkinScore = today?.readiness.today?.score ?? null;
 
   // Same lightweight ±10 chat modifier the STATE tab applies, so the Fight
   // Readiness number stays consistent across screens. Reuses the shared
@@ -283,13 +295,15 @@ export default function DashboardPage() {
     enabled: !!fighter,
   });
   const chatModifier = readinessModifier(conversationQuery.data?.messages ?? []);
-  const readiness = applyReadinessModifier(checkinScore ?? sessionScore, chatModifier);
+  const readiness = applyReadinessModifier(checkinScore, chatModifier);
   const provenance =
     checkinScore != null
       ? "Today's check-in"
-      : sessionScore != null
-        ? "Last session"
+      : lastCheckin
+        ? `Last check-in ${formatDay(lastCheckin.date)}`
         : null;
+  const readinessLoading = todayQuery.isLoading;
+  const readinessError = !readinessLoading && todayQuery.isError && readiness == null;
 
   const hasHero = !!fighter && fighter.heroImageUrl.trim() !== "";
   const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
@@ -502,34 +516,50 @@ export default function DashboardPage() {
           <CompetitionBanner />
         </div>
 
-        {/* ─── Today's focus — the one insight, coach's voice ────────────── */}
-        {hasFocus && focus && (
-          <section className="px-6 pt-7">
-            <div className="border-b border-white/[0.07] pb-2">
-              <h2 className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/60">
-                Today's focus
-              </h2>
-            </div>
-            <Link
-              href="/chat"
-              className="block pt-4 group outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg"
-              title={focus.source}
-            >
-              <div className="flex items-baseline justify-between gap-4">
-                <p className="font-sans font-light text-[1.15rem] text-foreground/95 leading-snug">
-                  {focus.label}
-                </p>
-                <ChevronRight
-                  className="flex-none w-4 h-4 text-foreground/30 group-hover:text-primary transition-colors translate-y-0.5"
-                  strokeWidth={1.5}
-                />
-              </div>
-              <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/35 mt-2">
-                {focus.source}
-              </div>
-            </Link>
-          </section>
+        {fighter && !questionnaireAnswered(fighter) && (
+          <Link
+            href="/profile?section=questions"
+            className="mx-6 mt-7 flex items-center justify-between gap-4 border border-primary/40 px-5 py-4 hover:border-primary/70 transition-colors"
+          >
+            <span>
+              <span className="block font-mono text-[9px] uppercase tracking-[0.4em] text-primary/80">Onboarding questions</span>
+              <span className="mt-1.5 block font-sans font-light text-[14px] leading-snug text-foreground/80">
+                Answer your onboarding questions so FRAME can coach you
+              </span>
+            </span>
+            <ChevronRight className="flex-none w-4 h-4 text-primary/70" strokeWidth={1.5} />
+          </Link>
         )}
+
+        {/* ─── Today's focus — the one insight, coach's voice ────────────── */}
+        {today && today.disclosure.code !== "none" && (
+          <div className="px-6 pt-7">
+            <DisclosureNotice disclosure={today.disclosure} onCheckIn={() => setEditing(true)} />
+          </div>
+        )}
+        <FocusSection
+          focus={today?.focus ?? null}
+          loading={todayQuery.isLoading}
+          askHref={(prompt) => `/chat?prefill=${encodeURIComponent(prompt)}&n=${Date.now()}`}
+        />
+        <Link
+          href="/chat"
+          className="mx-6 mt-5 flex items-center justify-between border border-primary/40 px-5 py-3.5 font-mono text-[10px] uppercase tracking-[0.35em] text-primary hover:border-primary/70 transition-colors"
+        >
+          {today?.focus?.current ? "Work on it with your coach" : "Start coaching"}
+          <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+        </Link>
+        <FirstUsePointers
+          userId={userId}
+          hasCheckinToday={!!checkin}
+          hasEverCheckedIn={!!lastCheckin}
+          hasChatted={(conversationQuery.data?.messages?.length ?? 0) > 0}
+          onAction={(id) => {
+            if (id === "log-training") setLocation("/chat");
+            else if (id === "checkin") setEditing(true);
+            else setLocation("/profile");
+          }}
+        />
 
         {/* ─── Fight readiness — real composite or an honest prompt ──────── */}
         <section className="px-6 pt-7 pb-2">
@@ -561,8 +591,23 @@ export default function DashboardPage() {
                     —
                   </div>
                   <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/45 mt-3 max-w-[180px] leading-relaxed">
-                    No real data yet. Log a check-in or analyse a session.
+                    {readinessLoading
+                      ? "Reading your day…"
+                      : readinessError
+                        ? "Couldn't load readiness."
+                        : lastCheckin
+                          ? `No read today. Last check-in ${formatDay(lastCheckin.date)} (${lastCheckin.score} / 100) is not today's readiness.`
+                          : "No read today. Log a check-in to set your readiness."}
                   </div>
+                  {readinessError && (
+                    <button
+                      type="button"
+                      onClick={() => void todayQuery.refetch()}
+                      className="mt-3 font-mono text-[9px] uppercase tracking-[0.35em] text-primary/80 hover:text-primary transition-colors"
+                    >
+                      Try again
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -629,7 +674,20 @@ export default function DashboardPage() {
               from real logged check-ins; free tier sees a locked teaser. */}
           <div className="mt-7 border-t border-white/[0.05] pt-5">
             {isFramePlus ? (
-              <ReadinessTrend checkins={historyCheckins} />
+              <>
+                <ReadinessTrend checkins={historyCheckins} />
+                <div className="mt-6">
+                  <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55">
+                    Check-in history
+                  </div>
+                  <ReadinessBars
+                    checkins={historyCheckins}
+                    today={localDay}
+                    selected={selectedDay}
+                    onSelect={setSelectedDay}
+                  />
+                </div>
+              </>
             ) : (
               <button
                 type="button"

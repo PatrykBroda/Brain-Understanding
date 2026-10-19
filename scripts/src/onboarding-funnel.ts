@@ -1,4 +1,4 @@
-// Where do people quit onboarding?
+// Where do people drop off: sign-up, then the Profile onboarding questions?
 //
 //   DATABASE_URL=postgres://... pnpm --filter @workspace/scripts run onboarding-funnel
 //   ... run onboarding-funnel -- --json     (machine-readable)

@@ -127,7 +127,7 @@ const CLAUDE_IMAGE_MIME = new Set([
 router.post("/coach/welcome", async (req, res) => {
   const fighter = await getUserFighter(req);
   if (!fighter) {
-    res.status(400).json({ error: "no fighter — complete onboarding first" });
+    res.status(400).json({ error: "no fighter" });
     return;
   }
   // Cheap pre-lock check: returning athletes (the overwhelming majority of
@@ -272,7 +272,7 @@ router.post("/coach/chat", async (req, res) => {
 
   const fighter = await getUserFighter(req);
   if (!fighter) {
-    res.status(400).json({ error: "no fighter — complete onboarding first" });
+    res.status(400).json({ error: "no fighter" });
     return;
   }
   // Check before creating a conversation, persisting the user's message, or
@@ -454,7 +454,7 @@ router.post("/coach/chat", async (req, res) => {
     req.log.error({ err }, "coach day context failed; replying without it");
   }
   const userTurns = fullHistory.filter((m) => m.role === "user").length;
-  const firstReplyBlock = userTurns === 1 ? buildFirstReplyBlock() : null;
+  const firstReplyBlock = userTurns === 1 ? buildFirstReplyBlock(fighter) : null;
 
   const dynamicText =
     buildDynamicContext(fighter, facts, calibrations, deepNodes, compBlock, { todayBlock, firstReplyBlock }) +

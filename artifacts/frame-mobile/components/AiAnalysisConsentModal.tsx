@@ -157,25 +157,6 @@ export function AiConsentModal({
             </View>
           )}
 
-          <Pressable
-            style={s.checkboxRow}
-            onPress={() => setChecked(!checked)}
-            disabled={!disclosure || busy}
-            accessibilityRole="checkbox"
-            accessibilityLabel="I understand and agree to the AI data sharing described above"
-            accessibilityHint="Required before you can continue"
-            accessibilityState={{ checked, disabled: !disclosure || busy }}
-          >
-            <View style={[s.checkbox, checked && s.checkboxChecked]}>
-              {checked && <Feather name="check" size={16} color="#FFFFFF" />}
-            </View>
-            <Text style={s.checkboxLabel}>
-              I understand and agree to the sending of my data to{" "}
-              {disclosure ? formatProviderList(disclosure.providers) : "the listed providers"}{" "}
-              for the purposes described above.
-            </Text>
-          </Pressable>
-
           <View style={s.links}>
             <Pressable
               style={s.linkRow}
@@ -201,26 +182,6 @@ export function AiConsentModal({
             )}
           </View>
 
-          <Pressable
-            style={[s.acceptButton, !canAccept && s.acceptButtonDisabled]}
-            onPress={handleAccept}
-            disabled={!canAccept}
-            accessibilityRole="button"
-            accessibilityLabel="Agree and continue"
-            accessibilityHint={
-              checked
-                ? "Accepts the current AI disclosure and continues into FRAME"
-                : "Select the acknowledgement checkbox first"
-            }
-            accessibilityState={{ disabled: !canAccept, busy }}
-          >
-            {busy ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={s.acceptButtonText}>Agree & Continue</Text>
-            )}
-          </Pressable>
-
           {!mandatory && onDecline ? (
             <Pressable style={s.declineButton} onPress={onDecline} disabled={busy}>
               <Text style={s.declineButtonText}>{signup ? "Go Back" : "Not Now"}</Text>
@@ -242,6 +203,46 @@ export function AiConsentModal({
             </View>
           )}
         </ScrollView>
+        {/* Pinned so the agree checkbox and button are always on screen, not a screen and a half down. */}
+        <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
+            <Pressable
+              style={s.checkboxRow}
+              onPress={() => setChecked(!checked)}
+              disabled={!disclosure || busy}
+              accessibilityRole="checkbox"
+              accessibilityLabel="I understand and agree to the AI data sharing described above"
+              accessibilityHint="Required before you can continue"
+              accessibilityState={{ checked, disabled: !disclosure || busy }}
+            >
+              <View style={[s.checkbox, checked && s.checkboxChecked]}>
+                {checked && <Feather name="check" size={16} color="#FFFFFF" />}
+              </View>
+              <Text style={s.checkboxLabel}>
+                I understand and agree to the sending of my data to{" "}
+                {disclosure ? formatProviderList(disclosure.providers) : "the listed providers"}{" "}
+                for the purposes described above.
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[s.acceptButton, !canAccept && s.acceptButtonDisabled]}
+              onPress={handleAccept}
+              disabled={!canAccept}
+              accessibilityRole="button"
+              accessibilityLabel="Agree and continue"
+              accessibilityHint={
+                checked
+                  ? "Accepts the current AI disclosure and continues into FRAME"
+                  : "Select the acknowledgement checkbox first"
+              }
+              accessibilityState={{ disabled: !canAccept, busy }}
+            >
+              {busy ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={s.acceptButtonText}>Agree & Continue</Text>
+              )}
+            </Pressable>
+        </View>
       </View>
     </Modal>
   );
@@ -279,11 +280,18 @@ const s = StyleSheet.create({
   bullet: { color: "#6B7280", fontSize: 14, lineHeight: 20 },
   controlNote: { marginTop: 8 },
 
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    backgroundColor: "#050505",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#1a1a1a",
+  },
   checkboxRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    marginBottom: 32,
+    marginBottom: 12,
     paddingHorizontal: 4,
   },
   checkbox: {
@@ -328,7 +336,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#2563EB",
-    marginBottom: 16,
+    marginBottom: 0,
   },
   acceptButtonDisabled: { opacity: 0.5 },
   acceptButtonText: { fontFamily: "Outfit_600SemiBold", fontSize: 16, color: "#FFFFFF" },

@@ -1,11 +1,12 @@
-import { useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   Image,
   Linking,
   Platform,
@@ -25,18 +26,28 @@ import { useFighter, type Fighter } from "@/context/FighterContext";
 import { apiDelete, apiGet, apiPatch, apiUrl, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 import { primaryFocus } from "@/lib/primaryFocus";
+import { observationPrompt } from "@/lib/factHistory";
+import { externalLinks } from "@/lib/links";
+import { sharedOnboardingTracker } from "@/lib/onboardingTracking";
+import { refreshModel } from "@/lib/modelRefresh";
+import { sportLabelFor } from "@workspace/onboarding";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
 import { ProfileEditModal } from "@/components/ProfileEditModal";
+import { AnswersSection } from "@/components/AnswersSection";
+import { FactConfidence } from "@/components/FactConfidence";
+import { dismissProps } from "@/components/FormScroll";
 import { isBjjSport } from "@/lib/fighterOptions";
 import { useEntitlement, useSyncBilling } from "@/hooks/useEntitlement";
 import { restorePurchases, hasFramePlus } from "@/lib/purchases";
 import {
+  ARCHETYPE_UNLOCK_UNDERSTANDING,
   CATEGORY_LABELS,
   CATEGORY_ORDER,
   computeAthleteModel,
   confidenceCopy,
   deriveFrameState,
+  factSeenLabel,
   formatHeartbeat,
   getArchetype,
   leadClause,
@@ -47,29 +58,6 @@ const ACCENT = "#8A6A2F";
 
 // 12MB ceiling mirrors the web upload guard; base64 is ~4/3 the byte size.
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
-
-// ─── Confidence pips (fact 1–5) ───────────────────────────────────────────────
-function FactConfidence({ value }: { value: number }) {
-  const v = Math.max(0, Math.min(5, value));
-  return (
-    <View style={cd.wrap}>
-      <View style={cd.row}>
-        {[1, 2, 3, 4, 5].map((i) => (
-          <View key={i} style={[cd.pip, i <= v ? cd.active : cd.inactive]} />
-        ))}
-      </View>
-      <Text style={cd.count}>{v}/5</Text>
-    </View>
-  );
-}
-const cd = StyleSheet.create({
-  wrap: { flexDirection: "row", alignItems: "center", gap: 6 },
-  row: { flexDirection: "row", gap: 3 },
-  pip: { width: 3, height: 9 },
-  active: { backgroundColor: "#d29a4d" },
-  inactive: { backgroundColor: "rgba(255,255,255,0.1)" },
-  count: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 1.5, color: "rgba(255,255,255,0.4)" },
-});
 
 // ─── Segmented confidence bar (20 segments, matches web ConfidenceBar) ────────
 function ConfidenceBar({ pct, segments = 20 }: { pct: number; segments?: number }) {
@@ -197,6 +185,14 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
       })}
     </Svg>
   );
+}
+
+// "BJJ · BLUE", "BJJ", "BLUE" or "—": a stub fighter (nothing answered yet) has blank sport and level.
+function styleLine(f: Fighter): string {
+  const raw = (f.primarySport || f.art || "").trim();
+  const sport = raw ? (sportLabelFor(raw) ?? raw) : "";
+  const parts = [sport, (f.level ?? "").trim()].filter(Boolean);
+  return parts.length ? parts.join(" · ").toUpperCase() : "—";
 }
 
 // ─── Hero identity band — the cover photo, changeable in place ────────────
@@ -341,6 +337,28 @@ export default function ProfileScreen() {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [withdrawingAi, setWithdrawingAi] = useState(false);
 
+  // ?section=questions (the Home card) scrolls to, and briefly marks, the ONBOARDING QUESTIONS section.
+  const { section, n: sectionNonce } = useLocalSearchParams<{ section?: string; n?: string }>();
+  const scrollRef = useRef<ScrollView>(null);
+  const questionsY = useRef<number | null>(null);
+  const [questionsLit, setQuestionsLit] = useState(false);
+  const [layoutTick, setLayoutTick] = useState(0);
+  const wantQuestions = section === "questions";
+  const handledKey = useRef<string | null>(null);
+  useEffect(() => {
+    // Once per visit (each Home tap carries a new n), not on every later re-layout while typing.
+    if (!wantQuestions || questionsY.current == null || handledKey.current === `${section}:${sectionNonce ?? ""}`) return;
+    handledKey.current = `${section}:${sectionNonce ?? ""}`;
+    scrollRef.current?.scrollTo({ y: Math.max(0, questionsY.current - 12), animated: true });
+    setQuestionsLit(true);
+    sharedOnboardingTracker().track("questions_view", "view");
+  }, [wantQuestions, section, sectionNonce, layoutTick]);
+  useEffect(() => {
+    if (!questionsLit) return;
+    const t = setTimeout(() => setQuestionsLit(false), 2600);
+    return () => clearTimeout(t);
+  }, [questionsLit]);
+
   const { data: entitlement } = useEntitlement();
   const sync = useSyncBilling();
   const isFramePlus = entitlement?.plan === "frame_plus";
@@ -382,8 +400,22 @@ export default function ProfileScreen() {
         return Array.isArray(f) ? f : [];
       }),
     enabled: !!isSignedIn,
-    staleTime: 30_000,
+    staleTime: 0,
   });
+
+  // The model is written server-side after a chat reply / video analysis: refetch whenever this
+  // tab is focused and whenever the app returns to the foreground.
+  useFocusEffect(
+    useCallback(() => {
+      if (isSignedIn) refreshModel(qc);
+    }, [isSignedIn, qc]),
+  );
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active" && isSignedIn) refreshModel(qc);
+    });
+    return () => sub.remove();
+  }, [isSignedIn, qc]);
 
   const facts: ModelFact[] = Array.isArray(rawFacts) ? rawFacts : [];
   const activeFacts = facts.filter((f) => f.status === "active");
@@ -522,7 +554,9 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={s.root}
+      {...dismissProps}
       contentContainerStyle={[s.content, { paddingTop: topPad + 12, paddingBottom: bottomPad + 32 }]}
       refreshControl={
         <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} tintColor={ACCENT} />
@@ -564,6 +598,16 @@ export default function ProfileScreen() {
               <Belt level={fighter.level} showMeaning />
             </View>
           ) : null}
+
+          {/* ONBOARDING QUESTIONS — the original questions, answered / edited here after sign-up */}
+          <View
+            onLayout={(e) => {
+              questionsY.current = e.nativeEvent.layout.y;
+              if (wantQuestions) setLayoutTick((t) => t + 1);
+            }}
+          >
+            <AnswersSection fighter={fighter} highlighted={questionsLit} />
+          </View>
 
           {/* ─── 1. ATHLETE MODEL — WHAT FRAME KNOWS ─────────────── */}
           <View style={s.sectionHeader}>
@@ -664,15 +708,19 @@ export default function ProfileScreen() {
             <View style={s.rowDivided}>
               <DataRow
                 label="CURRENT STYLE"
-                value={`${(fighter.primarySport ?? fighter.art ?? "—")} · ${fighter.level ?? "—"}`.toUpperCase()}
+                value={styleLine(fighter)}
               />
-              {arch && (
+              {arch ? (
                 <>
                   <DataRow label="PRIMARY ARCHETYPE" value={arch.name.toUpperCase()} />
                   <DataRow label="PRESSURE RESPONSE" value={leadClause(arch.pressureSignature)} />
-                  <DataRow label="GIFT" value={leadClause(arch.gift)} />
-                  <DataRow label="SHADOW" value={leadClause(arch.shadow)} />
                 </>
+              ) : (
+                <DataRow
+                  label="PRIMARY ARCHETYPE"
+                  value="NOT ASSIGNED YET"
+                  sub={`FRAME assigns one once it understands ${ARCHETYPE_UNLOCK_UNDERSTANDING}% of your game. Now ${model.frameConfidence}%.`}
+                />
               )}
               <DataRow
                 label="COACHING MODE"
@@ -696,7 +744,7 @@ export default function ProfileScreen() {
               </View>
               <View style={[s.tripleCell, s.tripleBorder]}>
                 <Text style={s.tripleLabel}>CADENCE</Text>
-                <Text style={s.tripleValue}>{(fighter.trainingFrequency ?? "—").toUpperCase()}</Text>
+                <Text style={s.tripleValue}>{(fighter.trainingFrequency?.trim() || "—").toUpperCase()}</Text>
               </View>
               <View style={[s.tripleCell, s.tripleBorder]}>
                 <Text style={s.tripleLabel}>DAYS IN FRAME</Text>
@@ -761,17 +809,31 @@ export default function ProfileScreen() {
                   </View>
                   <View style={{ gap: 6 }}>
                     {grouped[c]!.map((f) => (
-                      <View key={f.id} style={s.factItem}>
-                        <Text style={s.factText} numberOfLines={2}>
-                          {(f.topic || f.content).toUpperCase()}
-                        </Text>
+                      <Pressable
+                        key={f.id}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/(tabs)/chat",
+                            params: { prefill: observationPrompt(f, CATEGORY_LABELS[c] ?? c), n: String(Date.now()) },
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`${f.topic || f.content}, ${factSeenLabel(f)}. Discuss this with your coach`}
+                        style={({ pressed }) => [s.factItem, pressed && s.pressed]}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.factText} numberOfLines={2}>
+                            {(f.topic || f.content).toUpperCase()}
+                          </Text>
+                          <Text style={s.factSeen}>{factSeenLabel(f).toUpperCase()}</Text>
+                        </View>
                         <View style={s.factMeta}>
                           {(f.evidenceCount ?? 1) > 1 && (
                             <Text style={s.factEvidence}>×{f.evidenceCount}</Text>
                           )}
                           <FactConfidence value={f.confidence} />
                         </View>
-                      </View>
+                      </Pressable>
                     ))}
                   </View>
                 </View>
@@ -815,6 +877,18 @@ export default function ProfileScreen() {
             <Text style={s.privacyCopy}>
               FRAME uses AI coaching services. Depending on the feature, FRAME may share the exact categories shown in the permission disclosure with Anthropic (Claude) or OpenAI. FRAME provides performance coaching, not medical advice or diagnosis.
             </Text>
+            {externalLinks().map((l) => (
+              <Pressable
+                key={l.key}
+                style={s.privacyLink}
+                onPress={() => void Linking.openURL(l.url)}
+                accessibilityRole="link"
+                accessibilityLabel={l.label}
+              >
+                <Text style={s.privacyLinkText}>{l.label.toUpperCase()}</Text>
+                <Feather name="external-link" size={13} color={ACCENT} />
+              </Pressable>
+            ))}
             <Pressable
               style={s.privacyLink}
               onPress={() => void Linking.openURL(apiUrl("/privacy"))}
@@ -1146,7 +1220,8 @@ const s = StyleSheet.create({
     borderLeftWidth: 1,
     borderLeftColor: "rgba(138,106,47,0.25)",
   },
-  factText: { flex: 1, fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 2, color: "rgba(255,255,255,0.75)" },
+  factText: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 2, color: "rgba(255,255,255,0.75)" },
+  factSeen: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 2, color: "rgba(138,106,47,0.7)", marginTop: 4 },
   factMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
   factEvidence: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(138,106,47,0.7)" },
 

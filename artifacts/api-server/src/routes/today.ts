@@ -11,7 +11,7 @@ const router: IRouter = Router();
 router.get("/today", async (req, res) => {
   const fighter = await getUserFighter(req);
   if (!fighter) {
-    res.status(404).json({ error: "no fighter — complete onboarding first" });
+    res.status(404).json({ error: "no fighter" });
     return;
   }
   await rememberTimezone(req, fighter);

@@ -12,13 +12,24 @@ export type OnboardingEventType = (typeof EVENT_TYPES)[number];
 const QUESTION_STEPS = QUESTION_IDS.map((id) => `q_${id}`);
 
 /**
- * Ordered steps each app's flow goes through. `signup` (account created) and
- * `finish` (profile saved, onboarding done) are recorded by the server; the
- * rest are sent by the app as the person moves through the screens.
+ * There is no onboarding flow any more: sign-up is name, email, password and then straight into the
+ * app, and the original questions live in the Profile tab ("ONBOARDING QUESTIONS"). The funnel
+ * therefore tracks sign-up and how far people get through those questions afterwards.
+ *
+ *   signup          server: account created (needs `app` in the register body)
+ *   home            client: first time the signed-in athlete lands on Home
+ *   questions_view  client: the Profile questions section was opened (or the Home card tapped)
+ *   dob / sport / level / frequency / goals
+ *                   client: that answer was saved for the first time
+ *   q_<id>          client (coach web only): one of its four behavioural questions answered
+ *   finish          server: date of birth, sport, level and frequency are all present for the first
+ *                   time (PATCH/POST /fighter); recorded once per athlete
  */
+export const QUESTIONNAIRE_STEPS = ["dob", "sport", "level", "frequency", "goals"] as const;
+
 export const FLOWS: Record<OnboardingApp, readonly string[]> = {
-  mobile: ["signup", "name", "dob", "sport", "frequency", ...QUESTION_STEPS, "goals", "finish"],
-  coach: ["signup", "welcome", ...QUESTION_STEPS, "details", "finish"],
+  mobile: ["signup", "home", "questions_view", ...QUESTIONNAIRE_STEPS, "finish"],
+  coach: ["signup", "home", "questions_view", ...QUESTIONNAIRE_STEPS, ...QUESTION_STEPS, "finish"],
 };
 
 /** Steps a client is allowed to report (the server records `signup` and `finish` itself). */

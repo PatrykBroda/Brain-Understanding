@@ -1,12 +1,10 @@
-// Pure helpers for the sign-up + onboarding screens (validation, error copy,
-// step maths, saved-draft parsing). Kept free of React so they can be unit-tested.
+// Pure helpers for the sign-up screen and the Profile "Onboarding questions" section
+// (validation, error copy). Kept free of React so they can be unit-tested.
 
 export const NAME_MAX = 60;
 export const MIN_PASSWORD_LENGTH = 8;
-/** Longest the "Enter FRAME" save may spin before we say so and let them retry. */
+/** Longest a profile save may spin before we say so and let them retry. */
 export const SAVE_TIMEOUT_MS = 25_000;
-/** How long a tapped answer stays highlighted before the next question appears. */
-export const ADVANCE_DELAY_MS = 220;
 
 // ── Sign-up form ─────────────────────────────────────────────────────────────
 
@@ -30,11 +28,11 @@ export function validateSignUp(input: { name: string; email: string; password: s
   return errors;
 }
 
-// ── Details step ─────────────────────────────────────────────────────────────
+// ── Details ─────────────────────────────────────────────────────────────
 
 export function nameProblem(raw: string): string | null {
   const name = raw.trim();
-  if (!name) return "Enter a name or callsign to continue.";
+  if (!name) return "Enter a name or callsign.";
   if (name.length > NAME_MAX) return `Keep it to ${NAME_MAX} characters or fewer.`;
   return null;
 }
@@ -54,7 +52,7 @@ export function dobProblem(value: string | null | undefined, today = new Date())
   return null;
 }
 
-// ── Details form: nothing is pre-selected ────────────────────────────────────
+// ── Nothing is pre-selected ────────────────────────────────────
 
 export type DetailsChoiceProblems = { sport?: string; level?: string; frequency?: string };
 
@@ -75,17 +73,6 @@ export function detailsChoiceProblems(
   return out;
 }
 
-// ── Question flow ────────────────────────────────────────────────────────────
-
-/** Next step after an answer, clamped so a stray extra tap can never land past the details step. */
-export function nextStep(from: number, detailsStep: number): number {
-  return Math.min(Math.max(from + 1, 0), detailsStep);
-}
-
-export function prevStep(from: number): number {
-  return Math.max(from - 1, 0);
-}
-
 // ── Save errors ──────────────────────────────────────────────────────────────
 
 type ErrorLike = { kind?: string; status?: number | null; detail?: string; message?: string };
@@ -94,13 +81,13 @@ type ErrorLike = { kind?: string; status?: number | null; detail?: string; messa
 export function describeSaveError(err: unknown): string {
   const e = (err ?? {}) as ErrorLike;
   const detail = `${e.detail ?? ""} ${e.message ?? ""}`;
-  if (e.kind === "auth") return "Your session has expired. Sign in again, then pick up where you left off.";
+  if (e.kind === "auth") return "Your session has expired. Sign in again, then save again.";
   if (e.kind === "timeout" || e.kind === "network") {
-    return "We couldn't reach FRAME. Check your connection, then tap Enter FRAME to try again. Your answers are kept.";
+    return "We couldn't reach FRAME. Check your connection, then tap Save to try again. Your answers are kept.";
   }
-  if (e.kind === "rate_limit") return "Too many attempts. Wait a minute, then tap Enter FRAME again.";
+  if (e.kind === "rate_limit") return "Too many attempts. Wait a minute, then tap Save again.";
   if (e.kind === "server" || (e.status != null && e.status >= 500)) {
-    return "Our server hit a problem saving your profile. Your answers are kept. Tap Enter FRAME to try again.";
+    return "Our server hit a problem saving your profile. Your answers are kept. Tap Save to try again.";
   }
   if (e.status === 400) {
     if (/"name"|name is required|characters/i.test(detail) && !/date/i.test(detail)) {
@@ -109,96 +96,5 @@ export function describeSaveError(err: unknown): string {
     if (/date of birth|dateOfBirth/i.test(detail)) return "That date of birth wasn't accepted. Check it and try again.";
     return "Something in your details wasn't accepted. Check each field and try again.";
   }
-  return "We couldn't save your profile. Tap Enter FRAME to try again.";
-}
-
-// ── Saved draft (resume where they left off) ─────────────────────────────────
-
-export type OnboardingDraft = {
-  started: boolean;
-  step: number;
-  answers: Record<string, number>;
-  background: string[];
-  form: {
-    name: string;
-    dateOfBirth: string;
-    primarySport: string;
-    level: string;
-    trainingFrequency: string;
-    goals: string;
-    weaknesses: string;
-    bio: string;
-    personality: string;
-    competes: boolean;
-  };
-};
-
-// v2: drafts saved before the defaults were removed hold a pre-selected MMA / Beginner / 3-4x that
-// the athlete may never have chosen, so they are not restored.
-export const draftKeyFor = (userId: string) => `frame:onboarding-draft:v2:${userId}`;
-
-const s = (v: unknown, max = 4000) => (typeof v === "string" ? v.slice(0, max) : "");
-
-/** Parse a saved draft defensively. `questionCount` bounds the answers and the step. */
-export function parseDraft(
-  raw: string | null | undefined,
-  opts: { questionIds: string[]; choicesPerQuestion: number; sports: string[]; frequencies: string[] },
-): OnboardingDraft | null {
-  if (!raw) return null;
-  let o: unknown;
-  try {
-    o = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-  if (typeof o !== "object" || o === null) return null;
-  const d = o as Record<string, unknown>;
-  const f = (typeof d.form === "object" && d.form !== null ? d.form : {}) as Record<string, unknown>;
-
-  const answers: Record<string, number> = {};
-  if (typeof d.answers === "object" && d.answers !== null) {
-    for (const id of opts.questionIds) {
-      const v = (d.answers as Record<string, unknown>)[id];
-      if (typeof v === "number" && Number.isInteger(v) && v >= 0 && v < opts.choicesPerQuestion) answers[id] = v;
-    }
-  }
-  const detailsStep = opts.questionIds.length;
-  const rawStep = typeof d.step === "number" && Number.isInteger(d.step) ? d.step : 0;
-  const sport = s(f.primarySport, 40);
-  const freq = s(f.trainingFrequency, 40);
-  return {
-    started: d.started === true,
-    step: Math.min(Math.max(rawStep, 0), detailsStep),
-    answers,
-    background: Array.isArray(d.background) ? d.background.filter((x): x is string => typeof x === "string").slice(0, 12) : [],
-    form: {
-      name: s(f.name, NAME_MAX),
-      dateOfBirth: s(f.dateOfBirth, 12),
-      // Never fall back to a default sport / frequency: an unknown value means "not chosen yet".
-      primarySport: opts.sports.includes(sport) ? sport : "",
-      level: s(f.level, 60),
-      trainingFrequency: opts.frequencies.includes(freq) ? freq : "",
-      goals: s(f.goals),
-      weaknesses: s(f.weaknesses),
-      bio: s(f.bio),
-      personality: s(f.personality),
-      competes: f.competes === true,
-    },
-  };
-}
-
-/** True when the draft holds anything worth restoring. */
-export function draftHasProgress(d: OnboardingDraft): boolean {
-  return (
-    d.started ||
-    d.step > 0 ||
-    Object.keys(d.answers).length > 0 ||
-    d.background.length > 0 ||
-    !!d.form.name.trim() ||
-    !!d.form.dateOfBirth ||
-    !!d.form.goals.trim() ||
-    !!d.form.weaknesses.trim() ||
-    !!d.form.bio.trim() ||
-    !!d.form.personality.trim()
-  );
+  return "We couldn't save your profile. Tap Save to try again.";
 }

@@ -161,11 +161,25 @@ describe("personality composition (same on both apps)", () => {
   });
 });
 
+describe("flows", () => {
+  it("are sign-up, the Profile questions and a server-recorded finish; no onboarding screen steps", () => {
+    expect(FLOWS.mobile).toEqual(["signup", "home", "questions_view", "dob", "sport", "level", "frequency", "goals", "finish"]);
+    expect(FLOWS.coach).toEqual([
+      "signup", "home", "questions_view", "dob", "sport", "level", "frequency", "goals",
+      "q_tired", "q_imposed", "q_proud", "q_chaos", "finish",
+    ]);
+  });
+});
+
 describe("step keys", () => {
   it("clients may report real steps but not the server-only ones", () => {
-    expect(isClientStep("mobile", "q_tired")).toBe(true);
-    expect(isClientStep("mobile", "details")).toBe(false);
-    expect(isClientStep("coach", "details")).toBe(true);
+    expect(isClientStep("mobile", "dob")).toBe(true);
+    expect(isClientStep("mobile", "questions_view")).toBe(true);
+    expect(isClientStep("mobile", "q_tired")).toBe(false); // the four behavioural questions are coach web only
+    expect(isClientStep("coach", "q_tired")).toBe(true);
+    expect(isClientStep("coach", "home")).toBe(true);
+    expect(isClientStep("coach", "details")).toBe(false); // old onboarding-screen steps are gone
+    expect(isClientStep("mobile", "name")).toBe(false);
     expect(isClientStep("coach", "signup")).toBe(false);
     expect(isClientStep("coach", "finish")).toBe(false);
     expect(isClientStep("mobile", "nope")).toBe(false);
@@ -177,47 +191,44 @@ describe("funnel aggregation", () => {
 
   it("counts people reached and dropped per step, in flow order", () => {
     const rows = [
-      // A: signs up, quits on the date of birth
+      // A: signs up, opens the questions, quits on the sport
       ev("A", "signup", "complete"),
-      ev("A", "name"),
-      ev("A", "name", "complete"),
-      ev("A", "dob"),
-      // B: reaches the quiz and quits on the second question
+      ev("A", "questions_view"),
+      ev("A", "dob", "complete"),
+      ev("A", "sport"),
+      // B: answers most of it and quits before the frequency
       ev("B", "signup", "complete"),
-      ev("B", "name"),
-      ev("B", "dob"),
-      ev("B", "sport"),
-      ev("B", "frequency"),
-      ev("B", "q_tired"),
-      ev("B", "q_tired", "complete"),
-      ev("B", "q_imposed"),
+      ev("B", "home"),
+      ev("B", "dob", "complete"),
+      ev("B", "sport", "complete"),
+      ev("B", "level", "complete"),
       // C: finishes
       ev("C", "signup", "complete"),
-      ev("C", "goals"),
+      ev("C", "goals", "complete"),
       ev("C", "finish", "complete"),
+      // D: signs up and never comes back
+      ev("D", "signup", "complete"),
     ];
     const [mobile, coach] = buildFunnel(rows);
     expect(mobile.app).toBe("mobile");
-    expect(mobile.started).toBe(3);
+    expect(mobile.started).toBe(4);
     expect(mobile.finished).toBe(1);
     const row = (s: string) => mobile.steps.find((x) => x.step === s)!;
-    expect(row("signup")).toMatchObject({ reached: 3, dropped: 0 });
-    expect(row("name")).toMatchObject({ reached: 3 });
-    expect(row("dob")).toMatchObject({ reached: 3, dropped: 1 }); // A stopped here
-    expect(row("sport")).toMatchObject({ reached: 2 });
-    expect(row("q_tired")).toMatchObject({ reached: 2, dropped: 0 });
-    expect(row("q_imposed")).toMatchObject({ reached: 2, dropped: 1 }); // B stopped here
-    expect(row("q_proud")).toMatchObject({ reached: 1 });
-    // C resumed straight into goals (a draft): still counted as having passed every earlier step.
+    expect(row("signup")).toMatchObject({ reached: 4, dropped: 1 }); // D stopped here
+    expect(row("home")).toMatchObject({ reached: 3 });
+    expect(row("dob")).toMatchObject({ reached: 3, dropped: 0 });
+    expect(row("sport")).toMatchObject({ reached: 3, dropped: 1 }); // A stopped here
+    expect(row("level")).toMatchObject({ reached: 2, dropped: 1 }); // B stopped here
+    // C answered goals first (any order in Profile): still counted as having passed every earlier step.
     expect(row("goals")).toMatchObject({ reached: 1, dropped: 0 });
     expect(row("finish")).toMatchObject({ reached: 1, dropped: 0 });
-    expect(row("dob").pctOfStart).toBe(100);
-    expect(row("goals").pctOfStart).toBeCloseTo(33.3, 1);
+    expect(row("dob").pctOfStart).toBe(75);
+    expect(row("goals").pctOfStart).toBe(25);
     expect(coach.started).toBe(0);
   });
 
   it("sums to the number who started: dropped across steps + finished", () => {
-    const rows = [ev("A", "name"), ev("B", "dob"), ev("C", "finish", "complete"), ev("D", "q_chaos")];
+    const rows = [ev("A", "home"), ev("B", "dob"), ev("C", "finish", "complete"), ev("D", "goals")];
     const [mobile] = buildFunnel(rows);
     const dropped = mobile.steps.reduce((n, s) => n + s.dropped, 0);
     expect(dropped + mobile.finished).toBe(mobile.started);
@@ -225,12 +236,12 @@ describe("funnel aggregation", () => {
 
   it("keeps the two apps apart and ignores unknown steps, apps and duplicate events", () => {
     const rows = [
-      ev("A", "welcome", "view", "coach"),
-      ev("A", "welcome", "view", "coach"),
+      ev("A", "home", "view", "coach"),
+      ev("A", "home", "view", "coach"),
       ev("A", "q_tired", "view", "coach"),
-      ev("B", "name", "view", "mobile"),
+      ev("B", "home", "view", "mobile"),
       ev("B", "bogus", "view", "mobile"),
-      ev("C", "name", "view", "desktop"),
+      ev("C", "home", "view", "desktop"),
     ];
     const [mobile, coach] = buildFunnel(rows);
     expect(mobile.started).toBe(1);
@@ -252,7 +263,7 @@ describe("funnel aggregation", () => {
   });
 
   it("formats a readable table", () => {
-    const text = formatFunnel(buildFunnel([ev("A", "name"), ev("A", "dob")]));
+    const text = formatFunnel(buildFunnel([ev("A", "home"), ev("A", "dob")]));
     expect(text).toContain("MOBILE  started 1");
     expect(text).toMatch(/dob\s+1\s+1\s+100\.0%/);
   });
@@ -265,11 +276,11 @@ describe("step tracker never starves the real request", () => {
     vi.useFakeTimers();
     const send = vi.fn(() => new Promise<never>(() => {}));
     const t = createStepTracker(send);
-    for (const step of ["name", "dob", "sport", "frequency", "q_tired", "q_imposed"]) t.track(step, "view");
+    for (const step of ["home", "dob", "sport", "frequency", "level", "goals"]) t.track(step, "view");
     expect(send).toHaveBeenCalledTimes(MAX_IN_FLIGHT);
     expect(MAX_IN_FLIGHT).toBeLessThan(6); // a browser keeps ~6 connections per host: leave room for the save
     vi.advanceTimersByTime(EVENT_TIMEOUT_MS + 1);
-    t.track("q_proud", "view");
+    t.track("questions_view", "view");
     expect(send).toHaveBeenCalledTimes(MAX_IN_FLIGHT + 1);
   });
 

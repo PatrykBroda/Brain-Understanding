@@ -332,3 +332,116 @@
     border-color: hsl(var(--primary) / 0.32);
   }
 }
+
+
+/* ==========================================================================
+   ENTRY SCREENS ONLY (splash / sign-in / sign-up / boot loader)
+   Everything here is scoped under .entry-theme or prefixed entry-, so the
+   in-app (original) theme above is untouched. Mirrors the "Dark Chrome" look.
+   ========================================================================== */
+.entry-theme {
+  --f-bg: #08090b;
+  --f-surface: #111316;
+  --f-raised: #191c20;
+  --f-overlay: #1f2328;
+  --f-text: #f4f4f1;
+  --f-text-2: #a4a8ae;
+  --f-text-3: #8a8f96;
+  --f-gold: #b9a477;
+  --f-gold-pressed: #a8946a;
+  --f-gold-pale: #d4c7a3;
+  --f-on-gold: #0b0c0e;
+  --f-border: rgba(255, 255, 255, 0.08);
+  --f-border-strong: rgba(255, 255, 255, 0.12);
+  --f-hairline: rgba(255, 255, 255, 0.06);
+  --f-red-text: #e5645a;
+  --f-r-card: 18px;
+  --f-r-control: 14px;
+  --f-ease: cubic-bezier(0.2, 0, 0, 1);
+  --f-dur-fast: 180ms;
+  --f-dur-panel: 320ms;
+  background-color: var(--f-bg);
+  color: var(--f-text);
+  font-family: 'Inter Tight Variable', 'Inter Tight', system-ui, -apple-system, sans-serif;
+}
+.entry-theme input,
+.entry-theme button { font-family: inherit; }
+
+.entry-card {
+  position: relative;
+  border-radius: var(--f-r-card);
+  border: 1px solid var(--f-border-strong);
+  background: rgba(8, 9, 11, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 8px 20px -14px rgba(0, 0, 0, 0.7);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.entry-card-red {
+  border-color: rgba(229, 100, 90, 0.3);
+  background: linear-gradient(180deg, rgba(229, 100, 90, 0.05), rgba(229, 100, 90, 0.01) 70%), var(--f-surface);
+}
+.entry-title { font-weight: 600; font-size: 1.75rem; line-height: 1.15; letter-spacing: -0.03em; color: var(--f-text); }
+.entry-label { font-weight: 500; font-size: 0.8125rem; line-height: 1.125rem; color: var(--f-text-2); }
+.entry-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 52px; padding: 0 1.5rem; border-radius: var(--f-r-control);
+  background: var(--f-gold); color: var(--f-on-gold);
+  font-size: 1rem; font-weight: 600; letter-spacing: -0.005em;
+  transition: background-color var(--f-dur-fast) var(--f-ease), transform var(--f-dur-fast) var(--f-ease), opacity var(--f-dur-fast) var(--f-ease);
+}
+.entry-btn:hover:not(:disabled) { background: #c4b084; }
+.entry-btn:active:not(:disabled) { background: var(--f-gold-pressed); transform: scale(0.985); }
+.entry-btn:disabled:not([data-loading='true']) { background: var(--f-raised); color: var(--f-text-3); box-shadow: inset 0 0 0 1px var(--f-hairline); cursor: not-allowed; }
+.entry-btn[data-loading='true'] { position: relative; color: transparent !important; pointer-events: none; }
+.entry-btn[data-loading='true']::after {
+  content: ""; position: absolute; width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid rgba(11, 12, 14, 0.25); border-top-color: var(--f-on-gold);
+  animation: entry-spin 700ms linear infinite;
+}
+@keyframes entry-spin { to { transform: rotate(360deg); } }
+.entry-btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 52px; padding: 0 1.5rem; border-radius: var(--f-r-control);
+  background: var(--f-raised); border: 1px solid var(--f-border-strong); color: var(--f-text);
+  font-size: 1rem; font-weight: 600; letter-spacing: -0.005em;
+}
+.entry-icon-round {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: var(--f-r-control);
+  background: var(--f-raised); border: 1px solid var(--f-border); color: var(--f-text);
+  transition: background-color var(--f-dur-fast) var(--f-ease), transform var(--f-dur-fast) var(--f-ease);
+}
+.entry-icon-round:hover { background: var(--f-overlay); }
+.entry-icon-round:active { transform: scale(0.97); }
+.entry-field {
+  min-height: 52px; width: 100%; padding: 0 1rem; border-radius: var(--f-r-control);
+  background: var(--f-surface); border: 1px solid var(--f-border-strong);
+  color: var(--f-text); font-size: 1rem; outline: none;
+  transition: border-color var(--f-dur-fast) var(--f-ease), background-color var(--f-dur-fast) var(--f-ease);
+}
+.entry-field::placeholder { color: var(--f-text-3); }
+.entry-field:focus { border-color: rgba(185, 164, 119, 0.5); background: var(--f-raised); }
+.entry-field[aria-invalid='true'] { border-color: rgba(229, 100, 90, 0.5); }
+.entry-link { font-weight: 600; color: var(--f-gold); transition: color var(--f-dur-fast) var(--f-ease); }
+.entry-link:hover { color: var(--f-gold-pale); }
+@keyframes entry-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.entry-rise { animation: entry-rise var(--f-dur-panel) var(--f-ease) both; }
+@media (prefers-reduced-motion: reduce) { .entry-rise { animation: none; } }
+.entry-theme :focus-visible { outline: 2px solid var(--f-gold); outline-offset: 2px; }
+
+/* Boot loader (web loading screen): thin gold sweep track */
+.entry-loader-track { position: relative; width: 7rem; height: 1px; overflow: hidden; background: rgba(185, 164, 119, 0.12); }
+.entry-loader-bar {
+  position: absolute; inset: 0; width: 40%;
+  background: linear-gradient(to right, transparent, rgba(185, 164, 119, 0.9), transparent);
+  animation: entry-loader-sweep 1.5s ease-in-out infinite;
+}
+@keyframes entry-loader-sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+@media (prefers-reduced-motion: reduce) { .entry-loader-bar { animation-duration: 3s; } }
+
+/* Keyboard open on a phone: scroll areas gain the keyboard's height as room at the end
+   (see lib/keyboard.ts) so the last field and Save / Continue stay reachable. */
+html[data-keyboard="open"] main,
+html[data-keyboard="open"] [data-scroll] {
+  padding-bottom: calc(var(--kb-inset, 0px) + 16px);
+}

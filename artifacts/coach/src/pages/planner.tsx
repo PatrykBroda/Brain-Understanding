@@ -54,7 +54,7 @@ function formatDay(value: string | null): string {
 }
 
 export default function CampPage() {
-  const { data, isLoading } = useActiveCompetition();
+  const { data, isLoading, isError, refetch } = useActiveCompetition();
   const competition = data?.competition ?? null;
   const pressure = data?.pressure ?? null;
   const weightCut = data?.weightCut ?? null;
@@ -103,6 +103,20 @@ export default function CampPage() {
             <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Loading
             </div>
+          ) : isError && !data ? (
+            <div role="alert" className="border-l-2 border-destructive/70 bg-destructive/8 px-4 py-3 space-y-3">
+              <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+                Could not load your camp
+              </div>
+              <p className="text-sm text-foreground/80 leading-relaxed">Check your connection and try again.</p>
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300"
+              >
+                Try again
+              </button>
+            </div>
           ) : !competition ? (
             <NoCampState
               showCreate={showCreate}
@@ -124,13 +138,6 @@ export default function CampPage() {
                   onEdit={() => setEditing(true)}
                 />
               )}
-
-              {!editing &&
-                (data?.review ? (
-                  <CampReviewSection review={data.review} />
-                ) : (
-                  <CampReviewLocked />
-                ))}
 
               {/* Primary vs secondary view toggle */}
               <div className="grid grid-cols-2 gap-2">
@@ -154,6 +161,15 @@ export default function CampPage() {
               ) : (
                 <CampMission />
               )}
+
+              {!editing &&
+                (data?.review ? (
+                  <CampReviewSection review={data.review} />
+                ) : (
+                  <CampReviewLocked />
+                ))}
+
+              {!editing && <EndCamp id={competition.id} />}
             </>
           )}
         </div>
@@ -190,6 +206,24 @@ function ViewTab({
   );
 }
 
+function EndCamp({ id }: { id: number }) {
+  const cancel = useCancelCompetition();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (confirm("End this camp? It moves to history and the countdown stops.")) {
+          cancel.mutate(id);
+        }
+      }}
+      disabled={cancel.isPending}
+      className="w-full border border-white/[0.1] py-3 font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/60 hover:text-[hsl(var(--red-accent))] hover:border-[hsl(var(--red-accent))]/50 transition-colors disabled:opacity-50"
+    >
+      {cancel.isPending ? "Ending" : "End camp"}
+    </button>
+  );
+}
+
 function CampDashboard({
   competition: c,
   pressure,
@@ -201,7 +235,6 @@ function CampDashboard({
   weightCut: WeightCut | null;
   onEdit: () => void;
 }) {
-  const cancel = useCancelCompetition();
   const tier = pressure?.tier ?? "base";
   const fg = TIER_FG[tier];
 
@@ -278,19 +311,6 @@ function CampDashboard({
         )}
         {c.notes.trim() && <Row label="Notes" value={c.notes} />}
       </dl>
-
-      <button
-        type="button"
-        onClick={() => {
-          if (confirm("End this camp? It moves to history and the countdown stops.")) {
-            cancel.mutate(c.id);
-          }
-        }}
-        disabled={cancel.isPending}
-        className="mt-6 w-full border border-white/[0.1] py-3 font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/60 hover:text-[hsl(var(--red-accent))] hover:border-[hsl(var(--red-accent))]/50 transition-colors disabled:opacity-50"
-      >
-        {cancel.isPending ? "Ending" : "End camp"}
-      </button>
     </section>
   );
 }

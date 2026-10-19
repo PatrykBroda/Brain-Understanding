@@ -10,6 +10,8 @@ import {
   useTogglePlannerItem,
 } from "@/hooks/use-planner";
 import { api, ApiError, type PlanCategory, type PlanItem } from "@/lib/api";
+import { missionErrorMessage } from "@/lib/mission";
+import { Link } from "wouter";
 
 const CATEGORY_ORDER: PlanCategory[] = ["fix", "goal_step", "train", "technique", "regulate"];
 
@@ -200,8 +202,34 @@ export function CampMission() {
 
       {regen.isError &&
         !(regen.error instanceof ApiError && regen.error.kind === "upgrade_required") && (
-        <div className="border-l-2 border-destructive/70 bg-destructive/8 px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
-          {(regen.error as Error).message || "generation failed"}
+        <div role="alert" className="border-l-2 border-destructive/70 bg-destructive/8 px-4 py-3 space-y-3">
+          <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+            Mission build failed
+          </div>
+          <p className="text-sm text-foreground/80 leading-relaxed">{missionErrorMessage(regen.error)}</p>
+          <button
+            type="button"
+            onClick={() => void requestGenerate()}
+            disabled={regen.isPending}
+            className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40 inline-flex items-center gap-1.5"
+          >
+            <RefreshCcw className="w-3 h-3" strokeWidth={1.5} />
+            Try again
+          </button>
+        </div>
+      )}
+
+      {regen.isPending && !plan && (
+        <div className="border border-border/30 px-5 py-6 text-center" role="status" aria-live="polite">
+          <div className="mx-auto mb-3 flex justify-center">
+            <FrameOctagon size={20} spin spinSeconds={3} glow={false} />
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/80">
+            Building your mission
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground/70 leading-relaxed">
+            FRAME is reading what it knows about you. This can take up to a minute.
+          </p>
         </div>
       )}
 
@@ -227,6 +255,33 @@ export function CampMission() {
         <div className="text-muted-foreground font-mono text-[10px] uppercase tracking-widest py-16 text-center opacity-60">
           Loading
         </div>
+      ) : planner.isError ? (
+        <div role="alert" className="border-l-2 border-destructive/70 bg-destructive/8 px-4 py-3 space-y-3">
+          <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+            Could not load the mission
+          </div>
+          <p className="text-sm text-foreground/80 leading-relaxed">Check your connection and try again.</p>
+          <button
+            type="button"
+            onClick={() => void planner.refetch()}
+            className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 inline-flex items-center gap-1.5"
+          >
+            <RefreshCcw className="w-3 h-3" strokeWidth={1.5} />
+            Retry
+          </button>
+        </div>
+      ) : !plan && regen.isPending ? null : !plan && planner.data?.canGenerate === false ? (
+        <div className="border border-border/30 p-6 space-y-4 mt-4">
+          <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/70">
+            Nothing to build from yet
+          </div>
+          <p className="text-sm text-foreground/80 leading-relaxed">
+            Tell your coach about your training, or add your goals and weaknesses to your profile, then come back.
+          </p>
+          <Link href="/chat" className="inline-block font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300">
+            Talk to your coach
+          </Link>
+        </div>
       ) : !plan ? (
         /* Empty state — dramatic */
         <div
@@ -248,6 +303,14 @@ export function CampMission() {
           <p className="text-sm text-muted-foreground/70 leading-relaxed">
             Generate when you're ready.
           </p>
+          <button
+            type="button"
+            onClick={() => void requestGenerate()}
+            disabled={regen.isPending}
+            className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40"
+          >
+            Generate this week's mission
+          </button>
         </div>
       ) : (
         <>

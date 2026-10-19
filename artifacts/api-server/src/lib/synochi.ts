@@ -2,6 +2,7 @@ import { SYNOCHI_VAULT } from "./synochi.generated";
 import type { RetrievedNode } from "./vaultRetrieval";
 import type { Fighter, Calibration, AthleteFact } from "@workspace/db";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
+import { missingAnswers } from "@workspace/onboarding";
 import { archetypeUnlocked, computeModelMaturity, computeUnderstanding } from "@workspace/ontology";
 
 export const COACH_SYSTEM_PROMPT_STATIC = `You are FRAME.
@@ -365,6 +366,23 @@ function archetypeLine(fighter: Fighter, unlocked: boolean): string | null {
   ].join("\n");
 }
 
+/**
+ * Sign-up only collects a name; the athlete answers the onboarding questions later in Profile. While
+ * any required answer is missing the coach is told so plainly, instead of being handed blanks (or
+ * invented values) to work from.
+ */
+export function unansweredLine(fighter: Fighter): string | null {
+  const missing = missingAnswers(fighter);
+  if (missing.length === 0) return null;
+  const names: Record<string, string> = {
+    dateOfBirth: "date of birth",
+    primarySport: "primary sport",
+    level: "belt / experience level",
+    trainingFrequency: "training frequency",
+  };
+  return `Not yet answered in their Profile (do NOT guess these, and never state an age, sport, level or training frequency they have not given): ${missing.map((m) => names[m] ?? m).join(", ")}.`;
+}
+
 export function buildDynamicContext(
   fighter: Fighter,
   facts: AthleteFact[],
@@ -377,13 +395,14 @@ export function buildDynamicContext(
     fighter.name ? `Name: ${fighter.name}` : null,
     fighter.age > 0 ? `Age: ${fighter.age}` : null,
     fighter.primarySport ? `Primary combat sport: ${sportLabel(fighter.primarySport)}` : null,
-    `Art: ${fighter.art}`,
-    `${fighter.primarySport === "bjj" ? "BJJ belt" : "Experience / rank"}: ${fighter.level}`,
-    `Training frequency: ${fighter.trainingFrequency}`,
+    fighter.art?.trim() ? `Art: ${fighter.art}` : null,
+    fighter.level?.trim() ? `${fighter.primarySport === "bjj" ? "BJJ belt" : "Experience / rank"}: ${fighter.level}` : null,
+    fighter.trainingFrequency?.trim() ? `Training frequency: ${fighter.trainingFrequency}` : null,
     fighter.gym ? `Gym / team: ${fighter.gym}` : null,
     fighter.heightCm ? `Height: ${fighter.heightCm} cm` : null,
     fighter.weightKg ? `Walking weight: ${fighter.weightKg} kg` : null,
-    `Competes: ${fighter.competes ? "yes" : "no"}`,
+    fighter.competes || fighter.primarySport?.trim() ? `Competes: ${fighter.competes ? "yes" : "no"}` : null,
+    unansweredLine(fighter),
     archetypeLine(fighter, archetypeUnlocked(computeUnderstanding(facts))),
     fighter.goals ? `Stated goals: ${fighter.goals}` : null,
     fighter.weaknesses ? `Stated weaknesses: ${fighter.weaknesses}` : null,

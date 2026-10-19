@@ -7,11 +7,11 @@ describe("onboarding tracker is fire-and-forget", () => {
   it("sends each (step, event) once, however often it is asked", async () => {
     const send = vi.fn().mockResolvedValue(undefined);
     const t = createOnboardingTracker(send);
-    t.track("name", "view");
-    t.track("name", "view");
-    t.track("name", "complete");
     t.track("dob", "view");
-    expect(send.mock.calls.map((c) => `${c[0]}:${c[1]}`)).toEqual(["name:view", "name:complete", "dob:view"]);
+    t.track("dob", "view");
+    t.track("dob", "complete");
+    t.track("sport", "view");
+    expect(send.mock.calls.map((c) => `${c[0]}:${c[1]}`)).toEqual(["dob:view", "dob:complete", "sport:view"]);
   });
 
   it("ignores a missing step", () => {
@@ -48,5 +48,15 @@ describe("onboarding tracker is fire-and-forget", () => {
     expect(signal?.aborted).toBe(false);
     vi.advanceTimersByTime(5_001);
     expect(signal?.aborted).toBe(true);
+  });
+});
+
+describe("only steps of the shared mobile flow are sent", () => {
+  it("drops a step the flow does not know", async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const t = createOnboardingTracker(send);
+    t.track("name", "view");
+    t.track("questions_view", "view");
+    expect(send.mock.calls.map((c) => c[0])).toEqual(["questions_view"]);
   });
 });

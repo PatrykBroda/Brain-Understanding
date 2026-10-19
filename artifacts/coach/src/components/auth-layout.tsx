@@ -1,89 +1,54 @@
 import { Link } from "wouter";
 import { ChevronLeft } from "lucide-react";
-import loginHero from "@/assets/login-hero.jpg";
+import { VideoBackdrop } from "@/components/media-backdrop";
+import { TrainWithFrame } from "@/components/train-with-frame";
+import { FrameLogo } from "@/components/frame-logo";
 
-// Film-grain layer: inline SVG turbulence noise, tiled. Pure decoration.
-const GRAIN_URI = `url("data:image/svg+xml,${encodeURIComponent(
-  `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.55'/></svg>`,
-)}")`;
+/** The two lines the client requires on every opening surface. */
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export const TAGLINE = "Your corner team between training sessions.";
+export const SUBLINE = "AI coaching for fighters and athletes.";
+
+/**
+ * Opening surface for sign-in / sign-up: monochrome athlete imagery (video, poster
+ * for reduced-motion) under a dark scrim, a reserved text band for the tagline,
+ * and one form card. The imagery is the only atmospheric light here.
+ */
+export default function AuthLayout({ children, compact = false }: { children: React.ReactNode; compact?: boolean }) {
   return (
     <div
-      className="relative grid h-[100dvh] text-foreground overflow-hidden"
-      style={{
-        gridTemplateRows: "auto minmax(0,1fr) auto",
-        background: "#000",
-      }}
+      className="relative grid h-[100dvh] overflow-hidden entry-theme"
+      style={{ gridTemplateRows: "auto minmax(0,1fr)" }}
     >
-      {/* Full-bleed black & white combat photo */}
-      <img
-        src={loginHero}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover object-[center_28%] pointer-events-none select-none z-0"
-        style={{ filter: "grayscale(1) contrast(1.08)" }}
-      />
-      {/* Dark wash so the auth card and copy stay legible (~70% at the core, heavier at the edges) */}
-      <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          background:
-            "linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0.72)), radial-gradient(ellipse 95% 60% at 50% 40%, transparent 30%, rgba(0,0,0,0.55) 100%)",
-        }}
-      />
-      {/* Film grain */}
-      <div
-        className="absolute inset-0 pointer-events-none z-0 mix-blend-overlay"
-        style={{ backgroundImage: GRAIN_URI, backgroundSize: "160px 160px", opacity: 0.16 }}
-      />
-      {/* Faint amber signal, kept from the original treatment */}
-      <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 90% 60% at 50% 30%, hsla(39,49%,36%,0.05) 0%, transparent 55%)",
-        }}
-      />
+      <VideoBackdrop dim={0.3} />
 
-      <header className="relative z-10 flex items-center justify-between px-6 pt-[max(1.1rem,env(safe-area-inset-top))] pb-3">
-        <Link
-          href="/"
-          className="text-foreground/55 hover:text-foreground/90 transition-colors -ml-1"
-          aria-label="Back"
-        >
-          <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
+      <header className="relative z-10 grid grid-cols-[44px_1fr_44px] items-center px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
+        <Link href="/" className="entry-icon-round" aria-label="Back">
+          <ChevronLeft className="h-5 w-5" strokeWidth={1.75} />
         </Link>
-        <div className="text-center">
-          <div className="font-sans font-extralight text-[14px] tracking-[0.55em] text-foreground/95 leading-none">
-            FRAME
-          </div>
-          <div className="font-mono text-[9px] tracking-[0.5em] text-foreground/45 mt-1.5 font-light">
-            MMA · CALIBRATION SYSTEM
-          </div>
-        </div>
-        <div className="w-5" />
+        <div className="flex justify-center"><FrameLogo height={14} /></div>
+        <div />
       </header>
 
-      <main className="relative z-10 min-h-0 grid place-items-center overflow-y-auto px-5 py-4">
-        <div className="frame-auth-in w-full grid place-items-center">{children}</div>
+      <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-[460px] flex-col justify-end gap-5 overflow-y-auto px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3">
+        <div className="entry-rise">
+          <TrainWithFrame className={`mx-auto w-full ${compact ? "max-w-[300px]" : "max-w-[400px]"}`} />
+          <p className="mt-3 text-center text-base leading-6 text-[var(--f-text-2)]">{SUBLINE}</p>
+        </div>
+        <div className="entry-rise w-full" style={{ animationDelay: "60ms" }}>
+          {children}
+        </div>
+        <nav aria-label="Legal" className="entry-rise flex items-center justify-center gap-1 text-sm text-[var(--f-text-2)]" style={{ animationDelay: "100ms" }}>
+          <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center px-3 underline underline-offset-2 hover:text-[var(--f-text)]">
+            Terms
+          </a>
+          <span aria-hidden>·</span>
+          <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center px-3 underline underline-offset-2 hover:text-[var(--f-text)]">
+            Privacy
+          </a>
+        </nav>
       </main>
-
-      <footer className="relative z-10 px-6 pb-[max(1.6rem,env(safe-area-inset-bottom))] pt-2">
-        <p className="mx-auto max-w-sm text-center font-mono text-[9px] leading-relaxed uppercase tracking-[0.3em] text-foreground/40">
-          Sign in with your FRAME email and password.
-        </p>
-      </footer>
-
-      <style>{`
-        @keyframes frame-auth-in {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .frame-auth-in {
-          animation: frame-auth-in 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-        }
-      `}</style>
     </div>
   );
 }

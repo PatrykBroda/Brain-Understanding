@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { WeeklyReportOverlay } from "@/components/weekly-report-overlay";
+import { FEATURES } from "@/lib/features";
 import { BottomNav } from "@/components/bottom-nav";
 import { ModelUpdateCard } from "@/components/model-update-card";
 import { FrameOctagon } from "@/components/frame-octagon";
@@ -558,6 +559,8 @@ export default function AnalysePage() {
               onSubmitLink={() => void runFromLink(linkUrl)}
               analyses={analyses.data?.analyses ?? []}
               analysesLoading={analyses.isLoading}
+              analysesError={analyses.isError}
+              onRetryAnalyses={() => void analyses.refetch()}
               onOpen={(id) => setOpenId(id)}
               compareId={compareId}
               onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
@@ -570,7 +573,7 @@ export default function AnalysePage() {
               onOpenOpponent={(id) => setOpenOpponentId(id)}
             />
           )}
-          {!result && openId == null && openOpponentId == null && (
+          {FEATURES.weeklyReport && !result && openId == null && openOpponentId == null && (
             <>
               <button
                 type="button"
@@ -805,20 +808,24 @@ export default function AnalysePage() {
                 <History
                   items={analyses.data?.analyses ?? []}
                   loading={analyses.isLoading}
+                  error={analyses.isError}
+                  onRetry={() => void analyses.refetch()}
                   onOpen={(id) => setOpenId(id)}
                   compareId={compareId}
                   onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
                 />
               )}
 
-              <button
-                type="button"
-                onClick={() => setWeeklyReportOpen(true)}
-                className="w-full inline-flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/40 hover:border-primary/70 px-4 py-3 text-foreground/90 transition-colors"
-              >
-                <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
-                Weekly intelligence report
-              </button>
+              {FEATURES.weeklyReport && (
+                <button
+                  type="button"
+                  onClick={() => setWeeklyReportOpen(true)}
+                  className="w-full inline-flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/40 hover:border-primary/70 px-4 py-3 text-foreground/90 transition-colors"
+                >
+                  <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  Weekly intelligence report
+                </button>
+              )}
             </div>
           </>
         )}
@@ -1028,6 +1035,8 @@ function UploadControls({
   onSubmitLink,
   analyses,
   analysesLoading,
+  analysesError,
+  onRetryAnalyses,
   onOpen,
   compareId,
   onSetCompare,
@@ -1056,6 +1065,8 @@ function UploadControls({
   onSubmitLink: () => void;
   analyses: AnalysisListItem[];
   analysesLoading: boolean;
+  analysesError: boolean;
+  onRetryAnalyses: () => void;
   onOpen: (id: number) => void;
   compareId: number | null;
   onSetCompare: (id: number) => void;
@@ -1230,6 +1241,8 @@ function UploadControls({
         <History
           items={analyses}
           loading={analysesLoading}
+          error={analysesError}
+          onRetry={onRetryAnalyses}
           onOpen={onOpen}
           compareId={compareId}
           onSetCompare={onSetCompare}
@@ -1663,6 +1676,12 @@ function FindingsTable({
                   {f.nervousSystemFraming && (
                     <div className="text-xs text-primary/80 leading-relaxed italic">
                       {f.nervousSystemFraming}
+                    </div>
+                  )}
+                  {f.fix && (
+                    <div className="mt-1.5 border-l-2 border-primary/50 bg-primary/[0.06] px-2.5 py-1.5 text-xs text-foreground/90 leading-relaxed">
+                      <span className="block font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 mb-0.5">Next session</span>
+                      {f.fix}
                     </div>
                   )}
                 </td>
@@ -2830,19 +2849,52 @@ function OpponentHistory({
 function History({
   items,
   loading,
+  error = false,
+  onRetry,
   onOpen,
   compareId,
   onSetCompare,
 }: {
   items: AnalysisListItem[];
   loading: boolean;
+  error?: boolean;
+  onRetry?: () => void;
   onOpen: (id: number) => void;
   compareId: number | null;
   onSetCompare: (id: number) => void;
 }) {
   const { openUpgrade } = useFramePlus();
   if (loading) return null;
-  if (items.length === 0) return null;
+  if (error && items.length === 0) {
+    return (
+      <section className="space-y-3 pt-2">
+        <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground">Session log</div>
+        <div role="alert" className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
+          <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">Could not load your sessions</div>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-1 font-mono text-[10px] uppercase tracking-widest border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
+          >
+            Try again
+          </button>
+        </div>
+      </section>
+    );
+  }
+  if (items.length === 0) {
+    return (
+      <section className="space-y-3 pt-2">
+        <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground">Session log</div>
+        <div className="border border-border/40 px-4 py-4">
+          <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/80">No sessions yet</div>
+          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+            Upload your first clip above. Each read you run is saved here with its score.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   const baselineItem = compareId != null ? items.find((a) => a.id === compareId) : null;
 

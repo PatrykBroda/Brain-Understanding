@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { formatProviderList, type AiConsentDisclosure } from "@workspace/ai-consent";
 import type { AiConsentStatus } from "@/lib/api";
 
@@ -27,7 +28,9 @@ export function AiConsentModal({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [checked, setChecked] = useState(false);
 
-  return (
+  // Portal to <body>: inside a backdrop-filter ancestor `fixed inset-0` fills that ancestor
+  // instead of the viewport, which clipped the panel below the fold on desktop sign-up.
+  return createPortal(
     <div
       className={
         mandatory
@@ -124,28 +127,31 @@ export function AiConsentModal({
           </a>
         </div>
 
-        <label className="mt-6 flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-foreground/75">
-          <input
-            type="checkbox"
-            checked={checked}
-            onChange={(event) => setChecked(event.target.checked)}
-            disabled={busy}
-            className="mt-0.5 accent-[hsl(var(--primary))]"
-          />
-          <span>
-            I understand and agree to the sending of my data to{" "}
-            {formatProviderList(disclosure.providers)} for the purposes described above.
-          </span>
-        </label>
+        {/* Pinned so the agree checkbox and button are always on screen, not below the fold. */}
+        <div className="sticky -bottom-6 z-10 -mx-6 mt-6 border-t border-border bg-background px-6 pb-5 pt-4 sm:-bottom-8 sm:-mx-8 sm:px-8 sm:pb-6">
+          <label className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-foreground/75">
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(event) => setChecked(event.target.checked)}
+              disabled={busy}
+              className="mt-0.5 accent-[hsl(var(--primary))]"
+            />
+            <span>
+              I understand and agree to the sending of my data to{" "}
+              {formatProviderList(disclosure.providers)} for the purposes described above.
+            </span>
+          </label>
 
-        <button
-          type="button"
-          onClick={onAccept}
-          disabled={busy || !checked}
-          className="mt-6 w-full border border-primary bg-primary/90 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-primary-foreground transition-colors hover:bg-primary disabled:cursor-wait disabled:opacity-50"
-        >
-          {busy ? "Saving permission…" : "Agree & Continue"}
-        </button>
+          <button
+            type="button"
+            onClick={onAccept}
+            disabled={busy || !checked}
+            className="mt-4 w-full border border-primary bg-primary/90 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-primary-foreground transition-colors hover:bg-primary disabled:cursor-wait disabled:opacity-50"
+          >
+            {busy ? "Saving permission…" : "Agree & Continue"}
+          </button>
+        </div>
 
         {mandatory ? (
           <div className="mt-2 flex flex-col gap-2">
@@ -207,6 +213,7 @@ export function AiConsentModal({
           )
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

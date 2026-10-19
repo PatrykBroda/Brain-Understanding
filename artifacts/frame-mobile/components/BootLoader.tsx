@@ -1,83 +1,67 @@
 import React, { useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import Animated, {
   Easing,
   cancelAnimation,
   interpolate,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
 
+import { Screen } from "@/components/entry";
+import { FrameLogo } from "@/components/FrameLogo";
+import { fonts, palette } from "@/constants/entryTheme";
+
 /**
- * Branded boot / loading surface matching the web hub's "Booting system"
- * gate (coach App.tsx Gate) — a mono uppercase label over a track with a
- * sweeping bar, instead of a bare spinner. Shares the #050505 base so there
- * is no flash against the native splash or SystemUI background.
+ * Branded boot / loading surface: logo, wordmark, a short sentence-case status
+ * and a thin indeterminate track. Shares the #08090B base so there is no flash
+ * against the native splash. Reduced motion = static bar.
  */
 
 const TRACK_WIDTH = 120;
 const BAR_WIDTH = 40;
 
-export function BootLoader({ label = "BOOTING SYSTEM" }: { label?: string }) {
+export function BootLoader({ label = "Starting up" }: { label?: string }) {
+  const reduced = useReducedMotion();
   const t = useSharedValue(0);
   useEffect(() => {
-    t.value = withRepeat(
-      withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      false,
-    );
+    if (reduced) return;
+    t.value = withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.ease) }), -1, false);
     return () => cancelAnimation(t);
-  }, [t]);
+  }, [t, reduced]);
 
   const barStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: interpolate(t.value, [0, 1], [-BAR_WIDTH, TRACK_WIDTH]) },
-    ],
+    transform: [{ translateX: reduced ? (TRACK_WIDTH - BAR_WIDTH) / 2 : interpolate(t.value, [0, 1], [-BAR_WIDTH, TRACK_WIDTH]) }],
   }));
 
   return (
-    <View style={s.root}>
-      <Text style={s.wordmark}>FRAME</Text>
-      <Text style={s.label}>{label}</Text>
-      <View style={s.track}>
-        <Animated.View style={[s.bar, barStyle]} />
+    <Screen light="silver" focus="center" intensity={0.7}>
+      <View style={s.root} accessible accessibilityRole="progressbar" accessibilityLabel={label}>
+        <Image source={require("../assets/images/frame-logo.png")} style={s.logo} resizeMode="contain" />
+        <View style={s.wordmark}><FrameLogo height={16} /></View>
+        <Text style={s.label}>{label}</Text>
+        <View style={s.track}>
+          <Animated.View style={[s.bar, barStyle]} />
+        </View>
       </View>
-    </View>
+    </Screen>
   );
 }
 
 const s = StyleSheet.create({
-  root: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#050505",
-  },
-  wordmark: {
-    fontFamily: "SpaceMono",
-    fontSize: 18,
-    letterSpacing: 10,
-    color: "#e0e0e0",
-    marginBottom: 28,
-  },
-  label: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3.2,
-    color: "#8A8A8A",
-    marginBottom: 16,
-  },
+  root: { flex: 1, alignItems: "center", justifyContent: "center" },
+  logo: { width: 56, height: 56, marginBottom: 14 },
+  wordmark: { marginBottom: 24 },
+  label: { fontFamily: fonts.medium, fontSize: 14, color: palette.textMid, marginBottom: 16 },
   track: {
     width: TRACK_WIDTH,
     height: 2,
-    backgroundColor: "#1a1a1a",
+    borderRadius: 1,
+    backgroundColor: palette.border,
     overflow: "hidden",
   },
-  bar: {
-    width: BAR_WIDTH,
-    height: 2,
-    backgroundColor: "#8A6A2F",
-  },
+  bar: { width: BAR_WIDTH, height: 2, borderRadius: 1, backgroundColor: palette.gold },
 });

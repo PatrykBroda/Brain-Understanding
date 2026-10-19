@@ -49,28 +49,7 @@ const BASE_QUESTIONS: readonly Question[] = [
   },
 ];
 
-/**
- * PLACEHOLDER for the new onboarding multiple-choice question requested by the client. The wording and the
- * four choices have NOT been supplied, so nothing here is real copy and the slot is OFF: it is never shown
- * to users and never reaches Profile, the server validation or the personality text.
- * TODO(client): supply the prompt + four choices (each with a one-line "read"), then set
- * NEW_QUESTION_ENABLED = true. Nothing else needs to change; both apps and the server read QUESTIONS.
- */
-export const NEW_QUESTION_ENABLED = false;
-export const NEW_QUESTION_PLACEHOLDER: Question = {
-  id: "new_question_pending",
-  prompt: "TODO: wording pending from the client",
-  choices: [
-    { label: "TODO: choice 1", read: "" },
-    { label: "TODO: choice 2", read: "" },
-    { label: "TODO: choice 3", read: "" },
-    { label: "TODO: choice 4", read: "" },
-  ],
-};
-
-export const QUESTIONS: readonly Question[] = NEW_QUESTION_ENABLED
-  ? [...BASE_QUESTIONS, NEW_QUESTION_PLACEHOLDER]
-  : BASE_QUESTIONS;
+export const QUESTIONS: readonly Question[] = BASE_QUESTIONS;
 
 export const QUESTION_IDS: readonly string[] = QUESTIONS.map((q) => q.id);
 export const CHOICES_PER_QUESTION = 4;

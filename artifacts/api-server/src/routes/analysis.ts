@@ -154,7 +154,7 @@ function sanitiseKeyframes(input: unknown): AnalysisKeyframe[] {
 router.post("/analysis", async (req, res) => {
   const fighter = await getUserFighter(req);
   if (!fighter) {
-    res.status(400).json({ error: "no fighter — complete onboarding first" });
+    res.status(400).json({ error: "no fighter" });
     return;
   }
 

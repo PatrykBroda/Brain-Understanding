@@ -1,7 +1,7 @@
 import { useAuth } from "@/context/AuthContext";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
@@ -18,6 +18,7 @@ import {
 import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
+import { scheduleModelRefreshAfterChat } from "@/lib/modelRefresh";
 import { Feather } from "@expo/vector-icons";
 import {
   ApiError,
@@ -32,6 +33,7 @@ import {
 } from "@/lib/api";
 import { reportLayout } from "@/lib/crashReporter";
 import { sendErrorMessage, streamErrorMessage, uploadErrorMessage } from "@/lib/chatErrors";
+import { ANALYSE_SESSION_PROMPT, REGULATE_PROMPT } from "@/lib/chat-prompts";
 import { useFighter } from "@/context/FighterContext";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { MessageContent } from "@/components/MessageContent";
@@ -56,6 +58,8 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   attachments?: AttachmentDto[];
+  /** set on an inline failure message: the text to resend when the athlete taps RETRY */
+  retry?: string;
 }
 
 let _counter = 0;
@@ -67,8 +71,7 @@ function uid() {
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   {
     label: "ANALYSE SESSION",
-    prompt:
-      "Debrief my last training session — what fragmented, what held, what's the next rep.",
+    prompt: ANALYSE_SESSION_PROMPT,
   },
   {
     label: "BUILD DRILL",
@@ -85,7 +88,7 @@ const QUICK_ACTIONS: { label: string; prompt: string }[] = [
     prompt:
       "Walk me through how to prepare my composure, decision-making, and tactics for an upcoming competition.",
   },
-  { label: "REGULATE", prompt: "I need to regulate right now. Produce a regulate block." },
+  { label: "REGULATE", prompt: REGULATE_PROMPT },
   {
     label: "REFLECT",
     prompt:
@@ -137,10 +140,12 @@ function MessageBubble({
   msg,
   onTrain,
   userLabel,
+  onRetry,
 }: {
   msg: Message;
   onTrain: (prompt: string) => void;
   userLabel: string;
+  onRetry: (msg: Message) => void;
 }) {
   const isUser = msg.role === "user";
   const hasAttachments = (msg.attachments?.length ?? 0) > 0;
@@ -163,6 +168,15 @@ function MessageBubble({
             msg.content ? (
               <Text style={[mb.text, mb.userText]}>{msg.content}</Text>
             ) : null
+          ) : msg.retry != null ? (
+            <View style={mb.errorBox} accessibilityRole="alert">
+              <Text style={mb.errorTitle}>MESSAGE NOT DELIVERED</Text>
+              <Text style={[mb.text, mb.assistantText]}>{msg.content}</Text>
+              <Pressable style={mb.retryBtn} onPress={() => onRetry(msg)} hitSlop={8}>
+                <Feather name="refresh-ccw" size={12} color="#8A6A2F" />
+                <Text style={mb.retryText}>RETRY</Text>
+              </Pressable>
+            </View>
           ) : (
             <MessageContent content={msg.content} onTrain={onTrain} />
           )}
@@ -235,6 +249,36 @@ const mb = StyleSheet.create({
   },
   userText: { color: "#e0e0e0" },
   assistantText: { color: "#c0c0c0" },
+  errorBox: {
+    gap: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#2a2a2a",
+    borderLeftWidth: 2,
+    borderLeftColor: "#8A6A2F",
+  },
+  errorTitle: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 3,
+    color: "#8A6A2F",
+  },
+  retryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    minHeight: 40,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#8A6A2F",
+  },
+  retryText: {
+    fontFamily: "SpaceMono",
+    fontSize: 10,
+    letterSpacing: 3,
+    color: "#8A6A2F",
+  },
   attachGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -332,6 +376,16 @@ export default function ChatScreen() {
   const sendInFlightRef = useRef(false);
   const consentAcceptingRef = useRef(false);
   const inputRef = useRef<TextInput>(null);
+
+  // A coaching prompt handed over by another screen (an observation / State tip).
+  // Only fills the composer; the athlete still taps send. `n` makes a repeat tap re-apply.
+  const { prefill, n: prefillNonce } = useLocalSearchParams<{ prefill?: string; n?: string }>();
+  useEffect(() => {
+    if (typeof prefill !== "string" || !prefill) return;
+    setInput(prefill);
+    const t = setTimeout(() => inputRef.current?.focus(), 150);
+    return () => clearTimeout(t);
+  }, [prefill, prefillNonce]);
   // One-shot guards so on-device layout probes report once per mount,
   // not on every re-layout.
   const layoutProbes = useRef({ row: false, chip: false, text: false });
@@ -470,8 +524,10 @@ export default function ChatScreen() {
     setMessages((prev) => [...prev, userMsg]);
 
     // Show a failure as a fresh assistant bubble (mobile has no error banner).
-    const showAssistant = (content: string) =>
-      setMessages((prev) => [...prev, { id: uid(), role: "assistant", content }]);
+    const showAssistant = (content: string) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      setMessages((prev) => [...prev, { id: uid(), role: "assistant", content, retry: trimmed }]);
+    };
 
     let fullContent = "";
     let added = false;
@@ -508,6 +564,8 @@ export default function ChatScreen() {
           }
           if (chunk.done) {
             sawDone = true;
+            // The memory extractor runs after the reply; refresh the model once it has written.
+            scheduleModelRefreshAfterChat(qc);
             return;
           }
           if (chunk.content) {
@@ -605,6 +663,20 @@ export default function ChatScreen() {
       setConsentBusy(false);
       consentAcceptingRef.current = false;
     }
+  }
+
+  // Inline retry: drop the failed exchange (error + the user bubble it answered) and send again.
+  function retryMessage(failed: { id: string; retry?: string }) {
+    if (isStreaming || failed.retry == null) return;
+    const text = failed.retry;
+    setMessages((prev) => {
+      const idx = prev.findIndex((m) => m.id === failed.id);
+      if (idx < 0) return prev;
+      const cut = idx > 0 && prev[idx - 1].role === "user" && prev[idx - 1].content === text ? idx - 1 : idx;
+      return prev.filter((_, i) => i !== idx && i !== cut);
+    });
+    setInput("");
+    handleSend(text);
   }
 
   function sendQuick(prompt: string) {
@@ -756,7 +828,7 @@ export default function ChatScreen() {
           data={reversed}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <MessageBubble msg={item} onTrain={handleSend} userLabel={userLabel} />
+            <MessageBubble msg={item} onTrain={handleSend} userLabel={userLabel} onRetry={retryMessage} />
           )}
           inverted={messages.length > 0}
           ListHeaderComponent={showTyping ? <TypingIndicator /> : null}

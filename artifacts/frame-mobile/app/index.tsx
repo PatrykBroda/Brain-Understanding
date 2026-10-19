@@ -1,17 +1,13 @@
 import { Redirect } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { StyleSheet, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
 import { reportStartup } from "@/lib/crashReporter";
 import { BootLoader } from "@/components/BootLoader";
 import { INTRO_SEEN_KEY } from "@/app/splash";
+import { EmptyState, Screen } from "@/components/entry";
 
 function LoadingScreen({ label }: { label: string }) {
   return <BootLoader label={label} />;
@@ -19,7 +15,7 @@ function LoadingScreen({ label }: { label: string }) {
 
 export default function IndexScreen() {
   const { isLoaded, isSignedIn } = useAuth();
-  const { fighter, isLoading: fighterLoading, error, refetch } = useFighter();
+  const { isLoading: fighterLoading, error, refetch } = useFighter();
 
   // Whether the first-launch cinematic intro has already played. null until
   // AsyncStorage resolves; gates the final redirect to /splash vs /home.
@@ -49,7 +45,7 @@ export default function IndexScreen() {
   }, [ready]);
 
   if (!isLoaded) {
-    return <LoadingScreen label="CONNECTING · SLOW NETWORK" />;
+    return <LoadingScreen label="Connecting. This can take a moment on a slow network." />;
   }
 
   if (!isSignedIn) {
@@ -57,33 +53,29 @@ export default function IndexScreen() {
   }
 
   if (fighterLoading) {
-    return <LoadingScreen label="LOADING YOUR FRAME" />;
+    return <LoadingScreen label="Loading your Frame" />;
   }
 
   if (error) {
     return (
-      <View style={styles.loading}>
-        <Text style={styles.errorTitle}>CONNECTION LOST</Text>
-        <Text style={styles.errorBody}>
-          Could not reach the frame. Check your connection.
-        </Text>
-        <Pressable
-          onPress={refetch}
-          style={styles.retryBtn}
-          accessibilityRole="button"
-        >
-          <Text style={styles.retryText}>RETRY</Text>
-        </Pressable>
-      </View>
+      <Screen light={null}>
+        <View style={styles.loading}>
+          <View style={styles.card}>
+            <EmptyState
+              kind="error"
+              title="We can't reach your Frame"
+              body="Check your connection and try again."
+              actionLabel="Try again"
+              onAction={refetch}
+            />
+          </View>
+        </View>
+      </Screen>
     );
   }
 
-  if (!fighter) {
-    return <Redirect href="/onboarding" />;
-  }
-
   if (introSeen === null) {
-    return <LoadingScreen label="LOADING YOUR FRAME" />;
+    return <LoadingScreen label="Loading your Frame" />;
   }
   if (!introSeen) {
     return <Redirect href="/splash" />;
@@ -93,43 +85,6 @@ export default function IndexScreen() {
 }
 
 const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    backgroundColor: "#050505",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  slowHint: {
-    marginTop: 16,
-    color: "#8A8A8A",
-    fontSize: 10,
-    letterSpacing: 3,
-    fontFamily: "SpaceMono_400Regular",
-  },
-  errorTitle: {
-    color: "#8A6A2F",
-    fontSize: 14,
-    letterSpacing: 3,
-    fontFamily: "SpaceMono_400Regular",
-  },
-  errorBody: {
-    color: "#8A8A8A",
-    fontSize: 12,
-    marginTop: 8,
-    textAlign: "center",
-    paddingHorizontal: 32,
-  },
-  retryBtn: {
-    marginTop: 20,
-    borderColor: "#8A6A2F",
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 28,
-  },
-  retryText: {
-    color: "#8A6A2F",
-    fontSize: 12,
-    letterSpacing: 2,
-  },
+  loading: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+  card: { width: "100%", maxWidth: 420 },
 });

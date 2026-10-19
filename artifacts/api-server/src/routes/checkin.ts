@@ -69,7 +69,7 @@ router.get("/checkin/history", async (req, res) => {
 router.post("/checkin", async (req, res) => {
   const fighter = await getUserFighter(req);
   if (!fighter) {
-    res.status(400).json({ error: "no fighter — complete onboarding first" });
+    res.status(400).json({ error: "no fighter" });
     return;
   }
   const parsed = insertDailyCheckinSchema.safeParse(req.body);

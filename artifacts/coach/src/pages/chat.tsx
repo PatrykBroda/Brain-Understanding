@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { Send, Square, RefreshCcw, ChevronLeft, Paperclip, X, Mic } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
@@ -15,20 +15,20 @@ import { Button } from "@/components/ui/button";
 import { api, attachmentFileUrl, type AttachmentDto } from "@/lib/api";
 import { useAuthedObjectUrl } from "@/lib/useAuthedObjectUrl";
 import { useQueryClient } from "@tanstack/react-query";
+import { ANALYSE_SESSION_PROMPT, REGULATE_PROMPT } from "@/lib/chat-prompts";
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
-  { label: "Analyse session", prompt: "Debrief my last training session — what fragmented, what held, what's the next rep." },
+  { label: "Analyse session", prompt: ANALYSE_SESSION_PROMPT },
   { label: "Build drill", prompt: "Prescribe me a drill for my biggest current weakness. Use the drill block." },
   { label: "Fix my game", prompt: "Diagnose the recurring leak in my game right now and tell me the protocol to close it." },
   { label: "Competition prep", prompt: "Walk me through how to prepare my nervous system and tactics for an upcoming competition." },
-  { label: "Regulate", prompt: "I need to regulate right now. Produce a regulate block." },
+  { label: "Regulate", prompt: REGULATE_PROMPT },
   { label: "Reflect", prompt: "Ask me one sharp question to surface what I'm not seeing about my training this week." },
 ];
 
 const SUGGESTED_PROMPTS = [
   "Debrief tonight's roll",
   "I fragmented under pressure today",
-  "Walk me through a containment cycle",
   "What's my next rep on the half-guard pass?",
 ];
 
@@ -97,6 +97,20 @@ export default function ChatPage() {
 
   useAutoWelcome();
 
+  // A coaching prompt handed over by another page (observation taps): fill the
+  // composer, then drop the query so a refresh doesn't re-apply it. The athlete
+  // still taps send.
+  const search = useSearch();
+  const [, navigate] = useLocation();
+  useEffect(() => {
+    const prefill = new URLSearchParams(search).get("prefill");
+    if (!prefill) return;
+    setInput(prefill);
+    navigate("/chat", { replace: true });
+    requestAnimationFrame(() => composerRef.current?.focus());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
   // EntrySequence is a first-ever-entry experience: show once, never repeat.
   // Backed by localStorage so it survives same-day reopens and re-navigation.
   // Must NOT reset on navigation — that is the root of the repeat-loading bug.
@@ -123,6 +137,7 @@ export default function ChatPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   // State updates are asynchronous, so use a synchronous guard to cover the
   // awaited consent lookup and the complete stream lifecycle.
   const sendInFlightRef = useRef(false);
@@ -441,6 +456,7 @@ export default function ChatPage() {
               </button>
               <div className="relative flex-1">
                 <textarea
+                  ref={composerRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}

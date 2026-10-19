@@ -27,6 +27,7 @@ import { AI_CONSENT_VERSION } from "../lib/aiConsent";
 import { db, usersTable, FIGHTER_NAME_MAX } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { recordSignup } from "../lib/onboardingEvents";
+import { ensureFighter } from "../lib/ensureFighter";
 
 const router = Router();
 
@@ -274,6 +275,14 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     aiAnalysisConsentVersion: AI_CONSENT_VERSION,
     aiAnalysisConsentAt: acceptedAt,
   });
+
+  // Every account has a fighter from the start: a stub with the sign-up name and blank answers.
+  // If this hiccups, GET /fighter creates it on first read.
+  try {
+    await ensureFighter(id, displayName);
+  } catch (err) {
+    req.log.warn({ err }, "stub fighter not created at sign-up");
+  }
 
   // Funnel: account created (analytics only, never throws).
   await recordSignup(id, app, req.log);

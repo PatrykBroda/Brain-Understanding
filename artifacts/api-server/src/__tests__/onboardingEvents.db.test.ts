@@ -91,25 +91,26 @@ afterAll(async () => {
 
 describe("POST /api/onboarding/event", () => {
   it("records a valid view and complete event", async () => {
-    const a = await call(alice, "POST", "/api/onboarding/event", { app: "mobile", step: "q_tired", event: "view" });
-    const b = await call(alice, "POST", "/api/onboarding/event", { app: "mobile", step: "q_tired", event: "complete" });
+    const a = await call(alice, "POST", "/api/onboarding/event", { app: "coach", step: "q_tired", event: "view" });
+    const b = await call(alice, "POST", "/api/onboarding/event", { app: "coach", step: "q_tired", event: "complete" });
     expect(a.status).toBe(200);
     expect(a.json).toEqual({ recorded: true });
     expect(b.status).toBe(200);
     const rows = await eventsFor(alice.id);
-    expect(rows.map((r) => `${r.app}/${r.step}/${r.event}`)).toEqual(["mobile/q_tired/view", "mobile/q_tired/complete"]);
+    expect(rows.map((r) => `${r.app}/${r.step}/${r.event}`)).toEqual(["coach/q_tired/view", "coach/q_tired/complete"]);
   });
 
   it("needs a signed-in user", async () => {
-    const r = await call(null, "POST", "/api/onboarding/event", { app: "mobile", step: "name", event: "view" });
+    const r = await call(null, "POST", "/api/onboarding/event", { app: "mobile", step: "dob", event: "view" });
     expect(r.status).toBe(401);
   });
 
   it.each([
-    ["unknown app", { app: "desktop", step: "name", event: "view" }],
+    ["unknown app", { app: "desktop", step: "dob", event: "view" }],
     ["unknown step", { app: "mobile", step: "bogus", event: "view" }],
-    ["a coach step on mobile", { app: "mobile", step: "details", event: "view" }],
-    ["unknown event type", { app: "mobile", step: "name", event: "explode" }],
+    ["a coach-only step on mobile", { app: "mobile", step: "q_tired", event: "view" }],
+    ["a retired onboarding-screen step", { app: "coach", step: "details", event: "view" }],
+    ["unknown event type", { app: "mobile", step: "dob", event: "explode" }],
     ["server-only step", { app: "mobile", step: "finish", event: "complete" }],
     ["server-only signup", { app: "coach", step: "signup", event: "complete" }],
     ["missing fields", {}],
@@ -132,7 +133,7 @@ describe("POST /api/onboarding/event", () => {
 
   it("rate-limits a flood per person, without affecting someone else", async () => {
     const bob = await makeUser("bob");
-    const body = { app: "coach", step: "welcome", event: "view" };
+    const body = { app: "coach", step: "home", event: "view" };
     for (let i = 0; i < EVENT_MAX_PER_WINDOW; i++) {
       expect((await call(bob, "POST", "/api/onboarding/event", body)).status).toBe(200);
     }
@@ -145,7 +146,7 @@ describe("POST /api/onboarding/event", () => {
     const insertSpy = vi.spyOn(db, "insert").mockImplementationOnce(() => {
       throw new Error("relation \"onboarding_events\" does not exist");
     });
-    const r = await call(alice, "POST", "/api/onboarding/event", { app: "mobile", step: "name", event: "view" });
+    const r = await call(alice, "POST", "/api/onboarding/event", { app: "mobile", step: "dob", event: "view" });
     insertSpy.mockRestore();
     expect(r.status).toBe(202);
     expect(r.json).toEqual({ recorded: false });
@@ -184,29 +185,38 @@ describe("server-side signup and finish events", () => {
     expect(await eventsFor(bogusId)).toHaveLength(0);
   });
 
-  it("the first profile save records finish for the app they used; a retry does not repeat it", async () => {
+  it("finish is recorded once, when the required answers are all present for the first time", async () => {
     const carol = await makeUser("carol");
-    await call(carol, "POST", "/api/onboarding/event", { app: "coach", step: "welcome", event: "view" });
-    const payload = {
-      name: "Carol",
-      dateOfBirth: "1990-05-05",
-      art: "MMA",
-      primarySport: "mma",
-      level: "Beginner",
-      trainingFrequency: "3-4x / week",
-      goals: "",
-      weaknesses: "",
-      personality: "x",
-    };
+    await call(carol, "POST", "/api/onboarding/event", { app: "coach", step: "home", event: "view" });
+    const finishes = async () => (await eventsFor(carol.id)).filter((r) => r.step === "finish").map((r) => `${r.app}/${r.event}`);
+
+    // The first read creates the blank stub; saving the first two answers does not finish anything.
+    expect((await call(carol, "GET", "/api/fighter")).json.fighter.age).toBe(0);
+    expect((await call(carol, "PATCH", "/api/fighter", { dateOfBirth: "1990-05-05", primarySport: "mma" })).status).toBe(200);
+    expect(await finishes()).toEqual([]);
+    // Level + frequency complete the set.
+    expect((await call(carol, "PATCH", "/api/fighter", { level: "Beginner", trainingFrequency: "3-4x / week" })).status).toBe(200);
+    expect(await finishes()).toEqual(["coach/complete"]);
+    // Editing afterwards, or saving the whole form again, never repeats it.
+    expect((await call(carol, "PATCH", "/api/fighter", { level: "Advanced" })).status).toBe(200);
+    expect((await call(carol, "PATCH", "/api/fighter", { goals: "win" })).status).toBe(200);
+    const payload = { name: "Carol", dateOfBirth: "1990-05-05", art: "MMA", primarySport: "mma", level: "Beginner", trainingFrequency: "3-4x / week", goals: "", weaknesses: "", personality: "x" };
     expect((await call(carol, "POST", "/api/fighter", payload)).status).toBe(200);
-    expect((await call(carol, "POST", "/api/fighter", payload)).status).toBe(200);
-    const finishes = (await eventsFor(carol.id)).filter((r) => r.step === "finish");
-    expect(finishes.map((r) => `${r.app}/${r.event}`)).toEqual(["coach/complete"]);
+    expect(await finishes()).toEqual(["coach/complete"]);
+  });
+
+  it("a full-form POST on a stub that completes the answers records finish exactly once", async () => {
+    const gus = await makeUser("gus");
+    await call(gus, "POST", "/api/onboarding/event", { app: "mobile", step: "home", event: "view" });
+    const payload = { name: "Gus", dateOfBirth: "1990-05-05", art: "bjj", primarySport: "bjj", level: "White", trainingFrequency: "5+", goals: null, weaknesses: null, personality: "" };
+    expect((await call(gus, "POST", "/api/fighter", payload)).status).toBe(200);
+    expect((await call(gus, "POST", "/api/fighter", payload)).status).toBe(200);
+    expect((await eventsFor(gus.id)).filter((r) => r.step === "finish").map((r) => `${r.app}/${r.event}`)).toEqual(["mobile/complete"]);
   });
 
   it("a profile save still succeeds when recording finish fails", async () => {
     const dan = await makeUser("dan");
-    await call(dan, "POST", "/api/onboarding/event", { app: "mobile", step: "name", event: "view" });
+    await call(dan, "POST", "/api/onboarding/event", { app: "mobile", step: "dob", event: "view" });
     const realInsert = db.insert.bind(db);
     const spy = vi.spyOn(db, "insert").mockImplementation(((table: unknown) => {
       if (table === onboardingEventsTable) throw new Error("boom");
@@ -237,7 +247,7 @@ describe("GET /api/admin/onboarding-funnel", () => {
 
   it("gives an admin the per-app funnel", async () => {
     const eve = await makeUser("eve");
-    for (const step of ["name", "dob", "sport"]) {
+    for (const step of ["home", "dob", "sport"]) {
       await call(eve, "POST", "/api/onboarding/event", { app: "mobile", step, event: "view" });
     }
     const r = await call(admin, "GET", "/api/admin/onboarding-funnel");

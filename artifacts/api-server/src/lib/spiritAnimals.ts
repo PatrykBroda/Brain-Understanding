@@ -76,7 +76,12 @@ export async function deriveSpiritAnimal(
 ${bestiary}
 
 ATHLETE:
-  art: ${fighter.art} | ${fighter.primarySport === "bjj" ? "BJJ belt" : "experience / rank"}: ${fighter.level} | trains: ${fighter.trainingFrequency} | competes: ${fighter.competes}
+  ${[
+    fighter.art?.trim() ? `art: ${fighter.art}` : null,
+    fighter.level?.trim() ? `${fighter.primarySport === "bjj" ? "BJJ belt" : "experience / rank"}: ${fighter.level}` : null,
+    fighter.trainingFrequency?.trim() ? `trains: ${fighter.trainingFrequency}` : null,
+    `competes: ${fighter.competes}`,
+  ].filter(Boolean).join(" | ")}
 goals: ${fighter.goals || "(none stated)"}
 weaknesses: ${fighter.weaknesses || "(none stated)"}
 personality, in their own words: ${fighter.personality || "(none given)"}

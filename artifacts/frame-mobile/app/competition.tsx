@@ -16,6 +16,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { toIso } from "@/lib/dateUtils";
 import { competitionApi, type Competition, type PressureTier } from "@/lib/competition";
+import { FormScroll } from "@/components/FormScroll";
+import { KEYBOARD_DONE_ID } from "@/components/KeyboardDoneBar";
 import { useActiveCompetition, useCompetitionList } from "@/hooks/useCompetition";
 
 const TIER_ACCENT: Record<PressureTier, string> = {
@@ -58,7 +60,12 @@ export default function CompetitionScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;
 
-  const { data: activeData, isLoading: activeLoading } = useActiveCompetition();
+  const {
+    data: activeData,
+    isLoading: activeLoading,
+    isError: activeError,
+    refetch: refetchActive,
+  } = useActiveCompetition();
   const { data: listData } = useCompetitionList();
 
   const pressure = activeData?.pressure ?? null;
@@ -179,16 +186,28 @@ export default function CompetitionScreen() {
         <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView
+      <FormScroll
         style={styles.scroll}
         contentContainerStyle={[
           styles.inner,
           { paddingBottom: insets.bottom + bottomPad + 40 },
         ]}
-        keyboardShouldPersistTaps="handled"
       >
         {activeLoading ? (
           <ActivityIndicator color="#8A6A2F" style={{ marginTop: 40 }} />
+        ) : activeError && !activeData ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>Couldn't load your competition</Text>
+            <Text style={styles.emptyBody}>Check your connection and try again.</Text>
+            <Pressable
+              style={({ pressed }) => [styles.scheduleBtn, pressed && styles.scheduleBtnPressed]}
+              onPress={() => void refetchActive()}
+              accessibilityRole="button"
+            >
+              <Feather name="refresh-cw" size={14} color="#8A6A2F" />
+              <Text style={styles.scheduleText}>TRY AGAIN</Text>
+            </Pressable>
+          </View>
         ) : pressure ? (
           <ActiveCard
             pressure={pressure}
@@ -300,6 +319,7 @@ export default function CompetitionScreen() {
                 placeholder="Anything FRAME should hold in mind"
                 placeholderTextColor="#444"
                 multiline
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
             </Field>
 
@@ -351,7 +371,7 @@ export default function CompetitionScreen() {
             ))}
           </View>
         )}
-      </ScrollView>
+      </FormScroll>
     </View>
   );
 }

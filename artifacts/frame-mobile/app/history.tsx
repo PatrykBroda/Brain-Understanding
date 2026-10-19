@@ -1,7 +1,8 @@
-import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo } from "react";
 import {
   ActivityIndicator,
+  AppState,
   Platform,
   Pressable,
   ScrollView,
@@ -10,80 +11,22 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/lib/api";
 import { useEntitlement } from "@/hooks/useEntitlement";
-import { CATEGORY_LABELS, type ModelFact } from "@/lib/athleteModel";
+import { CATEGORY_LABELS, factSeenLabel, type ModelFact } from "@/lib/athleteModel";
+import { bucketByDay, observationPrompt } from "@/lib/factHistory";
+import { refreshModel } from "@/lib/modelRefresh";
+import { FactConfidence } from "@/components/FactConfidence";
 
 const ACCENT = "#8A6A2F";
-
-// ─── Confidence pips (fact 1–5) — mirrors profile.tsx FactConfidence ──────────
-function FactConfidence({ value }: { value: number }) {
-  const v = Math.max(0, Math.min(5, value));
-  return (
-    <View style={cd.wrap}>
-      <View style={cd.row}>
-        {[1, 2, 3, 4, 5].map((i) => (
-          <View key={i} style={[cd.pip, i <= v ? cd.active : cd.inactive]} />
-        ))}
-      </View>
-      <Text style={cd.count}>{v}/5</Text>
-    </View>
-  );
-}
-
-type DayBucket = { key: string; label: string; facts: ModelFact[] };
-
-/**
- * Chronological counterpart to the profile "FULL MODEL" section, which groups
- * observations by category. History buckets the same active observations by the
- * day FRAME first recorded them, newest day first — a timeline of when the model
- * learned each thing. FRAME+ gated, same as the full model breakdown.
- */
-function bucketByDay(facts: ModelFact[]): DayBucket[] {
-  const now = new Date();
-  const startOfDay = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const today = startOfDay(now);
-  const oneDay = 24 * 60 * 60 * 1000;
-
-  const byKey = new Map<string, { ts: number; label: string; facts: ModelFact[] }>();
-
-  for (const f of facts) {
-    const raw = f.createdAt ?? f.updatedAt;
-    const d = raw ? new Date(raw) : null;
-    const valid = d && !Number.isNaN(d.getTime()) ? d : null;
-    const dayTs = valid ? startOfDay(valid) : 0;
-    const key = valid ? String(dayTs) : "undated";
-
-    let label: string;
-    if (!valid) {
-      label = "UNDATED";
-    } else if (dayTs === today) {
-      label = "TODAY";
-    } else if (dayTs === today - oneDay) {
-      label = "YESTERDAY";
-    } else {
-      label = valid
-        .toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-        .toUpperCase();
-    }
-
-    const bucket = byKey.get(key);
-    if (bucket) bucket.facts.push(f);
-    else byKey.set(key, { ts: valid ? dayTs : -1, label, facts: [f] });
-  }
-
-  return Array.from(byKey.entries())
-    .sort((a, b) => b[1].ts - a[1].ts)
-    .map(([key, v]) => ({ key, label: v.label, facts: v.facts }));
-}
 
 export default function HistoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
   const { isSignedIn } = useAuth();
   const { data: entitlement } = useEntitlement();
   const isFramePlus = entitlement?.plan === "frame_plus";
@@ -94,6 +37,8 @@ export default function HistoryScreen() {
   const {
     data: rawFacts,
     isLoading,
+    isError,
+    refetch,
   } = useQuery<ModelFact[]>({
     queryKey: ["memory"],
     queryFn: () =>
@@ -102,8 +47,21 @@ export default function HistoryScreen() {
         return Array.isArray(f) ? f : [];
       }),
     enabled: !!isSignedIn,
-    staleTime: 30_000,
+    staleTime: 0,
   });
+
+  // Always show what the model holds now: refetch on focus and when the app returns to the foreground.
+  useFocusEffect(
+    useCallback(() => {
+      if (isSignedIn) refreshModel(qc);
+    }, [isSignedIn, qc]),
+  );
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active" && isSignedIn) refreshModel(qc);
+    });
+    return () => sub.remove();
+  }, [isSignedIn, qc]);
 
   const activeFacts = useMemo(
     () => (Array.isArray(rawFacts) ? rawFacts : []).filter((f) => f.status === "active"),
@@ -120,6 +78,7 @@ export default function HistoryScreen() {
         <View>
           <Text style={s.headerOverline}>FULL MODEL</Text>
           <Text style={s.headerTitle}>OBSERVATION HISTORY</Text>
+          <Text style={s.headerSub}>BY LAST SEEN · NEWEST FIRST</Text>
         </View>
       </View>
 
@@ -143,6 +102,13 @@ export default function HistoryScreen() {
           <View style={s.loadingWrap}>
             <ActivityIndicator color={ACCENT} size="small" />
           </View>
+        ) : isError && !rawFacts ? (
+          <View style={[s.panel, s.panelPad]}>
+            <Text style={s.bodyCopy}>Couldn't load history. Check your connection and try again.</Text>
+            <Pressable onPress={() => void refetch()} hitSlop={8}>
+              <Text style={s.unlockLink}>RETRY →</Text>
+            </Pressable>
+          </View>
         ) : activeFacts.length === 0 ? (
           <View style={[s.panel, s.panelPad]}>
             <Text style={s.bodyCopy}>
@@ -155,13 +121,24 @@ export default function HistoryScreen() {
             {buckets.map((bucket) => (
               <View key={bucket.key}>
                 <View style={s.dayHeadRow}>
-                  <Text style={s.dayHeadLabel}>{bucket.label}</Text>
+                  <Text style={s.dayHeadLabel}>{bucket.label.toUpperCase()}</Text>
                   <View style={s.dayHeadLine} />
                   <Text style={s.dayHeadCount}>{bucket.facts.length}</Text>
                 </View>
                 <View style={{ gap: 6 }}>
                   {bucket.facts.map((f) => (
-                    <View key={f.id} style={s.factItem}>
+                    <Pressable
+                      key={f.id}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(tabs)/chat",
+                          params: { prefill: observationPrompt(f, CATEGORY_LABELS[f.category] ?? f.category), n: String(Date.now()) },
+                        })
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`${CATEGORY_LABELS[f.category] ?? f.category}: ${f.topic || f.content}, ${factSeenLabel(f)}. Discuss this with your coach`}
+                      style={({ pressed }) => [s.factItem, pressed && { opacity: 0.7 }]}
+                    >
                       <View style={{ flex: 1 }}>
                         <Text style={s.factCat}>
                           {(CATEGORY_LABELS[f.category] ?? f.category).toUpperCase()}
@@ -169,6 +146,7 @@ export default function HistoryScreen() {
                         <Text style={s.factText} numberOfLines={3}>
                           {(f.topic || f.content).toUpperCase()}
                         </Text>
+                        <Text style={s.factSeen}>{factSeenLabel(f).toUpperCase()}</Text>
                       </View>
                       <View style={s.factMeta}>
                         {(f.evidenceCount ?? 1) > 1 && (
@@ -176,7 +154,7 @@ export default function HistoryScreen() {
                         )}
                         <FactConfidence value={f.confidence} />
                       </View>
-                    </View>
+                    </Pressable>
                   ))}
                 </View>
               </View>
@@ -213,6 +191,7 @@ const s = StyleSheet.create({
     color: "rgba(255,255,255,0.45)",
     marginBottom: 6,
   },
+  headerSub: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 3, color: "rgba(255,255,255,0.35)", marginTop: 5 },
   headerTitle: {
     fontFamily: "Outfit",
     fontSize: 18,
@@ -272,15 +251,7 @@ const s = StyleSheet.create({
     lineHeight: 15,
     color: "rgba(255,255,255,0.75)",
   },
+  factSeen: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 2, color: "rgba(138,106,47,0.7)", marginTop: 4 },
   factMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
   factEvidence: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(138,106,47,0.7)" },
-});
-
-const cd = StyleSheet.create({
-  wrap: { alignItems: "flex-end", gap: 3 },
-  row: { flexDirection: "row", gap: 2 },
-  pip: { width: 4, height: 4, borderRadius: 2 },
-  active: { backgroundColor: ACCENT },
-  inactive: { backgroundColor: "rgba(255,255,255,0.15)" },
-  count: { fontFamily: "SpaceMono", fontSize: 8, color: "rgba(255,255,255,0.35)" },
 });

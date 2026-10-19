@@ -99,7 +99,7 @@ router.get("/competition", async (req, res) => {
 router.post("/competition", async (req, res) => {
   const fighter = await getUserFighter(req);
   if (!fighter) {
-    res.status(400).json({ error: "no fighter — complete onboarding first" });
+    res.status(400).json({ error: "no fighter" });
     return;
   }
   const parsed = insertCompetitionSchema.safeParse(req.body);
