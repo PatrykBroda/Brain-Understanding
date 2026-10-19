@@ -446,7 +446,7 @@ body {
 .numeral-m { font-size: 1.75rem; }
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 /* short UPPERCASE category label (<= 2 words) — use sparingly */
-.eyebrow { font-family: var(--app-font-sans); font-weight: 500; font-size: 0.75rem; line-height: 1rem; letter-spacing: 0.08em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+.eyebrow { font-family: var(--app-font-sans); font-weight: 500; font-size: 0.75rem; line-height: 1rem; letter-spacing: 0.01em; color: hsl(var(--muted-foreground)); }
 .eyebrow-gold { color: var(--f-gold); }
 /* sentence-case supporting label (12–14px) */
 .label { font-family: var(--app-font-sans); font-weight: 500; font-size: 0.8125rem; line-height: 1.125rem; color: var(--f-text-2); }

@@ -58,7 +58,7 @@ export function buildFindingVisual(
     vbW,
     ring,
     arrow,
-    label: REGION_LABEL[finding.bodyRegion].toUpperCase(),
+    label: REGION_LABEL[finding.bodyRegion],
     labelPos: {
       x: onRight ? Math.min(vbW - 1, ring.cx + ring.r * 0.2) : Math.max(1, ring.cx - ring.r * 0.2),
       y: labelY,

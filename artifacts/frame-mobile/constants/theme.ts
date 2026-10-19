@@ -176,8 +176,8 @@ export const type = {
   bodySm: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 },
   label: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 18, letterSpacing: 0.1 },
   caption: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16 },
-  /** short uppercase category label — use sparingly (<= 2 words) */
-  eyebrow: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 16, letterSpacing: 0.9 },
+  /** short sentence-case category label — use sparingly (<= 2 words) */
+  eyebrow: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 16, letterSpacing: 0.1 },
   button: { fontFamily: fonts.semi, fontSize: 16, lineHeight: 20, letterSpacing: -0.1 },
   wordmark: { fontFamily: fonts.semi, fontSize: 16, lineHeight: 20, letterSpacing: 4 },
   // metrics / timers / countdowns — tabular numerals

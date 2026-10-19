@@ -329,7 +329,7 @@ export function GhostPlayer({
       const youDrawn = paint(track, pts, opponent ? YOU_COLOR : SKELETON_GOLD);
       if (!youDrawn && !oppDrawn) {
         ctx.fillStyle = "rgba(255,255,255,0.35)";
-        ctx.font = "10px ui-monospace, monospace";
+        ctx.font = "10px system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.fillText("NO POSE LOCK HERE", fit.w / 2, fit.h / 2);
       }

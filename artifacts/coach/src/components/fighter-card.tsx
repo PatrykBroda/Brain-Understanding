@@ -22,7 +22,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   const set = value.trim() !== "";
   return (
     <div className="px-3 py-2.5">
-      <div className="text-xs tracking-[0.4em] text-muted-foreground mb-1">
+      <div className="text-xs tracking-normal text-muted-foreground mb-1">
         {label}
       </div>
       <div
@@ -60,7 +60,7 @@ function AttrBar({ label, value }: { label: string; value: number }) {
 // ─── Section header ──────────────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-xs tracking-[0.4em] text-primary/75">
+    <div className="text-xs tracking-normal text-primary/75">
       {children}
     </div>
   );
@@ -188,7 +188,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
 
         {/* Overlaid identity */}
         <div className="relative z-[1] flex flex-col justify-end h-full min-h-[176px] px-4 pt-8 pb-4">
-          <div className="text-xs tracking-[0.55em] text-muted-foreground mb-1.5">
+          <div className="text-xs tracking-normal text-muted-foreground mb-1.5">
             Athlete
           </div>
           <div className="punch text-5xl text-[#F4F4F1] truncate">
@@ -196,7 +196,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
           </div>
           {fighter.spiritAnimal && (
             <div
-              className="text-xs tracking-[0.4em] mt-2"
+              className="text-xs tracking-normal mt-2"
               style={{ color: "hsl(39,50%,56%)" }}
             >
               {fighter.spiritAnimal}
@@ -308,7 +308,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
           <SectionLabel>Camp</SectionLabel>
           <div className="grid grid-cols-2 gap-4 mt-2.5">
             <div>
-              <div className="text-xs tracking-[0.4em] text-muted-foreground mb-1">
+              <div className="text-xs tracking-normal text-muted-foreground mb-1">
                 Team
               </div>
               <div className="text-[12px] text-foreground/90">
@@ -316,7 +316,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
               </div>
             </div>
             <div>
-              <div className="text-xs tracking-[0.4em] text-muted-foreground mb-1">
+              <div className="text-xs tracking-normal text-muted-foreground mb-1">
                 Head coach
               </div>
               <div className="text-[12px] text-foreground/90">
@@ -338,7 +338,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
           }}
         >
           <div className="flex items-center justify-between mb-2.5">
-            <div className="text-xs tracking-[0.4em] text-[#E5645A]">
+            <div className="text-xs tracking-normal text-[#E5645A]">
               Competition context
             </div>
             <span className="text-xs text-[#E5645A]">

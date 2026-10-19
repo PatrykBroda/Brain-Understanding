@@ -4,14 +4,14 @@ import { Text, type TextProps, type TextStyle } from "react-native";
 import { palette, type as T } from "@/constants/theme";
 
 /**
- * Short UPPERCASE category label (<= 2 words), e.g. "Today", "Recovery".
+ * Short category label (<= 2 words), sentence case, e.g. "Today", "Recovery".
  * Use sparingly — for anything longer use <Label> (sentence case).
  */
 export function Eyebrow({ style, ...p }: TextProps) {
   return (
     <Text
       {...p}
-      style={[T.eyebrow as TextStyle, { color: palette.textMid, textTransform: "uppercase" }, style]}
+      style={[T.eyebrow as TextStyle, { color: palette.textMid }, style]}
     />
   );
 }

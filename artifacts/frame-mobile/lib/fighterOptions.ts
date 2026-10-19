@@ -33,9 +33,9 @@ export function levelsForSport(sport: string | null | undefined): FighterOption[
 }
 
 export function levelLabelForSport(sport: string | null | undefined): string {
-  if (isBjjSport(sport)) return "BJJ BELT";
-  if (sport?.trim().toLowerCase() === "judo") return "RANK";
-  return "EXPERIENCE LEVEL";
+  if (isBjjSport(sport)) return "BJJ belt";
+  if (sport?.trim().toLowerCase() === "judo") return "Rank";
+  return "Experience level";
 }
 
 export function defaultLevelForSport(sport: string | null | undefined): string {
