@@ -3,7 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { DrillCard, type Drill } from "@/components/DrillCard";
 import { BreathCard, type Breath } from "@/components/BreathCard";
 import { RegulateSequence, type RegulateSequenceData } from "@/components/RegulateSequence";
-import { GLOSSARY, GLOSSARY_KEYS, type GlossEntry } from "@/lib/glossary";
+import { GLOSSARY, GLOSSARY_KEYS, isBrandMention, type GlossEntry } from "@/lib/glossary";
 
 // ─── Block parsing ──────────────────────────────────────────────────────────
 const BLOCK_RE = /```(drill|breath|regulate)\s*\n([\s\S]*?)\n?```/g;
@@ -65,7 +65,7 @@ function glossSplit(text: string): Token[] {
   GLOSS_RE.lastIndex = 0;
   while ((m = GLOSS_RE.exec(text)) !== null) {
     if (m.index > last) out.push({ t: "plain", v: text.slice(last, m.index) });
-    const entry = GLOSSARY[m[1].toLowerCase()];
+    const entry = isBrandMention(m[1]) ? undefined : GLOSSARY[m[1].toLowerCase()];
     if (entry) out.push({ t: "gloss", v: m[1], entry });
     else out.push({ t: "plain", v: m[1] });
     last = m.index + m[1].length;

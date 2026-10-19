@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useFighter } from "@/hooks/use-fighter";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useFramePlus } from "@/components/frame-plus-modal";
@@ -10,6 +10,8 @@ import { BottomNav } from "@/components/bottom-nav";
 import { Belt } from "@/components/belt";
 import { ProfileEdit } from "@/components/profile-edit";
 import { AthleteModel } from "@/components/athlete-model";
+import { AnswersSection } from "@/components/answers-section";
+import { externalLinks } from "@/lib/links";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
 import { primaryFocus, primaryStrength } from "@/lib/primary-focus";
 import { Link } from "wouter";
@@ -60,11 +62,26 @@ function LineItem({
 }
 
 export default function ProfilePage() {
-  const { data: fighterData } = useFighter();
+  const { data: fighterData, isLoading: fighterLoading, isError: fighterError, refetch: refetchFighter } = useFighter();
   const fighter = fighterData?.fighter ?? null;
   const { signOut, email } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [, setLocation] = useLocation();
+
+  // /profile?section=questions (the Home card) scrolls to the Onboarding Questions section and highlights it.
+  const search = useSearch();
+  const wantsQuestions = new URLSearchParams(search).get("section") === "questions";
+  const [highlightQuestions, setHighlightQuestions] = useState(false);
+  const showingProfile = !!fighter && !isEditing;
+  useEffect(() => {
+    if (!wantsQuestions || !showingProfile) return;
+    const el = document.getElementById("onboarding-questions");
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    setHighlightQuestions(true);
+    const t = window.setTimeout(() => setHighlightQuestions(false), 2500);
+    return () => window.clearTimeout(t);
+  }, [wantsQuestions, showingProfile]);
 
   // ─── FRAME+ membership ────────────────────────────────────────────────
   const sub = useSubscription();
@@ -277,12 +294,6 @@ export default function ProfilePage() {
                     value={strength.label}
                     sub={strength.source}
                   />
-                ) : arch ? (
-                  <LineItem
-                    label="Gift"
-                    value={arch.gift.split(/[.!]/)[0].trim()}
-                    sub="your archetype's gift — FRAME hasn't observed a strength yet"
-                  />
                 ) : null}
                 <Link
                   href="/chat"
@@ -295,6 +306,11 @@ export default function ProfilePage() {
                     →
                   </span>
                 </Link>
+              </div>
+
+              {/* ─── ONBOARDING QUESTIONS — answered here after sign-up, editable any time ─── */}
+              <div className="pt-6">
+                <AnswersSection fighter={fighter} highlight={highlightQuestions} />
               </div>
 
               {/* ─── ATHLETE MODEL — what FRAME knows ──────────────── */}
@@ -354,6 +370,13 @@ export default function ProfilePage() {
 
               {/* ─── ACCOUNT ───────────────────────────────────────── */}
               <div className="space-y-2.5 pt-6 pb-2">
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 font-mono text-[9px] uppercase tracking-wider">
+                  {externalLinks().map((l) => (
+                    <a key={l.key} href={l.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                      {l.label}
+                    </a>
+                  ))}
+                </div>
                 <div className="flex justify-center gap-4 font-mono text-[9px] uppercase tracking-wider">
                   <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-primary hover:underline">
                     Privacy & AI permissions
@@ -377,6 +400,23 @@ export default function ProfilePage() {
                 </button>
               </div>
             </>
+          ) : fighterLoading ? (
+            <div role="status" className="py-16 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Loading profile…
+            </div>
+          ) : fighterError ? (
+            <div role="alert" className="border border-destructive/40 bg-destructive/10 p-5 text-center space-y-3">
+              <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+                Could not load your profile
+              </div>
+              <button
+                type="button"
+                onClick={() => void refetchFighter()}
+                className="px-3 py-1.5 border border-destructive/50 text-destructive/90 hover:bg-destructive/15 font-mono text-[10px] uppercase tracking-widest transition-colors"
+              >
+                Try again
+              </button>
+            </div>
           ) : (
             <div className="text-sm text-muted-foreground py-10 text-center">
               No athlete profile yet.

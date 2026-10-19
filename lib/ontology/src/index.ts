@@ -226,3 +226,40 @@ export function computeModelMaturity(facts: readonly MaturityFactInput[]): Model
     crossSource,
   };
 }
+
+// ─── Understanding of the athlete's game (the "Model confidence" percentage) ─────────
+// ONE definition, shared by the server (prompt + archetype gate) and both apps (the
+// gauge on Profile): for each of the eight observation categories, the summed confidence
+// of its active observations over a target of 15 (three observations at confidence 5),
+// capped at 100% per category; the percentage is the mean across categories, rounded.
+// An empty model is 0%. This is what "understanding of the athlete's game" means for the
+// 25% archetype threshold.
+
+export const UNDERSTANDING_CATEGORIES = [
+  "weakness",
+  "strength",
+  "technical_knowledge",
+  "pattern",
+  "preference",
+  "goal",
+  "event",
+  "context",
+] as const;
+
+/** Summed confidence a category needs to count as fully understood (3 observations x confidence 5). */
+export const UNDERSTANDING_TARGET_PER_CATEGORY = 15;
+
+/** An archetype (animal) is only assigned and shown once understanding reaches this percentage. */
+export const ARCHETYPE_UNLOCK_UNDERSTANDING = 25;
+
+export function computeUnderstanding(facts: readonly { category: string; confidence: number }[]): number {
+  const total = UNDERSTANDING_CATEGORIES.reduce((sum, cat) => {
+    const covered = facts.filter((f) => f.category === cat).reduce((s, f) => s + f.confidence, 0);
+    return sum + Math.min(1, covered / UNDERSTANDING_TARGET_PER_CATEGORY);
+  }, 0);
+  return Math.round((total / UNDERSTANDING_CATEGORIES.length) * 100);
+}
+
+export function archetypeUnlocked(understanding: number): boolean {
+  return understanding >= ARCHETYPE_UNLOCK_UNDERSTANDING;
+}

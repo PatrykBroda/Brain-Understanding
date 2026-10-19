@@ -1,4 +1,5 @@
 import { fetch } from "expo/fetch";
+import { deviceTimeZone } from "./localDay";
 
 let _base = "";
 let _getToken: (() => Promise<string | null>) | null = null;
@@ -25,6 +26,8 @@ async function authHeaders(
 ): Promise<Record<string, string>> {
   const h: Record<string, string> = {
     "Content-Type": "application/json",
+    // The athlete's timezone, so the server rolls State / Focus / check-ins over at THEIR midnight.
+    "X-Timezone": deviceTimeZone(),
     ...extra,
   };
   const token = _getToken ? await _getToken() : null;
@@ -103,12 +106,17 @@ export async function apiGet<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+export async function apiPost<T>(
+  path: string,
+  body?: unknown,
+  opts?: { signal?: AbortSignal },
+): Promise<T> {
   const headers = await authHeaders();
   const res = await fetch(`${_base}${path}`, {
     method: "POST",
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
+    signal: opts?.signal,
   });
   if (!res.ok) {
     throw await responseError(res);

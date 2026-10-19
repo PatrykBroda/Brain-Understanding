@@ -24,13 +24,17 @@ import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { LEGAL_CONSENT_VERSION } from "../lib/legalConsent";
 import { AI_CONSENT_VERSION } from "../lib/aiConsent";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, FIGHTER_NAME_MAX } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { recordSignup } from "../lib/onboardingEvents";
+import { ensureFighter } from "../lib/ensureFighter";
 
 const router = Router();
 
 const BCRYPT_ROUNDS = 10;
-const TOKEN_TTL = "30d";
+// Sliding session: every app/web launch swaps the token for a fresh one (POST /auth/refresh), so
+// this is the longest an athlete can go WITHOUT opening FRAME before signing in again.
+const TOKEN_TTL = "90d";
 const MIN_PASSWORD_LENGTH = 8;
 
 /**
@@ -51,7 +55,7 @@ export const DUMMY_HASH = bcrypt.hashSync(
 // In-process sliding-window counter.  The store is exported so tests can inject
 // an isolated Map per test and avoid cross-test interference.
 
-interface RateBucket {
+export interface RateBucket {
   count: number;
   resetAt: number;
 }
@@ -187,13 +191,17 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     acceptedPrivacy,
     acceptedAiConsent,
     aiConsentVersion,
+    app,
+    name,
   } = (req.body ?? {}) as {
+    name?: unknown;
     email?: unknown;
     password?: unknown;
     acceptedTerms?: unknown;
     acceptedPrivacy?: unknown;
     acceptedAiConsent?: unknown;
     aiConsentVersion?: unknown;
+    app?: unknown;
   };
   const emailForRateLimit = typeof email === "string" ? email : "<invalid>";
   if (!registrationRateLimitCheck(ip, emailForRateLimit)) {
@@ -207,6 +215,15 @@ router.post("/auth/register", async (req: Request, res: Response) => {
   if (typeof email !== "string" || !email.includes("@")) {
     res.status(400).json({ error: "Valid email required" });
     return;
+  }
+  // The sign-up form asks for a name. Optional for installed builds that predate it.
+  let displayName = "";
+  if (name !== undefined && name !== null) {
+    if (typeof name !== "string" || name.trim().length > FIGHTER_NAME_MAX) {
+      res.status(400).json({ error: `Name must be 1-${FIGHTER_NAME_MAX} characters`, code: "INVALID_NAME" });
+      return;
+    }
+    displayName = name.trim();
   }
   const normalizedEmail = normalizeEmail(email);
   const pwError = validatePassword(password);
@@ -252,11 +269,23 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     id,
     email: normalizedEmail,
     hashedPassword,
+    displayName,
     legalConsentVersion: LEGAL_CONSENT_VERSION,
     legalConsentAt: acceptedAt,
     aiAnalysisConsentVersion: AI_CONSENT_VERSION,
     aiAnalysisConsentAt: acceptedAt,
   });
+
+  // Every account has a fighter from the start: a stub with the sign-up name and blank answers.
+  // If this hiccups, GET /fighter creates it on first read.
+  try {
+    await ensureFighter(id, displayName);
+  } catch (err) {
+    req.log.warn({ err }, "stub fighter not created at sign-up");
+  }
+
+  // Funnel: account created (analytics only, never throws).
+  await recordSignup(id, app, req.log);
 
   const token = await signToken(id, normalizedEmail);
   res.status(201).json({ token, userId: id });
@@ -306,6 +335,23 @@ router.post("/auth/logout", (_req: Request, res: Response) => {
   res.json({ ok: true });
 });
 
+// POST /api/auth/refresh — swap a still-valid token for a fresh one (sliding session). 401 only
+// when the token is invalid/expired or its account is gone; clients keep the login on any other
+// failure (offline, 5xx).
+router.post("/auth/refresh", async (req: Request, res: Response) => {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith("Bearer ")) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const payload = await verifyLiveUserToken(auth.slice(7));
+  if (!payload) {
+    res.status(401).json({ error: "Invalid or expired token" });
+    return;
+  }
+  res.json({ token: await signToken(payload.userId, payload.email), userId: payload.userId });
+});
+
 // GET /api/auth/me — returns identity from the Bearer token
 router.get("/auth/me", async (req: Request, res: Response) => {
   const auth = req.headers.authorization;
@@ -318,7 +364,12 @@ router.get("/auth/me", async (req: Request, res: Response) => {
     res.status(401).json({ error: "Invalid or expired token" });
     return;
   }
-  res.json({ userId: payload.userId, email: payload.email });
+  const [user] = await db
+    .select({ displayName: usersTable.displayName })
+    .from(usersTable)
+    .where(eq(usersTable.id, payload.userId))
+    .limit(1);
+  res.json({ userId: payload.userId, email: payload.email, name: user?.displayName ?? "" });
 });
 
 export default router;

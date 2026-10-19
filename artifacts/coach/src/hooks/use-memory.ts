@@ -7,5 +7,7 @@ export function useMemory(enabled: boolean) {
     queryFn: api.getMemory,
     enabled,
     staleTime: 0,
+    // A tab left open while the athlete trains/chats elsewhere must not show a stale model.
+    refetchOnWindowFocus: true,
   });
 }

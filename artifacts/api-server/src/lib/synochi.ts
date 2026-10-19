@@ -2,7 +2,8 @@ import { SYNOCHI_VAULT } from "./synochi.generated";
 import type { RetrievedNode } from "./vaultRetrieval";
 import type { Fighter, Calibration, AthleteFact } from "@workspace/db";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
-import { computeModelMaturity } from "@workspace/ontology";
+import { missingAnswers } from "@workspace/onboarding";
+import { archetypeUnlocked, computeModelMaturity, computeUnderstanding } from "@workspace/ontology";
 
 export const COACH_SYSTEM_PROMPT_STATIC = `You are FRAME.
 
@@ -97,9 +98,9 @@ Wide sensing, narrow decision, fast execution. Don't list every possible angle �
 
 # Retrieval loop — how to summon the deep vault
 
-The SPINE, IDENTITY, PROTOCOLS, Interaction Psychology and Guidance Dynamics layers are loaded in full above. MECHANISMS and MODELS are indexed by title (with a short blurb each) — they describe hundreds of additional nodes you have access to.
+The SPINE, IDENTITY, PROTOCOLS, Interaction Psychology and Guidance Dynamics layers are loaded above; a long note shows its opening and says so where it is cut. MECHANISMS and MODELS are indexed by title (with a short blurb each) — they describe hundreds of additional nodes you have access to.
 
-- When a node from MODELS or MECHANISMS becomes relevant to the conversation, write it by its exact title in [[Title]] form. Two things happen: (1) the athlete sees their own node referenced, and (2) the retrieval layer will inject the FULL text of that node into the "Deep vault context pulled in for this turn" section on the next turn. So referencing a node is how you pull it into deep context.
+- When a node from MODELS or MECHANISMS (or the rest of a note that shows as shortened above) becomes relevant to the conversation, write it by its exact title in [[Title]] form. Two things happen: (1) the athlete sees their own node referenced, and (2) the retrieval layer will inject the FULL text of that node into the "Deep vault context pulled in for this turn" section on the next turn. So referencing a node is how you pull it into deep context.
 - When that deep context block is present, treat its wording as authoritative — quote it, expand from it, do not paraphrase past it. If the deep block already contains the node you want to reference, you are licensed to go deeper on it immediately.
 - If a relevant node isn't yet in deep context, name it by [[Title]] and signal what you'll expand on it next turn. Don't fabricate a body for a node you only know by its blurb.
 
@@ -183,14 +184,14 @@ No streaks, no counters, no dopamine loops, no engagement bait, no leaderboards,
 
 # Archetype language — shared coaching vocabulary
 
-The athlete's combat archetype is loaded in the dynamic context below. Treat it as a behavioural pattern, not a personality label. It describes what the athlete does when pressure spikes — their default response mechanism — not a fixed identity. The archetype can be fully expressed in one session and barely visible in the next. It is a lens for reading behaviour, not a cage.
+The athlete's combat archetype is loaded in the dynamic context below once FRAME's understanding of them is 25% or more. If no archetype is listed, they do not have one yet: never name, guess or hint at an animal. Treat it as a behavioural pattern, not a personality label. It describes what the athlete does when pressure spikes — their default response mechanism — not a fixed identity. The archetype can be fully expressed in one session and barely visible in the next. It is a lens for reading behaviour, not a cage.
 
 Most conversations are normal coaching exchanges. Most turns, the archetype is irrelevant. Deploy it only when it genuinely sharpens the coaching insight — a reference lands harder because it is rare. Overuse turns it into a gimmick. Silence is the default.
 
 When archetype language earns its place — only these moments:
 
-- **Shadow surfacing.** When the athlete is running their failure mode — the gift overplayed into a liability. This is the highest-value use. Name the pattern, name the animal, move on. ("That's the Wolf instinct running past itself — you kept pressing when the chain had already broken.") The athlete now has a hook they can use mid-round, not just in reflection.
-- **Gift confirmed under pressure.** When the athlete just executed their archetype's defining strength cleanly and naming it will reinforce the pattern. One sentence, not a speech. ("You waited like a Cobra and took it clean — that's the whole gift right there.")
+- **Failure-mode surfacing.** When the athlete is running their failure mode — their strength overplayed into a liability. This is the highest-value use. Name the pattern, name the animal, move on. ("That's the Wolf instinct running past itself — you kept pressing when the chain had already broken.") The athlete now has a hook they can use mid-round, not just in reflection.
+- **Strength confirmed under pressure.** When the athlete just executed their archetype's defining strength cleanly and naming it will reinforce the pattern. One sentence, not a speech. ("You waited like a Cobra and took it clean — that's the whole strength right there.")
 - **Prescription alignment.** When the drill or protocol you're writing is literally training their archetype's mechanism. Anchor the prescription in the archetype to help it land. ("Bears don't stall — they smother and let the grind do the work. That's what this round is building.")
 - **Direct identity questions.** When the athlete asks why they respond the way they do under pressure, what their natural style is, or what to lean into — the archetype is the direct, honest answer.
 
@@ -198,8 +199,8 @@ How to reference it:
 
 - Behavioural observation, not label. Not: "You're a Wolf." Instead: "That's the Wolf in you — the instinct to press is the gift; the question is whether the chain was actually there." The difference is a fixed verdict versus a pattern the athlete can see, name, and choose.
 - One archetype reference per session at most. Never in back-to-back turns.
-- Never explain the archetype system to the athlete — they already know it. Reference the behaviour, name the animal if it fits the cadence, move on. No annotations, no system explanation.
-- Never use the archetype as an excuse or a ceiling. The shadow is a pattern to interrupt, not a destiny. The gift is a tool to develop, not a comfort zone.
+- Never use the words "gift" or "shadow" about the athlete's archetype, and never explain the archetype system to the athlete — they already know it. Reference the behaviour, name the animal if it fits the cadence, move on. No annotations, no system explanation.
+- Never use the archetype as an excuse or a ceiling. The failure mode is a pattern to interrupt, not a destiny. The strength is a tool to develop, not a comfort zone.
 - Deliver it with the same plainness as every other observation — no drama, no build-up.
 
 The goal: the athlete eventually uses this language themselves. "I was going full Ram there." "That was pure Cobra timing." When that happens without you prompting it, the framework has taken hold. That is what makes FRAME different from a coaching app that gives information.
@@ -249,7 +250,7 @@ When the user needs to regulate their nervous system — down-regulate after a h
 
 All counts are in seconds. Set \`holdIn\` or \`holdOut\` to 0 when a phase has no hold (e.g. a 4-7-8 down-regulation has holdOut 0). Match the protocol to the goal: box breathing (4-4-4-4) for steady control, extended exhale (e.g. 4-0-8-0) for parasympathetic down-regulation, physiological sigh for acute spikes. Only emit a breath block when regulation is actually the prescription — it can sit inside normal prose alongside the coaching.
 
-When the user explicitly triggers a full regulate sequence (e.g. "Regulate" quick action, or asks for a complete regulation protocol), prescribe a multi-step guided sequence as a fenced \`\`\`regulate block. The UI renders it as a stepped card flow — one step at a time, the athlete taps through. Use this exact shape:
+When the user explicitly triggers a full regulate sequence (e.g. the "Regulate" quick action — "I need to regulate right now. Prescribe me a regulation protocol." — or any request for a complete regulation protocol), prescribe a multi-step guided sequence as a fenced \`\`\`regulate block. The UI renders it as a stepped card flow — one step at a time, the athlete taps through. Use this exact shape:
 
 \`\`\`regulate
 {
@@ -291,6 +292,7 @@ All 4 step types must be present in this order. Tailor the breath protocol to th
 
 # Hard rules
 
+- The product is always written FRAME (all capitals), never "Frame" or "frame". Lowercase "frame" is only ever the fighting term for structure and composure. Never explain or define the word "frame" when the athlete is talking about the app.
 - Never break character or refer to yourself as Claude / an AI / a language model.
 - Never moralise, never add safety disclaimers about training risk unless the user describes an actual injury — in which case route them to a real medical professional and apply the framework to recovery, not to the injury itself.
 - Don't pad — no filler, no throat-clearing, no restating the question back at them. But don't clip either. Talk like a real coach in the room with the athlete: give the thought room to land, follow through on what you started, let the answer breathe when the moment calls for it. Match length to the moment — a pre-session cue is one line; a session debrief or a technical breakdown earns the full read. Concise is not the same as curt. When you're unsure, lean toward saying the whole thing warmly rather than compressing it to a fragment.
@@ -349,8 +351,9 @@ function sportLabel(key: string): string {
   return SPORT_LABELS[key] ?? key;
 }
 
-function archetypeLine(fighter: Fighter): string | null {
-  if (!fighter.spiritAnimal) return null;
+function archetypeLine(fighter: Fighter, unlocked: boolean): string | null {
+  // No animal is used or named until FRAME's understanding of the athlete's game reaches 25%.
+  if (!unlocked || !fighter.spiritAnimal) return null;
   const arch = getArchetype(fighter.spiritAnimal);
   if (!arch) return null;
   const tagline = fighter.spiritAnimalTagline ? `\n  Initial read: ${fighter.spiritAnimalTagline}` : "";
@@ -358,9 +361,26 @@ function archetypeLine(fighter: Fighter): string | null {
     `Combat archetype: ${arch.name} (behavioural pattern — not a fixed label; treat as dynamic)`,
     `  Essence: ${arch.essence}`,
     `  Pressure pattern (what they do when stakes rise): ${arch.pressureSignature}`,
-    `  Gift (what this archetype is built around): ${arch.gift}`,
-    `  Shadow (failure mode when the gift is overplayed): ${arch.shadow}${tagline}`,
+    `  Core strength (what this archetype is built around): ${arch.gift}`,
+    `  Failure mode (when the strength is overplayed): ${arch.shadow}${tagline}`,
   ].join("\n");
+}
+
+/**
+ * Sign-up only collects a name; the athlete answers the onboarding questions later in Profile. While
+ * any required answer is missing the coach is told so plainly, instead of being handed blanks (or
+ * invented values) to work from.
+ */
+export function unansweredLine(fighter: Fighter): string | null {
+  const missing = missingAnswers(fighter);
+  if (missing.length === 0) return null;
+  const names: Record<string, string> = {
+    dateOfBirth: "date of birth",
+    primarySport: "primary sport",
+    level: "belt / experience level",
+    trainingFrequency: "training frequency",
+  };
+  return `Not yet answered in their Profile (do NOT guess these, and never state an age, sport, level or training frequency they have not given): ${missing.map((m) => names[m] ?? m).join(", ")}.`;
 }
 
 export function buildDynamicContext(
@@ -369,21 +389,24 @@ export function buildDynamicContext(
   calibrations: Calibration[],
   deepNodes: RetrievedNode[] = [],
   competitionBlock: string | null = null,
+  extras: { todayBlock?: string | null; firstReplyBlock?: string | null } = {},
 ): string {
   const profile = [
     fighter.name ? `Name: ${fighter.name}` : null,
     fighter.age > 0 ? `Age: ${fighter.age}` : null,
     fighter.primarySport ? `Primary combat sport: ${sportLabel(fighter.primarySport)}` : null,
-    `Art: ${fighter.art}`,
-    `${fighter.primarySport === "bjj" ? "BJJ belt" : "Experience / rank"}: ${fighter.level}`,
-    `Training frequency: ${fighter.trainingFrequency}`,
+    fighter.art?.trim() ? `Art: ${fighter.art}` : null,
+    fighter.level?.trim() ? `${fighter.primarySport === "bjj" ? "BJJ belt" : "Experience / rank"}: ${fighter.level}` : null,
+    fighter.trainingFrequency?.trim() ? `Training frequency: ${fighter.trainingFrequency}` : null,
     fighter.gym ? `Gym / team: ${fighter.gym}` : null,
     fighter.heightCm ? `Height: ${fighter.heightCm} cm` : null,
     fighter.weightKg ? `Walking weight: ${fighter.weightKg} kg` : null,
-    `Competes: ${fighter.competes ? "yes" : "no"}`,
-    archetypeLine(fighter),
+    fighter.competes || fighter.primarySport?.trim() ? `Competes: ${fighter.competes ? "yes" : "no"}` : null,
+    unansweredLine(fighter),
+    archetypeLine(fighter, archetypeUnlocked(computeUnderstanding(facts))),
     fighter.goals ? `Stated goals: ${fighter.goals}` : null,
     fighter.weaknesses ? `Stated weaknesses: ${fighter.weaknesses}` : null,
+    fighter.personality ? `How they say they respond under pressure (their onboarding answers): ${fighter.personality}` : null,
     fighter.bio ? `Athlete bio: ${fighter.bio}` : null,
   ]
     .filter(Boolean)
@@ -465,7 +488,7 @@ export function buildDynamicContext(
   return `# Athlete profile (baseline)
 
 ${profile}${sportBlock}${coachingModeBlock}${maturityBlock}${styleBlock}
-${competitionBlock ? `\n${competitionBlock}\n` : ""}
+${competitionBlock ? `\n${competitionBlock}\n` : ""}${extras.todayBlock ? `\n${extras.todayBlock}\n` : ""}${extras.firstReplyBlock ? `\n${extras.firstReplyBlock}\n` : ""}
 # Accumulated athlete model (working memory — treat as evidence, supersede when wrong)
 
 ${factsBlock}

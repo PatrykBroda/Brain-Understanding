@@ -15,7 +15,8 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.replit.frame"
+      "bundleIdentifier": "app.replit.frame",
+      "associatedDomains": ["webcredentials:framemma.ai"]
     },
     "android": {
       "package": "app.replit.frame"

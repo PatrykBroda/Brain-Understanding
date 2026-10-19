@@ -7,8 +7,8 @@ import { useFighter } from "@/context/FighterContext";
 export const INTRO_SEEN_KEY = "frame:intro-seen";
 
 /**
- * First-launch cinematic splash. Mirrors the web /splash route: shows the
- * fixed "MOST MISTAKES / ARE NERVOUS SYSTEM / MISTAKES" hero, marks the intro
+ * First-launch entry sequence. Mirrors the web /splash route: shows the
+ * positioning line and sub-line over the monochrome loop, marks the intro
  * as seen, then replaces into the hub. Reached only when INTRO_SEEN_KEY is
  * unset (gated from index.tsx).
  */
@@ -23,7 +23,6 @@ export default function SplashScreen() {
 
   return (
     <EntrySequence
-      hero={["MOST MISTAKES", "ARE NERVOUS SYSTEM", "MISTAKES"]}
       callsign={fighter?.name ?? null}
       minMs={2500}
       onDismiss={handleDismiss}

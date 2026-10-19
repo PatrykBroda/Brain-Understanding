@@ -19,10 +19,16 @@ import {
   type AthleteFact,
   type ReplayMoment,
   type ReplayRole,
+  type BodyRegion,
+  type PoseTrack,
   REPLAY_ROLES,
+  BODY_REGIONS,
 } from "@workspace/db";
+import { trackHasFrameNear } from "./poseTrack";
 import { ONTOLOGY_KEYS, isOntologyKey } from "@workspace/ontology";
-import { COACH_SYSTEM_PROMPT_STATIC, buildDynamicContext } from "./synochi";
+import { buildDynamicContext } from "./synochi";
+import { logger } from "./logger";
+import { combatContextBlock, combatPickTokens, selectCombatNotes } from "./combatIntelligence";
 
 let _anthropic: Anthropic | null = null;
 function getAnthropic(): Anthropic {
@@ -38,34 +44,49 @@ function getAnthropic(): Anthropic {
 
 const CLAUDE_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 
+/**
+ * System prompt for footage analysis. It used to be the whole coaching vault (~80-120k tokens), which made
+ * every analysis slow and tripped the 55s limit when the cache was cold. Analysis needs the athlete's
+ * context, the computed signals and the Combat Intelligence reference, not the chat vault.
+ */
+export const ANALYSIS_SYSTEM_PROMPT =
+  "You are FRAME, a precise combat-sports analyst and coach. You review the athlete's footage and the movement measurements computed from it, and you tell them plainly what you see, why it matters in a fight and what to train next. You are calm, specific and honest: you never invent numbers, never present a guess as a measurement, never use hype or motivational filler, and never use physiology jargon. FRAME is always written in capitals.";
+
 const ANALYSIS_INSTRUCTIONS = `You are FRAME reviewing footage of the athlete. The browser already ran pose tracking on the clip and computed real movement signals AND a set of 0-100 attribute scores (below). You are NOT guessing — every observation must tie back to a computed signal, a computed score, or something visible in the supplied key frames.
 
 CONTENT VALIDATION — MANDATORY FIRST STEP:
 Before writing anything else, look at the key frames. Ask: does this footage show a person performing combat sports training? Valid content includes: BJJ, MMA, boxing, Muay Thai, kickboxing, wrestling, judo, sparring, padwork, shadowboxing, drilling, clinchwork, bag work. If the footage clearly shows something else — dancing, general fitness, yoga, stretching without a partner/bag/pads, everyday activity, or no person at all — set contentValid=false. When contentValid=false, write a 1-sentence factual description in summary of what you actually see, leave all other narrative fields empty or minimal, and do not attempt a performance read. The pose signals are meaningless outside a combat sports context and fabricating a read would violate FRAME's honesty contract.
 
-This is a nervous-system reading shaped into a shareable performance breakdown — think tactical fight-analysis, not a gym app. The signature move: take a mechanical observation (guard drops, shoulders rise, balance drifts, output comes in frantic bursts then stalls) and FRAME it as nervous-system behaviour — what the body is doing under load, what it's bracing for or leaking.
+This is a practical film review: tactical fight analysis a coach could hand an athlete to use in the next session. Think "what I'd say standing next to you watching this tape", not a physiology lecture and not a gym app.
+
+WRITE SPECIFIC, PRACTICAL FEEDBACK:
+- Every finding has three parts. observation = exactly what is visible: which body part or position, when in the clip, how often (use the moments and signals given). nervousSystemFraming = why it matters in a fight, in plain words: what an opponent can do with it, or what it costs you. fix = the one drill, constraint or cue for the next session, small enough to do tomorrow ("3 x 2 min of shadowboxing keeping the rear hand glued to the chin after every combination", "start every guard-retention round with your hips already off the line").
+- Use fight and training language: guard, base, hips, range, timing, grips, entries, exits, pace, output. Do NOT use physiology jargon: never write "nervous system", "sympathetic", "parasympathetic", "vagal", "cortisol", "arousal", "regulation", "dysregulation", "autonomic", "fight or flight", "bracing" or "leaking" unless the athlete used the word first. When a mental or composure point is worth making, say it plainly ("you rush the next exchange after a miss", "you stop moving when pressure arrives").
+- Do not claim to know what the athlete felt, and do not state physiological causes. Keep what is visible separate from what it likely means: "reads as", "suggests". If the clip cannot show the cause, say so and use reviewQuestion to ask.
+- Prefer the drills, constraints and diagnostic distinctions in the Combat Intelligence reference below when they fit; do not invent a drill that contradicts them.
 
 You are given the athlete's computed numbers. DO NOT invent or change any number. Your job is the WORDS around them.
 
 HARD RULES:
-- The scores, nervousSystemLoad, fragmentationRisk and sessionScore are ALREADY FIXED below. Never output numbers — narrate around them. If you reference a number, use the one given.
+- The scores, load, fragmentationRisk and sessionScore are ALREADY FIXED below. Never output numbers — narrate around them. If you reference a number, use the one given.
 - styleProfile: a short, evocative fighting-identity label grounded in the scores (e.g. "Pressure Counter Striker", "Patient Trapper", "Chaos Brawler"). 2-4 words. Must fit what the numbers actually say.
-- styleParallels: 1-2 KNOWN fighters whose tendencies this resembles. GROUNDED and HEDGED — never "you ARE X". Each note explains the SPECIFIC resemblance ("your entry timing and stance-switching resembles early McGregor — not identical, but the way you freeze before committing is similar"). Credibility over flattery. If nothing fits, return an empty list.
+- styleParallels: 1-2 KNOWN fighters whose tendencies this resembles. GROUNDED and HEDGED — never "you ARE X". Each note explains the SPECIFIC resemblance ("your entry timing and stance-switching resembles early McGregor — not identical, but the way you hesitate before committing is similar"). Credibility over flattery. If nothing fits, return an empty list.
 - aiComment: ONE or TWO sentences of dry, human personality. Observational, lightly wry, never meme-y, never hype. e.g. "You fight like someone who enjoys chaos slightly too much — but people are starting to react to your feints instead of your power." No emojis.
-- findings: 3 to 5. Each = a concrete mechanical observation + its nervous-system framing. Order by what matters most. severity low|medium|high, honest. area = short tag ("guard","stance","shoulders","transitions","pacing").
+- findings: 3 to 5. Order by what matters most. severity low|medium|high, honest. area = short tag ("guard","stance","shoulders","transitions","pacing").
 - If a finding is NEW EVIDENCE for one of the athlete's existing recorded observations (listed with ids in the athlete context), set matchesFactId to that id. Only when it is the SAME observation seen again — not merely the same body part or topic. Otherwise omit it.
 - For findings without a match, set subcategory to the fitting ontology key when one clearly applies; omit otherwise.
-- summary: 2-4 sentences. The through-line of this clip as one nervous-system story. Direct, structural, FRAME's voice. No padding, no emojis.
+- summary: 2-4 sentences. The through-line of this clip in plain fight terms, ending with the single most useful thing to work on next. Direct, structural, FRAME's voice. No padding, no emojis.
 - If a focus was requested, weight the whole read toward it.
-- comparisonNote: ONLY if previous-session deltas are provided below — 1-2 sentences on what changed and what it means ("you're less reactive under pressure than last upload; still overcommitting after combinations"). Omit if no prior session.
+- comparisonNote: ONLY if previous-session deltas are provided below — 1-2 sentences on what changed and what it means ("you're pressing less after missed combinations than last upload; still overcommitting on the entry"). Omit if no prior session.
 - reviewQuestion: ONE short, specific question about THIS session that draws out context the pose cannot see — intent, gameplan, how it felt, whether something was deliberate, who they were working against. Grounded in a finding or the athlete's recorded model, phrased as a coach reviewing film beside them. One sentence. No preamble, no "let me ask you", no numbers. Leave it empty ("") if there is nothing grounded worth asking.
-- replay: the "# Key moments" list below enumerates the REAL detected moments in this clip, each with an index. Pick up to THREE of them and cast each as one of these roles: best_decision, worst_habit, biggest_opportunity. Reference the moment ONLY by its keyframeIndex from that list — never invent a moment or a time. Each replay entry needs a one-sentence grounded note explaining what the body did at that moment and why it earns that role. Use at most one entry per role. Do NOT restate the timestamp or any number in the note — the interface shows the real time. Omit any role you cannot ground in a listed moment; if no moments are listed, return an empty replay list.
+- replay: the "# Key moments" list below enumerates the REAL detected moments in this clip, each with an index. Pick up to THREE of them and cast each as one of these roles: best_decision, worst_habit, biggest_opportunity. Reference the moment ONLY by its keyframeIndex from that list — never invent a moment or a time. Each replay entry needs a one-sentence grounded note explaining what the athlete did at that moment and why it earns that role. Use at most one entry per role. Do NOT restate the timestamp or any number in the note — the interface shows the real time. Omit any role you cannot ground in a listed moment; if no moments are listed, return an empty replay list.
+- Finding visuals (optional, per finding): when a finding is about something you can SEE on one of the listed key moments, set keyframeIndex (an index from the "# Key moments" list) and bodyRegion (exactly one of: lead_hand, rear_hand, head, hips, lead_foot, rear_foot, lead_knee, rear_knee, shoulders, torso) so the interface can circle that body part on the real frame and draw the measured movement direction. Prefer moments whose image was supplied. "lead"/"rear" refer to the stance side given under "# Stance" below; if no stance side is given, do NOT use any lead_/rear_ region. Never emit coordinates, pixel positions or times — only the index and the region name. If you cannot ground a finding in a specific listed moment and region, OMIT both fields; most findings should have no visual rather than a guessed one.
 - Voice: calm, observant, precise. A mirror, not a hype machine. No motivational filler.`;
 
 const REPORT_TOOL: Anthropic.Tool = {
   name: "emit_analysis",
   description:
-    "Emit the structured nervous-system performance read of the clip. Every word must tie to a computed score/signal or a visible key frame. Never output numbers.",
+    "Emit the structured practical performance read of the clip. Every word must tie to a computed score/signal or a visible key frame. Never output numbers.",
   input_schema: {
     type: "object" as const,
     properties: {
@@ -87,7 +108,14 @@ const REPORT_TOOL: Anthropic.Tool = {
           properties: {
             title: { type: "string" },
             observation: { type: "string" },
-            nervousSystemFraming: { type: "string" },
+            nervousSystemFraming: {
+              type: "string",
+              description: "Why this matters in a fight, in plain fight language (what an opponent can do with it, or what it costs). No physiology jargon.",
+            },
+            fix: {
+              type: "string",
+              description: "The one drill, constraint or cue for the next session. Specific enough to do tomorrow.",
+            },
             severity: { type: "string", enum: ["low", "medium", "high"] },
             area: { type: "string" },
             matchesFactId: {
@@ -99,6 +127,17 @@ const REPORT_TOOL: Anthropic.Tool = {
               type: "string",
               enum: [...ONTOLOGY_KEYS],
               description: "Ontology key for a NEW observation when one clearly fits. Omit otherwise.",
+            },
+            keyframeIndex: {
+              type: "integer",
+              description:
+                "Index from the '# Key moments' list of the real moment this finding is visible in. Omit (with bodyRegion) if you cannot ground it.",
+            },
+            bodyRegion: {
+              type: "string",
+              enum: [...BODY_REGIONS],
+              description:
+                "Body region to circle on that moment. Omit (with keyframeIndex) if you cannot ground it. lead_/rear_ only when a stance side is given.",
             },
           },
           required: ["title", "observation", "nervousSystemFraming", "severity", "area"],
@@ -183,6 +222,43 @@ export function buildReplayMoments(
   return out;
 }
 
+export function isBodyRegion(v: unknown): v is BodyRegion {
+  return typeof v === "string" && (BODY_REGIONS as readonly string[]).includes(v);
+}
+
+const SIDED_REGIONS = new Set<BodyRegion>([
+  "lead_hand",
+  "rear_hand",
+  "lead_foot",
+  "rear_foot",
+  "lead_knee",
+  "rear_knee",
+]);
+
+/**
+ * Keep a finding's visual citation (keyframeIndex + bodyRegion) ONLY when it can
+ * be drawn from real data: the keyframe exists, the pose track has a frame at
+ * that keyframe's timestamp (the landmarks come from the track, never the AI),
+ * and a lead_/rear_ region is only kept when the stance side was actually
+ * measured. Otherwise both fields are removed — the finding stays, minus the
+ * visual. Pure — unit-tested.
+ */
+export function resolveFindingEvidence(
+  findings: AnalysisFinding[],
+  keyframes: AnalysisKeyframe[],
+  track: PoseTrack | null,
+): AnalysisFinding[] {
+  return findings.map((f) => {
+    const { keyframeIndex, bodyRegion, ...rest } = f;
+    if (keyframeIndex == null || bodyRegion == null) return rest;
+    const kf = keyframes[keyframeIndex];
+    if (!kf || !track) return rest;
+    if (!trackHasFrameNear(track, kf.timestamp)) return rest;
+    if (SIDED_REGIONS.has(bodyRegion) && !track.lead) return rest;
+    return { ...rest, keyframeIndex, bodyRegion };
+  });
+}
+
 // Brand hard-rule: no emojis in coach output. Strip pictographic codepoints defensively.
 const EMOJI_RE =
   /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200D}]/gu;
@@ -236,10 +312,13 @@ function normalise(raw: Record<string, unknown>): AnalysisNarrative {
       const finding: AnalysisFinding = {
         title,
         observation,
+        // Legacy field name: it now holds "why this matters in a fight", in plain words.
         nervousSystemFraming: asStr(it["nervousSystemFraming"], 600),
         severity,
         area: asStr(it["area"], 40) || "general",
       };
+      const fix = asStr(it["fix"], 320);
+      if (fix) finding.fix = fix;
       // AI-proposed merge target — the route validates it belongs to this
       // fighter and is active before anything is written.
       const matchId = it["matchesFactId"];
@@ -249,6 +328,14 @@ function normalise(raw: Record<string, unknown>): AnalysisNarrative {
       const sub = it["subcategory"];
       if (typeof sub === "string" && isOntologyKey(sub)) {
         finding.subcategory = sub;
+      }
+      // Visual citation: only a well-formed pair survives here; the route then
+      // resolves it against the real keyframes + track (resolveFindingEvidence).
+      const kfIdx = it["keyframeIndex"];
+      const region = it["bodyRegion"];
+      if (typeof kfIdx === "number" && Number.isInteger(kfIdx) && kfIdx >= 0 && isBodyRegion(region)) {
+        finding.keyframeIndex = kfIdx;
+        finding.bodyRegion = region;
       }
       findings.push(finding);
     }
@@ -301,8 +388,10 @@ function metricsText(args: {
   metrics: AnalysisMetrics;
   prevScores: AnalysisScore[] | null;
   keyframes: AnalysisKeyframe[];
+  leadSide?: "left" | "right" | null;
+  opponentTracked?: boolean;
 }): string {
-  const { kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes } =
+  const { kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes, leadSide, opponentTracked } =
     args;
   const sig = metrics.signals.map((s) => `- ${s.label}: ${s.value} — ${s.detail}`);
   const sc = scores.map((s) => `- ${s.label}: ${s.value}/100 — ${s.basis}`);
@@ -312,6 +401,11 @@ function metricsText(args: {
     focus ? `athlete asked to focus on: ${focus}` : `no specific focus requested`,
     `duration analysed: ${metrics.durationSec.toFixed(1)}s`,
     `frames sampled: ${metrics.framesAnalysed}, frames with a clear pose lock: ${metrics.poseFrames}`,
+    ...(opponentTracked
+      ? [
+          `two fighters in this clip: the athlete chose which one is them and the opponent was tracked too. Every number and signal here describes the ATHLETE only (drawn blue in the footage; the opponent is red). Never attribute the opponent's movement to the athlete, and do not draw conclusions about the opponent from these numbers.`,
+        ]
+      : []),
     ``,
     `# FIXED numbers (DO NOT OVERRIDE, DO NOT EMIT)`,
     `nervous-system load: ${load.toUpperCase()}`,
@@ -325,6 +419,14 @@ function metricsText(args: {
     `# Computed movement signals`,
     ...sig,
   ];
+
+  parts.push(
+    ``,
+    `# Stance`,
+    leadSide
+      ? `lead side (measured from the pose track): the athlete's ${leadSide.toUpperCase()} side is forward — lead_ regions mean their ${leadSide}, rear_ regions the other side`
+      : `lead side: not determined — do not use lead_ or rear_ body regions`,
+  );
 
   if (prevScores && prevScores.length) {
     const prevByKey = new Map(prevScores.map((s) => [s.key, s.value]));
@@ -580,16 +682,32 @@ export async function generateAnalysis(args: {
   prevScores: AnalysisScore[] | null;
   metrics: AnalysisMetrics;
   keyframes: AnalysisKeyframe[];
+  leadSide?: "left" | "right" | null;
+  opponentTracked?: boolean;
 }): Promise<AnalysisNarrative> {
-  const { fighter, facts, kind, focus, load, fragmentationRisk, sessionScore, scores, prevScores, metrics, keyframes } =
+  const { fighter, facts, kind, focus, load, fragmentationRisk, sessionScore, scores, prevScores, metrics, keyframes, leadSide, opponentTracked } =
     args;
+
+  // Specialist reference for THIS clip, inside a token budget (see lib/combatIntelligence.ts).
+  const combat = selectCombatNotes({
+    kind,
+    sport: fighter.primarySport,
+    focus,
+    signalText: metrics.signals.map((s) => `${s.label} ${s.detail}`).join(" "),
+  });
+  const combatBlock = combatContextBlock(combat);
 
   const dynamic =
     buildDynamicContext(fighter, facts, [], []) +
     "\n\n" +
     ANALYSIS_INSTRUCTIONS +
+    (combatBlock ? "\n\n" + combatBlock : "") +
     "\n\n" +
-    metricsText({ kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes });
+    metricsText({ kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes, leadSide, opponentTracked });
+  logger.info(
+    { picks: combat.map((c) => `${c.folder}/${c.title}(${c.score})`), combatTokens: combatPickTokens(combat) },
+    "analysis: combat intelligence selected",
+  );
 
   const content: Anthropic.ContentBlockParam[] = [];
   for (const kf of keyframes.slice(0, 4)) {
@@ -616,7 +734,7 @@ export async function generateAnalysis(args: {
       model: "claude-sonnet-4-6",
       max_tokens: 2200,
       system: [
-        { type: "text", text: COACH_SYSTEM_PROMPT_STATIC, cache_control: { type: "ephemeral" } },
+        { type: "text", text: ANALYSIS_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
         { type: "text", text: dynamic },
       ],
       tools: [REPORT_TOOL],
@@ -926,7 +1044,7 @@ export async function generateOpponentAnalysis(args: {
       model: "claude-sonnet-4-6",
       max_tokens: 2200,
       system: [
-        { type: "text", text: COACH_SYSTEM_PROMPT_STATIC, cache_control: { type: "ephemeral" } },
+        { type: "text", text: ANALYSIS_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
         { type: "text", text: dynamic },
       ],
       tools: [OPPONENT_REPORT_TOOL],

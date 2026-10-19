@@ -11,6 +11,15 @@ if (!baseURL || !apiKey) {
 }
 const client = new Anthropic({ baseURL, apiKey, maxRetries: AI_PROVIDER_MAX_RETRIES });
 
+/**
+ * The spirit animal is derived inside POST /fighter, i.e. while the athlete is
+ * staring at the "Finish setup" spinner. The SDK default timeout is 10 minutes,
+ * so a slow or hung provider would freeze the last onboarding step. The animal
+ * is cosmetic and is re-derived on the next profile save when it is missing, so
+ * give up quickly instead.
+ */
+export const SPIRIT_ANIMAL_TIMEOUT_MS = 8_000;
+
 // The bestiary is the shared FRAME archetype mythology. The AI may only choose
 // one of these keys; each maps to a pre-rendered emblem in the coach app
 // (public/spirit/<key>.png).
@@ -67,7 +76,12 @@ export async function deriveSpiritAnimal(
 ${bestiary}
 
 ATHLETE:
-  art: ${fighter.art} | ${fighter.primarySport === "bjj" ? "BJJ belt" : "experience / rank"}: ${fighter.level} | trains: ${fighter.trainingFrequency} | competes: ${fighter.competes}
+  ${[
+    fighter.art?.trim() ? `art: ${fighter.art}` : null,
+    fighter.level?.trim() ? `${fighter.primarySport === "bjj" ? "BJJ belt" : "experience / rank"}: ${fighter.level}` : null,
+    fighter.trainingFrequency?.trim() ? `trains: ${fighter.trainingFrequency}` : null,
+    `competes: ${fighter.competes}`,
+  ].filter(Boolean).join(" | ")}
 goals: ${fighter.goals || "(none stated)"}
 weaknesses: ${fighter.weaknesses || "(none stated)"}
 personality, in their own words: ${fighter.personality || "(none given)"}
@@ -80,14 +94,17 @@ Assign their spirit animal and tagline now.`;
       log.info("spirit animal derivation skipped without AI consent");
       return null;
     }
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 512,
-      system: SYSTEM,
-      tools,
-      tool_choice: { type: "tool", name: "assign_spirit_animal" },
-      messages: [{ role: "user", content: userMessage }],
-    });
+    const response = await client.messages.create(
+      {
+        model: "claude-haiku-4-5",
+        max_tokens: 512,
+        system: SYSTEM,
+        tools,
+        tool_choice: { type: "tool", name: "assign_spirit_animal" },
+        messages: [{ role: "user", content: userMessage }],
+      },
+      { timeout: SPIRIT_ANIMAL_TIMEOUT_MS },
+    );
 
     for (const block of response.content) {
       if (block.type !== "tool_use" || block.name !== "assign_spirit_animal") continue;

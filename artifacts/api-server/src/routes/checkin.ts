@@ -3,22 +3,24 @@ import { db, dailyCheckinsTable, insertDailyCheckinSchema } from "@workspace/db"
 import { and, asc, eq, gte } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { getEntitlementForUserId } from "../lib/subscriptionService";
+import { rememberTimezone, todayFor } from "../middlewares/timezone";
+import { addDays } from "../lib/localTime";
 
 const router: IRouter = Router();
 
-// Calendar day is server-derived (UTC) so a client can never write another day.
-function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+// The calendar day is derived on the server in the athlete's own timezone (the
+// X-Timezone the app sends, else the one we stored, else UTC), so a client can
+// never write another day and a check-in at 00:30 local lands on the new day.
 
 // Today's self-reported readiness check-in (or null if not logged yet).
 router.get("/checkin/today", async (req, res) => {
   const fighter = await getUserFighter(req);
-  const date = todayUtc();
+  const date = todayFor(req, fighter?.timezone);
   if (!fighter) {
     res.json({ checkin: null, date });
     return;
   }
+  await rememberTimezone(req, fighter);
   const [checkin] = await db
     .select()
     .from(dailyCheckinsTable)
@@ -49,9 +51,7 @@ router.get("/checkin/history", async (req, res) => {
     });
     return;
   }
-  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
+  const since = addDays(todayFor(req, fighter.timezone), -30);
   const checkins = await db
     .select()
     .from(dailyCheckinsTable)
@@ -62,14 +62,14 @@ router.get("/checkin/history", async (req, res) => {
       ),
     )
     .orderBy(asc(dailyCheckinsTable.checkinDate));
-  res.json({ checkins });
+  res.json({ checkins, today: todayFor(req, fighter.timezone) });
 });
 
 // Upsert today's check-in. All values are athlete-entered; one row per day.
 router.post("/checkin", async (req, res) => {
   const fighter = await getUserFighter(req);
   if (!fighter) {
-    res.status(400).json({ error: "no fighter — complete onboarding first" });
+    res.status(400).json({ error: "no fighter" });
     return;
   }
   const parsed = insertDailyCheckinSchema.safeParse(req.body);
@@ -77,7 +77,8 @@ router.post("/checkin", async (req, res) => {
     res.status(400).json({ error: "invalid check-in", details: parsed.error.flatten() });
     return;
   }
-  const date = todayUtc();
+  const date = todayFor(req, fighter.timezone);
+  await rememberTimezone(req, fighter);
   const [checkin] = await db
     .insert(dailyCheckinsTable)
     .values({ ...parsed.data, fighterId: fighter.id, checkinDate: date })

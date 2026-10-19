@@ -5,6 +5,18 @@ vi.mock("@workspace/db", () => ({
   NERVOUS_SYSTEM_LOADS: ["low", "moderate", "elevated", "high"],
   REPLAY_ROLES: ["best_decision", "worst_habit", "biggest_opportunity"],
   ANALYSIS_SUBJECTS: ["self", "opponent"],
+  BODY_REGIONS: [
+    "lead_hand",
+    "rear_hand",
+    "head",
+    "hips",
+    "lead_foot",
+    "rear_foot",
+    "lead_knee",
+    "rear_knee",
+    "shoulders",
+    "torso",
+  ],
 }));
 
 vi.mock("../synochi", () => ({
@@ -25,6 +37,8 @@ import {
   stripEmoji,
   buildReplayMoments,
   buildCampReview,
+  resolveFindingEvidence,
+  isBodyRegion,
   isValidSubject,
   gateMatchup,
   MIN_FACTS_FOR_MATCHUP,
@@ -595,5 +609,77 @@ describe("gateMatchup", () => {
 
   it("returns the matchup when both sides are well above the floors", () => {
     expect(gateMatchup(sampleMatchup, 12, 9)).toBe(sampleMatchup);
+  });
+});
+
+describe("isBodyRegion", () => {
+  it("only accepts the fixed region enum", () => {
+    expect(isBodyRegion("lead_hand")).toBe(true);
+    expect(isBodyRegion("torso")).toBe(true);
+    expect(isBodyRegion("left_pinky")).toBe(false);
+    expect(isBodyRegion(3)).toBe(false);
+    expect(isBodyRegion(undefined)).toBe(false);
+  });
+});
+
+describe("resolveFindingEvidence — finding visuals must be groundable", () => {
+  const kfs: AnalysisKeyframe[] = [
+    { timestamp: 1.0, imageBase64: "a", caption: "c0" },
+    { timestamp: 2.5, imageBase64: "b", caption: "c1" },
+  ];
+  const track = (lead: "left" | "right" | null) => ({
+    v: 1 as const,
+    w: 640,
+    h: 360,
+    lead,
+    t: [0, 250, 1000, 1250, 2500],
+    d: "x",
+  });
+  const finding = (extra: Partial<AnalysisFinding> = {}): AnalysisFinding => ({
+    title: "t",
+    observation: "o",
+    nervousSystemFraming: "n",
+    severity: "medium",
+    area: "guard",
+    ...extra,
+  });
+
+  it("keeps a valid citation when the keyframe and a track frame exist", () => {
+    const [f] = resolveFindingEvidence([finding({ keyframeIndex: 1, bodyRegion: "head" })], kfs, track(null));
+    expect(f!.keyframeIndex).toBe(1);
+    expect(f!.bodyRegion).toBe("head");
+  });
+
+  it("strips the citation for an out-of-range keyframe index, keeping the finding", () => {
+    const [f] = resolveFindingEvidence([finding({ keyframeIndex: 9, bodyRegion: "head" })], kfs, track(null));
+    expect(f!.title).toBe("t");
+    expect(f!.keyframeIndex).toBeUndefined();
+    expect(f!.bodyRegion).toBeUndefined();
+  });
+
+  it("strips the citation when there is no pose track at all", () => {
+    const [f] = resolveFindingEvidence([finding({ keyframeIndex: 0, bodyRegion: "hips" })], kfs, null);
+    expect(f!.keyframeIndex).toBeUndefined();
+    expect(f!.bodyRegion).toBeUndefined();
+  });
+
+  it("strips the citation when the track has no frame at that keyframe's timestamp", () => {
+    const sparse = { ...track(null), t: [0, 250, 500] };
+    const [f] = resolveFindingEvidence([finding({ keyframeIndex: 1, bodyRegion: "hips" })], kfs, sparse);
+    expect(f!.bodyRegion).toBeUndefined();
+  });
+
+  it("only keeps lead_/rear_ regions when the stance side was measured", () => {
+    const sided = finding({ keyframeIndex: 0, bodyRegion: "lead_hand" });
+    expect(resolveFindingEvidence([sided], kfs, track(null))[0]!.bodyRegion).toBeUndefined();
+    expect(resolveFindingEvidence([sided], kfs, track("left"))[0]!.bodyRegion).toBe("lead_hand");
+    // side-agnostic regions don't need a lead side
+    const torso = finding({ keyframeIndex: 0, bodyRegion: "torso" });
+    expect(resolveFindingEvidence([torso], kfs, track(null))[0]!.bodyRegion).toBe("torso");
+  });
+
+  it("leaves findings without a citation untouched", () => {
+    const plain = finding();
+    expect(resolveFindingEvidence([plain], kfs, track("right"))[0]).toEqual(plain);
   });
 });

@@ -3,20 +3,23 @@ import { X, Download, Share2, Loader2 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { useWeeklyReport } from "@/hooks/use-report";
 import { useFighter } from "@/hooks/use-fighter";
+import { FEATURES } from "@/lib/features";
 import { FrameIntelligenceReport } from "@/components/frame-intelligence-report";
 
 // Self-contained overlay: fetches the weekly report (which idempotently writes
 // this week's snapshot on the server), renders the shareable card, and wires
 // Download + Share through the same html-to-image pipeline as the FRAME REPORT.
+
 export function WeeklyReportOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { data: fighterData } = useFighter();
   const fighter = fighterData?.fighter ?? null;
-  const { data, isLoading, isError, refetch } = useWeeklyReport(open);
+  const { data, isLoading, isError, refetch } = useWeeklyReport(open && FEATURES.weeklyReport);
   const report = data?.report ?? null;
   const cardRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
 
-  if (!open) return null;
+  // Switched off at the client's request; entry points are hidden too (lib/features.ts).
+  if (!open || !FEATURES.weeklyReport) return null;
 
   async function renderPng(): Promise<string | null> {
     if (!cardRef.current) return null;

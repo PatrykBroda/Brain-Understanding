@@ -12,7 +12,7 @@ import {
   type DetectedEvent,
   type NervousSystemLoad,
 } from "@workspace/db";
-import { and, desc, eq, lt } from "drizzle-orm";
+import { and, desc, eq, isNotNull, lt, ne } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { getActiveFacts, addFact, confirmFact, findActiveFactByTopic } from "../lib/factsService";
 import { getEntitlementForUserId } from "../lib/subscriptionService";
@@ -24,6 +24,7 @@ import {
   gateMatchup,
   buildComparison,
   buildReplayMoments,
+  resolveFindingEvidence,
   isValidKind,
   isValidLoad,
   isValidSubject,
@@ -40,6 +41,7 @@ import {
   RemoteFetchError,
 } from "../lib/remoteFetch";
 import { downloadYouTube, YtDlpError } from "../lib/ytdlp";
+import { sanitisePoseTrack, withoutOpponent } from "../lib/poseTrack";
 
 // The "Athlete Model Updated" payload — every value read back from the DB
 // after real writes, never estimated. Rendered under the FRAME REPORT.
@@ -152,7 +154,7 @@ function sanitiseKeyframes(input: unknown): AnalysisKeyframe[] {
 router.post("/analysis", async (req, res) => {
   const fighter = await getUserFighter(req);
   if (!fighter) {
-    res.status(400).json({ error: "no fighter — complete onboarding first" });
+    res.status(400).json({ error: "no fighter" });
     return;
   }
 
@@ -174,6 +176,7 @@ router.post("/analysis", async (req, res) => {
     scores?: unknown;
     detectedEvents?: unknown;
     keyframes?: unknown;
+    poseTrack?: unknown;
   };
 
   // "self" = the athlete's own footage (scored FRAME REPORT). "opponent" = a
@@ -206,6 +209,10 @@ router.post("/analysis", async (req, res) => {
   const scores = sanitiseScores(body.scores);
   const detectedEvents = sanitiseEvents(body.detectedEvents);
   const keyframes = sanitiseKeyframes(body.keyframes);
+  // Optional per-frame pose track. Anything oversize/malformed is dropped (null)
+  // rather than failing the analysis — the read is still saved, just without the
+  // visuals that need the track.
+  const poseTrack = sanitisePoseTrack(body.poseTrack);
   if (signals.length === 0) {
     res.status(400).json({ error: "no movement signals — could not read a pose from this clip" });
     return;
@@ -296,6 +303,7 @@ router.post("/analysis", async (req, res) => {
           matchup,
           metrics,
           keyframes,
+          poseTrack,
           reviewQuestion: "",
           replayMoments: [],
           durationSec,
@@ -349,6 +357,8 @@ router.post("/analysis", async (req, res) => {
       prevScores,
       metrics,
       keyframes,
+      leadSide: poseTrack?.lead ?? null,
+      opponentTracked: !!poseTrack?.opp,
     });
 
     const comparison = buildComparison(scores, prevScores, narrative.comparisonNote);
@@ -374,13 +384,14 @@ router.post("/analysis", async (req, res) => {
         styleProfile: narrative.styleProfile,
         aiComment: narrative.aiComment,
         summary: narrative.summary,
-        findings: narrative.findings,
+        findings: resolveFindingEvidence(narrative.findings, keyframes, poseTrack),
         scores,
         styleParallels: narrative.styleParallels,
         detectedEvents,
         comparison,
         metrics,
         keyframes,
+        poseTrack,
         reviewQuestion: narrative.reviewQuestion,
         replayMoments,
         durationSec,
@@ -798,6 +809,112 @@ router.get("/analysis/:id", async (req, res) => {
     signalHistory.length > 0 ? (signalHistory[signalHistory.length - 1]?.signals ?? null) : null;
 
   res.json({ analysis: { ...row, prevSignals, signalHistory } });
+});
+
+// Baseline pose track for the comparison views. For a self read: the athlete's
+// previous saved read of the SAME kind (or an explicit ?withId=, their own self
+// read). For an opponent scout: the athlete's latest own read with a track
+// (same kind preferred). { baseline: null } when there is nothing real to
+// compare against — the client then hides the comparison. FRAME+ only, like the
+// other session-over-session comparison surfaces.
+router.get("/analysis/:id/compare-track", async (req, res) => {
+  const fighter = await getUserFighter(req);
+  if (!fighter) {
+    res.status(400).json({ error: "no fighter" });
+    return;
+  }
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    res.status(400).json({ error: "bad id" });
+    return;
+  }
+  const [row] = await db
+    .select({
+      id: videoAnalysesTable.id,
+      fighterId: videoAnalysesTable.fighterId,
+      subject: videoAnalysesTable.subject,
+      kind: videoAnalysesTable.kind,
+      createdAt: videoAnalysesTable.createdAt,
+    })
+    .from(videoAnalysesTable)
+    .where(eq(videoAnalysesTable.id, id))
+    .limit(1);
+  if (!row || row.fighterId !== fighter.id) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  const entitlement = await getEntitlementForUserId(req.userId as string);
+  if (entitlement.plan === "free") {
+    res.status(402).json({
+      error: "Session comparison is a FRAME+ feature.",
+      code: "FRAME_PLUS_REQUIRED",
+      feature: "analysis_history",
+    });
+    return;
+  }
+
+  const cols = {
+    id: videoAnalysesTable.id,
+    kind: videoAnalysesTable.kind,
+    createdAt: videoAnalysesTable.createdAt,
+    poseTrack: videoAnalysesTable.poseTrack,
+  };
+  const ownSelf = and(
+    eq(videoAnalysesTable.fighterId, fighter.id),
+    eq(videoAnalysesTable.subject, "self"),
+    isNotNull(videoAnalysesTable.poseTrack),
+    ne(videoAnalysesTable.id, id),
+  );
+
+  const withIdRaw = req.query["withId"];
+  const withId = typeof withIdRaw === "string" ? Number(withIdRaw) : NaN;
+  let baseline: { id: number; kind: string; createdAt: Date; poseTrack: unknown } | undefined;
+  if (Number.isFinite(withId)) {
+    [baseline] = await db
+      .select(cols)
+      .from(videoAnalysesTable)
+      .where(and(ownSelf, eq(videoAnalysesTable.id, withId)))
+      .limit(1);
+  } else if (row.subject === "opponent") {
+    [baseline] = await db
+      .select(cols)
+      .from(videoAnalysesTable)
+      .where(and(ownSelf, eq(videoAnalysesTable.kind, row.kind)))
+      .orderBy(desc(videoAnalysesTable.createdAt))
+      .limit(1);
+    if (!baseline) {
+      [baseline] = await db
+        .select(cols)
+        .from(videoAnalysesTable)
+        .where(ownSelf)
+        .orderBy(desc(videoAnalysesTable.createdAt))
+        .limit(1);
+    }
+  } else {
+    [baseline] = await db
+      .select(cols)
+      .from(videoAnalysesTable)
+      .where(
+        and(ownSelf, eq(videoAnalysesTable.kind, row.kind), lt(videoAnalysesTable.createdAt, row.createdAt)),
+      )
+      .orderBy(desc(videoAnalysesTable.createdAt))
+      .limit(1);
+  }
+  // Re-validate on the way out: never serve a stored blob we wouldn't accept in.
+  const track = baseline ? sanitisePoseTrack(baseline.poseTrack) : null;
+  if (!baseline || !track) {
+    res.json({ baseline: null });
+    return;
+  }
+  res.json({
+    baseline: {
+      id: baseline.id,
+      kind: baseline.kind,
+      createdAt: baseline.createdAt,
+      // Comparisons only ever need the athlete's own track, not the opponent half.
+      poseTrack: withoutOpponent(track),
+    },
+  });
 });
 
 router.patch("/analysis/:id/notes", async (req, res) => {

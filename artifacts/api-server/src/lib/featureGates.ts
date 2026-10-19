@@ -1,7 +1,7 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db, messagesTable, conversationsTable } from "@workspace/db";
 
-/** Free-tier daily coaching allowance (user messages per UTC day). */
+/** Free-tier daily coaching allowance (user messages per day; the day is the athlete's own local day). */
 export const FREE_DAILY_COACHING_LIMIT = 5;
 
 export function utcMidnight(): Date {
@@ -12,11 +12,11 @@ export function utcMidnight(): Date {
 }
 
 /**
- * Counts the athlete's own messages sent today (UTC). User messages, not
+ * Counts the athlete's own messages sent since `since` (their local midnight; UTC midnight if unknown). User messages, not
  * assistant rows — welcome briefings write assistant rows with no paired
  * user message and must never burn free quota.
  */
-export async function countUserMessagesToday(fighterId: number): Promise<number> {
+export async function countUserMessagesToday(fighterId: number, since: Date = utcMidnight()): Promise<number> {
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(messagesTable)
@@ -28,7 +28,7 @@ export async function countUserMessagesToday(fighterId: number): Promise<number>
       and(
         eq(conversationsTable.fighterId, fighterId),
         eq(messagesTable.role, "user"),
-        gte(messagesTable.createdAt, utcMidnight()),
+        gte(messagesTable.createdAt, since),
       ),
     );
   return row?.count ?? 0;

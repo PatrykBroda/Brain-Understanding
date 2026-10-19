@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Upload, Film, Crosshair, X, Download, ArrowUpRight, ArrowDownRight, Minus, Link2, Lock, ScrollText } from "lucide-react";
@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { WeeklyReportOverlay } from "@/components/weekly-report-overlay";
+import { FEATURES } from "@/lib/features";
 import { BottomNav } from "@/components/bottom-nav";
 import { ModelUpdateCard } from "@/components/model-update-card";
 import { FrameOctagon } from "@/components/frame-octagon";
@@ -31,8 +32,20 @@ import {
   captureKeyframe,
   disposeExtract,
   type ExtractResult,
+  type PoseFrame,
 } from "@/lib/pose";
 import { computeMetrics } from "@/lib/analysis-metrics";
+import { OPPONENT_COLOR, YOU_COLOR, encodePoseTrack } from "@/lib/pose-track";
+import { detectTwoPeople, splitAthlete } from "@/lib/pose-people";
+import { useIsDesktop } from "@/hooks/use-mobile";
+import { scrubInsaneSkeletons, trackReliability } from "@/lib/pose-sanity";
+import { PersonPicker, type PersonPickerData } from "@/components/person-picker";
+import { Playback } from "@/lib/playback";
+import { FootageBlock, useDecodedOpponent, useDecodedTrack } from "@/components/footage-player";
+import { MovementGraphs } from "@/components/movement-graphs";
+import { AnnotatedFindingFrame } from "@/components/annotated-finding";
+import { PoseComparisons } from "@/components/pose-comparison";
+import type { DecodedTrack } from "@/lib/pose-track";
 import { useFramePlus, FramePlusPill } from "@/components/frame-plus-modal";
 import { useSubscription } from "@/hooks/use-subscription";
 import { api, ApiError, fetchRemoteVideo } from "@/lib/api";
@@ -83,6 +96,7 @@ type Phase =
   | { stage: "reading"; pct: number }
   | { stage: "tracking"; pct: number }
   | { stage: "detecting" }
+  | { stage: "pick" } // two people in the clip: waiting for "which one is you?"
   | { stage: "loading_ai" }
   | { stage: "error"; title: string; causes: string[]; retryable: boolean };
 
@@ -127,6 +141,11 @@ export default function AnalysePage() {
   const mobileScrollRef = useRef<HTMLElement>(null);
   const desktopRightScrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  // One shared clock for the desktop workstation (video/ghost on the left, graphs
+  // on the right). The phone Report keeps its own, so the two layouts never fight.
+  const desktopPlayback = useMemo(() => new Playback(), []);
+  // Mount only the layout that is showing (see useIsDesktop): both used to be mounted and CSS-hidden.
+  const isDesktop = useIsDesktop();
 
   const [kind, setKind] = useState<AnalysisKind>("sparring");
   const [focus, setFocus] = useState("");
@@ -174,18 +193,44 @@ export default function AnalysePage() {
   const [openId, setOpenId] = useState<number | null>(null);
   const [compareId, setCompareId] = useState<number | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  // Set when the tracker was not reliable enough to draw a skeleton for the fresh upload.
+  const [trackNote, setTrackNote] = useState<string | null>(null);
   const [sourceMode, setSourceMode] = useState<"upload" | "link">("upload");
   const [linkUrl, setLinkUrl] = useState("");
   const pendingFile = useRef<File | null>(null);
   const lastLink = useRef<string | null>(null);
   const videoUrlRef = useRef<string | null>(null);
+  // "Which one is you?" - the picker data plus the resolver the analysis run awaits.
+  const [pickData, setPickData] = useState<PersonPickerData | null>(null);
+  const pickResolve = useRef<((choice: 0 | 1 | null) => void) | null>(null);
+
+  function answerPick(choice: 0 | 1 | null) {
+    const resolve = pickResolve.current;
+    pickResolve.current = null;
+    setPickData(null);
+    resolve?.(choice);
+  }
 
   // Revoke any outstanding blob URL when the component unmounts
   useEffect(() => {
     return () => {
       if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
+      // Leaving mid-question: release the run (it disposes the video on the way out).
+      pickResolve.current?.(null);
+      pickResolve.current = null;
     };
   }, []);
+
+  // The upload form is taller than a phone screen and the error renders under it: after the
+  // progress overlay closes the user would be looking at an unchanged form with no sign anything
+  // went wrong. Bring the error into view.
+  useEffect(() => {
+    if (phase.stage !== "error") return;
+    const id = requestAnimationFrame(() => {
+      document.querySelector('[data-testid="analyse-error"]')?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [phase.stage]);
 
   const busy = phase.stage !== "idle" && phase.stage !== "error";
   const danger = result?.fragmentationRisk === "high" || result?.nervousSystemLoad === "high";
@@ -206,6 +251,7 @@ export default function AnalysePage() {
     }
     setResult(null);
     setModelUpdate(null);
+    setTrackNote(null);
     setOpenId(null);
     setOpenOpponentId(null);
     if (file.size > MAX_VIDEO_BYTES) {
@@ -235,19 +281,75 @@ export default function AnalysePage() {
       });
 
       setPhase({ stage: "detecting" });
-      const metrics = computeMetrics(extract.frames);
+
+      // Two people in the clip? Ask who is the athlete BEFORE anything is scored.
+      // Single-person clips (and opponent scouts) skip this and behave as before.
+      let athleteFrames = extract.frames;
+      let opponentFrames: PoseFrame[] | null = null;
+      // A scout upload asks too ("who are you scouting?") - otherwise a two-person clip would
+      // silently scout whoever the tracker happened to rank first.
+      const two = detectTwoPeople(extract.people, extract.width, extract.height);
+      if (two) {
+        const shot = await captureKeyframe(extract, {
+          timestamp: extract.people[0]![two.pickerFrame]!.timestamp,
+          landmarks: null,
+        });
+        const a = extract.people[0]![two.pickerFrame]!.landmarks;
+        const b = extract.people[1]![two.pickerFrame]!.landmarks;
+        let choice: 0 | 1 = 0; // no usable still -> fall back to the suggestion rather than blocking
+        if (shot && a && b) {
+          const picked = await new Promise<0 | 1 | null>((resolve) => {
+            pickResolve.current = resolve;
+            setPickData({
+              image: shot,
+              aspect: extract!.width / extract!.height,
+              people: [{ landmarks: a }, { landmarks: b }],
+            });
+            setPhase({ stage: "pick" });
+          });
+          if (picked === null) {
+            setPhase({ stage: "idle" });
+            return;
+          }
+          choice = picked;
+          setPhase({ stage: "detecting" });
+        }
+        const split = splitAthlete(extract.people, choice);
+        athleteFrames = split.athlete;
+        // A scout is categorical about ONE person: the other fighter is not stored as "opponent".
+        opponentFrames = opponentMode ? null : split.opponent;
+      }
+
+      // Never draw or score a skeleton that cannot be a body (folded/twisted, limbs far too long):
+      // those frames become "no lock". Then judge the clip as a whole: if the tracker was not
+      // reliable, the read is kept but no skeleton visuals are built or shown.
+      const scrub = scrubInsaneSkeletons(athleteFrames, extract.width, extract.height);
+      athleteFrames = scrub.frames;
+      if (opponentFrames) opponentFrames = scrubInsaneSkeletons(opponentFrames, extract.width, extract.height).frames;
+      const reliability = trackReliability(athleteFrames, extract.width, extract.height, scrub);
+
+      const metrics = computeMetrics(athleteFrames);
 
       if (metrics.poseFrames < 3) {
         throw new Error(
-          "couldn't lock onto a body in this clip — make sure the athlete is clearly in frame",
+          "couldn't get a reliable body lock in this clip. Ground work, close-ups and heavy overlap confuse the tracker - try a wider, steadier shot with the athlete clearly in frame",
         );
       }
 
       const keyframes: AnalysisKeyframe[] = [];
       for (const m of metrics.keyMoments) {
-        const frame = extract.frames.find((f) => Math.abs(f.timestamp - m.timestamp) < 0.001);
+        const fi = athleteFrames.findIndex((f) => Math.abs(f.timestamp - m.timestamp) < 0.001);
+        const frame = athleteFrames[fi];
         if (!frame) continue;
-        const img = await captureKeyframe(extract, frame);
+        // With an opponent in the clip the still shows you in blue and them in red.
+        const img = await captureKeyframe(
+          extract,
+          frame,
+          520,
+          opponentFrames
+            ? { youColor: YOU_COLOR, opponent: opponentFrames[fi]?.landmarks ?? null, opponentColor: OPPONENT_COLOR }
+            : undefined,
+        );
         if (img)
           keyframes.push({
             timestamp: m.timestamp,
@@ -276,12 +378,21 @@ export default function AnalysePage() {
         scores: opponentMode ? [] : metrics.scores,
         detectedEvents,
         keyframes,
+        // Per-frame landmarks (quantised) for overlay/graphs/annotations/comparisons.
+        // null when too few frames locked or it would exceed the size cap.
+        poseTrack:
+          reliability.level === "good" ? encodePoseTrack(athleteFrames, extract.width, extract.height, opponentFrames) : null,
         ...(opponentMode
           ? { subject: "opponent" as const, opponentName: opponentName.trim() }
           : {}),
       });
       setResult(res.analysis);
       setModelUpdate(res.modelUpdate ?? null);
+      setTrackNote(
+        reliability.level === "good"
+          ? null
+          : `Skeleton, graphs and comparisons are off for this clip: ${reliability.reasons.join("; ")}. The read below only uses the ${metrics.poseFrames} frames where a body was found.`,
+      );
       setPhase({ stage: "idle" });
       // Create a blob URL for the desktop video player — revoke the previous one first
       if (pendingFile.current) {
@@ -343,6 +454,7 @@ export default function AnalysePage() {
 
   function clearResult() {
     setResult(null);
+    setTrackNote(null);
     setModelUpdate(null);
     if (videoUrlRef.current) {
       URL.revokeObjectURL(videoUrlRef.current);
@@ -408,6 +520,7 @@ export default function AnalysePage() {
       {/* ------------------------------------------------------------------ */}
       {/* MOBILE layout — stacked, single scroll column                       */}
       {/* ------------------------------------------------------------------ */}
+      {!isDesktop && (
       <main ref={mobileScrollRef} className="flex-1 min-h-0 overflow-y-auto md:hidden">
         <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
           {opponentResult ? (
@@ -420,7 +533,7 @@ export default function AnalysePage() {
             </div>
           ) : selfResult ? (
             <div className="space-y-6" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
-              <Report analysis={selfResult} fighter={fighter} videoUrl={videoUrl} onClose={clearResult} onSelectSession={onSelectSession} />
+              <Report analysis={selfResult} fighter={fighter} videoUrl={videoUrl} trackNote={trackNote} onClose={clearResult} onSelectSession={onSelectSession} />
               {modelUpdate && <ModelUpdateCard update={modelUpdate} />}
             </div>
           ) : openId != null ? (
@@ -446,6 +559,8 @@ export default function AnalysePage() {
               onSubmitLink={() => void runFromLink(linkUrl)}
               analyses={analyses.data?.analyses ?? []}
               analysesLoading={analyses.isLoading}
+              analysesError={analyses.isError}
+              onRetryAnalyses={() => void analyses.refetch()}
               onOpen={(id) => setOpenId(id)}
               compareId={compareId}
               onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
@@ -458,7 +573,7 @@ export default function AnalysePage() {
               onOpenOpponent={(id) => setOpenOpponentId(id)}
             />
           )}
-          {!result && openId == null && openOpponentId == null && (
+          {FEATURES.weeklyReport && !result && openId == null && openOpponentId == null && (
             <>
               <button
                 type="button"
@@ -472,10 +587,12 @@ export default function AnalysePage() {
           )}
         </div>
       </main>
+      )}
 
       {/* ------------------------------------------------------------------ */}
       {/* DESKTOP workstation layout — two panels, side by side               */}
       {/* ------------------------------------------------------------------ */}
+      {isDesktop && (
       <main className="flex-1 min-h-0 hidden md:flex divide-x divide-border/30">
         {showingOpponent ? (
           <div
@@ -502,10 +619,12 @@ export default function AnalysePage() {
                 <WorkstationLeft
                   analysis={result}
                   videoUrl={videoUrl}
+                  trackNote={trackNote}
+                  playback={desktopPlayback}
                   onClose={clearResult}
                 />
               ) : openId != null ? (
-                <SavedWorkstationLeft id={openId} onClose={() => setOpenId(null)} />
+                <SavedWorkstationLeft id={openId} playback={desktopPlayback} onClose={() => setOpenId(null)} />
               ) : null}
             </div>
 
@@ -513,11 +632,11 @@ export default function AnalysePage() {
             <div ref={desktopRightScrollRef} className="flex-1 overflow-y-auto px-7 py-6" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
               {result ? (
                 <div className="space-y-6">
-                  <WorkstationRight analysis={result} fighter={fighter} onClose={clearResult} onSelectSession={onSelectSession} />
+                  <WorkstationRight analysis={result} fighter={fighter} playback={desktopPlayback} onClose={clearResult} onSelectSession={onSelectSession} />
                   {modelUpdate && <ModelUpdateCard update={modelUpdate} />}
                 </div>
               ) : openId != null ? (
-                <SavedWorkstationRight id={openId} compareId={compareId} fighter={fighter} onClose={() => setOpenId(null)} onSelectSession={onSelectSession} />
+                <SavedWorkstationRight id={openId} compareId={compareId} fighter={fighter} playback={desktopPlayback} onClose={() => setOpenId(null)} onSelectSession={onSelectSession} />
               ) : null}
             </div>
           </>
@@ -651,7 +770,7 @@ export default function AnalysePage() {
               </section>
 
               {phase.stage === "error" && (
-                <div className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
+                <div data-testid="analyse-error" role="alert" className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
                   <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
                     {phase.title}
                   </div>
@@ -689,24 +808,29 @@ export default function AnalysePage() {
                 <History
                   items={analyses.data?.analyses ?? []}
                   loading={analyses.isLoading}
+                  error={analyses.isError}
+                  onRetry={() => void analyses.refetch()}
                   onOpen={(id) => setOpenId(id)}
                   compareId={compareId}
                   onSetCompare={(id) => setCompareId((prev) => (prev === id ? null : id))}
                 />
               )}
 
-              <button
-                type="button"
-                onClick={() => setWeeklyReportOpen(true)}
-                className="w-full inline-flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/40 hover:border-primary/70 px-4 py-3 text-foreground/90 transition-colors"
-              >
-                <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
-                Weekly intelligence report
-              </button>
+              {FEATURES.weeklyReport && (
+                <button
+                  type="button"
+                  onClick={() => setWeeklyReportOpen(true)}
+                  className="w-full inline-flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/40 hover:border-primary/70 px-4 py-3 text-foreground/90 transition-colors"
+                >
+                  <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  Weekly intelligence report
+                </button>
+              )}
             </div>
           </>
         )}
       </main>
+      )}
 
       <input
         ref={fileRef}
@@ -720,8 +844,16 @@ export default function AnalysePage() {
 
       <WeeklyReportOverlay open={weeklyReportOpen} onClose={() => setWeeklyReportOpen(false)} />
 
-      {busy && (
+      {busy && phase.stage !== "pick" && (
         <CinematicOverlay phase={phase} kindLabel={KINDS.find((k) => k.value === kind)?.label ?? ""} />
+      )}
+      {phase.stage === "pick" && pickData && (
+        <PersonPicker
+          data={pickData}
+          mode={subject === "opponent" ? "scout" : "athlete"}
+          onPick={answerPick}
+          onCancel={() => answerPick(null)}
+        />
       )}
       {danger && <div className="pointer-events-none fixed inset-0 z-0 frame-danger-glow" />}
     </div>
@@ -903,6 +1035,8 @@ function UploadControls({
   onSubmitLink,
   analyses,
   analysesLoading,
+  analysesError,
+  onRetryAnalyses,
   onOpen,
   compareId,
   onSetCompare,
@@ -931,6 +1065,8 @@ function UploadControls({
   onSubmitLink: () => void;
   analyses: AnalysisListItem[];
   analysesLoading: boolean;
+  analysesError: boolean;
+  onRetryAnalyses: () => void;
   onOpen: (id: number) => void;
   compareId: number | null;
   onSetCompare: (id: number) => void;
@@ -1071,7 +1207,7 @@ function UploadControls({
       </section>
 
       {phase.stage === "error" && (
-        <div className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
+        <div data-testid="analyse-error" role="alert" className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
           <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
             {phase.title}
           </div>
@@ -1105,6 +1241,8 @@ function UploadControls({
         <History
           items={analyses}
           loading={analysesLoading}
+          error={analysesError}
+          onRetry={onRetryAnalyses}
           onOpen={onOpen}
           compareId={compareId}
           onSetCompare={onSetCompare}
@@ -1121,23 +1259,33 @@ function UploadControls({
 function WorkstationLeft({
   analysis,
   videoUrl,
+  trackNote = null,
+  playback,
   onClose,
 }: {
   analysis: VideoAnalysis;
   videoUrl: string | null;
+  trackNote?: string | null;
+  playback: Playback;
   onClose: () => void;
 }) {
   const [activeKf, setActiveKf] = useState(0);
   const [localNotes, setLocalNotes] = useState<Record<number, string>>(analysis.keyframeNotes ?? {});
-  const videoRef = useRef<HTMLVideoElement>(null);
   const updateNotes = useUpdateKeyframeNotes(analysis.id);
   const kf = analysis.keyframes[activeKf];
+  const track = useDecodedTrack(analysis.poseTrack);
+  const opponent = useDecodedOpponent(analysis.poseTrack);
+  // Footage (video or ghost) is available when there's a video or a track.
+  const hasFootage = !!videoUrl || !!track;
+
+  // New report -> clock back to 0.
+  useEffect(() => {
+    playback.reset(analysis.durationSec);
+  }, [playback, analysis.id, analysis.durationSec]);
 
   function seekTo(ts: number, idx: number) {
     setActiveKf(idx);
-    if (videoRef.current) {
-      videoRef.current.currentTime = ts;
-    }
+    playback.seek(ts);
   }
 
   function commitNote(notes: Record<number, string>) {
@@ -1168,15 +1316,19 @@ function WorkstationLeft({
 
       {/* main area — video player when available, keyframe fallback for saved reports */}
       <div className="flex-1 min-h-0 flex flex-col bg-black">
-        {videoUrl ? (
-          <div className="flex-1 min-h-0 flex items-center justify-center p-3">
-            <video
-              ref={videoRef}
-              src={videoUrl}
-              controls
-              playsInline
-              className="w-full max-h-full border border-border/30 object-contain"
-              style={{ maxHeight: "calc(100% - 1rem)" }}
+        {hasFootage ? (
+          <div className="flex-1 min-h-0 overflow-y-auto p-3">
+            <FootageBlock
+              videoUrl={videoUrl}
+              trackNote={trackNote}
+              track={track}
+              opponent={opponent}
+              events={analysis.detectedEvents ?? []}
+              moments={analysis.replayMoments ?? []}
+              durationSec={analysis.durationSec}
+              playback={playback}
+              videoClassName="w-full border border-border/30 object-contain bg-black"
+              videoStyle={{ maxHeight: "60vh" }}
             />
           </div>
         ) : (
@@ -1211,12 +1363,12 @@ function WorkstationLeft({
         <div className="flex-none border-t border-border/30 bg-black/60 px-4 py-3 space-y-2">
           <div className="font-mono text-[8px] uppercase tracking-[0.35em] text-muted-foreground/70">
             Detected events
-            {videoUrl && (
+            {hasFootage && (
               <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
                 · click to seek · click again to annotate
               </span>
             )}
-            {!videoUrl && (
+            {!hasFootage && (
               <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
                 · click to annotate
               </span>
@@ -1289,17 +1441,22 @@ function WorkstationLeft({
 function WorkstationRight({
   analysis,
   fighter,
+  playback,
+  baselineId = null,
   onClose,
   onSelectSession,
 }: {
   analysis: VideoAnalysis;
   fighter: Fighter | null;
+  playback: Playback;
+  baselineId?: number | null;
   onClose: () => void;
   onSelectSession?: (id: number) => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const { data: analysesData } = useAnalyses();
+  const track = useDecodedTrack(analysis.poseTrack);
 
   async function saveCard() {
     if (!cardRef.current) return;
@@ -1347,7 +1504,22 @@ function WorkstationRight({
 
       {/* findings table */}
       {analysis.findings.length > 0 && (
-        <FindingsTable findings={analysis.findings} />
+        <FindingsTable
+          findings={analysis.findings}
+          keyframes={analysis.keyframes}
+          track={track}
+          onJump={(ts) => playback.seek(ts)}
+        />
+      )}
+
+      {/* movement graphs — per-frame series from the pose track, synced to playback */}
+      {track && (
+        <MovementGraphs
+          track={track}
+          events={analysis.detectedEvents ?? []}
+          durationSec={analysis.durationSec}
+          playback={playback}
+        />
       )}
 
       {/* raw signals */}
@@ -1362,6 +1534,9 @@ function WorkstationRight({
           <ComparisonSection comparison={cmp} isCustomBaseline={!!analysis.liveComparison} />
         ) : null;
       })()}
+
+      {/* ghost comparisons: best vs worst rep, this vs last session (hidden without data) */}
+      <PoseComparisons analysis={analysis} track={track} baselineId={baselineId} />
 
       {/* session-over-session trend chart — desktop only, needs 3+ sessions */}
       {(analysesData?.analyses?.length ?? 0) >= 3 && (
@@ -1384,9 +1559,11 @@ function WorkstationRight({
 
 function SavedWorkstationLeft({
   id,
+  playback,
   onClose,
 }: {
   id: number;
+  playback: Playback;
   onClose: () => void;
 }) {
   const { data, isLoading, isError } = useAnalysis(id);
@@ -1412,25 +1589,27 @@ function SavedWorkstationLeft({
       </div>
     );
   }
-  return <WorkstationLeft analysis={data.analysis} videoUrl={null} onClose={onClose} />;
+  return <WorkstationLeft analysis={data.analysis} videoUrl={null} playback={playback} onClose={onClose} />;
 }
 
 function SavedWorkstationRight({
   id,
   compareId,
   fighter,
+  playback,
   onClose,
   onSelectSession,
 }: {
   id: number;
   compareId: number | null;
   fighter: Fighter | null;
+  playback: Playback;
   onClose: () => void;
   onSelectSession?: (id: number) => void;
 }) {
   const { data, isLoading, isError } = useAnalysis(id, compareId);
   if (isLoading || isError || !data?.analysis) return null;
-  return <WorkstationRight analysis={data.analysis} fighter={fighter} onClose={onClose} onSelectSession={onSelectSession} />;
+  return <WorkstationRight analysis={data.analysis} fighter={fighter} playback={playback} baselineId={compareId} onClose={onClose} onSelectSession={onSelectSession} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -1439,8 +1618,14 @@ function SavedWorkstationRight({
 
 function FindingsTable({
   findings,
+  keyframes,
+  track,
+  onJump,
 }: {
   findings: VideoAnalysis["findings"];
+  keyframes?: AnalysisKeyframe[];
+  track?: DecodedTrack | null;
+  onJump?: (timestamp: number) => void;
 }) {
   return (
     <section className="space-y-3">
@@ -1464,8 +1649,8 @@ function FindingsTable({
           </thead>
           <tbody>
             {findings.map((f, i) => (
+              <Fragment key={i}>
               <tr
-                key={i}
                 className="border-b border-border/30 last:border-0"
               >
                 <td className="px-3 py-2.5 align-top">
@@ -1493,6 +1678,12 @@ function FindingsTable({
                       {f.nervousSystemFraming}
                     </div>
                   )}
+                  {f.fix && (
+                    <div className="mt-1.5 border-l-2 border-primary/50 bg-primary/[0.06] px-2.5 py-1.5 text-xs text-foreground/90 leading-relaxed">
+                      <span className="block font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 mb-0.5">Next session</span>
+                      {f.fix}
+                    </div>
+                  )}
                 </td>
                 <td className="px-3 py-2.5 align-top">
                   <span
@@ -1508,6 +1699,14 @@ function FindingsTable({
                   </span>
                 </td>
               </tr>
+              {keyframes && track && f.keyframeIndex != null && f.bodyRegion && (
+                <tr className="border-b border-border/30 last:border-0">
+                  <td colSpan={3} className="px-3 pb-3">
+                    <AnnotatedFindingFrame finding={f} keyframes={keyframes} track={track} onJump={onJump} />
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -2020,12 +2219,17 @@ function Report({
   analysis,
   fighter,
   videoUrl,
+  trackNote = null,
+  baselineId = null,
   onClose,
   onSelectSession,
 }: {
   analysis: VideoAnalysis;
   fighter: Fighter | null;
   videoUrl: string | null;
+  trackNote?: string | null;
+  /** Saved reports: the session picked as "vs" baseline, so the pose overlay compares against it too. */
+  baselineId?: number | null;
   onClose: () => void;
   onSelectSession?: (id: number) => void;
 }) {
@@ -2055,8 +2259,15 @@ function Report({
 
   const [localNotes, setLocalNotes] = useState<Record<number, string>>(analysis.keyframeNotes ?? {});
   const updateNotes = useUpdateKeyframeNotes(analysis.id);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const footageRef = useRef<HTMLDivElement>(null);
   const kf = analysis.keyframes[activeKf];
+  const track = useDecodedTrack(analysis.poseTrack);
+  const opponent = useDecodedOpponent(analysis.poseTrack);
+  // The phone layout owns its own clock (the desktop workstation has another).
+  const playback = useMemo(() => new Playback(), []);
+  useEffect(() => {
+    playback.reset(analysis.durationSec);
+  }, [playback, analysis.id, analysis.durationSec]);
 
   function commitNote(notes: Record<number, string>) {
     void updateNotes.mutate(notes);
@@ -2064,10 +2275,8 @@ function Report({
 
   function seekTo(ts: number, idx: number) {
     setActiveKf(idx);
-    if (videoRef.current) {
-      videoRef.current.currentTime = ts;
-      videoRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
+    playback.seek(ts);
+    footageRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   return (
@@ -2120,15 +2329,22 @@ function Report({
         ) : null;
       })()}
 
-      {/* inline footage — only for the fresh upload; seeked by keyframes + replay */}
-      {videoUrl && (
-        <video
-          ref={videoRef}
-          src={videoUrl}
-          controls
-          playsInline
-          className="w-full rounded border border-border/40 bg-black"
-        />
+      {/* footage: the fresh upload with live skeleton overlay, or (saved reports, no video
+          stored) the ghost player — both on one clock with the event/replay timeline */}
+      {(videoUrl || track) && (
+        <div ref={footageRef}>
+          <FootageBlock
+            videoUrl={videoUrl}
+            trackNote={trackNote}
+            track={track}
+            opponent={opponent}
+            events={analysis.detectedEvents ?? []}
+            moments={analysis.replayMoments ?? []}
+            durationSec={analysis.durationSec}
+            playback={playback}
+            videoClassName="w-full rounded border border-border/40 bg-black"
+          />
+        </div>
       )}
 
       {/* FRAME Replay — up to three curated moments, tap to seek */}
@@ -2208,13 +2424,34 @@ function Report({
 
       {/* findings table */}
       {analysis.findings.length > 0 && (
-        <FindingsTable findings={analysis.findings} />
+        <FindingsTable
+          findings={analysis.findings}
+          keyframes={analysis.keyframes}
+          track={track}
+          onJump={(ts) => {
+            playback.seek(ts);
+            footageRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }}
+        />
+      )}
+
+      {/* movement graphs from the pose track */}
+      {track && (
+        <MovementGraphs
+          track={track}
+          events={analysis.detectedEvents ?? []}
+          durationSec={analysis.durationSec}
+          playback={playback}
+        />
       )}
 
       {/* raw signals */}
       {analysis.metrics.signals.length > 0 && (
         <RawSignalsTable signals={analysis.metrics.signals} prevSignals={analysis.prevSignals} signalHistory={analysis.signalHistory} hasCustomCompare={!!analysis.liveComparison} onSelectSession={onSelectSession} />
       )}
+
+      {/* ghost comparisons (hidden without data) */}
+      <PoseComparisons analysis={analysis} track={track} baselineId={baselineId} />
 
       {/* score provenance */}
       <ScoreProvenance analysis={analysis} />
@@ -2270,7 +2507,7 @@ function SavedReport({
       </div>
     );
   }
-  return <Report analysis={data.analysis} fighter={fighter} videoUrl={null} onClose={onClose} onSelectSession={onSelectSession} />;
+  return <Report analysis={data.analysis} fighter={fighter} videoUrl={null} baselineId={compareId} onClose={onClose} onSelectSession={onSelectSession} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -2612,19 +2849,52 @@ function OpponentHistory({
 function History({
   items,
   loading,
+  error = false,
+  onRetry,
   onOpen,
   compareId,
   onSetCompare,
 }: {
   items: AnalysisListItem[];
   loading: boolean;
+  error?: boolean;
+  onRetry?: () => void;
   onOpen: (id: number) => void;
   compareId: number | null;
   onSetCompare: (id: number) => void;
 }) {
   const { openUpgrade } = useFramePlus();
   if (loading) return null;
-  if (items.length === 0) return null;
+  if (error && items.length === 0) {
+    return (
+      <section className="space-y-3 pt-2">
+        <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground">Session log</div>
+        <div role="alert" className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
+          <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">Could not load your sessions</div>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-1 font-mono text-[10px] uppercase tracking-widest border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
+          >
+            Try again
+          </button>
+        </div>
+      </section>
+    );
+  }
+  if (items.length === 0) {
+    return (
+      <section className="space-y-3 pt-2">
+        <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground">Session log</div>
+        <div className="border border-border/40 px-4 py-4">
+          <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/80">No sessions yet</div>
+          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+            Upload your first clip above. Each read you run is saved here with its score.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   const baselineItem = compareId != null ? items.find((a) => a.id === compareId) : null;
 

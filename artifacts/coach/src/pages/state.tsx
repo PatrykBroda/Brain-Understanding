@@ -1,15 +1,16 @@
-import { Link } from "wouter";
-import { Shield, ChevronRight } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { CosmicOrb, ORB_PALETTE } from "@/components/cosmic-orb";
+import { CosmicOrb, ORB_PALETTE, type OrbState } from "@/components/cosmic-orb";
 import { FramePlusPill } from "@/components/frame-plus-modal";
 import { FrameWordmark } from "@/components/frame-wordmark";
 import { BottomNav } from "@/components/bottom-nav";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
-import { useFrameState, type FrameStateLabel } from "@/hooks/use-frame-state";
-import { useAnalyses } from "@/hooks/use-analysis";
-import { useTodayCheckin } from "@/hooks/use-checkin";
+import type { FrameStateLabel } from "@/hooks/use-frame-state";
+import { useToday } from "@/hooks/use-today";
+import { OPEN_CHECKIN_FLAG, stateDateLine, stateHeadline } from "@/lib/today";
+import { formatDay } from "@/lib/local-day";
 import { api } from "@/lib/api";
 import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
 
@@ -31,22 +32,37 @@ export default function StatePage() {
   const fighter = fighterData?.fighter ?? null;
 
   useAutoWelcome();
-  const frameState = useFrameState();
+  const [, setLocation] = useLocation();
 
-  const analysesQuery = useAnalyses();
-  const latest =
-    analysesQuery.data?.analyses?.find((a) => !a.locked && a.sessionScore != null) ?? null;
+  // The server decides what "today" is (athlete's timezone). The orb and name follow the
+  // athlete's current read; an old state is never presented as today's.
+  const todayQuery = useToday();
+  const state = todayQuery.data?.state ?? null;
+  const current = !!state?.current && !!state.name;
+  const label: FrameStateLabel = current ? (state!.name as FrameStateLabel) : "Dormant";
+  const orb = label.toLowerCase() as OrbState;
+  const headline = state ? stateHeadline(state) : "No read yet";
+  // "Last read <date>" only when the old read says something (a stale "Dormant" is noise).
+  const dateLine =
+    state && !current && state.name && state.name !== "Dormant"
+      ? stateDateLine(state, formatDay)
+      : state && current
+        ? stateDateLine(state, formatDay)
+        : null;
+  const lastRead = todayQuery.data?.readiness.latest ?? null;
 
-  // Same readiness priority as the Home dashboard: today's self-reported
-  // check-in composite first, else the last analysed session's score.
-  const checkinQuery = useTodayCheckin();
-  const checkin = checkinQuery.data?.checkin ?? null;
-  const checkinScore = checkin
-    ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
-    : null;
-  const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
-  const baseReadiness = checkinScore ?? sessionScore;
-  const readinessSource = checkinScore != null ? "today" : "last session";
+  // Today's readiness comes from today's check-in only (same as Home).
+  const checkinScore = todayQuery.data?.readiness.today?.score ?? null;
+  const baseReadiness = checkinScore;
+
+  const checkInNow = () => {
+    try {
+      sessionStorage.setItem(OPEN_CHECKIN_FLAG, "1");
+    } catch {
+      // storage blocked
+    }
+    setLocation("/home");
+  };
 
   // Warms the shared ["conversation"] cache Chat reuses; lets the doorway read
   // "Continue" only when there's a real prior session (not keyed on analyses).
@@ -63,7 +79,7 @@ export default function StatePage() {
   const chatModifier = readinessModifier(conversationQuery.data?.messages ?? []);
   const readiness = applyReadinessModifier(baseReadiness, chatModifier);
 
-  const { hue, sat, light } = ORB_PALETTE[frameState.orb];
+  const { hue, sat, light } = ORB_PALETTE[orb];
   const labelColor = `hsl(${hue}, ${Math.round(sat * 35)}%, 91%)`;
   const labelGlow = `0 0 48px hsla(${hue}, ${Math.round(sat * 100)}%, ${Math.round(light * 100)}%, 0.38), 0 2px 12px rgba(0,0,0,0.6)`;
 
@@ -110,20 +126,13 @@ export default function StatePage() {
         </div>
         <div className="flex items-center gap-2">
           <FramePlusPill />
-          <Link
-            href="/profile"
-            aria-label="Open profile"
-            className="w-10 h-10 rounded-full border border-white/[0.06] flex items-center justify-center text-foreground/40 hover:border-primary/40 hover:text-primary/90 outline-none focus-visible:ring-1 focus-visible:ring-primary/60 transition-all duration-500"
-          >
-            <Shield className="w-[15px] h-[15px]" strokeWidth={1.2} />
-          </Link>
         </div>
       </header>
 
       <main className="relative z-10 min-h-0 grid place-items-center overflow-hidden px-2">
         <div className="frame-fade-in h-full w-full grid place-items-center">
           <CosmicOrb
-            state={frameState.orb}
+            state={orb}
             className="w-full max-w-[560px] max-h-full h-auto"
           />
         </div>
@@ -134,52 +143,88 @@ export default function StatePage() {
           <div className="frame-state-caption-top font-mono text-[10px] uppercase tracking-[0.55em] text-foreground/65 font-light">
             State
           </div>
-          <div
-            key={frameState.label}
-            className="frame-state-label font-sans font-extralight uppercase text-[clamp(1.7rem,7vw,2.4rem)] tracking-[0.4em] leading-none"
-            style={{
-              color: labelColor,
-              textShadow: labelGlow,
-              transition: "color 1.6s cubic-bezier(0.22, 0.61, 0.36, 1), text-shadow 1.6s cubic-bezier(0.22, 0.61, 0.36, 1)",
-            }}
-            title={frameState.source}
-          >
-            {frameState.label}
-          </div>
-          <div className="frame-state-caption-bottom font-mono text-[10px] uppercase tracking-[0.45em] text-foreground/65 font-light pt-2">
-            {STATE_CUE[frameState.label]}
-          </div>
+          {todayQuery.isError ? (
+            <div className="space-y-3" role="alert">
+              <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-destructive">
+                Couldn't load your state
+              </div>
+              <button
+                type="button"
+                onClick={() => void todayQuery.refetch()}
+                className="font-mono text-[9px] uppercase tracking-[0.35em] text-primary/80 hover:text-primary transition-colors"
+              >
+                Try again
+              </button>
+            </div>
+          ) : (
+            <>
+              <div
+                key={headline}
+                className={`frame-state-label font-sans font-extralight uppercase tracking-[0.4em] leading-none ${
+                  current || todayQuery.isLoading
+                    ? "text-[clamp(1.7rem,7vw,2.4rem)]"
+                    : "text-[clamp(1.2rem,5vw,1.7rem)]"
+                }`}
+                style={{
+                  color: labelColor,
+                  textShadow: labelGlow,
+                  transition: "color 1.6s cubic-bezier(0.22, 0.61, 0.36, 1), text-shadow 1.6s cubic-bezier(0.22, 0.61, 0.36, 1)",
+                }}
+                title={state?.source}
+                role={todayQuery.isLoading ? "status" : undefined}
+              >
+                {todayQuery.isLoading ? "…" : headline}
+              </div>
+              <div className="frame-state-caption-bottom font-mono text-[10px] uppercase tracking-[0.45em] text-foreground/65 font-light pt-2">
+                {current ? STATE_CUE[label] : dateLine ?? "Check in to set today's state"}
+              </div>
+              {current && dateLine && (
+                <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/35">{dateLine}</div>
+              )}
+            </>
+          )}
         </div>
 
         {/* ─── Fight readiness — real, or an honest prompt ─────────────
-            Same priority as the Home dashboard: today's self-reported
-            check-in composite, else the last analysed session's score.
-            No data, no number — never "calibrating". */}
-        <Link
-          href={readiness != null && checkinScore != null ? "/home" : "/analyse"}
-          className="group frame-readiness-in flex items-center gap-3 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg px-3 py-1"
-          aria-label={readiness != null ? "View readiness detail" : "Analyse a session"}
-        >
-          <span className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 font-light">
-            Fight readiness
-          </span>
-          <span aria-hidden className="w-px h-3 bg-white/10" />
-          {readiness != null ? (
+            Same as the Home dashboard: today's self-reported check-in
+            composite only. No check-in today, no number — it says so,
+            dates the last one, and offers the check-in. */}
+        {readiness != null ? (
+          <Link
+            href="/home"
+            className="group frame-readiness-in flex items-center gap-3 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg px-3 py-1"
+            aria-label="View readiness detail"
+          >
+            <span className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 font-light">
+              Fight readiness
+            </span>
+            <span aria-hidden className="w-px h-3 bg-white/10" />
             <span className="flex items-baseline gap-1.5">
               <span className="font-sans font-light text-[19px] tabular-nums leading-none text-primary/90">
                 {readiness}
               </span>
               <span className="font-mono text-[9px] uppercase tracking-widest text-foreground/40">
-                / 100 · {readinessSource}
+                / 100 · today
               </span>
             </span>
-          ) : (
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={checkInNow}
+            className="group frame-readiness-in flex items-center gap-3 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg px-3 py-1"
+            aria-label="Check in now"
+          >
+            <span className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 font-light">
+              Fight readiness
+            </span>
+            <span aria-hidden className="w-px h-3 bg-white/10" />
             <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/50 group-hover:text-primary/80 transition-colors">
-              Analyse a session
+              {lastRead ? `No read today · last ${formatDay(lastRead.date)}` : "No read today"} · Check in now
               <ChevronRight className="w-3 h-3" strokeWidth={1.5} />
             </span>
-          )}
-        </Link>
+          </button>
+        )}
 
         <div className="w-full max-w-[10rem] flex items-center gap-3 px-1" aria-hidden>
           <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, hsla(39,49%,36%,0.18))" }} />

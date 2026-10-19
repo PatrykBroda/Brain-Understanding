@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Crosshair, Shield, AlertTriangle, Target, ScanLine } from "lucide-react";
 import { FrameOctagon } from "@/components/frame-octagon";
 import { useAnalysis } from "@/hooks/use-analysis";
+import { AthleteVsOpponent } from "@/components/pose-comparison";
 import type {
   VideoAnalysis,
   Fighter,
@@ -33,7 +34,7 @@ export function SavedOpponentReport({
   fighter: Fighter | null;
   onClose: () => void;
 }) {
-  const { data, isLoading, isError } = useAnalysis(id);
+  const { data, isLoading, isError, refetch } = useAnalysis(id);
   if (isLoading) {
     return (
       <div className="py-16 flex flex-col items-center gap-4">
@@ -47,8 +48,17 @@ export function SavedOpponentReport({
   if (isError || !data?.analysis) {
     return (
       <div className="space-y-4">
-        <div className="border border-destructive/40 bg-destructive/10 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
-          could not load this scout
+        <div role="alert" className="border border-destructive/40 bg-destructive/10 px-3 py-2 space-y-2">
+          <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+            could not load this scout
+          </div>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="font-mono text-[10px] uppercase tracking-widest border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
+          >
+            Try again
+          </button>
         </div>
         <button
           type="button"
@@ -185,6 +195,9 @@ export function OpponentReport({
           </div>
         </section>
       )}
+
+      {/* athlete vs opponent ghost players — only when BOTH tracks exist */}
+      <AthleteVsOpponent analysis={analysis} />
 
       {/* grounded, hedged parallels */}
       {analysis.styleParallels.length > 0 && (

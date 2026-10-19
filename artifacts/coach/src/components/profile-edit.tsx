@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { normaliseFrequency } from "@workspace/onboarding";
 import { Button } from "@/components/ui/button";
 import { useUpdateFighter } from "@/hooks/use-fighter";
 import type { Fighter, FighterUpdate } from "@/lib/api";
+import { NAME_MAX, nameProblem } from "@/lib/onboarding-form";
 import {
   levelsForSport,
   levelLabelForSport,
@@ -55,7 +57,8 @@ function toForm(f: Fighter): FormState {
     primarySport: f.primarySport || "",
     art: f.art,
     level: f.level,
-    trainingFrequency: f.trainingFrequency,
+    // Rows written by older mobile builds hold "3-4" etc.; show the matching option.
+    trainingFrequency: normaliseFrequency(f.trainingFrequency),
     goals: f.goals,
     weaknesses: f.weaknesses,
     bio: f.bio ?? "",
@@ -72,7 +75,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || update.isPending) return;
+    if (nameProblem(form.name) || update.isPending) return;
     const heightCm = form.heightCm.trim() === "" ? null : parseInt(form.heightCm, 10);
     const weightKg = form.weightKg.trim() === "" ? null : parseInt(form.weightKg, 10);
     const reachCm = form.reachCm.trim() === "" ? null : parseInt(form.reachCm, 10);
@@ -100,6 +103,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
     update.mutate(patch, { onSuccess: () => onClose() });
   };
 
+  const nameError = nameProblem(form.name);
   const computedAge = ageFromDob(form.dateOfBirth);
 
   // Sport-conditional art options, value-safe: the stored art is always kept
@@ -135,8 +139,16 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
           className={INPUT_CLASS}
           value={form.name}
           onChange={(e) => set("name", e.target.value)}
+          maxLength={NAME_MAX}
           required
+          aria-invalid={nameError ? true : undefined}
+          aria-describedby={nameError ? "profile-name-error" : undefined}
         />
+        {nameError && (
+          <p id="profile-name-error" role="alert" className="mt-1.5 font-mono text-[10px] uppercase tracking-widest text-destructive">
+            {nameError}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -162,6 +174,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
             value={form.trainingFrequency}
             onChange={(e) => set("trainingFrequency", e.target.value)}
           >
+            <option value="">Not set</option>
             {FREQUENCIES.map((f) => (
               <option key={f} value={f}>
                 {f}
@@ -290,7 +303,8 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
                 ...current,
                 primarySport: sport,
                 art: sport ? sportLabel(sport) : current.art,
-                level: levelsForSport(sport || "mma")[0],
+                // Level ladders differ per sport: choose it again rather than silently pre-selecting one.
+                level: "",
               }));
             }}
           >
@@ -316,9 +330,11 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
             value={form.level}
             onChange={(e) => set("level", e.target.value)}
           >
+            <option value="">Not set</option>
             {(() => {
-              const opts = levelsForSport(form.primarySport || "mma");
-              return opts;
+              const opts = form.primarySport ? levelsForSport(form.primarySport) : [];
+              // A stored level the ladder no longer lists stays selectable so it is not misrepresented.
+              return form.level && !opts.includes(form.level) ? [form.level, ...opts] : opts;
             })().map((l) => (
               <option key={l} value={l}>
                 {l}
@@ -397,7 +413,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
         </button>
         <Button
           type="submit"
-          disabled={update.isPending || !form.name.trim()}
+          disabled={update.isPending || !!nameProblem(form.name)}
           className="flex-1 h-11 font-mono text-xs uppercase tracking-[0.25em] bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {update.isPending ? "Saving..." : "Save profile"}

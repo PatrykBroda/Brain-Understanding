@@ -55,6 +55,8 @@ export function BreathCard({
   if (phases.length === 0) return null;
 
   const current = phases[Math.min(phaseIdx, phases.length - 1)]!;
+  const reduceMotion =
+    typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const scale = running || done ? current.scale : 0.62;
   const transitionSec = running ? current.seconds : 0.4;
 
@@ -78,8 +80,8 @@ export function BreathCard({
             style={{
               clipPath:
                 "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
-              transform: `scale(${scale})`,
-              transition: `transform ${transitionSec}s ease-in-out`,
+              transform: `scale(${reduceMotion ? 1 : scale})`,
+              transition: reduceMotion ? "none" : `transform ${transitionSec}s ease-in-out`,
             }}
           />
           <div className="relative text-center">

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -15,85 +15,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiPatch } from "@/lib/api";
 import type { Fighter } from "@/context/FighterContext";
-import {
-  SPORTS,
-  LEGACY_SPORTS,
-  defaultLevelForSport,
-  levelLabelForSport,
-  levelsForSport,
-} from "@/lib/fighterOptions";
+import { NAME_MAX, nameError } from "@/lib/fighterName";
+import { dismissProps } from "@/components/FormScroll";
+import { useAuth } from "@/context/AuthContext";
+import { commitFighterProfile } from "@/lib/fighterProfileCache";
 
-const PROFILE_SPORTS = [...SPORTS, ...LEGACY_SPORTS];
-
-const FREQS = [
-  { key: "1-2x / week", label: "1-2x" },
-  { key: "3-4x / week", label: "3-4x" },
-  { key: "5-6x / week", label: "5-6x" },
-  { key: "Daily / pro", label: "Daily / pro" },
-];
-
-function ChipSelector({
-  options,
-  value,
-  onSelect,
-}: {
-  options: { key: string; label: string }[];
-  value: string;
-  onSelect: (k: string) => void;
-}) {
-  return (
-    <View style={chip.row}>
-      {options.map((o) => (
-        <Pressable
-          key={o.key}
-          style={[chip.item, value === o.key && chip.selected]}
-          onPress={() => onSelect(o.key)}
-        >
-          <Text style={[chip.text, value === o.key && chip.selectedText]}>
-            {o.label}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
-const chip = StyleSheet.create({
-  row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  item: {
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  selected: {
-    borderColor: "#8A6A2F",
-    backgroundColor: "rgba(138,106,47,0.1)",
-  },
-  text: { fontFamily: "Outfit", fontSize: 13, color: "#666" },
-  selectedText: { color: "#8A6A2F" },
-});
-
-interface FormState {
-  primarySport: string;
-  art: string;
-  level: string;
-  trainingFrequency: string;
-  goals: string;
-  weaknesses: string;
-}
-
-function toForm(f: Fighter): FormState {
-  return {
-    primarySport: f.primarySport ?? "bjj",
-    art: f.art ?? f.primarySport ?? "bjj",
-    level: f.level ?? defaultLevelForSport(f.primarySport),
-    trainingFrequency: f.trainingFrequency ?? "3-4x / week",
-    goals: f.goals ?? "",
-    weaknesses: f.weaknesses ?? "",
-  };
-}
-
+/**
+ * Edit profile: the name. Sport, belt / level, frequency, goals and weaknesses are the ONBOARDING
+ * QUESTIONS section on the Profile tab (pre-filled, one Save), so they are not duplicated here.
+ */
 export function ProfileEditModal({
   fighter,
   visible,
@@ -105,31 +35,37 @@ export function ProfileEditModal({
 }) {
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
-  const [form, setForm] = useState<FormState>(() => toForm(fighter));
+  const { userId } = useAuth();
+  const [name, setName] = useState(fighter.name ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nameTouched, setNameTouched] = useState(false);
+  const nameErr = nameError(name);
 
-  function set<K extends keyof FormState>(k: K, v: FormState[K]) {
-    setForm((f) => ({ ...f, [k]: v }));
-  }
+  // Reopening after a cancel (or a save) starts from the current saved name, not stale edits.
+  useEffect(() => {
+    if (!visible) return;
+    setName(fighter.name ?? "");
+    setNameTouched(false);
+    setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   async function handleSave() {
     if (saving) return;
+    if (nameErr) {
+      setNameTouched(true);
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      await apiPatch("/fighter", {
-        primarySport: form.primarySport,
-        art: form.art || form.primarySport,
-        level: form.level,
-        trainingFrequency: form.trainingFrequency,
-        goals: form.goals.trim() || null,
-        weaknesses: form.weaknesses.trim() || null,
-      });
-      qc.invalidateQueries({ queryKey: ["fighter"] });
+      const resp = await apiPatch<{ fighter?: Fighter }>("/fighter", { name: name.trim() });
+      if (resp?.fighter && userId) await commitFighterProfile(qc, userId, resp.fighter);
+      else await qc.invalidateQueries({ queryKey: ["fighter"] });
       onClose();
     } catch (e: unknown) {
-      setError((e as Error).message ?? "Save failed");
+      setError((e as Error).message || "Save failed");
     } finally {
       setSaving(false);
     }
@@ -164,68 +100,26 @@ export function ProfileEditModal({
             styles.content,
             { paddingBottom: insets.bottom + 40 },
           ]}
-          keyboardShouldPersistTaps="handled"
+          {...dismissProps}
         >
           <View style={styles.field}>
-            <Text style={styles.label}>COMBAT SPORT</Text>
-            <ChipSelector
-              options={PROFILE_SPORTS}
-              value={form.primarySport}
-              onSelect={(k) => {
-                setForm((current) => ({
-                  ...current,
-                  primarySport: k,
-                  art: k,
-                  level: defaultLevelForSport(k),
-                }));
-              }}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>{levelLabelForSport(form.primarySport)}</Text>
-            <ChipSelector
-              options={levelsForSport(form.primarySport)}
-              value={form.level}
-              onSelect={(k) => set("level", k)}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>TRAINING FREQUENCY</Text>
-            <ChipSelector
-              options={FREQS}
-              value={form.trainingFrequency}
-              onSelect={(k) => set("trainingFrequency", k)}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>GOALS</Text>
+            <Text style={styles.label}>NAME</Text>
             <TextInput
-              style={styles.textArea}
-              value={form.goals}
-              onChangeText={(t) => set("goals", t)}
-              placeholder="What are you working toward?"
+              style={[styles.input, nameTouched && nameErr ? styles.inputError : null]}
+              value={name}
+              onChangeText={setName}
+              onBlur={() => setNameTouched(true)}
+              placeholder="Your name"
               placeholderTextColor="#333"
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
+              maxLength={NAME_MAX}
+              autoCapitalize="words"
+              autoComplete="name"
+              textContentType="name"
+              returnKeyType="done"
+              onSubmitEditing={() => void handleSave()}
             />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>ACKNOWLEDGED WEAKNESSES</Text>
-            <TextInput
-              style={styles.textArea}
-              value={form.weaknesses}
-              onChangeText={(t) => set("weaknesses", t)}
-              placeholder="What do you know needs work?"
-              placeholderTextColor="#333"
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
+            {nameTouched && nameErr ? <Text style={styles.errorText}>{nameErr}</Text> : null}
+            <Text style={styles.note}>Your sport, belt, training frequency, goals and weaknesses are under ONBOARDING QUESTIONS on your profile.</Text>
           </View>
 
           {error && <Text style={styles.errorText}>{error}</Text>}
@@ -242,7 +136,7 @@ export function ProfileEditModal({
             {saving ? (
               <ActivityIndicator color="#050505" size="small" />
             ) : (
-              <Text style={styles.saveBtnText}>SAVE CHANGES</Text>
+              <Text style={styles.saveBtnText}>SAVE</Text>
             )}
           </Pressable>
         </ScrollView>
@@ -288,17 +182,18 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
     color: "#444",
   },
-  textArea: {
+  input: {
     fontFamily: "Outfit",
     fontSize: 14,
     color: "#c0c0c0",
     borderWidth: 1,
     borderColor: "#1a1a1a",
     backgroundColor: "#0a0a0a",
-    padding: 12,
-    minHeight: 80,
-    lineHeight: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
+  inputError: { borderColor: "#c0392b" },
+  note: { fontFamily: "Outfit", fontSize: 12, lineHeight: 18, color: "#555" },
   errorText: {
     fontFamily: "Outfit",
     fontSize: 13,

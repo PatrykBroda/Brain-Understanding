@@ -14,22 +14,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { OrbGL } from "@/components/OrbGL";
 import { useAuth } from "@/context/AuthContext";
-import { useFighter } from "@/context/FighterContext";
-import { useTodayCheckin } from "@/hooks/useCheckin";
+import { useToday } from "@/hooks/useToday";
+import { DisclosureNotice } from "@/components/TodayCards";
 import { apiGet } from "@/lib/api";
+import { formatDay } from "@/lib/localDay";
+import { stateDateLine, stateHeadline } from "@/lib/today";
 import {
   readinessModifier,
   applyReadinessModifier,
   type ChatMessageLike,
 } from "@/lib/readinessModifier";
-
-interface Fact {
-  id: number;
-  category: string;
-  content: string;
-  status: string;
-  confidence: number;
-}
 
 type OrbState =
   | "Dormant"
@@ -54,73 +48,25 @@ const STATE_CUE: Record<OrbState, string> = {
   Overextended: "Cut volume. Keep structure.",
 };
 
-function deriveState(facts: Fact[]): { state: OrbState; source: string } {
-  const active = facts.filter((f) => f.status === "active");
-  const content = active.map((f) => f.content.toLowerCase()).join(" ");
-
-  if (/volatile|fragmented|breaking|panic|collapse/.test(content))
-    return { state: "Volatile", source: "recent fragmentation pattern" };
-  if (/overextended|overreaching|beyond capacity/.test(content))
-    return { state: "Overextended", source: "load pattern" };
-  if (/tight|tense|clenched|rigid/.test(content))
-    return { state: "Tight", source: "tension marker" };
-  if (/recovering|injury|rest|fatigue|tired/.test(content))
-    return { state: "Recovering", source: "recovery note" };
-  if (/composed|calm|centered|controlled/.test(content))
-    return { state: "Composed", source: "composure pattern" };
-  if (/loaded|high.*volume|intense|heavy/.test(content))
-    return { state: "Loaded", source: "training load" };
-  if (active.length >= 3) return { state: "Stable", source: "active model" };
-
-  return { state: "Dormant", source: "no data yet" };
-}
-
-interface AnalysisListItem {
-  id: number;
-  sessionScore: number | null;
-  locked?: boolean;
-}
-
 export default function StateScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isSignedIn } = useAuth();
-  const { fighter } = useFighter();
 
-  const { data: rawFacts } = useQuery<Fact[]>({
-    queryKey: ["facts"],
-    queryFn: () =>
-      apiGet<{ facts: Fact[]; count: number }>("/memory").then((r) => {
-        const f = r?.facts;
-        return Array.isArray(f) ? f : [];
-      }),
-    enabled: !!isSignedIn,
-    staleTime: 60_000,
-  });
+  // The server is the one authority on the athlete's State for their local day. An older
+  // read is never presented as today's.
+  const todayQuery = useToday();
+  const today = todayQuery.data ?? null;
+  const stateInfo = today?.state ?? null;
+  const current = !!stateInfo?.current && !!stateInfo.name;
+  // The orb only takes a state when it is today's read; otherwise it rests at Dormant.
+  const state: OrbState = current && stateInfo?.name ? stateInfo.name : "Dormant";
+  const loading = todayQuery.isLoading;
+  const failed = todayQuery.isError && !todayQuery.data;
+  const dateLine = stateInfo ? stateDateLine(stateInfo, (d) => formatDay(d).toUpperCase()) : null;
 
-  const facts: Fact[] = Array.isArray(rawFacts) ? rawFacts : [];
-  const { state, source } = useMemo(() => deriveState(facts), [facts]);
-
-  // Readiness priority mirrors the Home dashboard: today's self-reported
-  // check-in composite first, else the last analysed session's score.
-  const checkinQuery = useTodayCheckin();
-  const checkin = checkinQuery.data?.checkin ?? null;
-  const checkinScore = checkin
-    ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
-    : null;
-
-  const analysesQuery = useQuery<AnalysisListItem[]>({
-    queryKey: ["analyses"],
-    queryFn: () =>
-      apiGet<{ analyses: AnalysisListItem[] }>("/analysis").then((r) =>
-        Array.isArray(r?.analyses) ? r.analyses : [],
-      ),
-    enabled: !!fighter,
-    staleTime: 60_000,
-  });
-  const latest =
-    analysesQuery.data?.find((a) => !a.locked && a.sessionScore != null) ?? null;
-  const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
+  // Readiness comes from today's check-in only (never an older one passed off as today's).
+  const checkinScore = today?.readiness.today?.score ?? null;
 
   // Recent chat drives a small ±10 modifier on top of the base readiness. It
   // reuses the same conversation the chat tab reads, so no new data flow.
@@ -138,9 +84,8 @@ export default function StateScreen() {
     [conversationQuery.data],
   );
 
-  const baseReadiness = checkinScore ?? sessionScore;
-  const readiness = applyReadinessModifier(baseReadiness, chatModifier);
-  const readinessSource = checkinScore != null ? "today" : "last session";
+  const readiness = applyReadinessModifier(checkinScore, chatModifier);
+  const readinessSource = "today";
 
   // Doorway label mirrors the prototype: "Continue" only when a real prior
   // session exists, else "Enter". Reuses the conversation query already fetched
@@ -153,7 +98,8 @@ export default function StateScreen() {
   // devices (iPhone SE) or when the state text wraps to a second line.
   const { width } = useWindowDimensions();
   const [centerHeight, setCenterHeight] = useState(0);
-  const TEXT_AND_GAPS = 160; // stateCaption + stateLabel + stateCue + gaps (readinessRow now lives outside center)
+  // The disclosure notice (no read yet) and the dated line sit under the cue, so give the orb less room when they show.
+  const TEXT_AND_GAPS = 160 + (today && today.disclosure.code !== "none" ? 140 : 0) + (dateLine ? 24 : 0); // stateCaption + stateLabel + stateCue + gaps (readinessRow now lives outside center)
   const orbSize =
     centerHeight > 0
       ? Math.round(Math.min(width, centerHeight - TEXT_AND_GAPS, 400))
@@ -180,14 +126,6 @@ export default function StateScreen() {
             <Text style={styles.subline}>STATE · CALIBRATION SYSTEM</Text>
           </View>
         </View>
-        <Pressable
-          onPress={() => router.push("/(tabs)/profile")}
-          style={styles.profileBtn}
-          hitSlop={12}
-          accessibilityLabel="Open profile"
-        >
-          <Feather name="shield" size={18} color="#666" />
-        </Pressable>
       </View>
 
       {/* Orb */}
@@ -195,8 +133,36 @@ export default function StateScreen() {
         <OrbGL state={state} size={orbSize} />
 
         <Text style={styles.stateCaption}>STATE</Text>
-        <Text style={styles.stateLabel}>{state.toUpperCase()}</Text>
-        <Text style={styles.stateCue}>{STATE_CUE[state]}</Text>
+        {failed ? (
+          <>
+            <Text style={[styles.stateLabel, { color: "#666" }]}>UNAVAILABLE</Text>
+            <Text style={styles.stateCue}>COULDN'T LOAD YOUR STATE. CHECK YOUR CONNECTION.</Text>
+            <Pressable onPress={() => void todayQuery.refetch()} hitSlop={8} accessibilityRole="button">
+              <View style={styles.readinessCta}>
+                <Text style={styles.readinessCtaText}>TRY AGAIN</Text>
+                <Feather name="chevron-right" size={12} color="#8A6A2F" />
+              </View>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Text style={[styles.stateLabel, !current && { color: "#666" }]}>
+              {(loading || !stateInfo ? (loading ? "READING…" : "NO READ YET") : stateHeadline(stateInfo)).toUpperCase()}
+            </Text>
+            {dateLine ? <Text style={styles.stateDate}>{dateLine}</Text> : null}
+            <Text style={styles.stateCue}>
+              {current ? STATE_CUE[state] : "FRAME HOLDS NO READ FOR TODAY. CHECK IN OR TELL YOUR COACH HOW TRAINING WENT."}
+            </Text>
+            {today && today.disclosure.code !== "none" ? (
+              <View style={{ alignSelf: "stretch", paddingHorizontal: 32 }}>
+                <DisclosureNotice
+                  disclosure={today.disclosure}
+                  onCheckIn={() => router.push({ pathname: "/(tabs)/home", params: { checkin: "1", n: String(Date.now()) } })}
+                />
+              </View>
+            ) : null}
+          </>
+        )}
       </View>
 
       {/* Fight readiness — sits between the orb block and the button so it
@@ -304,6 +270,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
     letterSpacing: 8,
     color: "#8A6A2F",
+  },
+  stateDate: {
+    fontFamily: "SpaceMono",
+    fontSize: 9,
+    letterSpacing: 3,
+    color: "#555",
   },
   stateCue: {
     fontFamily: "SpaceMono",

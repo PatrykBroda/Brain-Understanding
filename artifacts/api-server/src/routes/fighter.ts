@@ -8,8 +8,13 @@ import {
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
-import { deriveSpiritAnimal } from "../lib/spiritAnimals";
 import { hasAiConsentForUser } from "../lib/aiConsent";
+import { deriveSpiritAnimal } from "../lib/spiritAnimals";
+import { archetypeStateFor, shapeFighter } from "../lib/archetypeGate";
+import { getActiveFacts } from "../lib/factsService";
+import type { Fighter } from "@workspace/db";
+import { prepareFighterBody, questionnaireChanged } from "../lib/fighterBody";
+import { recordFinishIfCompleted } from "../lib/onboardingEvents";
 
 const router: IRouter = Router();
 
@@ -28,13 +33,42 @@ function ageFromDob(dob: string | null | undefined): number | null {
   return age >= 0 && age < 130 ? age : null;
 }
 
+/**
+ * What every /fighter response sends: the row with the archetype (animal) withheld until
+ * FRAME's understanding of the athlete reaches 25%, plus `understanding` and
+ * `archetypeUnlocked` so the apps can say why. The animal is also only (re)assigned here
+ * once unlocked; sign-up and the questionnaire no longer assign one (there is nothing to read yet).
+ */
+async function respondFighter(row: Fighter, opts: { personalityChanged?: boolean }, log: { warn: (o: object, m: string) => void }) {
+  const facts = await getActiveFacts(row.id);
+  const state = archetypeStateFor(facts);
+  let current = row;
+  if (state.archetypeUnlocked && (opts.personalityChanged || !row.spiritAnimal) && (await hasAiConsentForUser(row.userId))) {
+    try {
+      const derived = await deriveSpiritAnimal(row, log as never);
+      if (derived) {
+        const [reread] = await db
+          .update(fightersTable)
+          .set({ spiritAnimal: derived.animal, spiritAnimalTagline: derived.tagline })
+          .where(eq(fightersTable.id, row.id))
+          .returning();
+        current = reread ?? row;
+      }
+    } catch (err) {
+      log.warn({ err }, "archetype derivation failed");
+    }
+  }
+  return shapeFighter(current, state);
+}
+
 router.get("/fighter", async (req, res) => {
   const fighter = await getUserFighter(req);
-  res.json({ fighter: fighter ?? null });
+  res.json({ fighter: fighter ? await respondFighter(fighter, {}, req.log) : null });
 });
 
 router.post("/fighter", async (req, res) => {
-  const parsed = insertFighterSchema.safeParse(req.body);
+  const current = await getUserFighter(req);
+  const parsed = insertFighterSchema.safeParse(prepareFighterBody(req.body, current ?? undefined));
   if (!parsed.success) {
     res.status(400).json({ error: "invalid fighter", details: parsed.error.flatten() });
     return;
@@ -46,8 +80,14 @@ router.post("/fighter", async (req, res) => {
     res.status(400).json({ error: "invalid date of birth" });
     return;
   }
-  const values = { ...parsed.data, age: derivedAge };
   const existing = await getUserFighter(req);
+  const values: Record<string, unknown> & typeof parsed.data & { age: number } = {
+    ...parsed.data,
+    age: derivedAge,
+    ...(!existing || questionnaireChanged(existing as unknown as Record<string, unknown>, parsed.data as Record<string, unknown>)
+      ? { questionnaireUpdatedAt: req.frameNow ?? new Date() }
+      : {}),
+  };
   const aiConsent = await hasAiConsentForUser(userId);
 
   if (existing) {
@@ -56,25 +96,10 @@ router.post("/fighter", async (req, res) => {
       .set(values)
       .where(eq(fightersTable.id, existing.id))
       .returning();
-
-    // Re-read the spirit animal when the personality changed or it was never set.
     const personalityChanged =
       (parsed.data.personality ?? existing.personality) !== existing.personality;
-    // Profile onboarding/editing must remain available without consent.  The
-    // optional AI enrichment is simply deferred until a consented edit.
-    if (updated && aiConsent && (personalityChanged || !updated.spiritAnimal)) {
-      const derived = await deriveSpiritAnimal(updated, req.log);
-      if (derived) {
-        const [reread] = await db
-          .update(fightersTable)
-          .set({ spiritAnimal: derived.animal, spiritAnimalTagline: derived.tagline })
-          .where(eq(fightersTable.id, updated.id))
-          .returning();
-        res.json({ fighter: reread ?? updated });
-        return;
-      }
-    }
-    res.json({ fighter: updated });
+    if (updated) await recordFinishIfCompleted(userId, existing, updated, req.log);
+    res.json({ fighter: updated ? await respondFighter(updated, { personalityChanged }, req.log) : existing });
     return;
   }
 
@@ -83,28 +108,20 @@ router.post("/fighter", async (req, res) => {
     .values({ ...values, userId })
     .returning();
 
-  if (created && aiConsent) {
-    const derived = await deriveSpiritAnimal(created, req.log);
-    if (derived) {
-      const [enriched] = await db
-        .update(fightersTable)
-        .set({ spiritAnimal: derived.animal, spiritAnimalTagline: derived.tagline })
-        .where(eq(fightersTable.id, created.id))
-        .returning();
-      res.json({ fighter: enriched ?? created });
-      return;
-    }
-  }
-  res.json({ fighter: created });
+  // Funnel: required answers present for the first time (analytics only, never throws).
+  if (created) await recordFinishIfCompleted(userId, null, created, req.log);
+
+  // No archetype at sign-up: FRAME has nothing to read yet (see respondFighter).
+  res.json({ fighter: created ? await respondFighter(created, {}, req.log) : created });
 });
 
 router.patch("/fighter", async (req, res) => {
-  const parsed = updateFighterSchema.safeParse(req.body);
+  const existing = await getUserFighter(req);
+  const parsed = updateFighterSchema.safeParse(prepareFighterBody(req.body, existing ?? undefined));
   if (!parsed.success) {
     res.status(400).json({ error: "invalid fighter", details: parsed.error.flatten() });
     return;
   }
-  const existing = await getUserFighter(req);
   if (!existing) {
     res.status(404).json({ error: "no fighter to update" });
     return;
@@ -123,8 +140,11 @@ router.patch("/fighter", async (req, res) => {
   }
 
   if (Object.keys(patch).length === 0) {
-    res.json({ fighter: existing });
+    res.json({ fighter: await respondFighter(existing, {}, req.log) });
     return;
+  }
+  if (questionnaireChanged(existing as unknown as Record<string, unknown>, patch)) {
+    patch.questionnaireUpdatedAt = req.frameNow ?? new Date();
   }
 
   const [updated] = await db
@@ -133,23 +153,11 @@ router.patch("/fighter", async (req, res) => {
     .where(eq(fightersTable.id, existing.id))
     .returning();
 
-  // Re-derive the spirit animal when the personality changed.
+  // The archetype is re-read when the answers behind it changed AND understanding allows one.
   const personalityChanged =
     patch.personality != null && patch.personality !== existing.personality;
-  const aiConsent = await hasAiConsentForUser(req.userId!);
-  if (updated && aiConsent && personalityChanged) {
-    const derived = await deriveSpiritAnimal(updated, req.log);
-    if (derived) {
-      const [reread] = await db
-        .update(fightersTable)
-        .set({ spiritAnimal: derived.animal, spiritAnimalTagline: derived.tagline })
-        .where(eq(fightersTable.id, updated.id))
-        .returning();
-      res.json({ fighter: reread ?? updated });
-      return;
-    }
-  }
-  res.json({ fighter: updated ?? existing });
+  if (updated) await recordFinishIfCompleted(req.userId!, existing, updated, req.log);
+  res.json({ fighter: updated ? await respondFighter(updated, { personalityChanged }, req.log) : existing });
 });
 
 // ── Customizable faded hero image for the profile fighter-card ────────────────

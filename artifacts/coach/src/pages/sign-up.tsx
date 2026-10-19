@@ -8,18 +8,22 @@ import {
 } from "@workspace/ai-consent";
 import { AiConsentModal } from "@/components/ai-consent-modal";
 import type { AiConsentStatus } from "@/lib/api";
+import { NAME_MAX, validateSignUp } from "@/lib/onboarding-form";
+import { SIGNUP_STEPS, createSignupTracker } from "@/lib/onboarding-tracking";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function SignUpPage() {
   const { signIn } = useAuth();
   const [, setLocation] = useLocation();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [showAiConsent, setShowAiConsent] = useState(false);
+  const [attempted, setAttempted] = useState(false);
 
   const signupConsentStatus: AiConsentStatus = {
     accepted: false,
@@ -30,8 +34,10 @@ export default function SignUpPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (loading || !acceptedLegal) return;
+    if (loading) return;
+    setAttempted(true);
     setError(null);
+    if (Object.keys(validateSignUp({ name, email, password, acceptedLegal })).length > 0) return;
     setShowAiConsent(true);
   }
 
@@ -44,12 +50,16 @@ export default function SignUpPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
+          // Sign-up asks for name, email and password only; the profile questions (Profile tab) start from this name.
+          name: name.trim(),
+          email: email.trim(),
           password,
           acceptedTerms: acceptedLegal,
           acceptedPrivacy: acceptedLegal,
           acceptedAiConsent: true,
           aiConsentVersion: AI_CONSENT_VERSION,
+          // Funnel: lets the server record "account created" against this app.
+          app: "coach",
         }),
       });
       const data = (await res.json()) as { token?: string; error?: string };
@@ -57,6 +67,8 @@ export default function SignUpPage() {
         setError(data.error ?? "Sign-up failed");
         return;
       }
+      // Funnel: the server records "signup"; we add "home" (fire-and-forget; never blocks the redirect).
+      createSignupTracker(data.token!).track(SIGNUP_STEPS.home, "complete");
       signIn(data.token!);
       setLocation("/home", { replace: true });
     } catch {
@@ -66,98 +78,132 @@ export default function SignUpPage() {
     }
   }
 
+  const problems = validateSignUp({ name, email, password, acceptedLegal });
+  const nameErr = attempted ? problems.name : undefined;
+  const emailErr = attempted ? problems.email : undefined;
+  const passwordErr = password.length > 0 || attempted ? problems.password : undefined;
+  const legalErr = attempted ? problems.legal : undefined;
+
   return (
-    <AuthLayout>
-      <div className="w-full max-w-[400px] bg-[hsl(0,0%,6%)] border border-white/[0.06] rounded-2xl overflow-hidden">
-        <div className="px-8 pt-8 pb-6">
-          <div className="mb-6 text-center">
-            <div className="font-mono text-[15px] uppercase tracking-[0.18em] text-foreground/95 font-light">
-              Create your FRAME account
-            </div>
-            <label className="flex items-start gap-3 text-[11px] text-foreground/65 leading-relaxed mt-4">
-              <input
-                type="checkbox"
-                checked={acceptedLegal}
-                onChange={(e) => setAcceptedLegal(e.target.checked)}
-                required
-                className="mt-0.5 accent-[hsl(var(--primary))]"
-              />
-              <span>
-                I accept the{" "}
-                <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-primary underline">Terms of Service</a>
-                {" "}and{" "}
-                <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-primary underline">Privacy Policy and AI data-use disclosure</a>.
-              </span>
+    <AuthLayout compact>
+      <div className="entry-card w-full px-5 pb-3 pt-5">
+        <h1 className="entry-title">Create your account</h1>
+
+        <form onSubmit={handleSubmit} noValidate className="mt-4 flex flex-col gap-3.5">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="signup-name" className="entry-label">
+              Name
             </label>
-            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/55 mt-3">
-              Calibration system
-            </div>
+            <input
+              id="signup-name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
+              maxLength={NAME_MAX}
+              placeholder="What should we call you?"
+              aria-invalid={nameErr ? true : undefined}
+              aria-describedby={nameErr ? "signup-name-err" : undefined}
+              className="entry-field"
+            />
+            {nameErr && (
+              <span id="signup-name-err" role="alert" className="text-xs text-[var(--f-red-text)]">
+                {nameErr}
+              </span>
+            )}
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/70">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                className="bg-[hsl(0,0%,9%)] border border-white/[0.08] text-foreground placeholder:text-foreground/30 px-3 py-2.5 rounded-md focus:border-primary/40 focus:outline-none transition-colors"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/70">
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                autoComplete="new-password"
-                className="bg-[hsl(0,0%,9%)] border border-white/[0.08] text-foreground placeholder:text-foreground/30 px-3 py-2.5 rounded-md focus:border-primary/40 focus:outline-none transition-colors"
-              />
-              <span className="font-mono text-[9px] text-foreground/40 tracking-wide">
-                Minimum 8 characters
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="signup-email" className="entry-label">
+              Email
+            </label>
+            <input
+              id="signup-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-invalid={emailErr || error ? true : undefined}
+              aria-describedby={emailErr ? "signup-email-err" : undefined}
+              className="entry-field"
+            />
+            {emailErr && (
+              <span id="signup-email-err" role="alert" className="text-xs text-[var(--f-red-text)]">
+                {emailErr}
               </span>
-            </div>
-
-            {error && (
-              <p className="font-mono text-[11px] tracking-wide text-[hsl(0,72%,62%)]">
-                {error}
-              </p>
             )}
+          </div>
 
-            <button
-              type="submit"
-              disabled={
-                loading ||
-                !email ||
-                !password ||
-                !acceptedLegal
-              }
-              className="bg-primary text-black font-mono uppercase tracking-[0.25em] text-[11px] py-3 rounded-md hover:bg-primary/90 transition-colors shadow-[0_8px_30px_-10px_hsla(39,49%,36%,0.4)] disabled:opacity-50"
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="signup-password" className="entry-label">
+              Password
+            </label>
+            <input
+              id="signup-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              aria-invalid={passwordErr || error ? true : undefined}
+              aria-describedby="signup-password-hint"
+              className="entry-field"
+            />
+            <span
+              id="signup-password-hint"
+              role={passwordErr ? "alert" : undefined}
+              className={`text-xs ${passwordErr ? "text-[var(--f-red-text)]" : "text-[var(--f-text-3)]"}`}
             >
-              {loading ? "Creating account…" : "Create account"}
-            </button>
-          </form>
-        </div>
+              {passwordErr ?? "Minimum 8 characters"}
+            </span>
+          </div>
 
-        <div className="px-8 py-4 border-t border-white/[0.06] text-center">
-          <span className="font-mono text-[11px] text-foreground/55">
-            Already have an account?{" "}
-            <a
-              href={`${basePath}/sign-in`}
-              className="text-primary hover:text-primary/80 transition-colors"
-            >
-              Sign in
-            </a>
-          </span>
+          <label className="flex min-h-[44px] items-start gap-3 text-sm leading-5 text-[var(--f-text-2)]">
+            <input
+              type="checkbox"
+              checked={acceptedLegal}
+              onChange={(e) => setAcceptedLegal(e.target.checked)}
+              className="mt-0.5 h-5 w-5 flex-none accent-[#B9A477]"
+            />
+            <span>
+              I accept the{" "}
+              <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-[var(--f-gold)] underline underline-offset-2">Terms of Service</a>
+              {" "}and{" "}
+              <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-[var(--f-gold)] underline underline-offset-2">Privacy Policy and AI data-use disclosure</a>.
+            </span>
+          </label>
+
+          {legalErr && (
+            <p role="alert" className="-mt-2 text-sm text-[var(--f-red-text)]">
+              {legalErr}
+            </p>
+          )}
+
+          {error && (
+            <p role="alert" className="text-sm text-[var(--f-red-text)]">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            data-loading={loading ? "true" : undefined}
+            className="entry-btn w-full data-[loading=true]:!opacity-100"
+          >
+            Create account
+          </button>
+        </form>
+
+        <div className="mt-2 flex items-center justify-center gap-2 text-sm text-[var(--f-text-2)]">
+          <span>Already have an account?</span>
+          <a
+            href={`${basePath}/sign-in`}
+            className="inline-flex min-h-[44px] items-center font-semibold text-[var(--f-gold)] transition-colors hover:text-[var(--f-gold-pale)]"
+          >
+            Sign in
+          </a>
         </div>
       </div>
       {showAiConsent && (

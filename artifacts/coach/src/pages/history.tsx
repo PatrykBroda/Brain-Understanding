@@ -6,6 +6,7 @@ import { useMemory } from "@/hooks/use-memory";
 import { useAnalyses } from "@/hooks/use-analysis";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useFramePlus } from "@/components/frame-plus-modal";
+import { factLastSeen, observationPrompt } from "@/lib/fact-seen";
 import type { AthleteFact, FactCategory, AnalysisListItem } from "@/lib/api";
 
 // Local, self-owned label map — human-readable names for each fact category.
@@ -110,18 +111,19 @@ export default function HistoryPage() {
     };
 
     for (const a of analyses) bucketFor(a.createdAt).analyses.push(a);
-    for (const f of facts) bucketFor(f.createdAt).facts.push(f);
+    for (const f of facts) bucketFor(factLastSeen(f)).facts.push(f);
 
     const arr = [...map.values()].sort(
       (a, b) => b.date.getTime() - a.date.getTime(),
     );
     for (const day of arr) {
       day.analyses.sort((x, y) => (x.createdAt < y.createdAt ? 1 : -1));
-      day.facts.sort((x, y) => (x.createdAt < y.createdAt ? 1 : -1));
+      day.facts.sort((x, y) => (factLastSeen(x) < factLastSeen(y) ? 1 : -1));
     }
     return arr;
   }, [facts, analyses]);
 
+  const hasError = memoryQuery.isError || analysesQuery.isError;
   const isEmpty = !isLoading && days.length === 0;
 
   return (
@@ -207,6 +209,26 @@ export default function HistoryPage() {
           {isLoading ? (
             <div className="flex justify-center pt-16 text-muted-foreground font-mono text-xs uppercase tracking-widest">
               Loading record…
+            </div>
+          ) : hasError ? (
+            <div
+              role="alert"
+              className="flex flex-col items-center gap-4 pt-16 text-center border border-destructive/40 bg-destructive/10 p-6"
+            >
+              <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-destructive/90">
+                Could not load your history
+              </div>
+              <p className="text-sm text-foreground/70">Check your connection and try again.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  void memoryQuery.refetch();
+                  void analysesQuery.refetch();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-destructive/50 text-destructive/90 hover:bg-destructive/15 font-mono text-[10px] uppercase tracking-widest transition-colors"
+              >
+                Try again
+              </button>
             </div>
           ) : isEmpty ? (
             <div className="flex flex-col items-center justify-center min-h-[45vh] gap-6 text-center px-4">
@@ -342,9 +364,11 @@ export default function HistoryPage() {
                           ) : (
                             <div className="mt-4 space-y-4">
                               {day.facts.map((f) => (
-                                <div
+                                <Link
                                   key={`f-${f.id}`}
-                                  className="border-l border-white/[0.08] pl-3.5"
+                                  href={`/chat?prefill=${encodeURIComponent(observationPrompt(f, CATEGORY_LABELS[f.category]))}&n=${f.id}`}
+                                  aria-label={`${CATEGORY_LABELS[f.category]}: ${f.content}. Discuss this with your coach`}
+                                  className="group block border-l border-white/[0.08] hover:border-primary/50 pl-3.5 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 transition-colors"
                                 >
                                   <div className="flex items-baseline justify-between gap-3 mb-1">
                                     <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 truncate">
@@ -352,10 +376,17 @@ export default function HistoryPage() {
                                     </div>
                                     <ConfidenceDots value={f.confidence} source={f.source} />
                                   </div>
-                                  <div className="text-[0.95rem] leading-relaxed text-foreground/90">
-                                    {f.content}
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="text-[0.95rem] leading-relaxed text-foreground/90">
+                                      {f.content}
+                                    </div>
+                                    <ChevronRight
+                                      className="mt-1 h-3.5 w-3.5 flex-none text-foreground/30 group-hover:text-primary/80 transition-colors"
+                                      strokeWidth={1.5}
+                                      aria-hidden
+                                    />
                                   </div>
-                                </div>
+                                </Link>
                               ))}
                             </div>
                           )}

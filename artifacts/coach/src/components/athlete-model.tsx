@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Lock } from "lucide-react";
+import { observationPrompt, factLastSeen } from "@/lib/fact-seen";
+import { ChevronRight, Lock } from "lucide-react";
 import { useFighter } from "@/hooks/use-fighter";
 import { useMemory } from "@/hooks/use-memory";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -9,7 +10,7 @@ import { useFramePlus } from "@/components/frame-plus-modal";
 import { AthleteStatePanel } from "@/components/athlete-state-panel";
 import { sportLabel } from "@/lib/fighter-options";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
-import { ontologyDomainOf, computeModelMaturity } from "@workspace/ontology";
+import { ARCHETYPE_UNLOCK_UNDERSTANDING, computeModelMaturity, ontologyDomainOf } from "@workspace/ontology";
 import { api, type FactCategory } from "@/lib/api";
 
 const CATEGORY_LABELS: Record<FactCategory, string> = {
@@ -217,6 +218,17 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
       })}
     </svg>
   );
+}
+
+// "Seen today / yesterday / N days ago" from an ISO timestamp, on the browser's calendar.
+function seenAgo(iso: string): string | null {
+  const t = new Date(iso);
+  if (Number.isNaN(t.getTime())) return null;
+  const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOf(new Date()) - startOf(t)) / 86_400_000);
+  if (days <= 0) return "Seen today";
+  if (days === 1) return "Seen yesterday";
+  return `Seen ${days} days ago`;
 }
 
 // ─── Segmented confidence bar ─────────────────────────────────────────────────
@@ -713,18 +725,22 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
           <div className="divide-y" style={{ borderColor: "hsla(0,0%,100%,0.05)" }}>
             <IdentityRow
               label="Current style"
-              value={`${fighter.primarySport ? sportLabel(fighter.primarySport) : fighter.art ?? "—"} · ${fighter.level}`}
+              value={[fighter.primarySport ? sportLabel(fighter.primarySport) : fighter.art, fighter.level].filter((p) => !!p).join(" · ") || "—"}
             />
-            {arch && (
+            {arch ? (
               <>
                 <IdentityRow label="Primary archetype" value={arch.name} />
                 <IdentityRow
                   label="Pressure response"
                   value={leadClause(arch.pressureSignature)}
                 />
-                <IdentityRow label="Gift" value={leadClause(arch.gift)} />
-                <IdentityRow label="Shadow" value={leadClause(arch.shadow)} />
               </>
+            ) : (
+              <IdentityRow
+                label="Archetype"
+                value="Not assigned yet"
+                sub={`FRAME assigns one once it understands ${ARCHETYPE_UNLOCK_UNDERSTANDING}% of your game. Now ${computed.frameConfidence}%.`}
+              />
             )}
             <IdentityRow
               label="Coaching mode"
@@ -772,7 +788,7 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
               Cadence
             </div>
             <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/95 leading-tight">
-              {fighter.trainingFrequency}
+              {fighter.trainingFrequency || "—"}
             </div>
           </div>
           <div className="px-3 py-2.5 text-center">
@@ -821,7 +837,22 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
           </Link>
         </div>
 
-        {modelLocked ? (
+        {memoryQuery.isError ? (
+          <Panel className="px-5 py-5">
+            <div role="alert" className="space-y-3">
+              <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+                Could not load the model
+              </div>
+              <button
+                type="button"
+                onClick={() => void memoryQuery.refetch()}
+                className="px-3 py-1.5 border border-destructive/50 text-destructive/90 hover:bg-destructive/15 font-mono text-[10px] uppercase tracking-widest transition-colors"
+              >
+                Try again
+              </button>
+            </div>
+          </Panel>
+        ) : modelLocked ? (
           <Panel>
             <button
               type="button"
@@ -865,31 +896,48 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
                   </div>
                 </div>
                 <div className="space-y-2">
-                  {grouped[c]!.map((f) => (
-                    <div
-                      key={f.id}
-                      className="pl-4 py-1 flex items-baseline justify-between gap-3"
-                      style={{ borderLeft: "1px solid hsla(39,49%,36%,0.25)" }}
-                    >
-                      <div
-                        className="min-w-0 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/75 truncate"
-                        title={f.topic || undefined}
+                  {grouped[c]!.map((f) => {
+                    const ago = seenAgo(factLastSeen(f));
+                    return (
+                      <Link
+                        key={f.id}
+                        href={`/chat?prefill=${encodeURIComponent(observationPrompt(f, CATEGORY_LABELS[c]))}&n=${f.id}`}
+                        aria-label={`${f.topic || f.content}. Discuss this with your coach`}
+                        className="group block pl-4 py-1 outline-none hover:bg-white/[0.02] focus-visible:ring-1 focus-visible:ring-primary/50 transition-colors"
+                        style={{ borderLeft: "1px solid hsla(39,49%,36%,0.25)" }}
                       >
-                        {f.topic || f.content}
-                      </div>
-                      <div className="flex items-baseline gap-2.5 flex-none">
-                        {(f.evidenceCount ?? 1) > 1 && (
-                          <span
-                            className="font-mono text-[9px] tabular-nums text-primary/70"
-                            title={`Seen ${f.evidenceCount} times across chat, footage and calibration`}
+                        <div className="flex items-baseline justify-between gap-3">
+                          <div
+                            className="min-w-0 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/75 truncate"
+                            title={f.topic || undefined}
                           >
-                            ×{f.evidenceCount}
-                          </span>
+                            {f.topic || f.content}
+                          </div>
+                          <div className="flex items-baseline gap-2.5 flex-none">
+                            {(f.evidenceCount ?? 1) > 1 && (
+                              <span
+                                className="font-mono text-[9px] tabular-nums text-primary/70"
+                                title={`Seen ${f.evidenceCount} times across chat, footage and calibration`}
+                              >
+                                ×{f.evidenceCount}
+                              </span>
+                            )}
+                            <FactConfidence value={f.confidence} />
+                            <ChevronRight
+                              className="h-3 w-3 self-center text-foreground/30 group-hover:text-primary/80 transition-colors"
+                              strokeWidth={1.5}
+                              aria-hidden
+                            />
+                          </div>
+                        </div>
+                        {ago && (
+                          <div className="mt-0.5 font-mono text-[9px] tracking-wide text-muted-foreground/55">
+                            {ago}
+                          </div>
                         )}
-                        <FactConfidence value={f.confidence} />
-                      </div>
-                    </div>
-                  ))}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             ))}

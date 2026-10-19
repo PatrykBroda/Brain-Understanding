@@ -1,28 +1,35 @@
 import { BlurView } from "expo-blur";
-import { Redirect, Tabs } from "expo-router";
+import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import React from "react";
-import { Image, Platform, StyleSheet } from "react-native";
+import React, { useEffect } from "react";
+import { AppState, Image, Platform, StyleSheet } from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useFighter } from "@/context/FighterContext";
+import { refreshModel } from "@/lib/modelRefresh";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const { fighter, isLoading, error } = useFighter();
+  const qc = useQueryClient();
 
-  // Guard: if we entered tabs on a cached profile and the server has since
-  // confirmed there is no fighter, route to onboarding instead of leaving the
-  // athlete inside an app with no profile. (Errors keep the current screen —
-  // a flaky network must not eject a signed-in athlete.)
-  if (!isLoading && !error && !fighter) {
-    return <Redirect href="/onboarding" />;
-  }
+  // Tabs stay mounted, so a cached model never refetches by itself. Refresh it
+  // whenever a tab comes into focus and whenever the app returns to the
+  // foreground (the coach/analysis may have updated it meanwhile).
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") refreshModel(qc);
+    });
+    return () => sub.remove();
+  }, [qc]);
+
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
   return (
     <Tabs
+      screenListeners={{
+        focus: () => refreshModel(qc),
+      }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: "#8A6A2F",

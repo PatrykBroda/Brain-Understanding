@@ -1,3 +1,7 @@
+import { SAVE_TIMEOUT_MS } from "./onboarding-form";
+import { deviceTimeZone } from "./local-day";
+import type { TodayView } from "./today";
+
 const base = import.meta.env.BASE_URL;
 
 export { AI_CONSENT_VERSION } from "@workspace/ai-consent";
@@ -31,6 +35,9 @@ export type Fighter = {
   spiritAnimal: string;
   spiritAnimalTagline: string;
   vocabularyLevel: number;
+  // The four behavioural onboarding answers (question id -> option index); editable from Profile.
+  onboardingAnswers?: Record<string, number>;
+  timezone?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -106,6 +113,9 @@ export type FighterInput = {
   bio?: string;
   // Optional multi-select "Training background" — comma-separated sport labels.
   trainingBackground?: string;
+  // The four answers themselves; the server recomposes `personality` from them (+ personalityNote).
+  onboardingAnswers?: Record<string, number>;
+  personalityNote?: string;
 };
 
 export type FighterUpdate = Partial<FighterInput> & {
@@ -324,7 +334,8 @@ export function setApiTokenGetter(fn: () => string | null) {
 
 export function authHeaders(): Record<string, string> {
   const token = _tokenGetter?.();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  // The athlete's timezone, so the server rolls State / Focus / check-ins over at THEIR midnight.
+  return { "X-Timezone": deviceTimeZone(), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 }
 
 async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -395,12 +406,24 @@ export const api = {
       body: JSON.stringify({ accepted: true }),
     }),
   deleteAccount: () => jsonFetch<{ deleted: boolean }>("api/account", { method: "DELETE" }),
+  // The name typed on the sign-up form, so onboarding can start from it.
+  me: () => jsonFetch<{ userId: string; email: string; name: string }>("api/auth/me"),
   getFighter: () => jsonFetch<{ fighter: Fighter | null }>("api/fighter"),
-  saveFighter: (input: FighterInput) =>
-    jsonFetch<{ fighter: Fighter }>("api/fighter", {
-      method: "POST",
-      body: JSON.stringify(input),
-    }),
+  // The last onboarding step: bound the wait (jsonFetch's own 70s cap is for analysis) so a
+  // hung request shows an error the athlete can retry instead of an endless spinner.
+  saveFighter: async (input: FighterInput) => {
+    const abort = new AbortController();
+    const timer = window.setTimeout(() => abort.abort(), SAVE_TIMEOUT_MS);
+    try {
+      return await jsonFetch<{ fighter: Fighter }>("api/fighter", {
+        method: "POST",
+        body: JSON.stringify(input),
+        signal: abort.signal,
+      });
+    } finally {
+      window.clearTimeout(timer);
+    }
+  },
   updateFighter: (input: FighterUpdate) =>
     jsonFetch<{ fighter: Fighter }>("api/fighter", {
       method: "PATCH",
@@ -496,11 +519,16 @@ export type PlannerResponse = {
   weekStart: string;
   // True when the server returned a free-tier mission preview.
   preview?: boolean;
+  // Reading never builds a mission: false = nothing to build one from yet.
+  canGenerate?: boolean;
+  generating?: boolean;
 };
 
 export const plannerApi = {
   get: () => jsonFetch<PlannerResponse>("api/planner/current"),
-  regenerate: () => jsonFetch<PlannerResponse>("api/planner/regenerate", { method: "POST" }),
+  // Building is explicit (the first mission of a week is free, replacing it is FRAME+).
+  generate: () => jsonFetch<PlannerResponse>("api/planner/generate", { method: "POST" }),
+  regenerate: () => jsonFetch<PlannerResponse>("api/planner/generate", { method: "POST" }),
   complete: (key: string) =>
     jsonFetch<{ ok: true }>(`api/planner/items/${encodeURIComponent(key)}/complete`, {
       method: "POST",
@@ -524,9 +552,15 @@ export type NervousSystemLoad = "low" | "moderate" | "elevated" | "high";
 export type AnalysisFinding = {
   title: string;
   observation: string;
+  // "Why it matters in a fight", in plain words (legacy field name).
   nervousSystemFraming: string;
+  // The one drill / constraint / cue for the next session (absent on older analyses).
+  fix?: string;
   severity: "low" | "medium" | "high";
   area: string;
+  // Optional grounded visual (both or neither): the real keyframe + body region.
+  keyframeIndex?: number;
+  bodyRegion?: BodyRegion;
 };
 
 export type AnalysisSignal = {
@@ -543,6 +577,9 @@ export type AnalysisMetrics = {
   loadBasis: string;
   signals: AnalysisSignal[];
 };
+
+export type { BodyRegion, PoseTrackWire } from "./pose-track";
+import type { BodyRegion, PoseTrackWire } from "./pose-track";
 
 export type AnalysisKeyframe = {
   timestamp: number;
@@ -623,6 +660,8 @@ export type VideoAnalysis = {
   metrics: AnalysisMetrics;
   keyframes: AnalysisKeyframe[];
   keyframeNotes: Record<number, string>;
+  // Quantised per-frame landmarks. Null/absent on analyses saved before tracks existed.
+  poseTrack?: PoseTrackWire | null;
   reviewQuestion: string;
   reviewAnswer: string;
   replayMoments: ReplayMoment[];
@@ -697,6 +736,7 @@ export type CreateAnalysisInput = {
   scores: AnalysisScore[];
   detectedEvents: DetectedEvent[];
   keyframes: AnalysisKeyframe[];
+  poseTrack?: PoseTrackWire | null;
   // Opponent Mode. Defaults to a "self" read server-side when omitted.
   subject?: AnalysisSubject;
   opponentName?: string;
@@ -818,6 +858,11 @@ export const analysisApi = {
       method: "POST",
       body: JSON.stringify(input),
     }),
+  // Baseline pose track for comparison views (null baseline = nothing real to compare).
+  compareTrack: (id: number, withId?: number | null) =>
+    jsonFetch<{
+      baseline: { id: number; kind: AnalysisKind; createdAt: string; poseTrack: PoseTrackWire } | null;
+    }>(`api/analysis/${id}/compare-track${withId != null ? `?withId=${withId}` : ""}`),
   updateNotes: (id: number, notes: Record<number, string>) =>
     jsonFetch<{ analysis: VideoAnalysis }>(`api/analysis/${id}/notes`, {
       method: "PATCH",
@@ -1147,6 +1192,10 @@ export type DailyCheckinInput = {
   soreness: number;
   stress: number;
   restingHr?: number | null;
+};
+
+export const todayApi = {
+  get: () => jsonFetch<TodayView>("api/today"),
 };
 
 export const checkinApi = {

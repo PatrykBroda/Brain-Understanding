@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, authHeaders, coachChatUrl, type AiProvider, type AttachmentDto, type ServerMessage } from "@/lib/api";
+import { POST_CHAT_MEMORY_REFRESH_MS } from "@/lib/fact-seen";
 import { useFramePlus } from "@/components/frame-plus-modal";
 
 export type ChatMessage = {
@@ -220,6 +221,15 @@ export function useChat() {
           lastAttemptRef.current = null;
           qc.invalidateQueries({ queryKey: ["conversation"] });
           qc.invalidateQueries({ queryKey: ["calibration", "next"] });
+          // The memory extractor runs after the reply is sent; refresh the model once it has written.
+          // What the athlete just said is something new today for State and Today's Focus.
+          qc.invalidateQueries({ queryKey: ["today"] });
+          for (const ms of POST_CHAT_MEMORY_REFRESH_MS) {
+            window.setTimeout(() => {
+              qc.invalidateQueries({ queryKey: ["memory"] });
+              qc.invalidateQueries({ queryKey: ["today"] });
+            }, ms);
+          }
         } else if (outcome === "server-error") {
           failTurn("Something jammed on my end. Send that again.");
         } else {

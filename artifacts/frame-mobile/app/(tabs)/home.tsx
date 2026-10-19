@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -23,13 +23,21 @@ import { useFighter } from "@/context/FighterContext";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { useIsFramePlus } from "@/hooks/useEntitlement";
 import {
-  useTodayCheckin,
   useSaveCheckin,
   useCheckinHistory,
   type DailyCheckin,
 } from "@/hooks/useCheckin";
+import { useToday } from "@/hooks/useToday";
+import { useLocalDay } from "@/hooks/useLocalDay";
+import { DisclosureNotice, FocusCard } from "@/components/TodayCards";
+import { FirstUsePointers } from "@/components/FirstUsePointers";
+import { ReadinessBars } from "@/components/ReadinessBars";
+import { dismissProps } from "@/components/FormScroll";
+import { KEYBOARD_DONE_ID } from "@/components/KeyboardDoneBar";
 import { apiGet, getAuthToken, heroFileUrl } from "@/lib/api";
-import { primaryFocus, type AthleteFact } from "@/lib/primaryFocus";
+import { formatDay } from "@/lib/localDay";
+import { sportDisplayName } from "@/lib/onboarding";
+import { questionnaireAnswered } from "@workspace/onboarding";
 import {
   readinessModifier,
   applyReadinessModifier,
@@ -42,12 +50,6 @@ function bandFor(score: number): string {
   if (score >= 65) return "Trainable";
   if (score >= 45) return "Guarded";
   return "Depleted";
-}
-
-interface AnalysisListItem {
-  id: number;
-  sessionScore: number | null;
-  locked?: boolean;
 }
 
 const METRIC_LABELS: {
@@ -246,6 +248,7 @@ function CheckinForm({
           value={hr}
           onChangeText={setHr}
           keyboardType="number-pad"
+          inputAccessoryViewID={KEYBOARD_DONE_ID}
           placeholder="—"
           placeholderTextColor="#333"
           style={styles.hrInput}
@@ -270,59 +273,36 @@ function CheckinForm({
   );
 }
 
-function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
-  const points = checkins.map((c) => ({
-    date: c.checkinDate,
-    score: Math.round((c.sleep + c.energy + c.soreness + c.stress) / 4),
-  }));
-
-  if (points.length < 2) {
-    return (
-      <View>
-        <Text style={styles.sectionLabel}>READINESS TREND</Text>
-        <Text style={styles.trendEmpty}>
-          {points.length === 0
-            ? "No check-ins in the last 30 days — log one to start the trend."
-            : "One check-in logged — the trend starts at two."}
-        </Text>
-      </View>
-    );
-  }
-
-  const shortDay = (iso: string) => {
-    const d = new Date(`${iso}T00:00:00Z`);
-    return `${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
-  };
-  const first = points[0];
-  const last = points[points.length - 1];
-  const delta = last.score - first.score;
-
+function ReadinessHistory({
+  checkins,
+  today,
+}: {
+  checkins: DailyCheckin[];
+  today: string;
+}) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const hasAny = checkins.length > 0;
   return (
     <View>
       <View style={styles.trendHead}>
-        <Text style={styles.sectionLabel}>READINESS TREND</Text>
+        <Text style={styles.sectionLabel}>READINESS HISTORY</Text>
         <Text style={styles.trendMeta}>
-          {points.length} DAYS · {delta === 0 ? "LEVEL" : delta > 0 ? `+${delta}` : `${delta}`}
+          {hasAny ? "LAST 14 DAYS · TAP A BAR" : "LAST 14 DAYS"}
         </Text>
       </View>
-      <View style={styles.trendBars}>
-        {points.map((p) => (
-          <View
-            key={p.date}
-            style={[
-              styles.trendBar,
-              {
-                height: `${Math.max(6, p.score)}%`,
-                backgroundColor: p.date === last.date ? "#8A6A2F" : "#3a3a3a",
-              },
-            ]}
-          />
-        ))}
+      <View style={{ marginTop: 16 }}>
+        <ReadinessBars
+          checkins={checkins}
+          today={today}
+          selected={selected}
+          onSelect={setSelected}
+        />
       </View>
-      <View style={styles.trendAxis}>
-        <Text style={styles.trendAxisLabel}>{shortDay(first.date)}</Text>
-        <Text style={styles.trendAxisLabel}>{shortDay(last.date)}</Text>
-      </View>
+      {!hasAny && (
+        <Text style={styles.trendEmpty}>
+          No check-ins in the last 14 days — log one to start the history.
+        </Text>
+      )}
     </View>
   );
 }
@@ -330,23 +310,16 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, userId } = useAuth();
   const { fighter } = useFighter();
 
-  const analysesQuery = useQuery<AnalysisListItem[]>({
-    queryKey: ["analyses"],
-    queryFn: () =>
-      apiGet<{ analyses: AnalysisListItem[] }>("/analysis").then((r) =>
-        Array.isArray(r?.analyses) ? r.analyses : [],
-      ),
-    enabled: !!fighter,
-    staleTime: 60_000,
-  });
-  const latest =
-    analysesQuery.data?.find((a) => !a.locked && a.sessionScore != null) ?? null;
-
-  const checkinQuery = useTodayCheckin();
-  const checkin = checkinQuery.data?.checkin ?? null;
+  // State, Today's Focus and readiness for the athlete's local day (the server is the one
+  // authority on what "today" is; an older check-in is never returned as today's).
+  const todayQuery = useToday();
+  const today = todayQuery.data ?? null;
+  const checkin = today?.readiness.today?.checkin ?? null;
+  const latestCheckin = today?.readiness.latest ?? null;
+  const localDay = useLocalDay();
 
   const isFramePlus = useIsFramePlus();
   const historyQuery = useCheckinHistory(isFramePlus);
@@ -356,33 +329,33 @@ export default function HomeScreen() {
   const competition = activeComp.data?.competition ?? null;
   const pressure = activeComp.data?.pressure ?? null;
 
-  const { data: rawFacts } = useQuery<AthleteFact[]>({
-    queryKey: ["facts"],
-    queryFn: () =>
-      apiGet<{ facts: AthleteFact[] }>("/memory").then((r) =>
-        Array.isArray(r?.facts) ? r.facts : [],
-      ),
-    enabled: !!isSignedIn,
-    staleTime: 60_000,
-  });
-  const facts = useMemo(
-    () => (Array.isArray(rawFacts) ? rawFacts : []),
-    [rawFacts],
-  );
-  const focus = fighter ? primaryFocus(fighter, facts) : null;
-  const hasFocus = !!focus && focus.label !== "Not yet identified";
-
   const [editing, setEditing] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const formY = useRef(0);
+  // "Check in now" on State lands here with the form open.
+  const { checkin: checkinParam, n: checkinNonce } = useLocalSearchParams<{
+    checkin?: string;
+    n?: string;
+  }>();
+  useEffect(() => {
+    if (checkinParam === "1") setEditing(true);
+  }, [checkinParam, checkinNonce]);
+  useEffect(() => {
+    if (!editing) return;
+    const t = setTimeout(
+      () => scrollRef.current?.scrollTo({ y: Math.max(0, formY.current - 16), animated: true }),
+      120,
+    );
+    return () => clearTimeout(t);
+  }, [editing]);
 
   const checkinScore = checkin
     ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
     : null;
-  const sessionScore =
-    latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
 
-  // Same lightweight ±10 chat modifier the STATE tab applies, so the Fight
+  // Same lightweight +/-10 chat modifier the STATE tab applies, so the Fight
   // Readiness number stays consistent across screens. Reuses the active
-  // conversation query — no new data flow.
+  // conversation query - no new data flow.
   const conversationQuery = useQuery<ChatMessageLike[]>({
     queryKey: ["conversation-active"],
     queryFn: () =>
@@ -396,15 +369,19 @@ export default function HomeScreen() {
     () => readinessModifier(conversationQuery.data ?? []),
     [conversationQuery.data],
   );
+  const hasChat = (conversationQuery.data?.length ?? 0) > 0;
 
-  const baseReadiness = checkinScore ?? sessionScore;
-  const readiness = applyReadinessModifier(baseReadiness, chatModifier);
+  // Today's number comes from today's check-in only. An older check-in or an old
+  // session score is never presented as today's readiness (it is shown dated).
+  const readiness = applyReadinessModifier(checkinScore, chatModifier);
   const provenance =
     checkinScore != null
       ? "TODAY'S CHECK-IN"
-      : sessionScore != null
-        ? "LAST SESSION"
+      : latestCheckin
+        ? `LAST CHECK-IN ${formatDay(latestCheckin.date).toUpperCase()}`
         : null;
+  const readinessLoading = todayQuery.isLoading;
+  const readinessFailed = !readinessLoading && todayQuery.isError && readiness == null;
 
   const hasHero = !!fighter && (fighter.heroImageUrl ?? "").trim() !== "";
   const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
@@ -419,9 +396,8 @@ export default function HomeScreen() {
 
   const metaParts = fighter
     ? [
-        fighter.primarySport
-          ? fighter.primarySport.replace(/_/g, " ").toUpperCase()
-          : null,
+        fighter.primarySport ? sportDisplayName(fighter.primarySport).toUpperCase() : null,
+        fighter.level ? fighter.level.toUpperCase() : null,
         fighter.weightClass || null,
         fighter.stance ? fighter.stance.toUpperCase() : null,
       ].filter((p): p is string => !!p)
@@ -432,9 +408,11 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.root}
       contentContainerStyle={{ paddingBottom: bottomPad }}
       showsVerticalScrollIndicator={false}
+      {...dismissProps}
     >
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
       <View style={styles.hero}>
@@ -475,14 +453,6 @@ export default function HomeScreen() {
             style={styles.wordmark}
             resizeMode="contain"
           />
-          <Pressable
-            onPress={() => router.push("/(tabs)/profile")}
-            style={styles.profileBtn}
-            hitSlop={12}
-            accessibilityLabel="Open profile"
-          >
-            <Feather name="user" size={18} color="#888" />
-          </Pressable>
         </View>
 
         {/* Identity overlay */}
@@ -497,22 +467,55 @@ export default function HomeScreen() {
 
       <CompetitionBanner />
 
-      {/* ─── Today's focus ────────────────────────────────────────────── */}
-      {hasFocus && focus && (
+      {/* Onboarding questions prompt: shown until the athlete has answered them */}
+      {fighter && !questionnaireAnswered(fighter) && (
         <View style={styles.section}>
-          <View style={styles.sectionHead}>
-            <Text style={styles.sectionTitle}>TODAY'S FOCUS</Text>
-          </View>
           <Pressable
-            style={styles.focusRow}
-            onPress={() => router.push("/(tabs)/chat")}
+            style={({ pressed }) => [styles.qCard, pressed && { borderColor: "#8A6A2F" }]}
+            onPress={() => router.push({ pathname: "/(tabs)/profile", params: { section: "questions", n: String(Date.now()) } })}
+            accessibilityRole="button"
+            accessibilityLabel="Answer your onboarding questions so FRAME can coach you"
           >
-            <Text style={styles.focusLabel}>{focus.label}</Text>
-            <Feather name="chevron-right" size={16} color="#555" />
+            <Text style={styles.qLabel}>ONBOARDING QUESTIONS</Text>
+            <Text style={styles.qText}>Answer your onboarding questions so FRAME can coach you</Text>
+            <View style={styles.editRow}>
+              <Text style={styles.editText}>ANSWER NOW</Text>
+              <Feather name="chevron-right" size={11} color="#8A6A2F" />
+            </View>
           </Pressable>
-          <Text style={styles.focusSource}>{focus.source.toUpperCase()}</Text>
         </View>
       )}
+
+      {/* Today's focus (from /today, dated) */}
+      <View style={styles.section}>
+        {today && today.disclosure.code !== "none" ? (
+          <View style={{ marginBottom: 20 }}>
+            <DisclosureNotice disclosure={today.disclosure} onCheckIn={() => setEditing(true)} />
+          </View>
+        ) : null}
+        <FocusCard
+          focus={today?.focus ?? null}
+          loading={todayQuery.isLoading}
+          onAskCoach={(prompt) =>
+            router.push({ pathname: "/(tabs)/chat", params: { prefill: prompt, n: String(Date.now()) } })
+          }
+        />
+      </View>
+
+      {/* First-use pointers: log training, check in, update profile */}
+      <View style={styles.section}>
+        <FirstUsePointers
+          userId={userId}
+          hasCheckinToday={!!checkin}
+          hasEverCheckedIn={!!latestCheckin}
+          hasChatted={hasChat}
+          onAction={(id) => {
+            if (id === "log-training") router.push("/(tabs)/chat");
+            else if (id === "checkin") setEditing(true);
+            else router.push("/(tabs)/profile");
+          }}
+        />
+      </View>
 
       {/* ─── Fight readiness ──────────────────────────────────────────── */}
       <View style={styles.section}>
@@ -532,8 +535,27 @@ export default function HomeScreen() {
               <>
                 <Text style={styles.readyBigEmpty}>—</Text>
                 <Text style={styles.readyEmptyNote}>
-                  No real data yet. Log a check-in or analyse a session.
+                  {readinessLoading
+                    ? "READING YOUR DAY…"
+                    : readinessFailed
+                      ? "COULDN'T LOAD YOUR READINESS."
+                      : latestCheckin
+                        ? `NO CHECK-IN TODAY. LAST CHECK-IN ${formatDay(latestCheckin.date).toUpperCase()}: ${latestCheckin.score} / 100. THAT IS NOT TODAY'S READINESS.`
+                        : "NO READINESS YET. IT COMES FROM TODAY'S CHECK-IN."}
                 </Text>
+                {readinessFailed && (
+                  <Pressable
+                    onPress={() => {
+                      void todayQuery.refetch();
+                    }}
+                    style={styles.editRow}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.editText}>TRY AGAIN</Text>
+                    <Feather name="chevron-right" size={11} color="#8A6A2F" />
+                  </Pressable>
+                )}
               </>
             )}
           </View>
@@ -584,7 +606,9 @@ export default function HomeScreen() {
         </View>
 
         {editing && (
-          <CheckinForm existing={checkin} onDone={() => setEditing(false)} />
+          <View onLayout={(e) => { formY.current = e.nativeEvent.layout.y; }}>
+            <CheckinForm existing={checkin} onDone={() => setEditing(false)} />
+          </View>
         )}
 
         {/* Readiness trend — FRAME+ */}
@@ -593,7 +617,7 @@ export default function HomeScreen() {
             historyQuery.isLoading ? (
               <ActivityIndicator size="small" color="#8A6A2F" />
             ) : (
-              <ReadinessTrend checkins={historyCheckins} />
+              <ReadinessHistory checkins={historyCheckins} today={localDay} />
             )
           ) : (
             <Pressable
@@ -602,7 +626,7 @@ export default function HomeScreen() {
             >
               <View style={styles.lockedLeft}>
                 <Feather name="lock" size={13} color="#555" />
-                <Text style={styles.lockedLabel}>READINESS TREND</Text>
+                <Text style={styles.lockedLabel}>READINESS HISTORY</Text>
               </View>
               <Text style={styles.lockedPlus}>FRAME+</Text>
             </Pressable>
@@ -648,6 +672,14 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  qCard: {
+    borderWidth: 1,
+    borderColor: "rgba(138,106,47,0.35)",
+    padding: 16,
+    gap: 8,
+  },
+  qLabel: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 4, color: "#8A6A2F" },
+  qText: { fontFamily: "Outfit", fontSize: 15, lineHeight: 22, color: "#e0e0e0" },
   root: {
     flex: 1,
     backgroundColor: "#050505",
@@ -950,29 +982,6 @@ const styles = StyleSheet.create({
     color: "#555",
     marginTop: 8,
     lineHeight: 15,
-  },
-  trendBars: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 3,
-    height: 56,
-    marginTop: 16,
-  },
-  trendBar: {
-    flex: 1,
-    borderTopLeftRadius: 1,
-    borderTopRightRadius: 1,
-  },
-  trendAxis: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  trendAxisLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#444",
   },
   lockedRow: {
     flexDirection: "row",

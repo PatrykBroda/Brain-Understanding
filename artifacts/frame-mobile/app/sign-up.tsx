@@ -1,16 +1,13 @@
-import { Link, useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useRouter } from "expo-router";
+import { Feather } from "@expo/vector-icons";
+import React, { useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Linking,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,20 +18,32 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { apiPost, apiUrl } from "@/lib/api";
 import { getAuthErrorMessage } from "@/lib/authErrors";
+import { NAME_MAX, hasSignUpErrors, validateSignUp } from "@/lib/signUpForm";
+import { createOnboardingTracker } from "@/lib/onboardingTracking";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
+import { EntryBrand } from "@/components/EntryBrand";
+import { FormScroll } from "@/components/FormScroll";
+import { Button, Display, FadeIn, AuthPanel, Field, Screen, VideoBackdrop } from "@/components/entry";
+import { fonts, MIN_TAP, palette, SCREEN_PAD, space } from "@/constants/entryTheme";
 
 export default function SignUpScreen() {
   const { signIn } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [showAiConsent, setShowAiConsent] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+
+  // Funnel: the server records "signup" (account created) itself; the app adds "home"
+  // (signed in and landed in the app). Events need the account, so nothing is sent before it exists.
+  const trackerRef = useRef(createOnboardingTracker());
 
   const signupConsentStatus: AiConsentStatus = {
     accepted: false,
@@ -44,8 +53,12 @@ export default function SignUpScreen() {
   };
 
   function handleSignUp() {
-    if (loading || !email || password.length < 8 || !acceptedLegal) return;
+    if (loading) return;
+    setAttempted(true);
     setError(null);
+    if (hasSignUpErrors(validateSignUp({ name, email, password, acceptedLegal }))) {
+      return;
+    }
     setShowAiConsent(true);
   }
 
@@ -57,16 +70,22 @@ export default function SignUpScreen() {
       const data = await apiPost<{ token: string; userId: string }>(
         "/auth/register",
         {
-          email,
+          // Sign-up asks for name, email and password only; the server creates the profile from this name.
+          name: name.trim(),
+          email: email.trim(),
           password,
           acceptedTerms: acceptedLegal,
           acceptedPrivacy: acceptedLegal,
           acceptedAiConsent: true,
           aiConsentVersion: AI_CONSENT_VERSION,
+          // Funnel: lets the server record "account created" against this app.
+          app: "mobile",
         },
       );
       await signIn(data.token);
-      router.replace("/onboarding");
+      trackerRef.current.track("home", "complete");
+      // No onboarding flow: straight into the app. The questions live in the Profile tab.
+      router.replace("/(tabs)/home");
     } catch (e: unknown) {
       setError(getAuthErrorMessage(e, "sign-up"));
     } finally {
@@ -74,249 +93,153 @@ export default function SignUpScreen() {
     }
   }
 
+  const formErrors = validateSignUp({ name, email, password, acceptedLegal });
+  const nameError = attempted ? formErrors.name : undefined;
+  // Show a problem once the field was used (password length) or after the first Create account tap.
+  const passwordError = password.length > 0 || attempted ? formErrors.password : undefined;
+  const emailError = attempted ? formErrors.email : undefined;
+  const legalError = attempted ? formErrors.legal : undefined;
+
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <ScrollView
-        style={styles.root}
-        contentContainerStyle={[
-          styles.inner,
-          { paddingTop: insets.top + 60, paddingBottom: insets.bottom + 32 },
-        ]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Image
-          source={require("../assets/images/frame-logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
+    <Screen light={null}>
+      <VideoBackdrop />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <FormScroll
+          contentContainerStyle={[styles.inner, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}
+        >
+          <FadeIn index={0}>
+            <EntryBrand compact />
+          </FadeIn>
+
+          <FadeIn index={1} style={styles.cardWrap}>
+            <AuthPanel>
+              <Display size="title">Create your account</Display>
+              <Text style={styles.sub}>AI coaching for fighters and athletes.</Text>
+              <View style={styles.form}>
+                <Field
+                  label="Name"
+                  placeholder="What should we call you?"
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="words"
+                  autoComplete="name"
+                  textContentType="name"
+                  maxLength={NAME_MAX}
+                  returnKeyType="next"
+                  error={nameError}
+                />
+                <Field
+                  label="Email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  spellCheck={false}
+                  keyboardType="email-address"
+                  autoComplete="email"
+                  textContentType="username"
+                  error={emailError}
+                />
+                <Field
+                  label="Password"
+                  placeholder="At least 8 characters"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  error={passwordError}
+                />
+                <Pressable
+                  style={styles.legalRow}
+                  onPress={() => setAcceptedLegal((value) => !value)}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel="Accept the Terms of Service and Privacy Policy"
+                  accessibilityState={{ checked: acceptedLegal }}
+                >
+                  <View style={[styles.checkbox, acceptedLegal && styles.checkboxChecked]}>
+                    {acceptedLegal ? <Feather name="check" size={16} color={palette.onGold} /> : null}
+                  </View>
+                  <Text style={styles.legalCopy}>I accept the Terms of Service and Privacy Policy.</Text>
+                </Pressable>
+                {legalError ? (
+                  <Text style={styles.errorText} accessibilityRole="alert">
+                    {legalError}
+                  </Text>
+                ) : null}
+                <View style={styles.policyLinks}>
+                  <Pressable
+                    style={styles.policyBtn}
+                    accessibilityRole="link"
+                    onPress={() => void Linking.openURL(apiUrl("/terms"))}
+                  >
+                    <Text style={styles.policyLink}>Terms of Service</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.policyBtn}
+                    accessibilityRole="link"
+                    onPress={() => void Linking.openURL(apiUrl("/privacy"))}
+                  >
+                    <Text style={styles.policyLink}>Privacy and AI data use</Text>
+                  </Pressable>
+                </View>
+
+                {error ? (
+                  <Text style={styles.errorText} accessibilityRole="alert">
+                    {error}
+                  </Text>
+                ) : null}
+
+                <Button title="Create account" onPress={handleSignUp} loading={loading} />
+              </View>
+            </AuthPanel>
+            <Button
+              title="Have an account? Sign in"
+              variant="ghost"
+              onPress={() => router.replace("/sign-in")}
+              style={{ marginTop: space.sm }}
+            />
+          </FadeIn>
+        </FormScroll>
+        <AiConsentModal
+          visible={showAiConsent}
+          status={signupConsentStatus}
+          disclosure={AI_CONSENT_DISCLOSURE}
+          signup
+          busy={loading}
+          onAccept={() => void createAccount()}
+          onDecline={() => {
+            if (!loading) setShowAiConsent(false);
+          }}
+          onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
+          onTerms={() => void Linking.openURL(apiUrl("/terms"))}
         />
-        <Image
-          source={require("../assets/images/frame-wordmark.png")}
-          style={styles.wordmarkImg}
-          resizeMode="contain"
-        />
-
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#666"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-          />
-          <Pressable
-            style={styles.legalRow}
-            onPress={() => setAcceptedLegal((value) => !value)}
-            accessibilityRole="checkbox"
-            accessibilityLabel="Accept the Terms of Service and Privacy Policy"
-            accessibilityState={{ checked: acceptedLegal }}
-          >
-            <View style={[styles.checkbox, acceptedLegal && styles.checkboxChecked]}>
-              <Text style={styles.checkmark}>{acceptedLegal ? "✓" : ""}</Text>
-            </View>
-            <Text style={styles.legalCopy}>
-              I accept the Terms of Service and Privacy Policy.
-            </Text>
-          </Pressable>
-          <View style={styles.policyLinks}>
-            <Pressable onPress={() => void Linking.openURL(apiUrl("/terms"))}>
-              <Text style={styles.policyLink}>VIEW TERMS</Text>
-            </Pressable>
-            <Pressable onPress={() => void Linking.openURL(apiUrl("/privacy"))}>
-              <Text style={styles.policyLink}>VIEW PRIVACY & AI DATA USE</Text>
-            </Pressable>
-          </View>
-          <TextInput
-            style={styles.input}
-            placeholder="Password (min 8 characters)"
-            placeholderTextColor="#666"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="new-password"
-          />
-
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.btn,
-              pressed && styles.btnPressed,
-              (loading ||
-                !email ||
-                !password ||
-                 !acceptedLegal ||
-                 password.length < 8) &&
-                styles.btnDisabled,
-            ]}
-            onPress={handleSignUp}
-            disabled={
-              loading ||
-              !email ||
-              !password ||
-               !acceptedLegal ||
-               password.length < 8
-            }
-            accessibilityRole="button"
-            accessibilityState={{
-              disabled:
-                loading ||
-                !email ||
-                !password ||
-                !acceptedLegal ||
-                password.length < 8,
-              busy: loading,
-            }}
-          >
-            {loading ? (
-              <ActivityIndicator color="#050505" />
-            ) : (
-              <Text style={styles.btnText}>CREATE ACCOUNT</Text>
-            )}
-          </Pressable>
-        </View>
-
-        <Link href="/sign-in" asChild>
-          <Pressable style={styles.linkBtn}>
-            <Text style={styles.linkText}>
-              Already in —{" "}
-              <Text style={styles.linkHighlight}>sign in</Text>
-            </Text>
-          </Pressable>
-        </Link>
-      </ScrollView>
-      <AiConsentModal
-        visible={showAiConsent}
-        status={signupConsentStatus}
-        disclosure={AI_CONSENT_DISCLOSURE}
-        signup
-        busy={loading}
-        onAccept={() => void createAccount()}
-        onDecline={() => {
-          if (!loading) setShowAiConsent(false);
-        }}
-        onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
-        onTerms={() => void Linking.openURL(apiUrl("/terms"))}
-      />
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#050505",
-    paddingHorizontal: 32,
-  },
-  inner: {
-    alignItems: "center",
-  },
-  logo: {
-    width: 88,
-    height: 88,
-    marginBottom: 20,
-  },
-  wordmarkImg: {
-    width: 200,
-    height: 64,
-    marginBottom: 56,
-  },
-  form: {
-    width: "100%",
-    gap: 12,
-  },
-  input: {
-    backgroundColor: "#0a0a0a",
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    color: "#e0e0e0",
-    fontFamily: "Outfit",
-    fontSize: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    height: 52,
-  },
-  legalRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    marginTop: 4,
-  },
+  inner: { paddingHorizontal: SCREEN_PAD + 2, flexGrow: 1, justifyContent: "space-between" },
+  cardWrap: { width: "100%", maxWidth: 440, alignSelf: "center", marginTop: space.xl },
+  sub: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 22, color: palette.textMid, marginTop: space.xs, marginBottom: space.xl },
+  form: { gap: space.lg },
+  legalRow: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: MIN_TAP },
   checkbox: {
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#555",
+    borderColor: palette.borderStrong,
+    backgroundColor: palette.surface,
     alignItems: "center",
     justifyContent: "center",
   },
-  checkboxChecked: {
-    backgroundColor: "#8A6A2F",
-    borderColor: "#8A6A2F",
-  },
-  checkmark: {
-    color: "#050505",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  legalCopy: {
-    flex: 1,
-    color: "#aaa",
-    fontFamily: "Outfit",
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  policyLinks: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-  },
-  policyLink: {
-    color: "#8A6A2F",
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1,
-  },
-  errorText: {
-    color: "#BF1D1D",
-    fontFamily: "Outfit",
-    fontSize: 13,
-    textAlign: "center",
-  },
-  btn: {
-    backgroundColor: "#8A6A2F",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 52,
-    marginTop: 8,
-  },
-  btnPressed: {
-    opacity: 0.85,
-  },
-  btnDisabled: {
-    opacity: 0.5,
-  },
-  btnText: {
-    fontFamily: "SpaceMono",
-    fontSize: 12,
-    letterSpacing: 3,
-    color: "#050505",
-  },
-  linkBtn: {
-    marginTop: 32,
-    paddingVertical: 8,
-  },
-  linkText: {
-    fontFamily: "Outfit",
-    fontSize: 14,
-    color: "#666",
-  },
-  linkHighlight: {
-    color: "#8A6A2F",
-  },
+  checkboxChecked: { backgroundColor: palette.gold, borderColor: palette.gold },
+  legalCopy: { flex: 1, color: palette.textMid, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 },
+  policyLinks: { flexDirection: "row", flexWrap: "wrap", columnGap: 20 },
+  policyBtn: { minHeight: MIN_TAP, justifyContent: "center" },
+  policyLink: { color: palette.goldPale, fontFamily: fonts.medium, fontSize: 14, textDecorationLine: "underline" },
+  errorText: { color: palette.redText, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 },
 });

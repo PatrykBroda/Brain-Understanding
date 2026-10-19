@@ -1,5 +1,10 @@
 import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold } from "@expo-google-fonts/outfit";
 import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
+import {
+  InterTight_400Regular,
+  InterTight_500Medium,
+  InterTight_600SemiBold,
+} from "@expo-google-fonts/inter-tight";
 import Constants from "expo-constants";
 import { useFonts } from "expo-font";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
@@ -7,13 +12,14 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
 import React, { useEffect, useRef } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoginUpsellGate } from "@/components/LoginUpsellGate";
+import { KeyboardDoneBar } from "@/components/KeyboardDoneBar";
 import { AiConsentGate } from "@/components/AiConsentGate";
 import { FighterProvider } from "@/context/FighterContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -21,6 +27,8 @@ import { setApiBase, setTokenGetter } from "@/lib/api";
 import { APP_DOMAIN, resolveApiBase } from "@/lib/appDomain";
 import { configurePurchases, syncPurchasesUser } from "@/lib/purchases";
 import { reportStartup } from "@/lib/crashReporter";
+import { FrameLogo } from "@/components/FrameLogo";
+import { OctagonSpinner } from "@/components/OctagonSpinner";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -170,12 +178,10 @@ const noticeStyles = StyleSheet.create({
 function LoadingScreen() {
   return (
     <View style={loadingStyles.root}>
-      <Text style={loadingStyles.wordmark}>FRAME</Text>
-      <ActivityIndicator
-        style={loadingStyles.indicator}
-        size="small"
-        color="#8A6A2F"
-      />
+      <FrameLogo height={16} />
+      <View style={loadingStyles.indicator}>
+        <OctagonSpinner size={44} color="#B9A477" />
+      </View>
     </View>
   );
 }
@@ -185,13 +191,7 @@ const loadingStyles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#050505",
-  },
-  wordmark: {
-    fontFamily: "SpaceMono",
-    fontSize: 18,
-    letterSpacing: 10,
-    color: "#e0e0e0",
+    backgroundColor: "#08090B",
   },
   indicator: {
     marginTop: 28,
@@ -277,7 +277,6 @@ function RootLayoutNav() {
             <Stack.Screen name="splash" options={{ animation: "fade" }} />
             <Stack.Screen name="sign-in" options={{ animation: "fade" }} />
             <Stack.Screen name="sign-up" options={{ animation: "fade" }} />
-            <Stack.Screen name="onboarding" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen
               name="paywall"
@@ -310,6 +309,10 @@ export default function RootLayout() {
     Outfit_600SemiBold,
     SpaceMono: SpaceMono_400Regular,
     SpaceMono_400Regular,
+    // entry screens only (sign-in / sign-up / splash / loading)
+    InterTight: InterTight_400Regular,
+    InterTightMedium: InterTight_500Medium,
+    InterTightSemiBold: InterTight_600SemiBold,
   });
 
   // Probe 2: RootLayout rendered — hooks running, fonts loading.
@@ -357,6 +360,7 @@ export default function RootLayout() {
                 <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#050505" }}>
                   <ErrorBoundary context="KeyboardProvider">
                     <KeyboardProvider>
+                      <KeyboardDoneBar />
                       <RootLayoutNav />
                     </KeyboardProvider>
                   </ErrorBoundary>

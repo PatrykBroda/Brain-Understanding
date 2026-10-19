@@ -15,6 +15,7 @@ import React, {
 } from "react";
 
 const TOKEN_KEY = "frame:token";
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 // The iOS Analyse WebView supplies its current FRAME session in memory before
 // this app starts. Never persist that bridge token to WebView localStorage.
@@ -87,9 +88,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!embeddedToken) localStorage.removeItem(TOKEN_KEY);
       }
     } catch {
-      // localStorage blocked
+      // localStorage blocked / transient read error: leave any saved token in place.
     }
     setState((s) => ({ ...s, isLoaded: true }));
+  }, []);
+
+  // Sliding session: swap the saved token for a fresh one on every load. Only a real 401 signs
+  // the user out; offline or a 5xx keeps the login exactly as it is.
+  useEffect(() => {
+    if (embeddedToken) return;
+    let token: string | null = null;
+    try {
+      token = localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return;
+    }
+    if (!token || !parseToken(token)) return;
+    const sent = token;
+    fetch(`${basePath}/api/auth/refresh`, { method: "POST", headers: { Authorization: `Bearer ${sent}` } })
+      .then(async (res) => {
+        if (res.status === 401) {
+          try {
+            if (localStorage.getItem(TOKEN_KEY) === sent) localStorage.removeItem(TOKEN_KEY);
+          } catch {
+            // ignore
+          }
+          setState((s) => (s.token === sent ? { isLoaded: true, isSignedIn: false, userId: null, email: null, token: null } : s));
+          return;
+        }
+        if (!res.ok) return;
+        const body = (await res.json()) as { token?: unknown };
+        if (typeof body.token !== "string" || !parseToken(body.token)) return;
+        const fresh = body.token;
+        try {
+          if (localStorage.getItem(TOKEN_KEY) === sent) localStorage.setItem(TOKEN_KEY, fresh);
+        } catch {
+          // ignore
+        }
+        setState((s) => (s.token === sent ? { ...s, token: fresh } : s));
+      })
+      .catch(() => undefined);
   }, []);
 
   const signIn = useCallback((token: string) => {
