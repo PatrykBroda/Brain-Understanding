@@ -18,7 +18,8 @@ import { Feather } from "@expo/vector-icons";
 import { QUESTIONS, type Answers } from "@workspace/onboarding";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter, type Fighter } from "@/context/FighterContext";
-import { apiPost } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
+import { TapOutside, dismissProps } from "@/components/FormScroll";
 import {
   ageFromDateOfBirth,
   dateOfBirthFromParts,
@@ -106,7 +107,7 @@ const pb = StyleSheet.create({
   count: { fontVariant: ["tabular-nums"] },
   track: { flexDirection: "row", gap: 6 },
   seg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: palette.borderStrong },
-  segOn: { backgroundColor: palette.gold },
+  segOn: { backgroundColor: palette.textHi },
 });
 
 function ChipSelector({
@@ -133,7 +134,7 @@ function ChipSelector({
               onSelect(o.key);
             }}
           >
-            {on ? <Feather name="check" size={14} color={palette.goldPale} /> : null}
+            {on ? <Feather name="check" size={14} color={palette.bg} /> : null}
             <Text style={[chip.text, on && chip.selectedText]}>{o.label}</Text>
           </Pressable>
         );
@@ -149,16 +150,17 @@ const chip = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    borderRadius: radius.pill,
+    borderRadius: radius.xs,
     borderWidth: 1,
-    borderColor: palette.border,
+    borderColor: palette.borderStrong,
     backgroundColor: palette.surface,
     paddingHorizontal: 18,
   },
   pressed: { backgroundColor: palette.raised },
-  selected: { borderColor: palette.goldHair, backgroundColor: palette.goldWash },
+  // Selected: white fill, black text (no gold).
+  selected: { borderColor: palette.textHi, backgroundColor: palette.textHi },
   text: { fontFamily: fonts.medium, fontSize: 15, color: palette.textMid },
-  selectedText: { color: palette.goldPale },
+  selectedText: { color: palette.bg },
 });
 
 /** One full-width answer for a behavioural question. Tap = answer (the screen auto-advances). */
@@ -174,7 +176,7 @@ function AnswerOption({ label, selected, onPress }: { label: string; selected: b
       }}
     >
       <Text style={[ans.text, selected && ans.selectedText]}>{label}</Text>
-      {selected ? <Feather name="check" size={18} color={palette.goldPale} /> : null}
+      {selected ? <Feather name="check" size={18} color={palette.bg} /> : null}
     </Pressable>
   );
 }
@@ -186,17 +188,17 @@ const ans = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    borderRadius: radius.lg,
+    borderRadius: radius.xs,
     borderWidth: 1,
-    borderColor: palette.border,
+    borderColor: palette.borderStrong,
     backgroundColor: palette.surface,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   pressed: { backgroundColor: palette.raised },
-  selected: { borderColor: palette.goldHair, backgroundColor: palette.goldWash },
+  selected: { borderColor: palette.textHi, backgroundColor: palette.textHi },
   text: { flex: 1, fontFamily: fonts.medium, fontSize: 16, lineHeight: 22, color: palette.textMid },
-  selectedText: { color: palette.goldPale },
+  selectedText: { color: palette.bg },
 });
 
 export default function OnboardingScreen() {
@@ -235,11 +237,15 @@ export default function OnboardingScreen() {
   const yearInputRef = useRef<TextInput>(null);
 
   // Resume where they left off: restore a saved draft once, then keep it in sync.
+  // A new account starts from the name typed on the sign-up form, so name is never asked twice.
   useEffect(() => {
     if (!userId) return;
     let alive = true;
-    AsyncStorage.getItem(draftKeyFor(userId))
-      .then((raw) => {
+    Promise.all([
+      AsyncStorage.getItem(draftKeyFor(userId)).catch(() => null),
+      apiGet<{ name?: string }>("/auth/me").catch(() => null),
+    ])
+      .then(([raw, me]) => {
         if (!alive) return;
         const d = parseDraft(raw);
         if (d && draftHasProgress(d)) {
@@ -252,6 +258,9 @@ export default function OnboardingScreen() {
           setGoals(d.goals);
           setWeaknesses(d.weaknesses);
           setStep(d.step);
+        } else if (me?.name && me.name.trim()) {
+          setName(me.name.trim());
+          setStep(1); // go straight to date of birth
         }
       })
       .catch(() => {})
@@ -458,11 +467,12 @@ export default function OnboardingScreen() {
       <VideoBackdrop />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 24 }}
-          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 24, flexGrow: 1 }}
+          {...dismissProps}
           automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
+          <TapOutside>
           {/* Brand + positioning line over the looping video (full-screen backdrop, dark scrim) */}
           <View style={[styles.band, step === 0 ? styles.bandTall : styles.bandShort, { paddingTop: insets.top + 16 }]}>
             <View style={styles.bandInner}>
@@ -648,6 +658,7 @@ export default function OnboardingScreen() {
 
             </AuthPanel>
           </FadeIn>
+          </TapOutside>
         </ScrollView>
         {/* Pinned under the card: Back/Next/Finish and any save error stay on screen with the keyboard open or the card scrolled. */}
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}>
@@ -702,7 +713,7 @@ const styles = StyleSheet.create({
   yearField: { flex: 1.45 },
   dobInput: { textAlign: "center", paddingHorizontal: 8, fontSize: 18, fontVariant: ["tabular-nums"] },
   inputError: { borderColor: palette.redHair },
-  ageConfirmation: { marginTop: 14, fontFamily: fonts.medium, fontSize: 14, color: palette.goldPale, fontVariant: ["tabular-nums"] },
+  ageConfirmation: { marginTop: 14, fontFamily: fonts.medium, fontSize: 14, color: palette.textMid, fontVariant: ["tabular-nums"] },
   textarea: { minHeight: 96, textAlignVertical: "top", paddingTop: 16 },
   optionalNote: { marginBottom: space.md },
   navError: { marginBottom: space.sm },

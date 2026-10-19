@@ -5,9 +5,10 @@
 // the Profile card / History show whatever was loaded at launch.
 //
 // Two query keys read the same endpoint (Profile + History use "memory";
-// Home + State use "facts") — both must be refreshed together.
+// Home + State use "facts") — both must be refreshed together. "today" is the
+// State / Today's Focus read, which also moves with what was just said.
 
-export const MODEL_QUERY_KEYS = [["memory"], ["facts"]] as const;
+export const MODEL_QUERY_KEYS = [["memory"], ["facts"], ["today"]] as const;
 
 /** Delays after a chat reply for the server-side extractor to finish writing. */
 export const POST_CHAT_REFRESH_MS = [4_000, 12_000] as const;

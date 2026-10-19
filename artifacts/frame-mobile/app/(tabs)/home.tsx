@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
@@ -47,7 +47,9 @@ import {
   type DailyCheckin,
 } from "@/hooks/useCheckin";
 import { apiGet, getAuthToken, heroFileUrl } from "@/lib/api";
-import { primaryFocus, type AthleteFact } from "@/lib/primaryFocus";
+import { DisclosureNotice, FocusCard } from "@/components/TodayCards";
+import { useToday } from "@/hooks/useToday";
+import { formatDay } from "@/lib/localDay";
 import {
   readinessModifier,
   applyReadinessModifier,
@@ -403,23 +405,25 @@ export default function HomeScreen() {
   const activeComp = useActiveCompetition();
   const competition = activeComp.data?.competition ?? null;
 
-  const factsQuery = useQuery<AthleteFact[]>({
-    queryKey: ["facts"],
-    queryFn: () =>
-      apiGet<{ facts: AthleteFact[] }>("/memory").then((r) =>
-        Array.isArray(r?.facts) ? r.facts : [],
-      ),
-    enabled: !!isSignedIn,
-    staleTime: 0,
-  });
-  const facts = useMemo(
-    () => (Array.isArray(factsQuery.data) ? factsQuery.data : []),
-    [factsQuery.data],
-  );
-  const focus = fighter ? primaryFocus(fighter, facts) : null;
-  const hasFocus = !!focus && focus.label !== "Not yet identified";
+  // State, Today's Focus and readiness for the athlete's local day, with an honest
+  // disclosure when FRAME holds nothing new today.
+  const todayQuery = useToday();
+  const today = todayQuery.data ?? null;
+  const latestCheckin = today?.readiness.latest ?? null;
 
   const [editing, setEditing] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const formY = useRef(0);
+  // "Check in now" on State lands here with the form open.
+  const { checkin: checkinParam, n: checkinNonce } = useLocalSearchParams<{ checkin?: string; n?: string }>();
+  useEffect(() => {
+    if (checkinParam === "1") setEditing(true);
+  }, [checkinParam, checkinNonce]);
+  useEffect(() => {
+    if (!editing) return;
+    const t = setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(0, formY.current - 16), animated: true }), 120);
+    return () => clearTimeout(t);
+  }, [editing]);
 
   const checkinScore = checkin
     ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
@@ -445,13 +449,14 @@ export default function HomeScreen() {
   );
   const hasChat = (conversationQuery.data?.length ?? 0) > 0;
 
-  const baseReadiness = checkinScore ?? sessionScore;
-  const readiness = applyReadinessModifier(baseReadiness, chatModifier);
+  // Today's number comes from today's check-in only. An older check-in or an old session
+  // score is never presented as today's readiness (it is shown dated, below).
+  const readiness = applyReadinessModifier(checkinScore, chatModifier);
   const provenance =
     checkinScore != null
       ? "From today's check-in"
-      : sessionScore != null
-        ? "From your last session"
+      : latestCheckin
+        ? `Last check-in ${formatDay(latestCheckin.date)}`
         : null;
 
   const readinessLoading = checkinQuery.isLoading && analysesQuery.isLoading;
@@ -499,6 +504,7 @@ export default function HomeScreen() {
   return (
     <Screen light="champagne" focus="topLeft" intensity={0.9}>
       <ScrollView
+        ref={scrollRef}
         style={styles.root}
         contentContainerStyle={{ paddingBottom: bottomPad, paddingTop: topPad + 8 }}
         showsVerticalScrollIndicator={false}
@@ -540,30 +546,18 @@ export default function HomeScreen() {
 
         {/* ─── 2. Today's focus ───────────────────────────────────────── */}
         <FadeIn index={2} style={styles.pad}>
-          <GlassCard padding={20}>
-            <Eyebrow>Today&apos;s focus</Eyebrow>
-            {factsQuery.isLoading ? (
-              <Body small style={{ marginTop: 10 }}>
-                Reading your athlete model…
-              </Body>
-            ) : hasFocus && focus ? (
-              <>
-                <Display size="heading" style={styles.focusLabel}>
-                  {focus.label}
-                </Display>
-                <Text style={styles.focusSource}>{focus.source}</Text>
-              </>
-            ) : (
-              <>
-                <Display size="heading" style={styles.focusLabel}>
-                  Your focus appears here
-                </Display>
-                <Text style={styles.focusSource}>
-                  Tell your coach what breaks down in training, or add weaknesses in your profile.
-                </Text>
-              </>
-            )}
-          </GlassCard>
+          <View style={{ gap: 12 }}>
+            {today && today.disclosure.code !== "none" ? (
+              <DisclosureNotice disclosure={today.disclosure} onCheckIn={() => setEditing(true)} />
+            ) : null}
+            <FocusCard
+              focus={today?.focus ?? null}
+              loading={todayQuery.isLoading}
+              onAskCoach={(prompt) =>
+                router.push({ pathname: "/(tabs)/chat", params: { prefill: prompt, n: String(Date.now()) } })
+              }
+            />
+          </View>
         </FadeIn>
 
         {/* ─── 3. Access to coaching — the one primary action ─────────── */}
@@ -602,9 +596,11 @@ export default function HomeScreen() {
                   <ArcGauge value={readiness} size={216} label={bandFor(readiness)} unit="/ 100" />
                 ) : (
                   <View style={styles.emptyGauge}>
-                    <Text style={styles.emptyTitle}>No readiness yet</Text>
+                    <Text style={styles.emptyTitle}>{latestCheckin ? "No check-in today" : "No readiness yet"}</Text>
                     <Body small style={styles.readyEmptyNote}>
-                      It comes from a check-in or an analysed session. Log how you feel to start.
+                      {latestCheckin
+                        ? `Your last check-in was ${formatDay(latestCheckin.date)}: ${latestCheckin.score} / 100. That is not today's readiness. Log how you feel now.`
+                        : "It comes from today's check-in. Log how you feel to start."}
                     </Body>
                   </View>
                 )}
@@ -623,7 +619,7 @@ export default function HomeScreen() {
         </FadeIn>
 
         {editing && (
-          <View style={styles.pad}>
+          <View style={styles.pad} onLayout={(e) => { formY.current = e.nativeEvent.layout.y; }}>
             <CheckinForm existing={checkin} onDone={() => setEditing(false)} />
           </View>
         )}

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Platform, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
 
 import { fonts, palette, radius } from "@/constants/theme";
+import { KEYBOARD_DONE_ID } from "@/components/KeyboardDoneBar";
 
 /** Text field: surface fill, 1px border, radius 14. Sentence-case label above; border brightens (gold hairline) on focus. */
 export function Field({
@@ -26,6 +27,10 @@ export function Field({
         accessibilityLabel={p.accessibilityLabel ?? label}
         placeholderTextColor={palette.textLow}
         selectionColor={palette.gold}
+        // Every field gets the iOS "Done" bar (number pads and multiline have no return key).
+        inputAccessoryViewID={p.inputAccessoryViewID ?? KEYBOARD_DONE_ID}
+        returnKeyType={p.returnKeyType ?? (p.multiline ? undefined : "done")}
+        blurOnSubmit={p.blurOnSubmit ?? !p.multiline}
         {...p}
         onFocus={(e) => {
           setFocus(true);

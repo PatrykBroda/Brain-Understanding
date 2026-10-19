@@ -133,6 +133,8 @@ export function buildFighterPayload(draft: OnboardingDraft, dateOfBirth: string)
     weaknesses: draft.weaknesses.trim(),
     // Built from the 4 answers exactly like the coach web, so the spirit-animal read gets the same input.
     personality: composePersonality(draft.answers),
+    // The answers themselves, so they can be reviewed and changed from Profile (the server recomposes personality from them).
+    onboardingAnswers: draft.answers,
   };
 }
 

@@ -6,7 +6,6 @@ import {
   Platform,
   Linking,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -19,10 +18,11 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { apiPost, apiUrl } from "@/lib/api";
 import { getAuthErrorMessage } from "@/lib/authErrors";
-import { hasSignUpErrors, validateSignUp } from "@/lib/signUpForm";
+import { NAME_MAX, hasSignUpErrors, validateSignUp } from "@/lib/signUpForm";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 import { EntryBrand } from "@/components/EntryBrand";
+import { FormScroll } from "@/components/FormScroll";
 import { Button, Display, FadeIn, AuthPanel, Field, Screen, VideoBackdrop } from "@/components/ui";
 import { fonts, MIN_TAP, palette, SCREEN_PAD, space } from "@/constants/theme";
 
@@ -31,6 +31,7 @@ export default function SignUpScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -50,7 +51,7 @@ export default function SignUpScreen() {
     if (loading) return;
     setAttempted(true);
     setError(null);
-    if (hasSignUpErrors(validateSignUp({ email, password, acceptedLegal }))) return;
+    if (hasSignUpErrors(validateSignUp({ name, email, password, acceptedLegal }))) return;
     setShowAiConsent(true);
   }
 
@@ -62,6 +63,8 @@ export default function SignUpScreen() {
       const data = await apiPost<{ token: string; userId: string }>(
         "/auth/register",
         {
+          // Sign-up asks for name, email and password only; onboarding starts from this name.
+          name: name.trim(),
           email: email.trim(),
           password,
           acceptedTerms: acceptedLegal,
@@ -81,7 +84,8 @@ export default function SignUpScreen() {
     }
   }
 
-  const formErrors = validateSignUp({ email, password, acceptedLegal });
+  const formErrors = validateSignUp({ name, email, password, acceptedLegal });
+  const nameError = attempted ? formErrors.name : undefined;
   // Show a problem once the field was used (password length) or after the first Create account tap.
   const passwordError = password.length > 0 || attempted ? formErrors.password : undefined;
   const emailError = attempted ? formErrors.email : undefined;
@@ -91,10 +95,8 @@ export default function SignUpScreen() {
     <Screen light={null}>
       <VideoBackdrop />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <ScrollView
+        <FormScroll
           contentContainerStyle={[styles.inner, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
         >
           <FadeIn index={0}>
             <EntryBrand compact />
@@ -105,6 +107,18 @@ export default function SignUpScreen() {
               <Display size="title">Create your account</Display>
               <Text style={styles.sub}>AI coaching for fighters and athletes.</Text>
               <View style={styles.form}>
+                <Field
+                  label="Name"
+                  placeholder="What should we call you?"
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="words"
+                  autoComplete="name"
+                  textContentType="name"
+                  maxLength={NAME_MAX}
+                  returnKeyType="next"
+                  error={nameError}
+                />
                 <Field
                   label="Email"
                   placeholder="you@example.com"
@@ -178,7 +192,7 @@ export default function SignUpScreen() {
               style={{ marginTop: space.sm }}
             />
           </FadeIn>
-        </ScrollView>
+        </FormScroll>
         <AiConsentModal
           visible={showAiConsent}
           status={signupConsentStatus}

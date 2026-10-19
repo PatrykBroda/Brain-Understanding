@@ -42,6 +42,8 @@ import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
 import { FactConfidence } from "@/components/FactConfidence";
 import { ProfileEditModal } from "@/components/ProfileEditModal";
+import { AnswersSection } from "@/components/AnswersSection";
+import { FormScroll } from "@/components/FormScroll";
 import { isBjjSport, LEGACY_SPORTS, SPORTS } from "@/lib/fighterOptions";
 import { useEntitlement, useSyncBilling } from "@/hooks/useEntitlement";
 import { restorePurchases, hasFramePlus } from "@/lib/purchases";
@@ -526,7 +528,7 @@ export default function ProfileScreen() {
 
   return (
     <Screen light="silver" focus="topRight">
-    <ScrollView
+    <FormScroll
       style={s.root}
       contentContainerStyle={[s.content, { paddingTop: topPad + 12, paddingBottom: bottomPad + 40 }]}
       refreshControl={
@@ -575,6 +577,9 @@ export default function ProfileScreen() {
             <DataRow label="Competition" value={comp.value} sub={comp.sub} />
             {focus ? <DataRow label="Primary focus" value={sentence(focus.label)} sub={focus.source} /> : null}
           </Section>
+
+          {/* The onboarding questionnaire, editable any time (same fields and validation as onboarding) */}
+          <AnswersSection fighter={fighter} />
 
           {/* 2. ATHLETE MODEL */}
           <Section
@@ -835,7 +840,7 @@ export default function ProfileScreen() {
           <ProfileEditModal visible={editVisible} fighter={fighter} onClose={() => setEditVisible(false)} />
         </>
       )}
-    </ScrollView>
+    </FormScroll>
     </Screen>
   );
 }

@@ -36,6 +36,8 @@ import {
   useUpdateSession,
 } from "@/hooks/useCompetition";
 import { GoogleCalendarSync } from "@/components/GoogleCalendarSync";
+import { WeeklyMission } from "@/components/WeeklyMission";
+import { FormScroll } from "@/components/FormScroll";
 import { useIsFramePlus } from "@/hooks/useEntitlement";
 import {
   Button,
@@ -459,10 +461,9 @@ function CampView() {
     sessions.find((x) => !x.completed && x.sessionDate.slice(0, 10) >= today) ?? null;
 
   return (
-    <ScrollView
+    <FormScroll
       style={camp.scroll}
       contentContainerStyle={[camp.inner, { paddingBottom: insets.bottom + bottomPad + 120 }]}
-      keyboardShouldPersistTaps="handled"
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={palette.textMid} />}
     >
       {isLoading ? (
@@ -600,7 +601,7 @@ function CampView() {
                   )}
                 </>
               ) : (
-                <MissionContent />
+                <WeeklyMission />
               )}
             </>
           )}
@@ -609,7 +610,7 @@ function CampView() {
           {campFormNode}
         </>
       )}
-    </ScrollView>
+    </FormScroll>
   );
 }
 
@@ -1128,276 +1129,6 @@ function CampForm(props: {
 }
 
 /* ------------------------------------------------------------------ */
-/* MISSION VIEW — preserved AI weekly mission                          */
-/* ------------------------------------------------------------------ */
-
-interface PlanItem {
-  key: string;
-  section: string;
-  content: string;
-  sourceLabel: string | null;
-  completed?: boolean;
-}
-
-interface WeeklyPlan {
-  id: number;
-  weekStart: string;
-  focusSummary: string | null;
-  structuralObjective: string | null;
-  items: PlanItem[];
-}
-
-const SECTION_LABELS: Record<string, string> = {
-  primary_weakness: "Primary weakness",
-  structural_objective: "Structural objective",
-  daily_execution: "Daily execution",
-  technical_drilling: "Technical drilling",
-  recovery_protocol: "Recovery protocol",
-};
-
-const SECTION_ORDER = [
-  "primary_weakness",
-  "structural_objective",
-  "daily_execution",
-  "technical_drilling",
-  "recovery_protocol",
-];
-
-function PlanItemRow({
-  item,
-  first,
-  onToggle,
-  disabled,
-}: {
-  item: PlanItem;
-  first: boolean;
-  onToggle: (key: string, done: boolean) => void;
-  disabled: boolean;
-}) {
-  return (
-    <Pressable
-      style={({ pressed }) => [pi.row, !first && camp.rule, pressed && pi.rowPressed]}
-      onPress={() => {
-        haptic.select();
-        onToggle(item.key, !item.completed);
-      }}
-      disabled={disabled}
-      accessibilityRole="checkbox"
-      accessibilityLabel={item.content}
-      accessibilityState={{ checked: !!item.completed, disabled }}
-    >
-      <View style={[camp.sCheck, item.completed && camp.sCheckDone]}>
-        {item.completed && <Feather name="check" size={14} color={palette.onGold} />}
-      </View>
-      <Text style={[pi.text, item.completed && pi.textDone]}>{item.content}</Text>
-    </Pressable>
-  );
-}
-
-// Inlined inside CampView's ScrollView (not its own scroll) so the toggle can
-// live below the dashboard, matching the web's single-scroll layout.
-function MissionContent() {
-  const { isSignedIn } = useAuth();
-  const qc = useQueryClient();
-  const [generating, setGenerating] = useState(false);
-  const [consentVisible, setConsentVisible] = useState(false);
-  const [consentStatus, setConsentStatus] = useState<AiConsentStatus | null>(null);
-  const [consentBusy, setConsentBusy] = useState(false);
-  const pendingGenerationRef = useRef(false);
-  const generationInFlightRef = useRef(false);
-  const consentAcceptingRef = useRef(false);
-
-  const {
-    data: plan,
-    isLoading,
-    refetch,
-  } = useQuery<WeeklyPlan | null>({
-    queryKey: ["plan"],
-    queryFn: async () => {
-      try {
-        return await apiGet<WeeklyPlan>("/planner/current");
-      } catch {
-        return null;
-      }
-    },
-    enabled: !!isSignedIn,
-    staleTime: 60_000,
-  });
-
-  const toggleMutation = useMutation({
-    mutationFn: ({ key, done }: { key: string; done: boolean }) =>
-      apiPatch(`/planner/items/${key}`, { completed: done }),
-    onMutate: async ({ key, done }) => {
-      await qc.cancelQueries({ queryKey: ["plan"] });
-      qc.setQueryData<WeeklyPlan | null>(["plan"], (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          items: old.items.map((i) => (i.key === key ? { ...i, completed: done } : i)),
-        };
-      });
-    },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["plan"] });
-    },
-  });
-
-  async function runGeneration() {
-    try {
-      await apiPost("/planner/regenerate");
-      qc.invalidateQueries({ queryKey: ["plan"] });
-    } catch {
-      // Keep the planner usable if generation fails.
-    } finally {
-      setGenerating(false);
-      generationInFlightRef.current = false;
-    }
-  }
-
-  async function handleGenerate() {
-    if (generationInFlightRef.current || generating || isLoading) return;
-    generationInFlightRef.current = true;
-    setGenerating(true);
-    haptic.press();
-    try {
-      const status = await apiGet<AiConsentStatus>("/ai-consent");
-      setConsentStatus(status);
-      if (!status.accepted) {
-        pendingGenerationRef.current = true;
-        setConsentVisible(true);
-        setGenerating(false);
-        return;
-      }
-      await runGeneration();
-    } catch (e: unknown) {
-      if (e instanceof ApiError && e.code === "AI_CONSENT_REQUIRED") {
-        qc.setQueryData(["ai-consent"], { accepted: false });
-      }
-      setGenerating(false);
-      generationInFlightRef.current = false;
-    }
-  }
-
-  async function acceptConsentAndGenerate() {
-    if (consentAcceptingRef.current) return;
-    if (!pendingGenerationRef.current) {
-      setConsentVisible(false);
-      generationInFlightRef.current = false;
-      return;
-    }
-    consentAcceptingRef.current = true;
-    setConsentBusy(true);
-    try {
-      const status = await apiPatch<AiConsentStatus>("/ai-consent", { accepted: true });
-      qc.setQueryData(["ai-consent"], status);
-      setConsentStatus(status);
-      pendingGenerationRef.current = false;
-      setConsentVisible(false);
-      setGenerating(true);
-      await runGeneration();
-    } catch {
-      // Keep the intent and modal available so the user can try again.
-      generationInFlightRef.current = false;
-    } finally {
-      setConsentBusy(false);
-      consentAcceptingRef.current = false;
-    }
-  }
-
-  const sections = SECTION_ORDER.reduce<Record<string, PlanItem[]>>((acc, sec) => {
-    if (!plan) return acc;
-    const items = plan.items.filter((i) => i.section === sec);
-    if (items.length > 0) acc[sec] = items;
-    return acc;
-  }, {});
-
-  const completedCount = plan?.items.filter((i) => i.completed).length ?? 0;
-  const totalCount = plan?.items.length ?? 0;
-
-  return (
-    <>
-      <AiConsentModal
-        visible={consentVisible}
-        status={consentStatus}
-        busy={consentBusy}
-        onAccept={() => void acceptConsentAndGenerate()}
-        onDecline={() => {
-          pendingGenerationRef.current = false;
-          generationInFlightRef.current = false;
-          setGenerating(false);
-          setConsentVisible(false);
-          qc.setQueryData(["ai-consent"], { accepted: false });
-        }}
-        onPrivacy={() => void Linking.openURL(apiUrl("/privacy"))}
-      />
-      <View style={camp.block}>
-        <View style={camp.sectionHead}>
-          <Display size="heading">Weekly mission</Display>
-          <IconButton
-            icon="refresh-cw"
-            label="Regenerate weekly mission"
-            onPress={handleGenerate}
-            disabled={generating || isLoading}
-          />
-        </View>
-
-        {isLoading && !plan && <EmptyState kind="loading" title="Loading your mission" />}
-
-        {!isLoading && !plan && (
-          <EmptyState
-            kind="empty"
-            icon="target"
-            title="No mission set"
-            body="Generate your weekly mission to get a structured plan built from your athlete model."
-            actionLabel={generating ? "Generating…" : "Generate mission"}
-            onAction={generating ? undefined : handleGenerate}
-          />
-        )}
-
-        {plan && (
-          <View style={{ gap: 20 }}>
-            {plan.focusSummary ? (
-              <GlassCard raised padding={20}>
-                <Text style={mission.focusLabel}>Mission focus</Text>
-                <Text style={mission.focusText}>{plan.focusSummary}</Text>
-              </GlassCard>
-            ) : null}
-
-            <View style={mission.progressRow} accessible accessibilityLabel={`${completedCount} of ${totalCount} done`}>
-              <View style={mission.progressBar}>
-                <View
-                  style={[mission.progressFill, { width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }]}
-                />
-              </View>
-              <Text style={mission.progressLabel}>
-                {completedCount} of {totalCount} done
-              </Text>
-            </View>
-
-            {Object.entries(sections).map(([sec, items]) => (
-              <View key={sec} style={{ gap: 8 }}>
-                <Label>{SECTION_LABELS[sec] ?? sec}</Label>
-                <GlassCard padding={0}>
-                  {items.map((item, i) => (
-                    <PlanItemRow
-                      key={item.key}
-                      item={item}
-                      first={i === 0}
-                      onToggle={(key, done) => toggleMutation.mutate({ key, done })}
-                      disabled={toggleMutation.isPending}
-                    />
-                  ))}
-                </GlassCard>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-    </>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /* Styles                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -1503,18 +1234,3 @@ const rev = StyleSheet.create({
   lockText: { flex: 1, ...T.bodySm, color: palette.textMid },
 });
 
-const mission = StyleSheet.create({
-  focusLabel: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid, marginBottom: 6 },
-  focusText: { ...T.body, color: palette.textHi },
-  progressRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  progressBar: { flex: 1, height: 4, borderRadius: 2, backgroundColor: palette.borderStrong, overflow: "hidden" },
-  progressFill: { height: 4, borderRadius: 2, backgroundColor: palette.gold },
-  progressLabel: { fontFamily: fonts.medium, fontSize: 13, color: palette.textMid, fontVariant: ["tabular-nums"] },
-});
-
-const pi = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 20, paddingVertical: 14, minHeight: MIN_TAP + 8 },
-  rowPressed: { backgroundColor: palette.raised },
-  text: { flex: 1, fontFamily: fonts.regular, fontSize: 16, lineHeight: 22, color: palette.textHi },
-  textDone: { color: palette.textLow, textDecorationLine: "line-through" },
-});

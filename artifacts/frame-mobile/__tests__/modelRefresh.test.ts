@@ -4,11 +4,11 @@ import { factLastSeen, factSeenLabel, type ModelFact } from "../lib/athleteModel
 import { bucketByDay } from "../lib/factHistory";
 
 describe("modelRefresh", () => {
-  it("invalidates both query keys that read /memory (Profile/History and Home/State)", () => {
+  it("invalidates the query keys that read /memory (Profile/History, Home/State) and the daily State/Focus read", () => {
     const invalidateQueries = vi.fn();
     refreshModel({ invalidateQueries });
-    expect(invalidateQueries.mock.calls.map((c) => c[0].queryKey)).toEqual([["memory"], ["facts"]]);
-    expect(MODEL_QUERY_KEYS).toHaveLength(2);
+    expect(invalidateQueries.mock.calls.map((c) => c[0].queryKey)).toEqual([["memory"], ["facts"], ["today"]]);
+    expect(MODEL_QUERY_KEYS).toHaveLength(3);
   });
 
   it("re-fetches after a chat reply once the extractor has had time to write", () => {

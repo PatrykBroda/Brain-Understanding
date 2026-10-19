@@ -1,6 +1,9 @@
 export const MIN_PASSWORD_LENGTH = 8;
 
+export const NAME_MAX = 60;
+
 export type SignUpFormErrors = {
+  name?: string;
   email?: string;
   password?: string;
   legal?: string;
@@ -17,11 +20,15 @@ export function isPlausibleEmail(raw: string): boolean {
  * athlete had read the whole AI-consent screen and tapped Agree).
  */
 export function validateSignUp(input: {
+  name: string;
   email: string;
   password: string;
   acceptedLegal: boolean;
 }): SignUpFormErrors {
   const errors: SignUpFormErrors = {};
+  const name = input.name.trim();
+  if (!name) errors.name = "Enter your name.";
+  else if (name.length > NAME_MAX) errors.name = `Use ${NAME_MAX} characters or fewer.`;
   if (!input.email.trim()) errors.email = "Enter your email.";
   else if (!isPlausibleEmail(input.email)) errors.email = "That email doesn't look right. Check it for typos.";
   if (!input.password) errors.password = "Choose a password.";

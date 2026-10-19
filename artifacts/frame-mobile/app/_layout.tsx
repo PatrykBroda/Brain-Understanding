@@ -17,6 +17,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-cont
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoginUpsellGate } from "@/components/LoginUpsellGate";
+import { KeyboardDoneBar } from "@/components/KeyboardDoneBar";
 import { AiConsentGate } from "@/components/AiConsentGate";
 import { FighterProvider } from "@/context/FighterContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -359,6 +360,7 @@ export default function RootLayout() {
                 <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#08090B" }}>
                   <ErrorBoundary context="KeyboardProvider">
                     <KeyboardProvider>
+                      <KeyboardDoneBar />
                       <RootLayoutNav />
                     </KeyboardProvider>
                   </ErrorBoundary>

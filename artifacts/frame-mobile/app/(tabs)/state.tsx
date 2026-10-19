@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { StateOrb } from "@/components/StateOrb";
+import { DisclosureNotice } from "@/components/TodayCards";
+import { ReadinessBars } from "@/components/ReadinessBars";
 import { STATE_TIPS, stateTipPrompt } from "@/lib/stateTips";
 import {
   ArcGauge,
@@ -22,8 +24,12 @@ import {
 import { fonts, motion, palette, radius, SCREEN_PAD } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter } from "@/context/FighterContext";
-import { useTodayCheckin } from "@/hooks/useCheckin";
+import { useCheckinHistory } from "@/hooks/useCheckin";
+import { useIsFramePlus } from "@/hooks/useEntitlement";
+import { useToday } from "@/hooks/useToday";
 import { apiGet } from "@/lib/api";
+import { formatDay } from "@/lib/localDay";
+import { stateDateLine, stateHeadline } from "@/lib/today";
 import {
   readinessModifier,
   applyReadinessModifier,
@@ -38,40 +44,10 @@ interface Fact {
   confidence: number;
 }
 
-type OrbState =
-  | "Dormant"
-  | "Stable"
-  | "Loaded"
-  | "Recovering"
-  | "Tight"
-  | "Volatile"
-  | "Composed"
-  | "Overextended";
-
-function deriveState(facts: Fact[]): { state: OrbState; source: string } {
-  const active = facts.filter((f) => f.status === "active");
-  const content = active.map((f) => f.content.toLowerCase()).join(" ");
-
-  if (/volatile|fragmented|breaking|panic|collapse/.test(content))
-    return { state: "Volatile", source: "recent fragmentation pattern" };
-  if (/overextended|overreaching|beyond capacity/.test(content))
-    return { state: "Overextended", source: "load pattern" };
-  if (/tight|tense|clenched|rigid/.test(content))
-    return { state: "Tight", source: "tension marker" };
-  if (/recovering|injury|rest|fatigue|tired/.test(content))
-    return { state: "Recovering", source: "recovery note" };
-  if (/composed|calm|centered|controlled/.test(content))
-    return { state: "Composed", source: "composure pattern" };
-  if (/loaded|high.*volume|intense|heavy/.test(content))
-    return { state: "Loaded", source: "training load" };
-  if (active.length >= 3) return { state: "Stable", source: "active model" };
-
-  return { state: "Dormant", source: "no data yet" };
-}
-
 interface AnalysisListItem {
   id: number;
   sessionScore: number | null;
+  createdAt?: string;
   locked?: boolean;
 }
 
@@ -133,6 +109,13 @@ export default function StateScreen() {
   const { isSignedIn } = useAuth();
   const { fighter } = useFighter();
   const [expanded, setExpanded] = useState(false);
+  const [openDate, setOpenDate] = useState<string | null>(null);
+
+  const todayQuery = useToday();
+  const today = todayQuery.data ?? null;
+  const state = today?.state ?? null;
+  const current = !!state?.current && !!state.name;
+  const stateName = current ? state!.name! : null;
 
   const factsQuery = useQuery<Fact[]>({
     queryKey: ["facts"],
@@ -144,18 +127,13 @@ export default function StateScreen() {
     enabled: !!isSignedIn,
     staleTime: 0,
   });
-
   const facts: Fact[] = useMemo(() => (Array.isArray(factsQuery.data) ? factsQuery.data : []), [factsQuery.data]);
-  const { state, source } = useMemo(() => deriveState(facts), [facts]);
   const activeCount = facts.filter((f) => f.status === "active").length;
 
-  // Readiness priority mirrors the Home dashboard: today's self-reported
-  // check-in composite first, else the last analysed session's score.
-  const checkinQuery = useTodayCheckin();
-  const checkin = checkinQuery.data?.checkin ?? null;
-  const checkinScore = checkin
-    ? Math.round((checkin.sleep + checkin.energy + checkin.soreness + checkin.stress) / 4)
-    : null;
+  // Readiness is TODAY's check-in. An older check-in is shown dated, never as today's number.
+  const checkin = today?.readiness.today?.checkin ?? null;
+  const checkinScore = today?.readiness.today?.score ?? null;
+  const latest = today?.readiness.latest ?? null;
 
   const analysesQuery = useQuery<AnalysisListItem[]>({
     queryKey: ["analyses"],
@@ -166,11 +144,11 @@ export default function StateScreen() {
     enabled: !!fighter,
     staleTime: 60_000,
   });
-  const latest = analysesQuery.data?.find((a) => !a.locked && a.sessionScore != null) ?? null;
-  const sessionScore = latest?.sessionScore != null ? Math.round(latest.sessionScore) : null;
+  const lastAnalysis = analysesQuery.data?.find((a) => !a.locked && a.sessionScore != null) ?? null;
+  const sessionScore = lastAnalysis?.sessionScore != null ? Math.round(lastAnalysis.sessionScore) : null;
 
-  // Recent chat drives a small ±10 modifier on top of the base readiness. It
-  // reuses the same conversation the chat tab reads, so no new data flow.
+  // Recent chat drives a small ±10 modifier on top of today's check-in. It reuses the
+  // same conversation the chat tab reads, so no new data flow.
   const conversationQuery = useQuery<ChatMessageLike[]>({
     queryKey: ["conversation-active"],
     queryFn: () =>
@@ -182,23 +160,22 @@ export default function StateScreen() {
   });
   const chatMessages = conversationQuery.data ?? [];
   const chatModifier = useMemo(() => readinessModifier(chatMessages), [chatMessages]);
-
-  const baseReadiness = checkinScore ?? sessionScore;
-  const readiness = applyReadinessModifier(baseReadiness, chatModifier);
-  const readinessSource = checkinScore != null ? "today's check-in" : "your last session";
-
+  const readiness = applyReadinessModifier(checkinScore, chatModifier);
   const hasSession = chatMessages.length > 0;
+
+  // FRAME+: tappable readiness history.
+  const isFramePlus = useIsFramePlus();
+  const historyQuery = useCheckinHistory(isFramePlus);
+  const historyCheckins = historyQuery.data?.checkins ?? [];
 
   const { width } = useWindowDimensions();
   const orbSize = Math.round(Math.min(width * 0.6, 260));
   const topPad = Platform.OS === "web" ? 24 : insets.top;
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 0) + 96;
 
-  const loading = factsQuery.isLoading;
-  const failed = factsQuery.isError && !factsQuery.data;
+  const loading = todayQuery.isLoading;
+  const failed = todayQuery.isError && !todayQuery.data;
 
-  // Soreness / stress are stored as recovery quality; shown the natural way
-  // (100 = most sore / most stressed), same as Home.
   const checkinNote = checkin ? "From today's check-in, out of 100" : undefined;
   const fmt = (n: number | null | undefined) => (n == null ? null : String(n));
 
@@ -210,6 +187,13 @@ export default function StateScreen() {
         : chatModifier > 0
           ? `+${chatModifier}`
           : `${chatModifier}`;
+
+  function goCheckIn() {
+    haptic.select();
+    router.push({ pathname: "/(tabs)/home", params: { checkin: "1", n: String(Date.now()) } });
+  }
+
+  const dateLine = state ? stateDateLine(state, formatDay) : null;
 
   return (
     <Screen light="silver" focus="center" intensity={0.9}>
@@ -233,77 +217,102 @@ export default function StateScreen() {
               title="Couldn't load your state"
               body="Check your connection and try again."
               actionLabel="Try again"
-              onAction={() => void factsQuery.refetch()}
+              onAction={() => void todayQuery.refetch()}
             />
           </View>
         ) : (
           <>
             {/* Orb + the state, understandable without the orb or any motion */}
             <View style={styles.center}>
-              <StateOrb size={orbSize} stateLabel={state} expanded={expanded} onToggle={() => setExpanded((e) => !e)} />
+              <StateOrb
+                size={orbSize}
+                stateLabel={stateName ?? "Dormant"}
+                expanded={expanded}
+                onToggle={() => setExpanded((e) => !e)}
+              />
 
               <FadeIn style={styles.stateBlock}>
-                <Eyebrow>Your state</Eyebrow>
-                <Punch style={[styles.stateLabel, loading && { color: palette.textLow }]}>
-                  {loading ? "Reading…" : state}
+                {dateLine ? <Eyebrow>{dateLine}</Eyebrow> : <Eyebrow>Your state</Eyebrow>}
+                <Punch style={[styles.stateLabel, (loading || !current) && { color: palette.textLow }]}>
+                  {loading ? "Reading…" : state ? stateHeadline(state) : "No read yet"}
                 </Punch>
+                {!loading && !current && state?.name ? (
+                  <Text style={styles.lastRead} accessibilityRole="text">
+                    Last read: {state.name}, {state.asOf ? formatDay(state.asOf) : ""}. Not today&apos;s state.
+                  </Text>
+                ) : null}
                 {loading ? (
                   <Body style={styles.stateCue}>Checking your athlete model.</Body>
-                ) : (
-                  <Pressable
-                    onPress={() => {
-                      haptic.select();
-                      router.push({
-                        pathname: "/(tabs)/chat",
-                        params: { prefill: stateTipPrompt(state), n: String(Date.now()) },
-                      });
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Tip: ${STATE_TIPS[state].tip} ${STATE_TIPS[state].why}`}
-                    accessibilityHint="Opens your coach with this tip ready to send"
-                    style={({ pressed }) => [styles.tip, pressed && styles.tipPressed]}
-                  >
-                    <View style={styles.tipHead}>
-                      <Eyebrow>Tip</Eyebrow>
-                      <Feather name="arrow-up-right" size={16} color={palette.textMid} />
-                    </View>
-                    <Text style={styles.tipText}>{STATE_TIPS[state].tip}</Text>
-                    <Text style={styles.tipWhy}>{STATE_TIPS[state].why}</Text>
-                  </Pressable>
-                )}
-                <Pressable
-                  onPress={() => setExpanded((e) => !e)}
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded }}
-                  accessibilityLabel={expanded ? "Hide what shapes this" : "Show what shapes this"}
-                  style={styles.whyBtn}
-                  hitSlop={6}
-                >
-                  <Text style={styles.whyText}>What shapes this</Text>
-                  <Feather name={expanded ? "chevron-up" : "chevron-down"} size={16} color={palette.textMid} />
-                </Pressable>
+                ) : null}
               </FadeIn>
+            </View>
+
+            {today && !loading ? (
+              <View style={styles.pad}>
+                <DisclosureNotice disclosure={today.disclosure} onCheckIn={goCheckIn} />
+              </View>
+            ) : null}
+
+            {stateName && !loading ? (
+              <View style={styles.pad}>
+                <Pressable
+                  onPress={() => {
+                    haptic.select();
+                    router.push({
+                      pathname: "/(tabs)/chat",
+                      params: { prefill: stateTipPrompt(stateName), n: String(Date.now()) },
+                    });
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Tip: ${STATE_TIPS[stateName].tip} ${STATE_TIPS[stateName].why}`}
+                  accessibilityHint="Opens your coach with this tip ready to send"
+                  style={({ pressed }) => [styles.tip, pressed && styles.tipPressed]}
+                >
+                  <View style={styles.tipHead}>
+                    <Eyebrow>Tip</Eyebrow>
+                    <Feather name="arrow-up-right" size={16} color={palette.textMid} />
+                  </View>
+                  <Text style={styles.tipText}>{STATE_TIPS[stateName].tip}</Text>
+                  <Text style={styles.tipWhy}>{STATE_TIPS[stateName].why}</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            <View style={styles.centerRow}>
+              <Pressable
+                onPress={() => setExpanded((e) => !e)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded }}
+                accessibilityLabel={expanded ? "Hide what shapes this" : "Show what shapes this"}
+                style={styles.whyBtn}
+                hitSlop={6}
+              >
+                <Text style={styles.whyText}>What shapes this</Text>
+                <Feather name={expanded ? "chevron-up" : "chevron-down"} size={16} color={palette.textMid} />
+              </Pressable>
             </View>
 
             <FactorsPanel open={expanded}>
               <View style={styles.pad}>
                 <GlassCard raised padding={20}>
                   <View style={styles.panelHead}>
-                    <Text style={styles.panelState}>{state}</Text>
-                    <Text style={styles.panelCue}>{STATE_TIPS[state].tip}</Text>
+                    <Text style={styles.panelState}>{stateName ?? (state?.name ? "No read today" : "No read yet")}</Text>
+                    <Text style={styles.panelCue}>
+                      {stateName
+                        ? STATE_TIPS[stateName].tip
+                        : "FRAME has nothing from you today, so it is not reading a state."}
+                    </Text>
                   </View>
 
                   <Eyebrow style={styles.groupLabel}>Your state</Eyebrow>
                   <FactorRow
+                    label="Read from"
+                    value={current ? state!.source : null}
+                    note={current && state ? `Based on ${formatDay(state.asOf!)}.` : undefined}
+                  />
+                  <FactorRow
                     label="Athlete model"
                     value={activeCount > 0 ? `${activeCount} active ${activeCount === 1 ? "note" : "notes"}` : null}
-                    note={
-                      state === "Dormant"
-                        ? activeCount > 0
-                          ? "A state needs at least 3 notes or a clear pattern."
-                          : undefined
-                        : `Read from a ${source}.`
-                    }
                     last
                   />
 
@@ -320,23 +329,37 @@ export default function StateScreen() {
                     value={checkin ? String(100 - checkin.stress) : null}
                     note={checkin ? "100 = most stressed" : undefined}
                   />
-                  <FactorRow label="Last session score" value={fmt(sessionScore)} note={sessionScore != null ? "From your latest analysed session" : undefined} />
+                  <FactorRow
+                    label="Last session score"
+                    value={fmt(sessionScore)}
+                    note={
+                      sessionScore != null
+                        ? lastAnalysis?.createdAt
+                          ? `From your latest analysed session, ${formatDay(lastAnalysis.createdAt.slice(0, 10))}`
+                          : "From your latest analysed session"
+                        : undefined
+                    }
+                  />
                   <FactorRow
                     label="Recent chat adjustment"
-                    value={modifierValue}
-                    note={modifierValue != null ? "Up to ±10, from what you told your coach" : undefined}
+                    value={checkin ? modifierValue : null}
+                    note={checkin && modifierValue != null ? "Up to ±10, from what you told your coach" : undefined}
                     last
                   />
                 </GlassCard>
               </View>
             </FactorsPanel>
 
-            {/* Fight readiness */}
+            {/* Fight readiness: today's number, or the last one clearly dated */}
             <FadeIn index={1} style={styles.pad}>
               <Pressable
-                onPress={() => router.push("/(tabs)/home")}
+                onPress={goCheckIn}
                 accessibilityRole="button"
-                accessibilityLabel={readiness != null ? `Fight readiness ${readiness} out of 100. Open home` : "Fight readiness: no data yet. Open home"}
+                accessibilityLabel={
+                  readiness != null
+                    ? `Fight readiness ${readiness} out of 100 from today's check-in. Update it`
+                    : "No check-in today. Log one"
+                }
               >
                 <GlassCard padding={16}>
                   <View style={styles.readinessRow}>
@@ -348,17 +371,64 @@ export default function StateScreen() {
                     <View style={styles.readinessText}>
                       <Text style={styles.readinessTitle}>Fight readiness</Text>
                       {readiness != null ? (
+                        <Text style={styles.readinessSub}>{readiness} / 100 from today&apos;s check-in</Text>
+                      ) : latest ? (
                         <Text style={styles.readinessSub}>
-                          {readiness} / 100 from {readinessSource}
+                          No check-in today. Last: {latest.score} / 100 on {formatDay(latest.date)}.
                         </Text>
                       ) : (
-                        <Text style={styles.readinessSub}>No data yet. Log a check-in on Home.</Text>
+                        <Text style={styles.readinessSub}>No check-in yet. Log one to start.</Text>
                       )}
                     </View>
                     <Feather name="chevron-right" size={18} color={palette.textLow} />
                   </View>
                 </GlassCard>
               </Pressable>
+            </FadeIn>
+
+            {/* Check-in history: tap a bar to open that day */}
+            <FadeIn index={2} style={styles.pad}>
+              <GlassCard padding={16}>
+                <Text style={styles.readinessTitle}>Check-in history</Text>
+                {isFramePlus ? (
+                  historyQuery.isLoading ? (
+                    <Body small style={{ marginTop: 8 }}>
+                      Loading your check-ins…
+                    </Body>
+                  ) : historyQuery.isError ? (
+                    <Body small style={{ marginTop: 8 }}>
+                      Couldn&apos;t load your history. Pull to refresh or try again later.
+                    </Body>
+                  ) : historyCheckins.length === 0 ? (
+                    <Body small style={{ marginTop: 8 }}>
+                      No check-ins in the last 30 days. Log one to start your history.
+                    </Body>
+                  ) : (
+                    <View style={{ marginTop: 14 }}>
+                      <ReadinessBars
+                        checkins={historyCheckins}
+                        today={today?.date ?? ""}
+                        selected={openDate}
+                        onSelect={setOpenDate}
+                      />
+                      {openDate == null ? <Text style={styles.barsHint}>Tap a day to open that check-in.</Text> : null}
+                    </View>
+                  )
+                ) : (
+                  <Pressable
+                    onPress={() => router.push("/paywall")}
+                    accessibilityRole="button"
+                    accessibilityLabel="Check-in history, included with FRAME+"
+                    style={styles.lockedRow}
+                  >
+                    <View style={styles.lockedLeft}>
+                      <Feather name="lock" size={16} color={palette.textLow} />
+                      <Text style={styles.factorLabel}>See past check-ins</Text>
+                    </View>
+                    <Text style={styles.lockedPlus}>FRAME+</Text>
+                  </Pressable>
+                )}
+              </GlassCard>
             </FadeIn>
 
             <View style={[styles.pad, { marginTop: 16 }]}>
@@ -385,12 +455,12 @@ const styles = StyleSheet.create({
   wordmarkImg: { width: 92, height: 26, tintColor: palette.text },
   pad: { paddingHorizontal: SCREEN_PAD, marginTop: 16 },
   center: { alignItems: "center", paddingTop: 8 },
+  centerRow: { alignItems: "center" },
   stateBlock: { alignItems: "center", gap: 6, paddingHorizontal: SCREEN_PAD + 4, marginTop: 8 },
   stateLabel: { textAlign: "center", marginTop: 2 },
+  lastRead: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: palette.textMid, textAlign: "center" },
   tip: {
     alignSelf: "stretch",
-    marginTop: 10,
-    marginHorizontal: -4,
     padding: 16,
     gap: 6,
     borderRadius: radius.lg,
@@ -413,11 +483,15 @@ const styles = StyleSheet.create({
   factorRule: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.borderStrong },
   factorHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
   factorLabel: { fontFamily: fonts.medium, fontSize: 15, color: palette.textHi, flexShrink: 1 },
-  factorValue: { fontFamily: fonts.semi, fontSize: 16, color: palette.textHi, fontVariant: ["tabular-nums"] },
+  factorValue: { fontFamily: fonts.semi, fontSize: 16, color: palette.textHi, fontVariant: ["tabular-nums"], flexShrink: 1, textAlign: "right" },
   factorNote: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17, color: palette.textLow },
   readinessRow: { flexDirection: "row", alignItems: "center", gap: 14 },
   gaugeWrap: { width: 104, height: 88, overflow: "hidden" },
   readinessText: { flex: 1, gap: 4 },
   readinessTitle: { fontFamily: fonts.semi, fontSize: 17, color: palette.textHi },
   readinessSub: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: palette.textMid, fontVariant: ["tabular-nums"] },
+  barsHint: { fontFamily: fonts.regular, fontSize: 12.5, color: palette.textLow, marginTop: 10 },
+  lockedRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44, marginTop: 4 },
+  lockedLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  lockedPlus: { fontFamily: fonts.medium, fontSize: 13, color: palette.gold },
 });
