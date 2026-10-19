@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/lib/api";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { CATEGORY_LABELS, type ModelFact } from "@/lib/athleteModel";
-import { bucketByDay } from "@/lib/factHistory";
+import { bucketByDay, observationPrompt } from "@/lib/factHistory";
 import { Body, Button, Display, EmptyState, FadeIn, GlassCard, IconButton, Label, Screen } from "@/components/ui";
 import { FactConfidence } from "@/components/FactConfidence";
 import { fonts, MIN_TAP, palette, SCREEN_PAD } from "@/constants/theme";
@@ -112,7 +112,18 @@ export default function HistoryScreen() {
                     </View>
                     <GlassCard padding={0}>
                       {bucket.facts.map((f, i) => (
-                        <View key={f.id} style={[s.factItem, i > 0 && s.rule]}>
+                        <Pressable
+                          key={f.id}
+                          onPress={() =>
+                            router.push({
+                              pathname: "/(tabs)/chat",
+                              params: { prefill: observationPrompt(f, CATEGORY_LABELS[f.category] ?? f.category), n: String(Date.now()) },
+                            })
+                          }
+                          accessibilityRole="button"
+                          accessibilityLabel={`${CATEGORY_LABELS[f.category] ?? f.category}: ${f.topic || f.content}, ${bucket.label}. Discuss this with your coach`}
+                          style={({ pressed }) => [s.factItem, i > 0 && s.rule, pressed && { backgroundColor: palette.raised }]}
+                        >
                           <View style={{ flex: 1 }}>
                             <Text style={s.factCat}>{CATEGORY_LABELS[f.category] ?? f.category}</Text>
                             <Text style={s.factText}>{f.topic || f.content}</Text>
@@ -121,7 +132,8 @@ export default function HistoryScreen() {
                             {(f.evidenceCount ?? 1) > 1 && <Text style={s.factEvidence}>×{f.evidenceCount}</Text>}
                             <FactConfidence value={f.confidence} />
                           </View>
-                        </View>
+                          <Feather name="chevron-right" size={16} color={palette.textLow} />
+                        </Pressable>
                       ))}
                     </GlassCard>
                   </View>

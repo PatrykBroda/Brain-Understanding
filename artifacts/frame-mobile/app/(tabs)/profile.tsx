@@ -38,6 +38,7 @@ import { useFighter, type Fighter } from "@/context/FighterContext";
 import { apiDelete, apiGet, apiPatch, apiUrl, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 import { primaryFocus } from "@/lib/primaryFocus";
+import { observationPrompt } from "@/lib/factHistory";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
 import { FactConfidence } from "@/components/FactConfidence";
@@ -736,7 +737,18 @@ export default function ProfileScreen() {
                       <Text style={s.catHeadCount}>{grouped[c]!.length}</Text>
                     </View>
                     {grouped[c]!.map((f) => (
-                      <View key={f.id} style={[s.factItem, s.rowRule]}>
+                      <Pressable
+                        key={f.id}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/(tabs)/chat",
+                            params: { prefill: observationPrompt(f, CATEGORY_LABELS[c] ?? c), n: String(Date.now()) },
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`${sentence(f.topic || f.content)}, ${factSeenLabel(f)}. Discuss this with your coach`}
+                        style={({ pressed }) => [s.factItem, s.rowRule, pressed && { backgroundColor: palette.raised }]}
+                      >
                         <Text style={s.factText}>{sentence(f.topic || f.content)}</Text>
                         <View style={s.factMeta}>
                           <Text style={s.factEvidence}>
@@ -745,7 +757,7 @@ export default function ProfileScreen() {
                           </Text>
                           <FactConfidence value={f.confidence} />
                         </View>
-                      </View>
+                      </Pressable>
                     ))}
                   </GlassCard>
                 ))}

@@ -80,3 +80,28 @@ describe("weekly mission helpers", () => {
     expect(missionErrorMessage(new Error("Network request failed"), false)).toMatch(/Check your connection/);
   });
 });
+
+import { observationPrompt } from "../lib/factHistory";
+
+describe("tapping an observation opens the coach with that observation and its date", () => {
+  const f = {
+    category: "weakness",
+    topic: "guard retention",
+    content: "Gets passed when gassed",
+    createdAt: "2026-10-10T12:00:00Z",
+    lastConfirmedAt: "2026-10-17T12:00:00Z",
+    updatedAt: "2026-10-17T12:00:00Z",
+  };
+  it("carries the observation, its category and both dates", () => {
+    const p = observationPrompt(f, "Weakness");
+    expect(p).toContain("guard retention: Gets passed when gassed");
+    expect(p).toContain("weakness");
+    expect(p).toMatch(/first recorded .*Oct 2026, last seen .*Oct 2026/);
+    expect(p).toMatch(/Is it still true for me now/);
+  });
+  it("a different observation produces a different prompt", () => {
+    const other = observationPrompt({ ...f, topic: "cardio", content: "Fades in round 3", lastConfirmedAt: null }, "Weakness");
+    expect(other).toContain("cardio: Fades in round 3");
+    expect(other).not.toContain("guard retention");
+  });
+});

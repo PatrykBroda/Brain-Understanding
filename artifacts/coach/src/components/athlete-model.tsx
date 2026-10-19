@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { observationPrompt } from "@/lib/fact-seen";
 import { ChevronRight, Lock } from "lucide-react";
 import { useFighter } from "@/hooks/use-fighter";
 import { useMemory } from "@/hooks/use-memory";
@@ -755,9 +756,11 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
                 </div>
                 <div className="glass px-4">
                   {grouped[c]!.map((f) => (
-                    <div
+                    <Link
                       key={f.id}
-                      className="py-3 flex items-baseline justify-between gap-3 border-t border-white/[0.06] first:border-t-0"
+                      href={`/chat?prefill=${encodeURIComponent(observationPrompt(f, CATEGORY_LABELS[c]))}&n=${f.id}`}
+                      aria-label={`${f.topic || f.content}. Discuss this with your coach`}
+                      className="-mx-2 flex items-baseline justify-between gap-3 rounded-[12px] border-t border-white/[0.06] px-2 py-3 outline-none transition-colors first:border-t-0 hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-[var(--f-gold)]"
                     >
                       <div
                         className="min-w-0 text-[0.9375rem] text-foreground/90 leading-snug"
@@ -776,7 +779,7 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
                         )}
                         <FactConfidence value={f.confidence} />
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>

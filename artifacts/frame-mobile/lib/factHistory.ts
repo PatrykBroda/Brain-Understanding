@@ -44,3 +44,26 @@ export function bucketByDay(facts: ModelFact[], now: Date = new Date()): DayBuck
     .map(([key, v]) => ({ key, label: v.label, facts: v.facts }));
 }
 
+
+/** "Tue 20 Oct 2026" for an ISO timestamp, on the device's calendar. */
+export function observationDate(iso: string | undefined | null): string {
+  const d = iso ? new Date(iso) : null;
+  if (!d || Number.isNaN(d.getTime())) return "an unknown date";
+  return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+}
+
+/**
+ * What opens in the coach chat when an observation is tapped: the observation itself and
+ * its date, ready to send, so the athlete can discuss it without retyping. Older
+ * observations are dated, never presented as current.
+ */
+export function observationPrompt(
+  f: Pick<ModelFact, "category" | "topic" | "content" | "createdAt" | "lastConfirmedAt" | "updatedAt">,
+  categoryLabel: string,
+): string {
+  const seen = observationDate(factLastSeen(f));
+  const first = observationDate(f.createdAt);
+  const when = first === seen ? `recorded ${seen}` : `first recorded ${first}, last seen ${seen}`;
+  const what = f.topic && f.topic.trim() && f.topic.trim() !== f.content.trim() ? `${f.topic.trim()}: ${f.content.trim()}` : f.content.trim();
+  return `Let's talk about this observation FRAME holds on me (${categoryLabel.toLowerCase()}, ${when}): "${what}". Is it still true for me now, and what should I do about it?`;
+}

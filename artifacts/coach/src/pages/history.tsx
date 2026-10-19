@@ -7,7 +7,7 @@ import { useAnalyses } from "@/hooks/use-analysis";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useFramePlus } from "@/components/frame-plus-modal";
 import type { AthleteFact, FactCategory, AnalysisListItem } from "@/lib/api";
-import { factLastSeen } from "@/lib/fact-seen";
+import { factLastSeen, observationPrompt } from "@/lib/fact-seen";
 
 // Local, self-owned label map — human-readable names for each fact category.
 const CATEGORY_LABELS: Record<FactCategory, string> = {
@@ -249,18 +249,21 @@ export default function HistoryPage() {
                         ) : (
                           <div className="mt-2">
                             {day.facts.map((f) => (
-                              <div
+                              <Link
                                 key={`f-${f.id}`}
-                                className="py-3 border-t border-white/[0.06] first:border-t-0"
+                                href={`/chat?prefill=${encodeURIComponent(observationPrompt(f, CATEGORY_LABELS[f.category]))}&n=${f.id}`}
+                                aria-label={`${CATEGORY_LABELS[f.category]}: ${f.content}, ${dayHeader(day.date)}. Discuss this with your coach`}
+                                className="group -mx-2 block rounded-[12px] border-t border-white/[0.06] px-2 py-3 outline-none transition-colors first:border-t-0 hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-[var(--f-gold)]"
                               >
                                 <div className="flex items-baseline justify-between gap-3 mb-1">
                                   <div className="label truncate">{CATEGORY_LABELS[f.category]}</div>
                                   <ConfidenceBar value={f.confidence} source={f.source} />
                                 </div>
-                                <div className="text-[1rem] leading-[1.55] text-foreground/90">
-                                  {f.content}
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="text-[1rem] leading-[1.55] text-foreground/90">{f.content}</div>
+                                  <ChevronRight className="mt-1 h-4 w-4 flex-none text-[var(--f-text-3)] transition-colors group-hover:text-foreground" strokeWidth={1.75} aria-hidden />
                                 </div>
-                              </div>
+                              </Link>
                             ))}
                           </div>
                         )}
