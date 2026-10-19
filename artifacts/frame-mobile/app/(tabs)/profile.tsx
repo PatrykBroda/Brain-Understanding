@@ -48,6 +48,7 @@ import { isBjjSport, LEGACY_SPORTS, SPORTS } from "@/lib/fighterOptions";
 import { useEntitlement, useSyncBilling } from "@/hooks/useEntitlement";
 import { restorePurchases, hasFramePlus } from "@/lib/purchases";
 import {
+  ARCHETYPE_UNLOCK_UNDERSTANDING,
   CATEGORY_LABELS,
   CATEGORY_ORDER,
   computeAthleteModel,
@@ -648,13 +649,17 @@ export default function ProfileScreen() {
               label="Current style"
               value={`${sportLabel(fighter.primarySport ?? fighter.art)} · ${fighter.level ?? "—"}`}
             />
-            {arch && (
+            {arch ? (
               <>
                 <DataRow label="Archetype" value={arch.name} />
                 <DataRow label="Pressure response" value={leadClause(arch.pressureSignature)} />
-                <DataRow label="Gift" value={leadClause(arch.gift)} />
-                <DataRow label="Shadow" value={leadClause(arch.shadow)} />
               </>
+            ) : (
+              <DataRow
+                label="Archetype"
+                value="Not assigned yet"
+                sub={`FRAME assigns one once it understands ${ARCHETYPE_UNLOCK_UNDERSTANDING}% of your game. Now ${model.frameConfidence}%.`}
+              />
             )}
             {model.topWeakness && (
               <DataRow

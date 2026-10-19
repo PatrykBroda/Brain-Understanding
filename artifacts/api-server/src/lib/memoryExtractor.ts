@@ -12,6 +12,7 @@ import {
   supersedeFact,
 } from "./factsService";
 import { AI_PROVIDER_MAX_RETRIES, hasAiConsentForUser } from "./aiConsent";
+import { maybeAssignArchetype } from "./archetypeGate";
 
 const baseURL = process.env["AI_INTEGRATIONS_ANTHROPIC_BASE_URL"];
 const apiKey = process.env["AI_INTEGRATIONS_ANTHROPIC_API_KEY"];
@@ -226,7 +227,11 @@ Update the model. Call tools only. No prose.`;
       messages: [{ role: "user", content: userMessage }],
     });
 
-    await applyMemoryToolCalls(fighter.id, response.content, log);
+    const tally = await applyMemoryToolCalls(fighter.id, response.content, log);
+    // The first time understanding of the athlete reaches 25%, give them their archetype.
+    if (tally.added + tally.confirmed + tally.superseded + tally.resolved > 0) {
+      await maybeAssignArchetype(fighter.id, log);
+    }
   } catch (err) {
     log.error({ err }, "memory extraction failed");
   }

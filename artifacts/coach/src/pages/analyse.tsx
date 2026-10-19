@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { WeeklyReportOverlay } from "@/components/weekly-report-overlay";
+import { FEATURES } from "@/lib/features";
 import { BottomNav } from "@/components/bottom-nav";
 import { ModelUpdateCard } from "@/components/model-update-card";
 import { FrameOctagon } from "@/components/frame-octagon";
@@ -567,7 +568,7 @@ export default function AnalysePage() {
               onOpenOpponent={(id) => setOpenOpponentId(id)}
             />
           )}
-          {!result && openId == null && openOpponentId == null && (
+          {FEATURES.weeklyReport && !result && openId == null && openOpponentId == null && (
             <>
               <button
                 type="button"
@@ -785,14 +786,16 @@ export default function AnalysePage() {
                 />
               )}
 
-              <button
-                type="button"
-                onClick={() => setWeeklyReportOpen(true)}
-                className="w-full btn-quiet"
-              >
-                <ScrollText className="w-4 h-4" strokeWidth={1.5} />
-                Weekly intelligence report
-              </button>
+              {FEATURES.weeklyReport && (
+                <button
+                  type="button"
+                  onClick={() => setWeeklyReportOpen(true)}
+                  className="w-full btn-quiet"
+                >
+                  <ScrollText className="w-4 h-4" strokeWidth={1.5} />
+                  Weekly intelligence report
+                </button>
+              )}
             </div>
           </>
         )}

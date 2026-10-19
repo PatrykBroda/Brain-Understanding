@@ -402,6 +402,9 @@ const RADAR_DIMS: {
 ];
 
 const TARGET_PER_CATEGORY = 15; // 3 facts × confidence 5
+
+/** An archetype (animal) is only assigned and shown at or above this model-confidence percentage. Mirrors lib/ontology ARCHETYPE_UNLOCK_UNDERSTANDING (a test keeps the two in step). */
+export const ARCHETYPE_UNLOCK_UNDERSTANDING = 25;
 const RADAR_TARGET = 12; // confidence points that fill one DNA dimension
 
 // ─── Small helpers (ported from athlete-model.tsx) ───────────────────────────

@@ -8,6 +8,12 @@ const router: IRouter = Router();
 // model learned this week. Every value is derived server-side from real
 // recorded evidence; no AI number is emitted here.
 router.get("/report/weekly", async (req, res) => {
+  // Removed for now at the client's request (19 Oct 2026); the code stays behind this switch
+  // until the replacement approach is decided.
+  if (process.env["WEEKLY_REPORT_ENABLED"] !== "1") {
+    res.status(410).json({ error: "The weekly intelligence report is switched off for now.", code: "FEATURE_DISABLED" });
+    return;
+  }
   const fighter = await getUserFighter(req);
   if (!fighter) {
     res.json({ report: null });

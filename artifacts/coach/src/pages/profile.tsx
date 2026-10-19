@@ -265,12 +265,6 @@ export default function ProfilePage() {
                     value={strength.label}
                     sub={strength.source}
                   />
-                ) : arch ? (
-                  <LineItem
-                    label="Gift"
-                    value={arch.gift.split(/[.!]/)[0].trim()}
-                    sub="your archetype's gift — FRAME hasn't observed a strength yet"
-                  />
                 ) : null}
                 <Link
                   href="/chat"

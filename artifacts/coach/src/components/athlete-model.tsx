@@ -9,7 +9,7 @@ import { useFramePlus } from "@/components/frame-plus-modal";
 import { AthleteStatePanel } from "@/components/athlete-state-panel";
 import { sportLabel } from "@/lib/fighter-options";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
-import { ontologyDomainOf, computeModelMaturity } from "@workspace/ontology";
+import { ARCHETYPE_UNLOCK_UNDERSTANDING, computeModelMaturity, computeUnderstanding, ontologyDomainOf } from "@workspace/ontology";
 import { api, type FactCategory } from "@/lib/api";
 
 const CATEGORY_LABELS: Record<FactCategory, string> = {
@@ -614,13 +614,17 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
               label="Current style"
               value={`${fighter.primarySport ? sportLabel(fighter.primarySport) : fighter.art ?? "-"} · ${fighter.level}`}
             />
-            {arch && (
+            {arch ? (
               <>
                 <IdentityRow label="Primary archetype" value={arch.name} />
                 <IdentityRow label="Pressure response" value={leadClause(arch.pressureSignature)} />
-                <IdentityRow label="Gift" value={leadClause(arch.gift)} />
-                <IdentityRow label="Shadow" value={leadClause(arch.shadow)} />
               </>
+            ) : (
+              <IdentityRow
+                label="Archetype"
+                value="Not assigned yet"
+                sub={`FRAME assigns one once it understands ${ARCHETYPE_UNLOCK_UNDERSTANDING}% of your game. Now ${computed.frameConfidence}%.`}
+              />
             )}
             <IdentityRow
               label="Coaching mode"
