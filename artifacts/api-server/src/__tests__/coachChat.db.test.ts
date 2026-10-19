@@ -246,7 +246,7 @@ describe("input budget", () => {
   it("a long conversation is trimmed to a bounded history that still starts with the athlete", async () => {
     const [conv] = await db.insert(conversationsTable).values({ fighterId }).returning();
     const big = "x".repeat(2_000);
-    const rows = [] as { conversationId: number; role: string; content: string; createdAt: Date }[];
+    const rows = [] as { conversationId: number; role: "user" | "assistant"; content: string; createdAt: Date }[];
     for (let i = 0; i < 80; i++) {
       rows.push({
         conversationId: conv!.id,

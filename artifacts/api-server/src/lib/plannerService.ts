@@ -12,11 +12,12 @@ import {
   type Calibration,
 } from "@workspace/db";
 import { and, asc, desc, eq, gt } from "drizzle-orm";
-import { COACH_SYSTEM_PROMPT_STATIC, buildDynamicContext } from "./synochi";
+import { buildDynamicContext } from "./synochi";
 import { openai, OPENAI_COACH_MODEL } from "./openaiClient";
-import { selectRelevantNodes } from "./vaultRetrieval";
 import { AI_PROVIDER_MAX_RETRIES } from "./aiConsent";
 import { AiConsentRequiredError, hasAiConsentForUser } from "./aiConsent";
+import { runWithRetry } from "./aiRetry";
+import { addDays } from "./localTime";
 
 let _anthropic: Anthropic | null = null;
 function getAnthropic(): Anthropic {
@@ -30,6 +31,14 @@ function getAnthropic(): Anthropic {
   }
   _anthropic = new Anthropic({ baseURL, apiKey, maxRetries: AI_PROVIDER_MAX_RETRIES });
   return _anthropic;
+}
+
+/** Monday (as a UTC-midnight date) of the week that contains local calendar date `localDate` ("YYYY-MM-DD"). */
+export function weekStartForLocalDate(localDate: string): Date {
+  const d = new Date(`${localDate}T00:00:00Z`);
+  const dow = d.getUTCDay(); // 0=Sun..6=Sat
+  const back = dow === 0 ? 6 : dow - 1;
+  return new Date(`${addDays(localDate, -back)}T00:00:00Z`);
 }
 
 export function isoMondayUTC(d: Date = new Date()): Date {
@@ -53,6 +62,30 @@ HARD RULES:
 - No streaks, no points, no congratulations, no motivational language. Restraint over engagement.
 - The rationale field: 2-3 sentences naming the through-line of the week. What is this week ABOUT for this athlete, given the signals you can see.
 `;
+
+// The planner does not need the whole SYNOCHI vault (~80k tokens) to turn an athlete's
+// recorded model into a week: it reads facts, calibrations and chat. This short system
+// prompt keeps the FRAME voice and rules and lets a generation finish in seconds.
+export const PLANNER_SYSTEM_PROMPT =
+  "You are FRAME, a calm, precise combat-sports coach. You turn what you actually know about an athlete into a restrained plan for the week. You never invent facts about the athlete, never use hype or motivational language, and never present guesses as measurements. Stability and structure come before intensity: one load-bearing fix at a time.";
+
+/** Profile answers an item may cite when the athlete has no recorded facts or calibrations yet. */
+export function profileSourceKeys(
+  fighter: Pick<Fighter, "goals" | "weaknesses" | "trainingFrequency" | "level" | "personality">,
+): string[] {
+  const keys: string[] = [];
+  if (fighter.goals?.trim()) keys.push("onboarding:goals");
+  if (fighter.weaknesses?.trim()) keys.push("onboarding:weaknesses");
+  if (fighter.trainingFrequency?.trim()) keys.push("onboarding:frequency");
+  if (fighter.level?.trim()) keys.push("onboarding:level");
+  if (fighter.personality?.trim()) keys.push("onboarding:pressure");
+  return keys;
+}
+
+/** True when the athlete's own onboarding words (goals, weaknesses, how they handle pressure) give a mission something real to stand on. */
+export function hasProfileSignals(fighter: Pick<Fighter, "goals" | "weaknesses" | "personality">): boolean {
+  return Boolean(fighter.goals?.trim() || fighter.weaknesses?.trim() || fighter.personality?.trim());
+}
 
 function uniqueKey(idx: number, title: string): string {
   const slug = title
@@ -160,18 +193,26 @@ const PLAN_TOOL: Anthropic.Tool = {
   },
 };
 
-async function callClaude(systemStatic: string, dynamic: string): Promise<RawPlan> {
-  const resp = await getAnthropic().messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 2500,
-    system: [
-      { type: "text", text: systemStatic, cache_control: { type: "ephemeral" } },
-      { type: "text", text: dynamic },
-    ],
-    tools: [PLAN_TOOL],
-    tool_choice: { type: "tool", name: "emit_weekly_plan" },
-    messages: [{ role: "user", content: "Generate this week's plan now. Use the emit_weekly_plan tool." }],
-  });
+/** One provider call is abandoned after this long, so a slow provider ends in a clear error, never a spinner. */
+export const PLANNER_CALL_TIMEOUT_MS = Number(process.env["PLANNER_CALL_TIMEOUT_MS"]) || 40_000;
+/** The whole generation (including one retry) must finish inside this. */
+export const PLANNER_TOTAL_BUDGET_MS = 55_000;
+
+async function callClaude(systemStatic: string, dynamic: string, timeoutMs: number): Promise<RawPlan> {
+  const resp = await getAnthropic().messages.create(
+    {
+      model: "claude-sonnet-4-6",
+      max_tokens: 2500,
+      system: [
+        { type: "text", text: systemStatic, cache_control: { type: "ephemeral" } },
+        { type: "text", text: dynamic },
+      ],
+      tools: [PLAN_TOOL],
+      tool_choice: { type: "tool", name: "emit_weekly_plan" },
+      messages: [{ role: "user", content: "Generate this week's plan now. Use the emit_weekly_plan tool." }],
+    },
+    { timeout: timeoutMs },
+  );
   for (const block of resp.content) {
     if (block.type === "tool_use" && block.name === "emit_weekly_plan") {
       return block.input as RawPlan;
@@ -180,21 +221,24 @@ async function callClaude(systemStatic: string, dynamic: string): Promise<RawPla
   throw new Error("claude returned no tool_use");
 }
 
-async function callOpenAI(systemStatic: string, dynamic: string): Promise<RawPlan> {
-  const completion = await openai.chat.completions.create({
-    model: OPENAI_COACH_MODEL,
-    max_completion_tokens: 2500,
-    response_format: { type: "json_object" },
-    messages: [
-      { role: "system", content: systemStatic },
-      { role: "system", content: dynamic },
-      {
-        role: "user",
-        content:
-          'Generate this week\'s plan now. Respond ONLY with a JSON object matching: { "rationale": string, "items": [ { "category": "fix|train|technique|regulate|goal_step", "title": string, "detail": string, "suggestedDays": string, "sourceFactIds": number[], "sourceCalibrationKeys": string[], "sourceLabel": string } ] }',
-      },
-    ],
-  });
+async function callOpenAI(systemStatic: string, dynamic: string, timeoutMs: number): Promise<RawPlan> {
+  const completion = await openai.chat.completions.create(
+    {
+      model: OPENAI_COACH_MODEL,
+      max_completion_tokens: 2500,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemStatic },
+        { role: "system", content: dynamic },
+        {
+          role: "user",
+          content:
+            'Generate this week\'s plan now. Respond ONLY with a JSON object matching: { "rationale": string, "items": [ { "category": "fix|train|technique|regulate|goal_step", "title": string, "detail": string, "suggestedDays": string, "sourceFactIds": number[], "sourceCalibrationKeys": string[], "sourceLabel": string } ] }',
+        },
+      ],
+    },
+    { timeout: timeoutMs },
+  );
   const text = completion.choices[0]?.message?.content ?? "{}";
   return JSON.parse(text) as RawPlan;
 }
@@ -206,33 +250,41 @@ export async function generateWeeklyPlan(args: {
   calibrations: Calibration[];
   provider: "claude" | "openai";
   recentChat: string;
+  /** Per-call timeout; defaults to PLANNER_CALL_TIMEOUT_MS. */
+  timeoutMs?: number;
 }): Promise<{ items: PlanItem[]; rationale: string }> {
   const { userId, fighter, facts, calibrations, provider, recentChat } = args;
-  const deepNodes = selectRelevantNodes(
-    `${fighter.goals ?? ""}\n${fighter.weaknesses ?? ""}\n${recentChat}`,
-    4,
-  );
+  const timeoutMs = args.timeoutMs ?? PLANNER_CALL_TIMEOUT_MS;
+  const profileKeys = profileSourceKeys(fighter);
   const dynamic =
-    buildDynamicContext(fighter, facts, calibrations, deepNodes) +
+    buildDynamicContext(fighter, facts, calibrations, []) +
     "\n\n" +
     PLANNER_INSTRUCTIONS +
+    (profileKeys.length
+      ? `\n\n# Citable onboarding answers\n\nIf an item rests on something the athlete told you at onboarding rather than a recorded fact, cite it in sourceCalibrationKeys using one of: ${profileKeys.join(", ")}. Prefer recorded facts and calibrations whenever they exist.`
+      : "") +
     (recentChat
       ? `\n\n# Recent chat signal (most recent first, truncated)\n\n${recentChat.slice(0, 4000)}`
       : "");
 
   const validFactIds = new Set(facts.map((f) => f.id));
-  const validCalibrationKeys = new Set(calibrations.map((c) => c.promptKey));
+  const validCalibrationKeys = new Set([...calibrations.map((c) => c.promptKey), ...profileKeys]);
 
   for (let attempt = 0; attempt < 2; attempt++) {
-    // Check on every attempt, not just once before generation. A failed first
-    // response can trigger a retry after the athlete withdraws consent.
-    if (!(await hasAiConsentForUser(userId))) {
-      throw new AiConsentRequiredError();
-    }
-    const raw =
-      provider === "openai"
-        ? await callOpenAI(COACH_SYSTEM_PROMPT_STATIC, dynamic)
-        : await callClaude(COACH_SYSTEM_PROMPT_STATIC, dynamic);
+    // Consent is re-checked before every provider call, including retries.
+    const raw = await runWithRetry(
+      () =>
+        provider === "openai"
+          ? callOpenAI(PLANNER_SYSTEM_PROMPT, dynamic, timeoutMs)
+          : callClaude(PLANNER_SYSTEM_PROMPT, dynamic, timeoutMs),
+      {
+        maxAttempts: 2,
+        deadlineMs: PLANNER_TOTAL_BUDGET_MS - timeoutMs,
+        beforeAttempt: async () => {
+          if (!(await hasAiConsentForUser(userId))) throw new AiConsentRequiredError();
+        },
+      },
+    );
     const result = validateAndNormalise(raw, validFactIds, validCalibrationKeys);
     if ("items" in result) return result;
     if (attempt === 1) {
@@ -242,8 +294,7 @@ export async function generateWeeklyPlan(args: {
   throw new Error("planner unreachable");
 }
 
-export async function getCurrentPlan(fighterId: number): Promise<WeeklyPlan | null> {
-  const weekStart = isoMondayUTC();
+export async function getCurrentPlan(fighterId: number, weekStart: Date = isoMondayUTC()): Promise<WeeklyPlan | null> {
   const [plan] = await db
     .select()
     .from(weeklyPlansTable)
@@ -265,8 +316,10 @@ export async function upsertPlan(args: {
   provider: "claude" | "openai";
   items: PlanItem[];
   rationale: string;
+  /** Monday of the athlete's local week (UTC-midnight date). Defaults to the UTC week. */
+  weekStart?: Date;
 }): Promise<WeeklyPlan> {
-  const weekStart = isoMondayUTC();
+  const weekStart = args.weekStart ?? isoMondayUTC();
   return await db.transaction(async (tx) => {
     const [row] = await tx
       .insert(weeklyPlansTable)
