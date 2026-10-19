@@ -25,6 +25,8 @@ import { setApiBase, setTokenGetter } from "@/lib/api";
 import { APP_DOMAIN, resolveApiBase } from "@/lib/appDomain";
 import { configurePurchases, syncPurchasesUser } from "@/lib/purchases";
 import { reportStartup } from "@/lib/crashReporter";
+import { FrameLogo } from "@/components/FrameLogo";
+import { OctagonSpinner } from "@/components/OctagonSpinner";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -175,12 +177,10 @@ const noticeStyles = StyleSheet.create({
 function LoadingScreen() {
   return (
     <View style={loadingStyles.root}>
-      <Text style={loadingStyles.wordmark}>FRAME</Text>
-      <ActivityIndicator
-        style={loadingStyles.indicator}
-        size="small"
-        color="#B9A477"
-      />
+      <FrameLogo height={16} />
+      <View style={loadingStyles.indicator}>
+        <OctagonSpinner size={44} color="#B9A477" />
+      </View>
     </View>
   );
 }
@@ -215,7 +215,9 @@ function ConfigErrorScreen({ message }: { message: string }) {
   const build = Constants.expoConfig?.ios?.buildNumber ?? "unknown";
   return (
     <View style={configErrorStyles.root}>
-      <Text style={configErrorStyles.wordmark}>FRAME</Text>
+      <View style={configErrorStyles.wordmark}>
+        <FrameLogo height={16} />
+      </View>
       <Text accessibilityRole="alert" style={configErrorStyles.heading}>
         BUILD MISCONFIGURED
       </Text>
@@ -240,9 +242,7 @@ const configErrorStyles = StyleSheet.create({
     backgroundColor: "#08090B",
   },
   wordmark: {
-    fontSize: 18,
-    letterSpacing: 10,
-    color: "#F4F4F1",
+    marginBottom: 8,
   },
   heading: {
     fontSize: 12,

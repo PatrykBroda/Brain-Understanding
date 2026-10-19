@@ -9,6 +9,8 @@ import { AiConsentStatus } from "@/lib/aiConsent";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import { Button, Display, GlassCard, Screen } from "@/components/ui";
 import { fonts, MIN_TAP, palette, radius } from "@/constants/theme";
+import { FrameLogo } from "@/components/FrameLogo";
+import { OctagonSpinner } from "@/components/OctagonSpinner";
 
 export function AiConsentGate({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, signOut } = useAuth();
@@ -99,8 +101,10 @@ export function AiConsentGate({ children }: { children: React.ReactNode }) {
     return (
       <Screen light="silver" focus="top">
         <View style={s.fullscreen} accessibilityLabel="Loading">
-          <Text style={s.wordmark}>FRAME</Text>
-          <ActivityIndicator size="small" color={palette.textMid} style={{ marginTop: 24 }} />
+          <FrameLogo height={18} />
+          <View style={{ marginTop: 24 }}>
+            <OctagonSpinner size={44} color={palette.gold} />
+          </View>
         </View>
       </Screen>
     );

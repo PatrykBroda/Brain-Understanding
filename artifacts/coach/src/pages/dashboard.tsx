@@ -411,7 +411,7 @@ export default function DashboardPage() {
               {/* Header */}
               <header
                 className={`flex items-center justify-between ${
-                  hasHero ? "absolute inset-x-0 top-0 px-4 pt-4" : "relative pb-4"
+                  hasHero ? "absolute inset-x-0 top-0 px-4 pt-4" : "relative pt-5 pb-4"
                 }`}
               >
                 <FrameWordmark size={28} />
