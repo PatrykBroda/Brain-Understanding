@@ -10,7 +10,13 @@ ALTER TABLE "fighters" ADD COLUMN IF NOT EXISTS "timezone" text NOT NULL DEFAULT
 --    athletes who have no stored answers see the questions unanswered on Profile.
 ALTER TABLE "fighters" ADD COLUMN IF NOT EXISTS "onboarding_answers" jsonb NOT NULL DEFAULT '{}'::jsonb;
 
--- 3. One State + Today's Focus row per athlete per local day (written only on days with fresh information).
+-- 3. The name typed on the sign-up form (sign-up now asks only for name, email and password).
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "display_name" text NOT NULL DEFAULT '';
+
+-- 4. When the athlete last changed an onboarding answer on Profile (counts as new information for State / Focus).
+ALTER TABLE "fighters" ADD COLUMN IF NOT EXISTS "questionnaire_updated_at" timestamp with time zone;
+
+-- 5. One State + Today's Focus row per athlete per local day (written only on days with fresh information).
 CREATE TABLE IF NOT EXISTS "daily_context" (
   "id" serial PRIMARY KEY NOT NULL,
   "fighter_id" integer NOT NULL REFERENCES "fighters"("id") ON DELETE CASCADE,

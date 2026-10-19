@@ -10,7 +10,7 @@ import { eq } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { deriveSpiritAnimal } from "../lib/spiritAnimals";
 import { hasAiConsentForUser } from "../lib/aiConsent";
-import { prepareFighterBody } from "../lib/fighterBody";
+import { prepareFighterBody, questionnaireChanged } from "../lib/fighterBody";
 import { recordFinish } from "../lib/onboardingEvents";
 
 const router: IRouter = Router();
@@ -48,8 +48,14 @@ router.post("/fighter", async (req, res) => {
     res.status(400).json({ error: "invalid date of birth" });
     return;
   }
-  const values = { ...parsed.data, age: derivedAge };
   const existing = await getUserFighter(req);
+  const values: Record<string, unknown> & typeof parsed.data & { age: number } = {
+    ...parsed.data,
+    age: derivedAge,
+    ...(!existing || questionnaireChanged(existing as unknown as Record<string, unknown>, parsed.data as Record<string, unknown>)
+      ? { questionnaireUpdatedAt: req.frameNow ?? new Date() }
+      : {}),
+  };
   const aiConsent = await hasAiConsentForUser(userId);
 
   if (existing) {
@@ -130,6 +136,9 @@ router.patch("/fighter", async (req, res) => {
   if (Object.keys(patch).length === 0) {
     res.json({ fighter: existing });
     return;
+  }
+  if (questionnaireChanged(existing as unknown as Record<string, unknown>, patch)) {
+    patch.questionnaireUpdatedAt = req.frameNow ?? new Date();
   }
 
   const [updated] = await db

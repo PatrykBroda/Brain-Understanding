@@ -1,4 +1,5 @@
-import { normaliseFighterAnswers, type FighterAnswers } from "@workspace/onboarding";
+import { composePersonality, normaliseFighterAnswers, sanitiseAnswers, type FighterAnswers } from "@workspace/onboarding";
+import { isValidTimeZone } from "./localTime";
 
 /**
  * Fighter text columns that are NOT NULL with a default of "" (or false). The
@@ -41,5 +42,43 @@ export function nullTextToDefaults(body: unknown): unknown {
 export function prepareFighterBody(body: unknown): unknown {
   const filled = nullTextToDefaults(body);
   if (typeof filled !== "object" || filled === null || Array.isArray(filled)) return filled;
-  return normaliseFighterAnswers(filled as Record<string, unknown> & FighterAnswers);
+  const normalised = normaliseFighterAnswers(filled as Record<string, unknown> & FighterAnswers) as Record<string, unknown>;
+  return withQuestionnaire(normalised);
+}
+
+/**
+ * The four behavioural answers are the source of truth for `personality`: when a write
+ * carries `onboardingAnswers` they are validated against the shared questions (unknown
+ * questions and out-of-range options are dropped) and `personality` is recomposed from
+ * them, so editing an answer on Profile changes exactly what onboarding would have
+ * stored. A body without answers is left alone (older builds send `personality` directly).
+ * `timezone` is only ever accepted as a valid IANA name.
+ */
+export function withQuestionnaire(body: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...body };
+  if ("onboardingAnswers" in out) {
+    const answers = sanitiseAnswers(out["onboardingAnswers"]);
+    out["onboardingAnswers"] = answers;
+    if (Object.keys(answers).length > 0) out["personality"] = composePersonality(answers);
+  }
+  if ("timezone" in out && !isValidTimeZone(out["timezone"])) delete out["timezone"];
+  return out;
+}
+
+const QUESTIONNAIRE_FIELDS = [
+  "primarySport",
+  "art",
+  "level",
+  "trainingFrequency",
+  "goals",
+  "weaknesses",
+  "personality",
+  "onboardingAnswers",
+] as const;
+
+/** True when a write changes any onboarding answer relative to the stored profile. */
+export function questionnaireChanged(existing: Record<string, unknown>, patch: Record<string, unknown>): boolean {
+  return QUESTIONNAIRE_FIELDS.some(
+    (k) => k in patch && JSON.stringify(patch[k] ?? null) !== JSON.stringify(existing[k] ?? null),
+  );
 }

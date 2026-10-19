@@ -329,6 +329,7 @@ export function inputsHash(raw: DailyRaw, notesToday: AthleteFact[]): string {
       n: notesToday.map((f) => [f.id, f.updatedAt.getTime(), f.evidenceCount]),
       m: raw.messagesToday.length,
       a: raw.analysesToday,
+      q: raw.fighter.questionnaireUpdatedAt?.getTime() ?? 0,
       w: [raw.fighter.goals, raw.fighter.weaknesses, raw.fighter.personality].map((s) => s.length),
       camp: raw.camp,
     }),
@@ -347,7 +348,15 @@ export function notesTouchedBetween(facts: AthleteFact[], start: Date, end: Date
 }
 
 export function freshInfoToday(raw: DailyRaw, notesToday: AthleteFact[]): boolean {
-  return raw.checkinToday != null || raw.messagesToday.length > 0 || notesToday.length > 0 || raw.analysesToday > 0;
+  const q = raw.fighter.questionnaireUpdatedAt?.getTime();
+  const profileEditedToday = q != null && q >= raw.dayStart.getTime() && q < raw.dayEnd.getTime();
+  return (
+    raw.checkinToday != null ||
+    raw.messagesToday.length > 0 ||
+    notesToday.length > 0 ||
+    raw.analysesToday > 0 ||
+    profileEditedToday
+  );
 }
 
 /**

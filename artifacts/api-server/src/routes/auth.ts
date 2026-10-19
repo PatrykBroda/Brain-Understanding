@@ -24,7 +24,7 @@ import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { LEGAL_CONSENT_VERSION } from "../lib/legalConsent";
 import { AI_CONSENT_VERSION } from "../lib/aiConsent";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, FIGHTER_NAME_MAX } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { recordSignup } from "../lib/onboardingEvents";
 
@@ -189,7 +189,9 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     acceptedAiConsent,
     aiConsentVersion,
     app,
+    name,
   } = (req.body ?? {}) as {
+    name?: unknown;
     email?: unknown;
     password?: unknown;
     acceptedTerms?: unknown;
@@ -210,6 +212,15 @@ router.post("/auth/register", async (req: Request, res: Response) => {
   if (typeof email !== "string" || !email.includes("@")) {
     res.status(400).json({ error: "Valid email required" });
     return;
+  }
+  // The sign-up form asks for a name. Optional for installed builds that predate it.
+  let displayName = "";
+  if (name !== undefined && name !== null) {
+    if (typeof name !== "string" || name.trim().length > FIGHTER_NAME_MAX) {
+      res.status(400).json({ error: `Name must be 1-${FIGHTER_NAME_MAX} characters`, code: "INVALID_NAME" });
+      return;
+    }
+    displayName = name.trim();
   }
   const normalizedEmail = normalizeEmail(email);
   const pwError = validatePassword(password);
@@ -255,6 +266,7 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     id,
     email: normalizedEmail,
     hashedPassword,
+    displayName,
     legalConsentVersion: LEGAL_CONSENT_VERSION,
     legalConsentAt: acceptedAt,
     aiAnalysisConsentVersion: AI_CONSENT_VERSION,
@@ -324,7 +336,12 @@ router.get("/auth/me", async (req: Request, res: Response) => {
     res.status(401).json({ error: "Invalid or expired token" });
     return;
   }
-  res.json({ userId: payload.userId, email: payload.email });
+  const [user] = await db
+    .select({ displayName: usersTable.displayName })
+    .from(usersTable)
+    .where(eq(usersTable.id, payload.userId))
+    .limit(1);
+  res.json({ userId: payload.userId, email: payload.email, name: user?.displayName ?? "" });
 });
 
 export default router;

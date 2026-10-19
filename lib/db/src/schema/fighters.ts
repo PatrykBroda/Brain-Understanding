@@ -51,6 +51,10 @@ export const fightersTable = pgTable("fighters", {
   // IANA timezone ("Europe/London") the athlete's days roll over in. Sent by the apps
   // with each request; "" until first seen. Drives State / Focus / check-in dates.
   timezone: text("timezone").notNull().default(""),
+  // Last time the athlete changed an onboarding answer (sport, level, frequency, goals, weaknesses,
+  // the four questions). A profile edit is information FRAME did not have before, so it counts as
+  // "something new today" for State / Today's Focus. Server-set; never accepted from the client.
+  questionnaireUpdatedAt: timestamp("questionnaire_updated_at", { withTimezone: true }),
   // Optional multi-select "Training background" — other arts the athlete has trained,
   // stored as a comma-separated list of sport labels (e.g. "Boxing, Wrestling").
   trainingBackground: text("training_background").notNull().default(""),
@@ -85,6 +89,7 @@ export const insertFighterSchema = createInsertSchema(fightersTable)
     heroPosX: true,
     heroPosY: true,
     heroZoom: true,
+    questionnaireUpdatedAt: true,
     createdAt: true,
     updatedAt: true,
   })
@@ -106,6 +111,7 @@ export const updateFighterSchema = createInsertSchema(fightersTable)
     spiritAnimal: true,
     spiritAnimalTagline: true,
     vocabularyLevel: true,
+    questionnaireUpdatedAt: true,
   })
   .extend({
     name: fighterNameSchema,
