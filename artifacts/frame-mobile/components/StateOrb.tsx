@@ -23,13 +23,14 @@ import { motion, palette } from "@/constants/theme";
 export function StateOrb({
   size = 240,
   stateLabel,
-  expanded,
+  expanded = false,
   onToggle,
 }: {
   size?: number;
   stateLabel: string;
-  expanded: boolean;
-  onToggle: () => void;
+  expanded?: boolean;
+  /** Omit for a purely visual orb (the State screen): it is then not a button. */
+  onToggle?: () => void;
 }) {
   const reduced = useReducedMotion();
   const press = useRef(new Animated.Value(0)).current;
@@ -74,15 +75,16 @@ export function StateOrb({
 
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={onToggle ? "button" : "image"}
       accessibilityLabel={`State: ${stateLabel}`}
-      accessibilityHint={expanded ? "Hides the factors behind this state" : "Shows the factors behind this state"}
-      accessibilityState={{ expanded }}
+      accessibilityHint={onToggle ? (expanded ? "Hides the factors behind this state" : "Shows the factors behind this state") : undefined}
+      accessibilityState={onToggle ? { expanded } : undefined}
+      disabled={!onToggle}
       onPressIn={() => animatePress(1)}
       onPressOut={() => animatePress(0)}
       onPress={() => {
         haptic.select();
-        onToggle();
+        onToggle?.();
       }}
       hitSlop={8}
       style={{ width: ring, height: ring, alignItems: "center", justifyContent: "center" }}
