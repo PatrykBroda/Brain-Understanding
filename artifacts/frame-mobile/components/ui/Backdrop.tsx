@@ -87,7 +87,8 @@ export function VideoBackdrop({ dim = AUTH_SCRIM }: { dim?: number }) {
       ) : null}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(8,9,11,${dim})` }]} />
       <LinearGradient
-        colors={["rgba(8,9,11,0.78)", "rgba(8,9,11,0.22)", "rgba(8,9,11,0.55)", "rgba(8,9,11,0.94)", "rgba(8,9,11,0.98)"]}
+        // lighter bottom bands so the loop reads edge to edge, not just the top half (Patryk, 19 Oct)
+        colors={["rgba(8,9,11,0.6)", "rgba(8,9,11,0.1)", "rgba(8,9,11,0.2)", "rgba(8,9,11,0.5)", "rgba(8,9,11,0.7)"]}
         locations={[0, 0.22, 0.48, 0.74, 1]}
         style={StyleSheet.absoluteFill}
       />
