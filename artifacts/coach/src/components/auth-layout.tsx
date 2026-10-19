@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { ChevronLeft } from "lucide-react";
 import { VideoBackdrop } from "@/components/media-backdrop";
 import { TrainWithFrame } from "@/components/train-with-frame";
+import { FrameLogo } from "@/components/frame-logo";
 
 /** The two lines the client requires on every opening surface. */
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -26,7 +27,7 @@ export default function AuthLayout({ children, compact = false }: { children: Re
         <Link href="/" className="icon-round" aria-label="Back">
           <ChevronLeft className="h-5 w-5" strokeWidth={1.75} />
         </Link>
-        <div className="wordmark text-center text-[1.05rem]">Frame</div>
+        <div className="flex justify-center"><FrameLogo height={14} /></div>
         <div />
       </header>
 

@@ -2,6 +2,7 @@ import { VideoBackdrop } from "@/components/media-backdrop";
 import { SUBLINE } from "@/components/auth-layout";
 import { TrainWithFrame } from "@/components/train-with-frame";
 import { useEffect, useRef, useState } from "react";
+import { FrameLogo } from "@/components/frame-logo";
 
 interface EntrySequenceProps {
   fighterName: string | null;
@@ -76,7 +77,7 @@ export function OpeningScene({
       <VideoBackdrop dim={0.28} />
 
       <header className="relative z-10 flex items-center justify-center px-6 pt-[max(1.25rem,env(safe-area-inset-top))] pb-2">
-        <div className="wordmark text-[1.15rem]">Frame</div>
+        <FrameLogo height={15} />
       </header>
 
       <div />

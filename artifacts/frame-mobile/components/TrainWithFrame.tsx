@@ -1,31 +1,24 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import Svg, { Path, Text as SvgText } from "react-native-svg";
+import Svg, { G, Text as SvgText } from "react-native-svg";
 
 import { fonts, palette } from "@/constants/theme";
+import { FRAME_LOGO_BOX, FrameLogoGlyphs } from "@/components/FrameLogo";
 
 /**
  * "TRAIN WITH FRAME®" lock-up, rebuilt as live vector + text from the client's reference
  * (a WhatsApp screenshot, so it is a design reference, not a production asset). Sharp at every
- * size. The five letters are drawn as strokes (the A is an open chevron, as in the artwork).
+ * size. The wordmark is the shared FrameLogo glyph set (open-chevron A, ® mark).
  * The client's original vector artwork should replace this when it arrives: see
  * TRAIN_WITH_FRAME_ARTWORK_SOURCE.
  */
 export const TRAIN_WITH_FRAME_ARTWORK_SOURCE = "reconstructed from reference screenshot (client artwork still needed)";
 
-const LETTERS = [
-  "M12 94V6H78M12 48H66", // F
-  "M132 94V6H182Q212 6 212 32Q212 58 182 58H132M178 58L214 94", // R
-  "M242 94L282 6L322 94", // A (open chevron)
-  "M372 94V6L412 60L452 6V94", // M
-  "M552 6H502V94H552M502 50H544", // E
-];
-
 export const TAGLINE_CAPS = "Your corner team between training sessions";
 export const SUBLINE = "AI coaching for fighters and athletes.";
 
 export function TrainWithFrame({ width = 320, showTagline = true }: { width?: number; showTagline?: boolean }) {
-  const h = (width * 118) / 600;
+  const h = (width * 102) / 600;
   return (
     <View
       accessible
@@ -33,7 +26,7 @@ export function TrainWithFrame({ width = 320, showTagline = true }: { width?: nu
       accessibilityLabel={`Train with FRAME. ${TAGLINE_CAPS}.`}
       style={{ width }}
     >
-      <Svg width={width} height={h} viewBox="0 0 600 118" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width={width} height={h} viewBox="0 0 600 102" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <SvgText
           x={300}
           y={21}
@@ -45,12 +38,9 @@ export function TrainWithFrame({ width = 320, showTagline = true }: { width?: nu
         >
           TRAIN WITH
         </SvgText>
-        {LETTERS.map((d, i) => (
-          <Path key={i} d={d} transform="translate(0 20)" stroke={palette.textHi} strokeWidth={11} strokeLinejoin="miter" strokeLinecap="butt" fill="none" />
-        ))}
-        <SvgText x={578} y={52} fill={palette.textHi} fontSize={18} fontFamily={fonts.medium} textAnchor="middle">
-          ®
-        </SvgText>
+        <G transform={`translate(22 34) scale(0.36) translate(${-FRAME_LOGO_BOX.x} ${-FRAME_LOGO_BOX.y})`}>
+          <FrameLogoGlyphs color={palette.textHi} />
+        </G>
       </Svg>
       {showTagline ? (
         <Text style={s.tagline} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>

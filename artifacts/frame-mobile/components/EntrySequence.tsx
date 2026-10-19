@@ -1,4 +1,5 @@
 import { Atmosphere, Body, Button, Label, VideoBackdrop } from "@/components/ui";
+import { FrameLogo } from "@/components/FrameLogo";
 import { palette, SCREEN_PAD, space } from "@/constants/theme";
 import React, { useEffect, useRef } from "react";
 import { Image, StyleSheet, useWindowDimensions, View } from "react-native";
@@ -90,7 +91,7 @@ export function EntrySequence({
       <Atmosphere focus="topLeft" tone="silver" intensity={0.8} />
 
       <View style={[s.header, { paddingTop: insets.top + 16 }]}>
-        <Image source={require("../assets/images/frame-logo.png")} style={s.logo} resizeMode="contain" />
+        <FrameLogo height={16} />
         {first ? <Label>Welcome, {first}</Label> : null}
       </View>
 

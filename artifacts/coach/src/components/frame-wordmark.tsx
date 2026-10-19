@@ -1,17 +1,8 @@
-import { FrameOctagon } from "@/components/frame-octagon";
+import { FrameLogo } from "@/components/frame-logo";
 
-// The "FRAME AI" wordmark — layered octagon mark + wordmark, transparent
-// background. Used in the Home and Chat headers (FINAL_UPDATE spec).
+// The FRAME® wordmark (client artwork rebuilt as vector). Used in the Home, Chat and State
+// headers. `size` is kept for call-site compatibility: it is the old octagon size, mapped to
+// the logo height.
 export function FrameWordmark({ size = 30 }: { size?: number }) {
-  return (
-    <div className="flex items-center gap-3">
-      <FrameOctagon size={size} glow={false} color="#B9A477" />
-      <div className="flex items-center gap-2.5 leading-none">
-        <span className="text-[15px] font-semibold tracking-[0.18em] text-[#F4F4F1]">FRAME</span>
-        <span className="chip chip-gold !px-2 !py-[2px]">
-          AI
-        </span>
-      </div>
-    </div>
-  );
+  return <FrameLogo height={Math.round(size * 0.62)} />;
 }

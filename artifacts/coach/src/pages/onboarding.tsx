@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { FrameLogo } from "@/components/frame-logo";
 import { CHOICES_PER_QUESTION, QUESTIONS, QUESTION_IDS, composePersonality, questionStep, type Question } from "@workspace/onboarding";
 import { useLocation } from "wouter";
 import { useAuth } from "@/context/auth-context";
@@ -223,7 +224,7 @@ export default function OnboardingPage() {
       >
         <VideoBackdrop dim={0.28} />
         <header className="relative z-10 flex items-center justify-center px-6 pt-[max(1.25rem,env(safe-area-inset-top))] pb-2">
-          <div className="wordmark text-[1.15rem]">Frame</div>
+          <FrameLogo height={15} />
         </header>
         <div />
         <section className="relative z-10 mx-auto flex w-full max-w-[460px] flex-col gap-5 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
@@ -264,7 +265,7 @@ export default function OnboardingPage() {
       <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-xl flex-col px-5 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
         {/* Wordmark + progress */}
         <div className="mb-8 space-y-4">
-          <div className="wordmark text-[1rem]">Frame</div>
+          <FrameLogo height={13} />
           <div
             className="flex items-center gap-1.5"
             role="progressbar"

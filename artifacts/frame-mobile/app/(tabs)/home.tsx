@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { FrameLogo } from "@/components/FrameLogo";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
@@ -510,12 +511,7 @@ export default function HomeScreen() {
       >
         {/* ─── Header ─────────────────────────────────────────────────── */}
         <FadeIn index={0} style={styles.header}>
-          <Image
-            source={require("@/assets/images/frame-wordmark.png")}
-            style={styles.wordmark}
-            resizeMode="contain"
-            accessibilityLabel="Frame"
-          />
+          <FrameLogo height={17} />
         </FadeIn>
 
         {/* ─── 1. Athlete context (real profile data) ────────────────── */}

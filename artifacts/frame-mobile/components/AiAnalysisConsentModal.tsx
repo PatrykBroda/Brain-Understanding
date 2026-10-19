@@ -7,6 +7,7 @@ import { formatProviderList, type AiConsentDisclosure } from "@workspace/ai-cons
 import type { AiConsentStatus } from "@/lib/aiConsent";
 import { Button, Display, haptic } from "@/components/ui";
 import { fonts, MIN_TAP, palette, radius } from "@/constants/theme";
+import { FrameLogo } from "@/components/FrameLogo";
 
 /**
  * AI data consent. An overlay panel (radius 20, solid raised surface) over a dark
@@ -115,12 +116,7 @@ export function AiConsentModal({
             showsVerticalScrollIndicator={false}
           >
             <View style={s.header}>
-              <Image
-                source={require("@/assets/images/frame-wordmark.png")}
-                style={s.logo}
-                contentFit="contain"
-                accessibilityLabel="FRAME"
-              />
+              <FrameLogo height={14} />
             </View>
 
             <Display size="title" style={s.title}>

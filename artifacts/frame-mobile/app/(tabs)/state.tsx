@@ -8,6 +8,7 @@ import { fonts, palette, SCREEN_PAD } from "@/constants/theme";
 import { useToday } from "@/hooks/useToday";
 import { STATE_CALIBRATION_SENTENCE, STATE_ENTER_LABEL, STATE_LABEL } from "@/lib/stateCopy";
 import { stateHeadline } from "@/lib/today";
+import { FrameLogo } from "@/components/FrameLogo";
 
 export default function StateScreen() {
   const insets = useSafeAreaInsets();
@@ -32,12 +33,7 @@ export default function StateScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Image
-            source={require("../../assets/images/frame-wordmark.png")}
-            style={styles.wordmarkImg}
-            resizeMode="contain"
-            accessibilityLabel="Frame"
-          />
+          <FrameLogo height={16} />
         </View>
 
         {failed ? (
