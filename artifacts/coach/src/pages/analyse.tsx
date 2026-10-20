@@ -46,7 +46,7 @@ import { MovementGraphs } from "@/components/movement-graphs";
 import { AnnotatedFindingFrame } from "@/components/annotated-finding";
 import { PoseComparisons } from "@/components/pose-comparison";
 import type { DecodedTrack } from "@/lib/pose-track";
-import { useFramePlus, FramePlusPill } from "@/components/frame-plus-modal";
+import { useFramePlus, FramePlusPill, FreeAnalysesPill } from "@/components/frame-plus-modal";
 import { useSubscription } from "@/hooks/use-subscription";
 import { api, ApiError, fetchRemoteVideo } from "@/lib/api";
 import type {
@@ -137,6 +137,10 @@ export default function AnalysePage() {
   // status is unavailable, let the request through; the server 402 is the
   // authority and the catch blocks map it to the upgrade modal.
   const knownFree = billingStatus?.plan === "free";
+  // Free members get a few self analyses (server-enforced); scouting is FRAME+ only. If the
+  // allowance is unknown, let the request through and let the server's 402 decide.
+  const freeLeft = billingStatus?.freeAnalyses?.remaining ?? 1;
+  const paywalled = (opponentMode: boolean) => knownFree && (opponentMode || freeLeft <= 0);
   const fileRef = useRef<HTMLInputElement>(null);
   const mobileScrollRef = useRef<HTMLElement>(null);
   const desktopRightScrollRef = useRef<HTMLDivElement>(null);
@@ -245,7 +249,7 @@ export default function AnalysePage() {
     // Prompt before expensive on-device pose work; server enforces the same
     // gate for every new analysis.
     const opponentMode = subject === "opponent";
-    if (knownFree) {
+    if (paywalled(opponentMode)) {
       openUpgrade(opponentMode ? "opponent_analysis" : "video_analysis");
       return;
     }
@@ -420,7 +424,7 @@ export default function AnalysePage() {
     const trimmed = url.trim();
     if (!trimmed) return;
     const opponentMode = subject === "opponent";
-    if (knownFree) {
+    if (paywalled(opponentMode)) {
       openUpgrade(opponentMode ? "opponent_analysis" : "video_analysis");
       return;
     }
@@ -514,6 +518,7 @@ export default function AnalysePage() {
         </div>
         <div className="flex-1 flex justify-end">
           <FramePlusPill />
+          <FreeAnalysesPill />
         </div>
       </header>
 

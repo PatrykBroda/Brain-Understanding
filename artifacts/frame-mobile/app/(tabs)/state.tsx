@@ -4,6 +4,7 @@ import {
   Image,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -63,7 +64,7 @@ export default function StateScreen() {
   const state: OrbState = current && stateInfo?.name ? stateInfo.name : "Dormant";
   const loading = todayQuery.isLoading;
   const failed = todayQuery.isError && !todayQuery.data;
-  const dateLine = stateInfo ? stateDateLine(stateInfo, (d) => formatDay(d).toUpperCase()) : null;
+  const dateLine = stateInfo ? stateDateLine(stateInfo, (d) => formatDay(d))?.toUpperCase() ?? null : null;
 
   // Readiness comes from today's check-in only (never an older one passed off as today's).
   const checkinScore = today?.readiness.today?.score ?? null;
@@ -85,7 +86,13 @@ export default function StateScreen() {
   );
 
   const readiness = applyReadinessModifier(checkinScore, chatModifier);
-  const readinessSource = "today";
+  // No check-in today: show the last real one, labelled as old, instead of an empty prompt.
+  const lastRead = readiness == null ? (today?.readiness.latest ?? null) : null;
+  const lastReadAge = lastRead
+    ? lastRead.daysAgo <= 0 ? "EARLIER" : lastRead.daysAgo === 1 ? "YESTERDAY" : `${lastRead.daysAgo} DAYS AGO`
+    : null;
+  // When the disclosure notice is up it already says why there is no read, so the cue stays quiet.
+  const showDisclosure = !!today && today.disclosure.code !== "none";
 
   // Doorway label mirrors the prototype: "Continue" only when a real prior
   // session exists, else "Enter". Reuses the conversation query already fetched
@@ -99,10 +106,10 @@ export default function StateScreen() {
   const { width } = useWindowDimensions();
   const [centerHeight, setCenterHeight] = useState(0);
   // The disclosure notice (no read yet) and the dated line sit under the cue, so give the orb less room when they show.
-  const TEXT_AND_GAPS = 160 + (today && today.disclosure.code !== "none" ? 140 : 0) + (dateLine ? 24 : 0); // stateCaption + stateLabel + stateCue + gaps (readinessRow now lives outside center)
+  const TEXT_AND_GAPS = 160 + (showDisclosure ? 175 : 0) + (dateLine ? 24 : 0) + (failed ? 60 : 0); // stateCaption + stateLabel + stateCue + gaps (readinessRow now lives outside center)
   const orbSize =
     centerHeight > 0
-      ? Math.round(Math.min(width, centerHeight - TEXT_AND_GAPS, 400))
+      ? Math.round(Math.max(80, Math.min(width, centerHeight - TEXT_AND_GAPS, 400)))
       : Math.round(Math.min(width * 0.75, 300)); // safe fallback before first layout
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -129,7 +136,14 @@ export default function StateScreen() {
       </View>
 
       {/* Orb */}
-      <View style={styles.center} onLayout={(e) => setCenterHeight(e.nativeEvent.layout.height)}>
+      {/* A scroll view, not a plain View: on a short screen with the notice up, the content scrolls
+          instead of overlapping the header and the readiness row. */}
+      <ScrollView
+        style={styles.centerScroll}
+        contentContainerStyle={styles.center}
+        showsVerticalScrollIndicator={false}
+        onLayout={(e) => setCenterHeight(e.nativeEvent.layout.height)}
+      >
         <OrbGL state={state} size={orbSize} />
 
         <Text style={styles.stateCaption}>STATE</Text>
@@ -146,16 +160,19 @@ export default function StateScreen() {
           </>
         ) : (
           <>
-            <Text style={[styles.stateLabel, !current && { color: "#666" }]}>
+            <Text style={[styles.stateLabel, !current && { color: "#666" }]} numberOfLines={1} adjustsFontSizeToFit>
               {(loading || !stateInfo ? (loading ? "READING…" : "NO READ YET") : stateHeadline(stateInfo)).toUpperCase()}
             </Text>
             {dateLine ? <Text style={styles.stateDate}>{dateLine}</Text> : null}
-            <Text style={styles.stateCue}>
-              {current ? STATE_CUE[state] : "FRAME HOLDS NO READ FOR TODAY. CHECK IN OR TELL YOUR COACH HOW TRAINING WENT."}
-            </Text>
-            {today && today.disclosure.code !== "none" ? (
-              <View style={{ alignSelf: "stretch", paddingHorizontal: 32 }}>
+            {current || !showDisclosure ? (
+              <Text style={styles.stateCue}>
+                {current ? STATE_CUE[state] : "FRAME HOLDS NO READ FOR TODAY. CHECK IN OR TELL YOUR COACH HOW TRAINING WENT."}
+              </Text>
+            ) : null}
+            {showDisclosure && today ? (
+              <View style={styles.noticeWrap}>
                 <DisclosureNotice
+                  centered
                   disclosure={today.disclosure}
                   onCheckIn={() => router.push({ pathname: "/(tabs)/home", params: { checkin: "1", n: String(Date.now()) } })}
                 />
@@ -163,7 +180,7 @@ export default function StateScreen() {
             ) : null}
           </>
         )}
-      </View>
+      </ScrollView>
 
       {/* Fight readiness — sits between the orb block and the button so it
           reads as visually centred in the gap rather than glued to the text */}
@@ -181,18 +198,23 @@ export default function StateScreen() {
           }
         >
           <Text style={styles.readinessLabel}>FIGHT READINESS</Text>
-          <View style={styles.readinessDivider} />
           {readiness != null ? (
             <Text style={styles.readinessValue}>
               {readiness}
-              <Text style={styles.readinessUnit}> / 100 · {readinessSource}</Text>
+              <Text style={styles.readinessUnit}> / 100 · TODAY</Text>
             </Text>
-          ) : (
+          ) : lastRead && lastReadAge ? (
+            <Text style={[styles.readinessValue, { color: "#666" }]}>
+              {lastRead.score}
+              <Text style={styles.readinessUnit}> / 100 · {lastReadAge}</Text>
+            </Text>
+          ) : null}
+          {readiness == null ? (
             <View style={styles.readinessCta}>
-              <Text style={styles.readinessCtaText}>Open training dashboard</Text>
+              <Text style={styles.readinessCtaText}>OPEN TRAINING DASHBOARD</Text>
               <Feather name="chevron-right" size={12} color="#8A6A2F" />
             </View>
-          )}
+          ) : null}
         </Pressable>
       </View>
 
@@ -243,17 +265,9 @@ const styles = StyleSheet.create({
     color: "#555",
     marginTop: 4,
   },
-  profileBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#1a1a1a",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  centerScroll: { flex: 1 },
   center: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: 16,
@@ -291,21 +305,17 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   readinessRow: {
-    flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     paddingVertical: 6,
+    paddingHorizontal: 24,
   },
+  noticeWrap: { alignSelf: "stretch", paddingHorizontal: 32 },
   readinessLabel: {
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 4,
     color: "#555",
-  },
-  readinessDivider: {
-    width: 1,
-    height: 12,
-    backgroundColor: "#1a1a1a",
   },
   readinessValue: {
     fontFamily: "SpaceMono",

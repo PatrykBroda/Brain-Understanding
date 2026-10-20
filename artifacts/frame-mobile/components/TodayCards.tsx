@@ -13,18 +13,21 @@ import type { FocusView, TodayView } from "@/lib/today";
 export function DisclosureNotice({
   disclosure,
   onCheckIn,
+  centered,
 }: {
   disclosure: TodayView["disclosure"];
   onCheckIn: () => void;
+  /** Centre the text and action (State screen). */
+  centered?: boolean;
 }) {
   if (disclosure.code === "none") return null;
   return (
     <View style={s.notice}>
-      <Text style={s.noticeText} accessibilityRole="text">
+      <Text style={[s.noticeText, centered && s.centered]} accessibilityRole="text">
         {disclosure.message}
       </Text>
       {disclosure.action === "check_in" ? (
-        <Pressable onPress={onCheckIn} style={s.noticeAction} hitSlop={8} accessibilityRole="button">
+        <Pressable onPress={onCheckIn} style={[s.noticeAction, centered && s.noticeActionCentered]} hitSlop={8} accessibilityRole="button">
           <Text style={s.noticeActionText}>CHECK IN NOW</Text>
           <Feather name="chevron-right" size={11} color="#8A6A2F" />
         </Pressable>
@@ -115,6 +118,8 @@ const s = StyleSheet.create({
   },
   noticeText: { fontFamily: "Outfit", fontSize: 14, lineHeight: 21, color: "#cfcfcf" },
   noticeAction: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
+  centered: { textAlign: "center" },
+  noticeActionCentered: { alignSelf: "center" },
   noticeActionText: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "#8A6A2F" },
   head: {
     flexDirection: "row",

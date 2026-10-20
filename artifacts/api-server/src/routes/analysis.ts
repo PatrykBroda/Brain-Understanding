@@ -17,6 +17,7 @@ import { getUserFighter } from "../middlewares/authMiddleware";
 import { getActiveFacts, addFact, confirmFact, findActiveFactByTopic } from "../lib/factsService";
 import { getEntitlementForUserId } from "../lib/subscriptionService";
 import { analysisUpgradeRequired } from "../lib/analysisAccess";
+import { countSelfAnalyses } from "../lib/analysisQuota";
 import { getActiveCompetition } from "../lib/competitionService";
 import {
   generateAnalysis,
@@ -151,6 +152,31 @@ function sanitiseKeyframes(input: unknown): AnalysisKeyframe[] {
   return out;
 }
 
+class AnalysisSaveError extends Error {}
+
+/**
+ * The AI read has already been paid for by the time we save it. Retry once on a
+ * transient failure; if it still fails, throw a typed error so the route answers
+ * with a generic message (never the SQL) and the free allowance — counted from
+ * saved rows only — is not spent.
+ */
+async function insertAnalysisWithRetry<T>(
+  req: { log: { error: (o: object, m: string) => void; warn: (o: object, m: string) => void } },
+  insert: () => PromiseLike<T[]>,
+): Promise<T[]> {
+  try {
+    return await insert();
+  } catch (first) {
+    req.log.warn({ err: first }, "analysis save failed, retrying once");
+    try {
+      return await insert();
+    } catch (err) {
+      req.log.error({ err }, "analysis save failed");
+      throw new AnalysisSaveError("analysis save failed");
+    }
+  }
+}
+
 router.post("/analysis", async (req, res) => {
   const fighter = await getUserFighter(req);
   if (!fighter) {
@@ -187,7 +213,8 @@ router.post("/analysis", async (req, res) => {
   // All new footage reads require FRAME+. Check before sanitising inputs or
   // calling the expensive analysis service; the client gate is only UX.
   const entitlement = await getEntitlementForUserId(req.userId as string);
-  const upgrade = analysisUpgradeRequired(entitlement.plan, subject);
+  const freeUsed = entitlement.plan === "free" && subject === "self" ? await countSelfAnalyses(fighter.id) : 0;
+  const upgrade = analysisUpgradeRequired(entitlement.plan, subject, freeUsed);
   if (upgrade) {
     res.status(402).json(upgrade);
     return;
@@ -201,6 +228,9 @@ router.post("/analysis", async (req, res) => {
     res.status(400).json({ error: "invalid or missing load" });
     return;
   }
+  // Captured so the narrowing survives into the save-retry closures below.
+  const kind = body.kind;
+  const load = body.load;
   const fragmentationRisk: NervousSystemLoad = isValidLoad(body.fragmentationRisk)
     ? body.fragmentationRisk
     : body.load;
@@ -280,16 +310,16 @@ router.post("/analysis", async (req, res) => {
       // Stamp the live camp so the scout is filed under this fight, but opponent
       // rows are excluded from the camp REVIEW (that's self-progression only).
       const activeCamp = await getActiveCompetition(fighter.id);
-      const [row] = await db
+      const [row] = await insertAnalysisWithRetry(req, () => db
         .insert(videoAnalysesTable)
         .values({
           fighterId: fighter.id,
           campId: activeCamp?.id ?? null,
           subject: "opponent",
           opponentName,
-          kind: body.kind,
+          kind,
           focus,
-          nervousSystemLoad: body.load,
+          nervousSystemLoad: load,
           fragmentationRisk,
           sessionScore: 0,
           styleProfile: oppNarrative.styleProfile,
@@ -308,7 +338,7 @@ router.post("/analysis", async (req, res) => {
           replayMoments: [],
           durationSec,
         })
-        .returning();
+        .returning());
       res.json({ analysis: row });
       return;
     }
@@ -371,14 +401,14 @@ router.post("/analysis", async (req, res) => {
     // membership is decided once, at write time, never re-derived by date later.
     const activeCamp = await getActiveCompetition(fighter.id);
 
-    const [row] = await db
+    const [row] = await insertAnalysisWithRetry(req, () => db
       .insert(videoAnalysesTable)
       .values({
         fighterId: fighter.id,
         campId: activeCamp?.id ?? null,
-        kind: body.kind,
+        kind,
         focus,
-        nervousSystemLoad: body.load,
+        nervousSystemLoad: load,
         fragmentationRisk,
         sessionScore,
         styleProfile: narrative.styleProfile,
@@ -396,7 +426,7 @@ router.post("/analysis", async (req, res) => {
         replayMoments,
         durationSec,
       })
-      .returning();
+      .returning());
 
     // Knowledge Loop: feed the athlete model. A finding that matches an
     // existing observation STRENGTHENS it (new evidence appended, confidence
@@ -501,8 +531,15 @@ router.post("/analysis", async (req, res) => {
       res.status(422).json({ error: err.message, code: "INVALID_CONTENT" });
       return;
     }
+    if (err instanceof AnalysisSaveError) {
+      res.status(500).json({
+        error: "Your analysis couldn't be saved. Please try again — it hasn't used up a free analysis.",
+        code: "ANALYSIS_SAVE_FAILED",
+      });
+      return;
+    }
     req.log.error({ err }, "analysis generation failed");
-    res.status(500).json({ error: err instanceof Error ? err.message : "analysis failed" });
+    res.status(500).json({ error: "Analysis failed. Please try again.", code: "ANALYSIS_FAILED" });
   }
 });
 
@@ -971,7 +1008,9 @@ router.post("/analysis/fetch-remote", async (req, res) => {
   // Gate BEFORE any heavy work (yt-dlp / large downloads land in RAM-backed
   // /tmp). Mirrors POST /analysis: all new reads require FRAME+.
   const remoteEntitlement = await getEntitlementForUserId(req.userId as string);
-  const remoteUpgrade = analysisUpgradeRequired(remoteEntitlement.plan);
+  const remoteFighter = remoteEntitlement.plan === "free" ? await getUserFighter(req) : null;
+  const remoteUsed = remoteFighter ? await countSelfAnalyses(remoteFighter.id) : undefined;
+  const remoteUpgrade = analysisUpgradeRequired(remoteEntitlement.plan, "self", remoteUsed);
   if (remoteUpgrade) {
     res.status(402).json(remoteUpgrade);
     return;

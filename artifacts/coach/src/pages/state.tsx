@@ -212,15 +212,24 @@ export default function StatePage() {
           <button
             type="button"
             onClick={checkInNow}
-            className="group frame-readiness-in flex items-center gap-3 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg px-3 py-1"
+            className="group frame-readiness-in flex flex-col items-center gap-1.5 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg px-3 py-1"
             aria-label="Check in now"
           >
             <span className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 font-light">
               Fight readiness
             </span>
-            <span aria-hidden className="w-px h-3 bg-white/10" />
+            {lastRead && (
+              <span className="flex items-baseline gap-1.5">
+                <span className="font-sans font-light text-[19px] tabular-nums leading-none text-foreground/45">
+                  {lastRead.score}
+                </span>
+                <span className="font-mono text-[9px] uppercase tracking-widest text-foreground/40">
+                  / 100 · {lastRead.daysAgo <= 0 ? "earlier" : lastRead.daysAgo === 1 ? "yesterday" : `${lastRead.daysAgo} days ago`}
+                </span>
+              </span>
+            )}
             <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/50 group-hover:text-primary/80 transition-colors">
-              {lastRead ? `No read today · last ${formatDay(lastRead.date)}` : "No read today"} · Check in now
+              Check in now
               <ChevronRight className="w-3 h-3" strokeWidth={1.5} />
             </span>
           </button>

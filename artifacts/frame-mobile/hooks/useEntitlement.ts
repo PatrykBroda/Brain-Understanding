@@ -7,6 +7,8 @@ export interface Entitlement {
   status: string | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  /** Free users only: lifetime free video analyses (counted from saved reads). */
+  freeAnalyses?: { limit: number; used: number; remaining: number };
 }
 
 const BILLING_STATUS_KEY = ["billing", "status"] as const;

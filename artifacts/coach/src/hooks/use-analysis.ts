@@ -35,6 +35,7 @@ export function useCreateAnalysis() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["analyses"] });
       qc.invalidateQueries({ queryKey: ["memory"] });
+      qc.invalidateQueries({ queryKey: ["billing"] }); // free-analyses-left count
     },
   });
 }

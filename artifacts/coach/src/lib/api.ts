@@ -300,11 +300,17 @@ function classifyStatus(status: number, body: string): ApiError {
     });
   }
   if (status >= 500) {
+    // Never surface the server's body: it can carry internals (SQL, params). Detail stays on the error for logs only.
+    const saveFailed = parsed?.code === "ANALYSIS_SAVE_FAILED";
     return new ApiError({
       kind: "server",
       status,
-      title: "Something broke on the server",
-      causes: [body.trim() || "The server hit an unexpected error"],
+      title: "Analysis failed, try again",
+      causes: [
+        saveFailed
+          ? "We couldn't save your analysis. It hasn't used up a free analysis."
+          : "Something went wrong on our side. Nothing was lost.",
+      ],
       retryable: true,
       detail: body,
     });
@@ -1218,6 +1224,8 @@ export type Entitlement = {
   status: string | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  /** Free users only: lifetime free video analyses (counted from saved reads). */
+  freeAnalyses?: { limit: number; used: number; remaining: number };
 };
 
 // FRAME+ is sold exclusively through Apple In-App Purchase in the iOS app.

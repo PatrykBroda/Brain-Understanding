@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,6 +22,16 @@ export default function AnalyseScreen() {
   const [token, setToken] = useState<string | null>(null);
   const [tokenChecked, setTokenChecked] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  // Free members keep the Analyse page while they have free analyses left (server-enforced);
+  // FRAME+ is unlimited. Unknown allowance -> open the page and let the server decide.
+  // Latched per user so spending the last free analysis doesn't yank the report away mid-view.
+  const accessNow =
+    entitlement?.plan === "frame_plus" ||
+    (entitlement?.plan === "free" && (entitlement.freeAnalyses?.remaining ?? 1) > 0);
+  const latch = useRef<{ userId: string | null; granted: boolean }>({ userId: null, granted: false });
+  if (latch.current.userId !== (userId ?? null)) latch.current = { userId: userId ?? null, granted: false };
+  if (accessNow) latch.current.granted = true;
+  const hasAccess = accessNow || latch.current.granted;
 
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   const origin = domain ? `https://${domain}` : null;
@@ -31,7 +41,7 @@ export default function AnalyseScreen() {
     let alive = true;
     setToken(null);
     setTokenChecked(false);
-    if (entitlement?.plan === "frame_plus") {
+    if (hasAccess) {
       void getToken().then((value) => {
         if (alive) {
           setToken(value);
@@ -40,13 +50,13 @@ export default function AnalyseScreen() {
       });
     }
     return () => { alive = false; };
-  }, [entitlement?.plan, getToken, userId]);
+  }, [hasAccess, getToken, userId]);
 
-  const loading = isPending || (entitlement?.plan === "frame_plus" && !tokenChecked);
+  const loading = isPending || (hasAccess && !tokenChecked);
   if (loading) {
     return <View style={styles.center}><ActivityIndicator color="#8A6A2F" /></View>;
   }
-  if (isError || !entitlement || !url || (entitlement.plan === "frame_plus" && !token)) {
+  if (isError || !entitlement || !url || (hasAccess && !token)) {
     return (
       <View style={[styles.center, { paddingTop: insets.top }]}>
         <Text style={styles.title}>ANALYSE UNAVAILABLE</Text>
@@ -57,12 +67,12 @@ export default function AnalyseScreen() {
       </View>
     );
   }
-  if (entitlement.plan === "free") {
+  if (!hasAccess) {
     return (
       <View style={[styles.center, { paddingTop: insets.top, paddingBottom: insets.bottom + 48 }]}>
         <Feather name="film" size={30} color="#8A6A2F" />
         <Text style={styles.title}>VIDEO ANALYSIS</Text>
-        <Text style={styles.body}>Analyse your footage and uncover movement patterns with FRAME+.</Text>
+        <Text style={styles.body}>You've used your {entitlement.freeAnalyses?.limit ?? 2} free analyses. Keep analysing your footage and uncovering movement patterns with FRAME+.</Text>
         <Pressable
           style={styles.button}
           accessibilityRole="button"

@@ -172,3 +172,18 @@ export function FramePlusPill() {
     </span>
   );
 }
+
+/** "2 free analyses left" for non-members; null for FRAME+ or while unknown. */
+export function FreeAnalysesPill() {
+  const { status, isLoading } = useSubscription();
+  if (isLoading || status?.plan !== "free" || !status.freeAnalyses) return null;
+  const left = status.freeAnalyses.remaining;
+  return (
+    <span
+      data-testid="free-analyses-left"
+      className="border border-primary/30 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.2em] text-primary/90 whitespace-nowrap"
+    >
+      {`${left} free ${left === 1 ? "analysis" : "analyses"} left`}
+    </span>
+  );
+}

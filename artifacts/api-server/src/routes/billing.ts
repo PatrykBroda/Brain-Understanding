@@ -4,6 +4,8 @@ import {
   getEntitlementForUser,
   setEntitlementFromRevenueCat,
 } from "../lib/subscriptionService";
+import { getUserFighter } from "../middlewares/authMiddleware";
+import { getFreeAllowance } from "../lib/analysisQuota";
 import { fetchRevenueCatEntitlement } from "../lib/revenuecat";
 import { getAppleSubscriptionPrice } from "../lib/appleSubscriptionPrice";
 
@@ -33,7 +35,17 @@ router.get("/billing/status", async (req: Request, res: Response) => {
   try {
     const user = await getOrCreateUser(req.userId as string);
     const entitlement = await getEntitlementForUser(user);
-    res.json(entitlement);
+    // Free users also get their remaining free video analyses (counted from saved rows).
+    let freeAnalyses: { limit: number; used: number; remaining: number } | undefined;
+    if (entitlement.plan === "free") {
+      try {
+        const fighter = await getUserFighter(req);
+        if (fighter) freeAnalyses = await getFreeAllowance(fighter.id);
+      } catch (err) {
+        req.log.warn({ err }, "free analysis allowance lookup failed");
+      }
+    }
+    res.json(freeAnalyses ? { ...entitlement, freeAnalyses } : entitlement);
   } catch (err) {
     req.log.error({ err }, "billing status failed");
     res.status(500).json({ error: "Failed to load billing status" });
