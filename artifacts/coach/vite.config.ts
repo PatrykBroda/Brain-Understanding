@@ -83,8 +83,8 @@ export default defineConfig({
         "apple-touch-icon.png",
       ],
       manifest: {
-        name: "FRAME — Combat Performance",
-        short_name: "FRAME",
+        name: "FRAME MMA AI",
+        short_name: "FRAME MMA AI",
         description:
           "Your combat-performance and nervous-system coach. Train the frame that holds under pressure.",
         id: "/",

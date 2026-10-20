@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Synochi BJJ Coach"
+title = "FRAME MMA AI"
 version = "1.0.0"
 id = "artifacts/coach"
 router = "path"

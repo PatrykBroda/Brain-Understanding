@@ -290,20 +290,20 @@ function HomeRoute() {
 }
 
 // Runtime titles per route
-const DEFAULT_TITLE = "FRAME — AI Combat Sports Coach";
+const DEFAULT_TITLE = "FRAME MMA AI";
 const PAGE_TITLES: Record<string, string> = {
   "/": DEFAULT_TITLE,
-  "/home": "Home · FRAME",
-  "/state": "State · FRAME",
-  "/orb": "FRAME",
-  "/chat": "Chat · FRAME",
-  "/analyse": "Analyse · FRAME",
-  "/camp": "Camp · FRAME",
-  "/profile": "Profile · FRAME",
-  "/history": "History · FRAME",
-  "/splash": "FRAME",
-  "/sign-in": "Sign in · FRAME",
-  "/sign-up": "Create account · FRAME",
+  "/home": "Home · FRAME MMA AI",
+  "/state": "State · FRAME MMA AI",
+  "/orb": "FRAME MMA AI",
+  "/chat": "Chat · FRAME MMA AI",
+  "/analyse": "Analyse · FRAME MMA AI",
+  "/camp": "Camp · FRAME MMA AI",
+  "/profile": "Profile · FRAME MMA AI",
+  "/history": "History · FRAME MMA AI",
+  "/splash": "FRAME MMA AI",
+  "/sign-in": "Sign in · FRAME MMA AI",
+  "/sign-up": "Create account · FRAME MMA AI",
 };
 
 function PageTitle() {
