@@ -130,7 +130,7 @@ purchase/restore check separately with a sandbox tester.
 Record the actual values after the build is created and distributed. These
 placeholders are intentionally not a claim that a build has been uploaded:
 
-- App Store version: `1.0.4`
+- App Store version: `1.2`
 - iOS build number: `[RECORD BUILD NUMBER]`
 - TestFlight upload status: `NOT UPLOADED — publish with Expo Launch, then record the upload date`
 - TestFlight processing status: `[RECORD STATUS]`
