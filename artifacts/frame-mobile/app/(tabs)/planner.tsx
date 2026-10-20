@@ -38,6 +38,7 @@ import { WeeklyMission } from "@/components/WeeklyMission";
 import { FormScroll } from "@/components/FormScroll";
 import { KEYBOARD_DONE_ID } from "@/components/KeyboardDoneBar";
 import { useIsFramePlus } from "@/hooks/useEntitlement";
+import { FREE_TEXT, LABEL_TEXT, NAME_TEXT, RAW_TEXT } from "@/lib/textInputProps";
 
 const TIER_ACCENT: Record<PressureTier, string> = {
   base: "#8A6A2F",
@@ -982,6 +983,7 @@ function SessionForm(props: {
 
       <Field label="DATE (YYYY-MM-DD)">
         <TextInput
+          {...RAW_TEXT}
           style={camp.input}
           value={props.sDate}
           onChangeText={props.setSDate}
@@ -995,6 +997,7 @@ function SessionForm(props: {
         <View style={camp.col}>
           <Field label="TIME (HH:MM)">
             <TextInput
+              {...RAW_TEXT}
               style={camp.input}
               value={props.sTime}
               onChangeText={props.setSTime}
@@ -1007,6 +1010,7 @@ function SessionForm(props: {
         <View style={camp.col}>
           <Field label="DURATION (MIN)">
             <TextInput
+              {...RAW_TEXT}
               style={camp.input}
               value={props.sDuration}
               onChangeText={props.setSDuration}
@@ -1021,6 +1025,7 @@ function SessionForm(props: {
 
       <Field label="COACH (OPTIONAL)">
         <TextInput
+          {...NAME_TEXT}
           style={camp.input}
           value={props.sCoach}
           onChangeText={props.setSCoach}
@@ -1031,6 +1036,7 @@ function SessionForm(props: {
 
       <Field label="OBJECTIVE (OPTIONAL)">
         <TextInput
+          {...FREE_TEXT}
           style={[camp.input, camp.inputMultiline]}
           value={props.sObjective}
           onChangeText={props.setSObjective}
@@ -1100,6 +1106,7 @@ function CampForm(props: {
 
       <Field label="EVENT NAME">
         <TextInput
+          {...LABEL_TEXT}
           style={camp.input}
           value={props.eventName}
           onChangeText={props.setEventName}
@@ -1110,6 +1117,7 @@ function CampForm(props: {
 
       <Field label="DISCIPLINE">
         <TextInput
+          {...LABEL_TEXT}
           style={camp.input}
           value={props.discipline}
           onChangeText={props.setDiscipline}
@@ -1120,6 +1128,7 @@ function CampForm(props: {
 
       <Field label="EVENT DATE (YYYY-MM-DD)">
         <TextInput
+          {...RAW_TEXT}
           style={camp.input}
           value={props.eventDate}
           onChangeText={props.setEventDate}
@@ -1131,6 +1140,7 @@ function CampForm(props: {
 
       <Field label="WEIGH-IN DATE (OPTIONAL)">
         <TextInput
+          {...RAW_TEXT}
           style={camp.input}
           value={props.weighInDate}
           onChangeText={props.setWeighInDate}
@@ -1144,6 +1154,7 @@ function CampForm(props: {
         <View style={camp.col}>
           <Field label="OPPONENT">
             <TextInput
+              {...NAME_TEXT}
               style={camp.input}
               value={props.opponent}
               onChangeText={props.setOpponent}
@@ -1155,6 +1166,7 @@ function CampForm(props: {
         <View style={camp.col}>
           <Field label="PROMOTION">
             <TextInput
+              {...NAME_TEXT}
               style={camp.input}
               value={props.promotion}
               onChangeText={props.setPromotion}
@@ -1169,6 +1181,7 @@ function CampForm(props: {
         <View style={camp.col}>
           <Field label="WEIGHT CLASS">
             <TextInput
+              {...LABEL_TEXT}
               style={camp.input}
               value={props.weightClass}
               onChangeText={props.setWeightClass}
@@ -1180,6 +1193,7 @@ function CampForm(props: {
         <View style={camp.col}>
           <Field label="ROUNDS">
             <TextInput
+              {...RAW_TEXT}
               style={camp.input}
               value={props.rounds}
               onChangeText={props.setRounds}
@@ -1194,6 +1208,7 @@ function CampForm(props: {
 
       <Field label="LOCATION (OPTIONAL)">
         <TextInput
+          {...LABEL_TEXT}
           style={camp.input}
           value={props.location}
           onChangeText={props.setLocation}
@@ -1206,6 +1221,7 @@ function CampForm(props: {
         <View style={camp.col}>
           <Field label="CURRENT WEIGHT">
             <TextInput
+              {...RAW_TEXT}
               style={camp.input}
               value={props.currentWeight}
               onChangeText={props.setCurrentWeight}
@@ -1217,6 +1233,7 @@ function CampForm(props: {
         <View style={camp.col}>
           <Field label="TARGET WEIGHT">
             <TextInput
+              {...RAW_TEXT}
               style={camp.input}
               value={props.targetWeight}
               onChangeText={props.setTargetWeight}
@@ -1229,6 +1246,7 @@ function CampForm(props: {
 
       <Field label="NOTES (OPTIONAL)">
         <TextInput
+          {...FREE_TEXT}
           style={[camp.input, camp.inputMultiline]}
           value={props.notes}
           onChangeText={props.setNotes}

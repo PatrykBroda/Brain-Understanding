@@ -19,6 +19,7 @@ import { competitionApi, type Competition, type PressureTier } from "@/lib/compe
 import { FormScroll } from "@/components/FormScroll";
 import { KEYBOARD_DONE_ID } from "@/components/KeyboardDoneBar";
 import { useActiveCompetition, useCompetitionList } from "@/hooks/useCompetition";
+import { FREE_TEXT, LABEL_TEXT, RAW_TEXT } from "@/lib/textInputProps";
 
 const TIER_ACCENT: Record<PressureTier, string> = {
   base: "#8A6A2F",
@@ -246,6 +247,7 @@ export default function CompetitionScreen() {
 
             <Field label="EVENT NAME">
               <TextInput
+                {...LABEL_TEXT}
                 style={styles.input}
                 value={eventName}
                 onChangeText={setEventName}
@@ -256,6 +258,7 @@ export default function CompetitionScreen() {
 
             <Field label="DISCIPLINE">
               <TextInput
+                {...LABEL_TEXT}
                 style={styles.input}
                 value={discipline}
                 onChangeText={setDiscipline}
@@ -266,6 +269,7 @@ export default function CompetitionScreen() {
 
             <Field label="EVENT DATE (YYYY-MM-DD)">
               <TextInput
+                {...RAW_TEXT}
                 style={styles.input}
                 value={eventDate}
                 onChangeText={setEventDate}
@@ -277,6 +281,7 @@ export default function CompetitionScreen() {
 
             <Field label="WEIGH-IN DATE (OPTIONAL)">
               <TextInput
+                {...RAW_TEXT}
                 style={styles.input}
                 value={weighInDate}
                 onChangeText={setWeighInDate}
@@ -290,6 +295,7 @@ export default function CompetitionScreen() {
               <View style={styles.col}>
                 <Field label="CURRENT WEIGHT">
                   <TextInput
+                    {...RAW_TEXT}
                     style={styles.input}
                     value={currentWeight}
                     onChangeText={setCurrentWeight}
@@ -301,6 +307,7 @@ export default function CompetitionScreen() {
               <View style={styles.col}>
                 <Field label="TARGET WEIGHT">
                   <TextInput
+                    {...RAW_TEXT}
                     style={styles.input}
                     value={targetWeight}
                     onChangeText={setTargetWeight}
@@ -313,6 +320,7 @@ export default function CompetitionScreen() {
 
             <Field label="NOTES (OPTIONAL)">
               <TextInput
+                {...FREE_TEXT}
                 style={[styles.input, styles.inputMultiline]}
                 value={notes}
                 onChangeText={setNotes}

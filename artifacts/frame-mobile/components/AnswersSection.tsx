@@ -23,6 +23,7 @@ import {
   sportChoicesFor,
   type QuestionsDraft,
 } from "@/lib/profileAnswers";
+import { FREE_TEXT, RAW_TEXT } from "@/lib/textInputProps";
 
 const ACCENT = "#8A6A2F";
 
@@ -178,6 +179,7 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
             <View style={st.dobField}>
               <Text style={st.dobLabel}>DAY</Text>
               <TextInput
+                {...RAW_TEXT}
                 style={[st.input, st.dobInput, dobError && st.inputError]}
                 value={draft.dob.day}
                 onChangeText={(v) => setDobPart("day", v)}
@@ -192,6 +194,7 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
             <View style={st.dobField}>
               <Text style={st.dobLabel}>MONTH</Text>
               <TextInput
+                {...RAW_TEXT}
                 ref={monthRef}
                 style={[st.input, st.dobInput, dobError && st.inputError]}
                 value={draft.dob.month}
@@ -207,6 +210,7 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
             <View style={[st.dobField, { flex: 1.45 }]}>
               <Text style={st.dobLabel}>YEAR</Text>
               <TextInput
+                {...RAW_TEXT}
                 ref={yearRef}
                 style={[st.input, st.dobInput, dobError && st.inputError]}
                 value={draft.dob.year}
@@ -266,6 +270,7 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
         <View style={st.field}>
           <Text style={st.label}>PRIMARY GOALS</Text>
           <TextInput
+            {...FREE_TEXT}
             style={[st.input, st.textarea]}
             value={draft.goals}
             onChangeText={(v) => set({ goals: v })}
@@ -280,6 +285,7 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
         <View style={st.field}>
           <Text style={st.label}>KNOWN WEAKNESSES</Text>
           <TextInput
+            {...FREE_TEXT}
             style={[st.input, st.textarea]}
             value={draft.weaknesses}
             onChangeText={(v) => set({ weaknesses: v })}

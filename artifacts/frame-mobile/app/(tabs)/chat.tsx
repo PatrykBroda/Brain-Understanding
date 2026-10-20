@@ -41,6 +41,7 @@ import { CompetitionBanner } from "@/components/CompetitionBanner";
 import { OctagonSpinner } from "@/components/OctagonSpinner";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
+import { FREE_TEXT } from "@/lib/textInputProps";
 
 const FRAME_WORDMARK = require("@/assets/images/frame-wordmark.png");
 
@@ -965,6 +966,7 @@ export default function ChatScreen() {
           />
         </Pressable>
         <TextInput
+          {...FREE_TEXT}
           ref={inputRef}
           style={styles.input}
           value={input}

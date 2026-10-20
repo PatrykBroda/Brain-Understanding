@@ -21,6 +21,7 @@ import {
   type ReplayRole,
   type BodyRegion,
   type PoseTrack,
+  type AthleteContext,
   REPLAY_ROLES,
   BODY_REGIONS,
 } from "@workspace/db";
@@ -28,6 +29,7 @@ import { trackHasFrameNear } from "./poseTrack";
 import { ONTOLOGY_KEYS, isOntologyKey } from "@workspace/ontology";
 import { buildDynamicContext } from "./synochi";
 import { logger } from "./logger";
+import { athleteContextLines } from "./athleteContext";
 import { combatContextBlock, combatPickTokens, selectCombatNotes } from "./combatIntelligence";
 
 let _anthropic: Anthropic | null = null;
@@ -66,6 +68,16 @@ WRITE SPECIFIC, PRACTICAL FEEDBACK:
 - Prefer the drills, constraints and diagnostic distinctions in the Combat Intelligence reference below when they fit; do not invent a drill that contradicts them.
 
 You are given the athlete's computed numbers. DO NOT invent or change any number. Your job is the WORDS around them.
+
+WHO IS WHO — IDENTIFY, STAY CONSISTENT, DO NOT GUESS:
+- Footage often has two or more people. First decide who the athlete is, using the "# Who is who" section below (the user's own description, side of frame, skeleton colour) and what is visible: clothing colour, gi / shorts / rashguard, build, hair, position. Name each person by those traits in your head ("the athlete in the red shorts", "the partner in the white gi") and keep that mapping identical from the first finding to the last. Never swap them mid-read.
+- The measured signals and scores describe ONLY the athlete. Never attribute the other person's actions to the athlete or the reverse.
+- If you cannot tell who is who from the frames and the user's description (similar clothing, blurry, frames contradict the description), do not guess: set identity.confident to false, say in identity.note what is unclear, keep findings limited to what is true whichever person is the athlete, and make reviewQuestion ask the athlete to tell you which person is them.
+
+OUTPUT QUALITY — CONCRETE, TIMESTAMPED, SUPPORTED:
+- Each finding's observation names where in the clip it happens, using a timestamp from the "# Key moments" list (write it like "at 12.4s"), and says exactly what the body or position did. Use only timestamps from that list; if no moments are listed, say "across the clip" rather than inventing a time.
+- Only claim what the supplied key frames, signals and moments show. Do not describe the exchange before or after the frames you were given, the opponent's intent, the result of a technique, or equipment/environment you cannot see. If a frame is unclear, say it is unclear.
+- No generic filler: no advice that would fit any clip ("stay relaxed", "keep your hands up", "work on your conditioning") unless a specific moment shows it. A finding you cannot tie to a signal or a visible moment is cut, so return fewer findings (minimum 2) instead of padding to five.
 
 HARD RULES:
 - The scores, load, fragmentationRisk and sessionScore are ALREADY FIXED below. Never output numbers — narrate around them. If you reference a number, use the one given.
@@ -144,6 +156,20 @@ const REPORT_TOOL: Anthropic.Tool = {
         },
       },
       comparisonNote: { type: "string" },
+      identity: {
+        type: "object",
+        description:
+          "Who the athlete is in the footage. confident=false when you cannot tell which person is the athlete; then note what is unclear and ask in reviewQuestion.",
+        properties: {
+          confident: { type: "boolean" },
+          note: {
+            type: "string",
+            description:
+              "The traits used to tell them apart, e.g. 'athlete: red shorts, left side; partner: white gi'. Or what is unclear.",
+          },
+        },
+        required: ["confident", "note"],
+      },
       reviewQuestion: {
         type: "string",
         description:
@@ -174,7 +200,7 @@ const REPORT_TOOL: Anthropic.Tool = {
         description: "true if the footage shows combat sports training, false otherwise",
       },
     },
-    required: ["contentValid", "styleProfile", "aiComment", "summary", "findings"],
+    required: ["contentValid", "styleProfile", "aiComment", "summary", "findings", "identity"],
   },
 };
 
@@ -279,6 +305,9 @@ export type AnalysisNarrative = {
   findings: AnalysisFinding[];
   comparisonNote: string;
   reviewQuestion: string;
+  // False when the model could not tell which person is the athlete.
+  identityConfident: boolean;
+  identityNote: string;
   // Raw AI references — the route resolves these against the real keyframes.
   replay: ReplayRef[];
 };
@@ -288,6 +317,21 @@ export class ContentValidationError extends Error {
     super(description || "FRAME REPORT requires combat sports footage.");
     this.name = "ContentValidationError";
   }
+}
+
+function readIdentity(v: unknown): { identityConfident: boolean; identityNote: string } {
+  const it = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  // Only an explicit false counts as "cannot tell"; a missing field (older prompt) is not a claim.
+  return { identityConfident: it["confident"] !== false, identityNote: asStr(it["note"], 240) };
+}
+
+/** What the athlete is asked when FRAME could not tell which person is them. */
+export const IDENTITY_UNSURE_QUESTION =
+  "I couldn't tell which of the people in this clip is you. Which one are you: what are you wearing, and which side of the frame were you on?";
+
+/** Applies the identity outcome to the stored review question: never leave a guess unflagged. */
+export function applyIdentity(n: Pick<AnalysisNarrative, "identityConfident" | "reviewQuestion">): string {
+  return n.identityConfident ? n.reviewQuestion : IDENTITY_UNSURE_QUESTION;
 }
 
 function normalise(raw: Record<string, unknown>): AnalysisNarrative {
@@ -374,11 +418,12 @@ function normalise(raw: Record<string, unknown>): AnalysisNarrative {
     findings,
     comparisonNote: asStr(raw["comparisonNote"], 320),
     reviewQuestion: asStr(raw["reviewQuestion"], 240),
+    ...readIdentity(raw["identity"]),
     replay,
   };
 }
 
-function metricsText(args: {
+export function metricsText(args: {
   kind: AnalysisKind;
   focus: string;
   load: NervousSystemLoad;
@@ -390,8 +435,9 @@ function metricsText(args: {
   keyframes: AnalysisKeyframe[];
   leadSide?: "left" | "right" | null;
   opponentTracked?: boolean;
+  athleteContext?: AthleteContext;
 }): string {
-  const { kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes, leadSide, opponentTracked } =
+  const { kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes, leadSide, opponentTracked, athleteContext } =
     args;
   const sig = metrics.signals.map((s) => `- ${s.label}: ${s.value} — ${s.detail}`);
   const sc = scores.map((s) => `- ${s.label}: ${s.value}/100 — ${s.basis}`);
@@ -419,6 +465,8 @@ function metricsText(args: {
     `# Computed movement signals`,
     ...sig,
   ];
+
+  parts.push(``, ...athleteContextLines(athleteContext, { twoTracked: !!opponentTracked }));
 
   parts.push(
     ``,
@@ -684,8 +732,9 @@ export async function generateAnalysis(args: {
   keyframes: AnalysisKeyframe[];
   leadSide?: "left" | "right" | null;
   opponentTracked?: boolean;
+  athleteContext?: AthleteContext;
 }): Promise<AnalysisNarrative> {
-  const { fighter, facts, kind, focus, load, fragmentationRisk, sessionScore, scores, prevScores, metrics, keyframes, leadSide, opponentTracked } =
+  const { fighter, facts, kind, focus, load, fragmentationRisk, sessionScore, scores, prevScores, metrics, keyframes, leadSide, opponentTracked, athleteContext } =
     args;
 
   // Specialist reference for THIS clip, inside a token budget (see lib/combatIntelligence.ts).
@@ -703,7 +752,7 @@ export async function generateAnalysis(args: {
     ANALYSIS_INSTRUCTIONS +
     (combatBlock ? "\n\n" + combatBlock : "") +
     "\n\n" +
-    metricsText({ kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes, leadSide, opponentTracked });
+    metricsText({ kind, focus, load, fragmentationRisk, sessionScore, scores, metrics, prevScores, keyframes, leadSide, opponentTracked, athleteContext });
   logger.info(
     { picks: combat.map((c) => `${c.folder}/${c.title}(${c.score})`), combatTokens: combatPickTokens(combat) },
     "analysis: combat intelligence selected",
@@ -796,6 +845,11 @@ const OPPONENT_INSTRUCTIONS = `You are FRAME scouting an OPPONENT from footage t
 
 CONTENT VALIDATION — MANDATORY FIRST STEP:
 Look at the key frames. Does the footage show a person performing combat sports (BJJ, MMA, boxing, Muay Thai, kickboxing, wrestling, judo, sparring, padwork, shadowboxing, drilling, clinchwork, bag work)? If it clearly shows something else — dancing, general fitness, yoga, everyday activity, or no person at all — set contentValid=false, write a 1-sentence factual description of what you actually see in summary, and do not attempt a read.
+
+WHO IS BEING SCOUTED:
+- The footage may show two people. Use the "# Who is who" section (the user's description of the person to scout, side of frame) plus what is visible (clothing colour, gi / shorts, build) to pick out the scouted fighter, and keep that identification the same through the whole read. Describe ONLY that person's tendencies; never attribute the other person's actions to them.
+- If you cannot tell which person is the one being scouted, say so plainly in summary and keep findings to what holds either way, instead of guessing.
+- Each finding's observation says where in the clip it is visible (a timestamp from the "# Key moments" list, like "at 12.4s") and claims only what the frames and signals show. No generic filler; return fewer findings (minimum 2) rather than padding.
 
 HARD RULES — this is a categorical scouting read:
 - NEVER output numbers, scores, percentages or ratings of any kind. No "70% aggressive", no "/100". Describe tendencies in words only, grounded in the computed signals and what is visible in the key frames.
@@ -961,15 +1015,16 @@ export function gateMatchup(
   return matchup;
 }
 
-function opponentMetricsText(args: {
+export function opponentMetricsText(args: {
   kind: AnalysisKind;
   focus: string;
   opponentName: string;
   load: NervousSystemLoad;
   metrics: AnalysisMetrics;
   keyframes: AnalysisKeyframe[];
+  athleteContext?: AthleteContext;
 }): string {
-  const { kind, focus, opponentName, load, metrics, keyframes } = args;
+  const { kind, focus, opponentName, load, metrics, keyframes, athleteContext } = args;
   const sig = metrics.signals.map((s) => `- ${s.label}: ${s.value} — ${s.detail}`);
   const parts = [
     `# Opponent clip`,
@@ -978,6 +1033,8 @@ function opponentMetricsText(args: {
     focus ? `athlete asked to focus the scout on: ${focus}` : `no specific focus requested`,
     `duration analysed: ${metrics.durationSec.toFixed(1)}s`,
     `frames sampled: ${metrics.framesAnalysed}, frames with a clear pose lock: ${metrics.poseFrames}`,
+    ``,
+    ...athleteContextLines(athleteContext, { twoTracked: false, scout: true }),
     ``,
     `# Opponent nervous-system read (categorical — describe in words, NEVER as a number)`,
     `load: ${load.toUpperCase()}`,
@@ -1006,15 +1063,16 @@ export async function generateOpponentAnalysis(args: {
   load: NervousSystemLoad;
   metrics: AnalysisMetrics;
   keyframes: AnalysisKeyframe[];
+  athleteContext?: AthleteContext;
 }): Promise<OpponentNarrative> {
-  const { fighter, facts, kind, focus, opponentName, load, metrics, keyframes } = args;
+  const { fighter, facts, kind, focus, opponentName, load, metrics, keyframes, athleteContext } = args;
 
   const dynamic =
     buildDynamicContext(fighter, facts, [], []) +
     "\n\n" +
     OPPONENT_INSTRUCTIONS +
     "\n\n" +
-    opponentMetricsText({ kind, focus, opponentName, load, metrics, keyframes });
+    opponentMetricsText({ kind, focus, opponentName, load, metrics, keyframes, athleteContext });
 
   const content: Anthropic.ContentBlockParam[] = [];
   for (const kf of keyframes.slice(0, 4)) {

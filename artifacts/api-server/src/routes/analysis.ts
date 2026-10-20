@@ -21,6 +21,7 @@ import { countSelfAnalyses } from "../lib/analysisQuota";
 import { getActiveCompetition } from "../lib/competitionService";
 import {
   generateAnalysis,
+  applyIdentity,
   generateOpponentAnalysis,
   gateMatchup,
   buildComparison,
@@ -42,6 +43,7 @@ import {
   RemoteFetchError,
 } from "../lib/remoteFetch";
 import { downloadYouTube, YtDlpError } from "../lib/ytdlp";
+import { sanitiseAthleteContext } from "../lib/athleteContext";
 import { sanitisePoseTrack, withoutOpponent } from "../lib/poseTrack";
 
 // The "Athlete Model Updated" payload — every value read back from the DB
@@ -203,6 +205,7 @@ router.post("/analysis", async (req, res) => {
     detectedEvents?: unknown;
     keyframes?: unknown;
     poseTrack?: unknown;
+    athleteContext?: unknown;
   };
 
   // "self" = the athlete's own footage (scored FRAME REPORT). "opponent" = a
@@ -243,6 +246,8 @@ router.post("/analysis", async (req, res) => {
   // rather than failing the analysis — the read is still saved, just without the
   // visuals that need the track.
   const poseTrack = sanitisePoseTrack(body.poseTrack);
+  // Optional "who is who" the user gave before upload; stored with the analysis (metrics.athleteContext).
+  const athleteContext = sanitiseAthleteContext(body.athleteContext);
   if (signals.length === 0) {
     res.status(400).json({ error: "no movement signals — could not read a pose from this clip" });
     return;
@@ -281,6 +286,7 @@ router.post("/analysis", async (req, res) => {
     durationSec,
     loadBasis: typeof body.loadBasis === "string" ? body.loadBasis.slice(0, 240) : "",
     signals,
+    ...(athleteContext ? { athleteContext } : {}),
   };
 
   try {
@@ -303,6 +309,7 @@ router.post("/analysis", async (req, res) => {
         load: body.load,
         metrics,
         keyframes,
+        athleteContext,
       });
       // Deterministic honesty gate: keep the matchup only when the athlete has a
       // real recorded model AND the opponent clip has enough tracked movement.
@@ -389,6 +396,7 @@ router.post("/analysis", async (req, res) => {
       keyframes,
       leadSide: poseTrack?.lead ?? null,
       opponentTracked: !!poseTrack?.opp,
+      athleteContext,
     });
 
     const comparison = buildComparison(scores, prevScores, narrative.comparisonNote);
@@ -422,7 +430,7 @@ router.post("/analysis", async (req, res) => {
         metrics,
         keyframes,
         poseTrack,
-        reviewQuestion: narrative.reviewQuestion,
+        reviewQuestion: applyIdentity(narrative),
         replayMoments,
         durationSec,
       })

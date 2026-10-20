@@ -727,6 +727,8 @@ export type AnalysisModelUpdate = {
   confidencePointsDelta: number;
 };
 
+export type AthleteContext = { side?: "left" | "right"; athlete?: string; other?: string };
+
 export type CreateAnalysisInput = {
   kind: AnalysisKind;
   focus: string;
@@ -743,6 +745,8 @@ export type CreateAnalysisInput = {
   detectedEvents: DetectedEvent[];
   keyframes: AnalysisKeyframe[];
   poseTrack?: PoseTrackWire | null;
+  // Who is who in the clip, as the user described it. Stored with the analysis.
+  athleteContext?: AthleteContext;
   // Opponent Mode. Defaults to a "self" read server-side when omitted.
   subject?: AnalysisSubject;
   opponentName?: string;

@@ -19,6 +19,7 @@ import { NAME_MAX, nameError } from "@/lib/fighterName";
 import { dismissProps } from "@/components/FormScroll";
 import { useAuth } from "@/context/AuthContext";
 import { commitFighterProfile } from "@/lib/fighterProfileCache";
+import { NAME_TEXT } from "@/lib/textInputProps";
 
 /**
  * Edit profile: the name. Sport, belt / level, frequency, goals and weaknesses are the ONBOARDING
@@ -105,6 +106,7 @@ export function ProfileEditModal({
           <View style={styles.field}>
             <Text style={styles.label}>NAME</Text>
             <TextInput
+              {...NAME_TEXT}
               style={[styles.input, nameTouched && nameErr ? styles.inputError : null]}
               value={name}
               onChangeText={setName}

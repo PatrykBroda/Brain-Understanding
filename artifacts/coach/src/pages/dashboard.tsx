@@ -12,7 +12,7 @@ import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { useActiveCompetition } from "@/hooks/use-competition";
 import { useSaveCheckin, useCheckinHistory } from "@/hooks/use-checkin";
 import { useLocalDay, useToday } from "@/hooks/use-today";
-import { DisclosureNotice, FocusSection } from "@/components/today-cards";
+import { FocusSection } from "@/components/today-cards";
 import { FirstUsePointers } from "@/components/first-use-pointers";
 import { ReadinessBars } from "@/components/readiness-bars";
 import { questionnaireAnswered } from "@workspace/onboarding";
@@ -532,11 +532,6 @@ export default function DashboardPage() {
         )}
 
         {/* ─── Today's focus — the one insight, coach's voice ────────────── */}
-        {today && today.disclosure.code !== "none" && (
-          <div className="px-6 pt-7">
-            <DisclosureNotice disclosure={today.disclosure} onCheckIn={() => setEditing(true)} />
-          </div>
-        )}
         <FocusSection
           focus={today?.focus ?? null}
           loading={todayQuery.isLoading}

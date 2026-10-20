@@ -94,12 +94,24 @@ export type AnalysisComparison = {
   note: string;
 };
 
+// Who is who in the clip, as told by the user before upload. Stored inside `metrics`
+// (jsonb) so it persists with the analysis without a schema migration.
+export type AthleteContext = {
+  // Which side of the frame the athlete starts on, from the user's view of the clip.
+  side?: "left" | "right";
+  // What the athlete wears / looks like ("red shorts", "blue gi", "black rashguard").
+  athlete?: string;
+  // What the other person wears / looks like (or the coach/partner/pads holder).
+  other?: string;
+};
+
 export type AnalysisMetrics = {
   framesAnalysed: number;
   poseFrames: number;
   durationSec: number;
   loadBasis: string;
   signals: AnalysisSignal[];
+  athleteContext?: AthleteContext;
 };
 
 export type AnalysisKeyframe = {

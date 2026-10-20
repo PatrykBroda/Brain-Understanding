@@ -29,7 +29,7 @@ import {
 } from "@/hooks/useCheckin";
 import { useToday } from "@/hooks/useToday";
 import { useLocalDay } from "@/hooks/useLocalDay";
-import { DisclosureNotice, FocusCard } from "@/components/TodayCards";
+import { FocusCard } from "@/components/TodayCards";
 import { FirstUsePointers } from "@/components/FirstUsePointers";
 import { ReadinessBars } from "@/components/ReadinessBars";
 import { dismissProps } from "@/components/FormScroll";
@@ -43,6 +43,7 @@ import {
   applyReadinessModifier,
   type ChatMessageLike,
 } from "@/lib/readinessModifier";
+import { RAW_TEXT } from "@/lib/textInputProps";
 
 // ── Real-composite band read (interpretation, not fabrication) ─────────────
 function bandFor(score: number): string {
@@ -245,6 +246,7 @@ function CheckinForm({
       <View style={styles.formRow}>
         <Text style={styles.formLabel}>RESTING HR (OPTIONAL, BPM)</Text>
         <TextInput
+          {...RAW_TEXT}
           value={hr}
           onChangeText={setHr}
           keyboardType="number-pad"
@@ -488,11 +490,6 @@ export default function HomeScreen() {
 
       {/* Today's focus (from /today, dated) */}
       <View style={styles.section}>
-        {today && today.disclosure.code !== "none" ? (
-          <View style={{ marginBottom: 20 }}>
-            <DisclosureNotice disclosure={today.disclosure} onCheckIn={() => setEditing(true)} />
-          </View>
-        ) : null}
         <FocusCard
           focus={today?.focus ?? null}
           loading={todayQuery.isLoading}

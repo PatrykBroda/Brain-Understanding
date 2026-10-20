@@ -61,6 +61,7 @@ import type {
   ReplayMoment,
   VideoAnalysis,
   Fighter,
+  AthleteContext,
 } from "@/lib/api";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -99,14 +100,6 @@ type Phase =
   | { stage: "pick" } // two people in the clip: waiting for "which one is you?"
   | { stage: "loading_ai" }
   | { stage: "error"; title: string; causes: string[]; retryable: boolean };
-
-const PHASE_PHRASES: Record<string, string[]> = {
-  fetching: ["Pulling the footage", "Fetching the clip", "Reaching the source"],
-  reading: ["Decoding footage", "Sampling frames", "Reading the tape"],
-  tracking: ["Locking the skeleton", "Tracking limbs under load", "Following the structure"],
-  detecting: ["Reading the body under load", "Finding the breakpoints", "Watching the guard", "Measuring composure"],
-  loading_ai: ["Framing what the system is doing", "Naming the pattern", "Writing the read"],
-};
 
 const PHASE_TITLE: Record<string, string> = {
   fetching: "Fetching the clip",
@@ -157,6 +150,8 @@ export default function AnalysePage() {
   // scout + a matchup against the athlete's recorded model. Kept clearly distinct.
   const [subject, setSubject] = useState<AnalysisSubject>("self");
   const [opponentName, setOpponentName] = useState("");
+  // Who is who in the clip, as the user describes it. Sent with the analysis and kept with it.
+  const [who, setWho] = useState<WhoIsWho>({ side: null, athlete: "", other: "" });
   const [openOpponentId, setOpenOpponentId] = useState<number | null>(null);
 
   // Prefill the scout's opponent name from the active camp's opponent, if any —
@@ -384,6 +379,7 @@ export default function AnalysePage() {
         keyframes,
         // Per-frame landmarks (quantised) for overlay/graphs/annotations/comparisons.
         // null when too few frames locked or it would exceed the size cap.
+        athleteContext: buildAthleteContext(who),
         poseTrack:
           reliability.level === "good" ? encodePoseTrack(athleteFrames, extract.width, extract.height, opponentFrames) : null,
         ...(opponentMode
@@ -505,12 +501,13 @@ export default function AnalysePage() {
         </div>
         <div className="text-center flex flex-col items-center gap-1.5">
           <img
-            src={`${basePath}/frame-logo.png`}
+            src={`${basePath}/frame-octagon-logo.png`}
+            srcSet={`${basePath}/frame-octagon-logo.png 1x, ${basePath}/frame-octagon-logo@2x.png 2x, ${basePath}/frame-octagon-logo@3x.png 3x`}
             alt=""
             aria-hidden
-            width={22}
-            height={22}
-            className="object-contain opacity-75"
+            width={30}
+            height={30}
+            className="object-contain opacity-90"
           />
           <div className="font-mono text-[11px] uppercase tracking-[0.4em] text-foreground/90">
             Analyse
@@ -573,6 +570,8 @@ export default function AnalysePage() {
               setSubject={setSubject}
               opponentName={opponentName}
               setOpponentName={setOpponentName}
+              who={who}
+              setWho={setWho}
               opponentItems={opponentAnalyses.data?.opponents ?? []}
               opponentLoading={opponentAnalyses.isLoading}
               onOpenOpponent={(id) => setOpenOpponentId(id)}
@@ -850,7 +849,7 @@ export default function AnalysePage() {
       <WeeklyReportOverlay open={weeklyReportOpen} onClose={() => setWeeklyReportOpen(false)} />
 
       {busy && phase.stage !== "pick" && (
-        <CinematicOverlay phase={phase} kindLabel={KINDS.find((k) => k.value === kind)?.label ?? ""} />
+        <CinematicOverlay phase={phase} />
       )}
       {phase.stage === "pick" && pickData && (
         <PersonPicker
@@ -1022,6 +1021,90 @@ function LinkInput({
   );
 }
 
+export type WhoIsWho = { side: "left" | "right" | null; athlete: string; other: string };
+
+/** The "who is who" the user gave, in the shape the server stores; undefined when they gave nothing. */
+export function buildAthleteContext(who: WhoIsWho): AthleteContext | undefined {
+  const athlete = who.athlete.trim();
+  const other = who.other.trim();
+  if (!who.side && !athlete && !other) return undefined;
+  return {
+    ...(who.side ? { side: who.side } : {}),
+    ...(athlete ? { athlete } : {}),
+    ...(other ? { other } : {}),
+  };
+}
+
+function WhoIsWhoInput({
+  who,
+  setWho,
+  disabled,
+  scout,
+}: {
+  who: WhoIsWho;
+  setWho: (w: WhoIsWho) => void;
+  disabled: boolean;
+  scout: boolean;
+}) {
+  const subject = scout ? "Who are you scouting" : "Which one are you";
+  const field =
+    "w-full bg-transparent border-b border-border/40 focus:border-primary/40 outline-none py-2.5 text-sm text-foreground/85 placeholder:text-muted-foreground/35 transition-colors disabled:opacity-40";
+  return (
+    <section className="space-y-2" data-testid="who-is-who">
+      <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+        {subject}{" "}
+        <span className="font-sans normal-case tracking-normal text-muted-foreground/40 text-[11px]">
+          optional
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-[3px]">
+        {(["left", "right"] as const).map((side) => {
+          const on = who.side === side;
+          return (
+            <button
+              key={side}
+              type="button"
+              data-testid={`who-side-${side}`}
+              aria-pressed={on}
+              disabled={disabled}
+              onClick={() => setWho({ ...who, side: on ? null : side })}
+              className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
+              style={{
+                borderLeft: `2px solid ${on ? "hsla(0,68%,46%,0.9)" : "hsla(0,0%,100%,0.1)"}`,
+                borderTop: `1px solid ${on ? "hsla(0,68%,46%,0.2)" : "hsla(0,0%,100%,0.06)"}`,
+                borderRight: "1px solid hsla(0,0%,100%,0.04)",
+                borderBottom: "1px solid hsla(0,0%,100%,0.04)",
+                background: on ? "hsla(0,68%,46%,0.08)" : "transparent",
+                color: on ? "hsl(0,55%,65%)" : "hsla(0,0%,100%,0.55)",
+              }}
+            >
+              {scout ? `They are on the ${side}` : `I am on the ${side}`}
+            </button>
+          );
+        })}
+      </div>
+      <input
+        type="text"
+        data-testid="who-athlete"
+        value={who.athlete}
+        onChange={(e) => setWho({ ...who, athlete: e.target.value.slice(0, 80) })}
+        disabled={disabled}
+        placeholder={scout ? "what they wear: white gi, red shorts…" : "what you wear: red shorts, blue rashguard…"}
+        className={field}
+      />
+      <input
+        type="text"
+        data-testid="who-other"
+        value={who.other}
+        onChange={(e) => setWho({ ...who, other: e.target.value.slice(0, 80) })}
+        disabled={disabled}
+        placeholder={scout ? "the other person: black gi, taller…" : "the other person: white gi, black shorts…"}
+        className={field}
+      />
+    </section>
+  );
+}
+
 function UploadControls({
   kind,
   setKind,
@@ -1049,6 +1132,8 @@ function UploadControls({
   setSubject,
   opponentName,
   setOpponentName,
+  who,
+  setWho,
   opponentItems,
   opponentLoading,
   onOpenOpponent,
@@ -1079,6 +1164,8 @@ function UploadControls({
   setSubject: (s: AnalysisSubject) => void;
   opponentName: string;
   setOpponentName: (v: string) => void;
+  who: WhoIsWho;
+  setWho: (w: WhoIsWho) => void;
   opponentItems: OpponentListItem[];
   opponentLoading: boolean;
   onOpenOpponent: (id: number) => void;
@@ -1175,6 +1262,8 @@ function UploadControls({
         />
         <FocusPresets focus={focus} setFocus={setFocus} disabled={busy} />
       </section>
+
+      <WhoIsWhoInput who={who} setWho={setWho} disabled={busy} scout={subject === "opponent"} />
 
       {/* Source: upload a file or paste a link */}
       <section className="space-y-3">
@@ -2638,7 +2727,7 @@ function TrendSection({
 // Shared utility components
 // ---------------------------------------------------------------------------
 
-function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: string }) {
+function CinematicOverlay({ phase }: { phase: Phase }) {
   const key =
     phase.stage === "fetching"
       ? "fetching"
@@ -2649,14 +2738,6 @@ function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: strin
           : phase.stage === "detecting"
             ? "detecting"
             : "loading_ai";
-
-  const phrases = PHASE_PHRASES[key]!;
-  const [phraseIdx, setPhraseIdx] = useState(0);
-  useEffect(() => {
-    setPhraseIdx(0);
-    const t = setInterval(() => setPhraseIdx((i) => (i + 1) % phrases.length), 1600);
-    return () => clearInterval(t);
-  }, [key, phrases.length]);
 
   const steps = ["reading", "tracking", "detecting", "loading_ai"];
   const activeIdx = steps.indexOf(key);
@@ -2672,9 +2753,10 @@ function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: strin
 
       <div className="relative flex items-center justify-center w-32 h-32">
         <img
-          src={`${import.meta.env.BASE_URL.replace(/\/$/, "")}frame-logo.png`}
+          src={`${basePath}/frame-octagon-logo.png`}
+          srcSet={`${basePath}/frame-octagon-logo.png 1x, ${basePath}/frame-octagon-logo@2x.png 2x, ${basePath}/frame-octagon-logo@3x.png 3x`}
           alt="FRAME"
-          className="w-20 h-20 object-contain"
+          className="w-32 h-32 object-contain"
           style={{ animation: "frame-logo-pulse 2.4s ease-in-out infinite", opacity: 0.92 }}
           draggable={false}
         />
@@ -2687,16 +2769,12 @@ function CinematicOverlay({ phase, kindLabel }: { phase: Phase; kindLabel: strin
       </div>
 
       <div className="mt-10 text-center space-y-2 relative">
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
-          {kindLabel}
-        </div>
         <div className="font-mono text-base uppercase tracking-[0.3em] text-foreground/95">
           {PHASE_TITLE[key]}
         </div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/80 h-4 transition-opacity">
-          {phrases[phraseIdx]}
-          {pct != null ? ` · ${pct}%` : ""}
-        </div>
+        {pct != null ? (
+          <div className="font-mono text-[11px] tracking-[0.25em] text-foreground/70 h-4">{pct}%</div>
+        ) : null}
       </div>
 
       <div className="mt-10 flex items-center gap-2 relative">
