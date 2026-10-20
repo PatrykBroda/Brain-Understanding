@@ -1,7 +1,7 @@
 /**
  * Custom auth context — replaces @clerk/clerk-expo.
  * JWT is kept via lib/tokenBackend (SecureStore, AFTER_FIRST_UNLOCK, on a phone; localStorage on
- * the web build) under "frame:token", and refreshed from the server on every launch so an
+ * the web build) under "frame.token", and refreshed from the server on every launch so an
  * athlete who keeps opening the app is never forced to sign in again.
  * Provides: isLoaded, isSignedIn, userId, email, getToken, signOut.
  */
