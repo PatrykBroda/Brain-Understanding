@@ -322,23 +322,25 @@ interface RingDef {
 // The sphere spins +y (and slightly +x), so the rings are deliberately given
 // dominant -y / -x / opposite-z spins — they orbit AGAINST the sphere so the
 // lines read as independent orbits crossing it, not paint stuck to its surface.
+// Rings + sparkles sized (with the camera at z=5) so the whole orb fits inside its canvas:
+// at r>=1.6 the outer rings ran past the square and got cut off in a hard straight edge.
 const RING_DEFS: RingDef[] = [
   // Closest ring — near equatorial, thickest
-  { r: 1.42, tube: 0.011, tilt: [Math.PI / 2.1, 0, 0], spin: { z: 1.15 } },
+  { r: 1.20, tube: 0.011, tilt: [Math.PI / 2.1, 0, 0], spin: { z: 1.15 } },
   // Tight inner counter-orbit
-  { r: 1.50, tube: 0.010, tilt: [Math.PI / 2.6, Math.PI / 4.5, 0.2], spin: { x: -0.7, y: -0.45 } },
+  { r: 1.25, tube: 0.010, tilt: [Math.PI / 2.6, Math.PI / 4.5, 0.2], spin: { x: -0.7, y: -0.45 } },
   // Strong counter-spin against the sphere's +y
-  { r: 1.60, tube: 0.009, tilt: [Math.PI / 3.4, Math.PI / 5.5, 0], spin: { y: -0.85, z: 0.3 } },
+  { r: 1.30, tube: 0.009, tilt: [Math.PI / 3.4, Math.PI / 5.5, 0], spin: { y: -0.85, z: 0.3 } },
   // Steep polar-ish crosser, reversed
-  { r: 1.70, tube: 0.008, tilt: [Math.PI / 2.3, Math.PI / 2.8, 0.5], spin: { x: 0.6, z: -0.55 } },
+  { r: 1.36, tube: 0.008, tilt: [Math.PI / 2.3, Math.PI / 2.8, 0.5], spin: { x: 0.6, z: -0.55 } },
   // Opposite tilt, counter-y
-  { r: 1.78, tube: 0.008, tilt: [Math.PI / 2.7, Math.PI / 3.2, 0], spin: { y: -0.65, z: 0.4 } },
+  { r: 1.41, tube: 0.008, tilt: [Math.PI / 2.7, Math.PI / 3.2, 0], spin: { y: -0.65, z: 0.4 } },
   // Mid outer band, canted the other way
-  { r: 1.88, tube: 0.007, tilt: [Math.PI / 4.5, Math.PI / 3.6, -0.4], spin: { x: -0.6, z: 0.5 } },
+  { r: 1.46, tube: 0.007, tilt: [Math.PI / 4.5, Math.PI / 3.6, -0.4], spin: { x: -0.6, z: 0.5 } },
   // Outer halo band
-  { r: 1.96, tube: 0.006, tilt: [Math.PI / 4, Math.PI / 6, 0.4], spin: { y: -0.55, x: 0.42 } },
+  { r: 1.50, tube: 0.006, tilt: [Math.PI / 4, Math.PI / 6, 0.4], spin: { y: -0.55, x: 0.42 } },
   // Widest outer sentinel
-  { r: 2.16, tube: 0.005, tilt: [Math.PI / 5.5, Math.PI / 4, 0.8], spin: { z: -0.75, y: 0.35 } },
+  { r: 1.56, tube: 0.005, tilt: [Math.PI / 5.5, Math.PI / 4, 0.8], spin: { z: -0.75, y: 0.35 } },
 ];
 // Fade weights per ring — inner rings brightest, outer rings still clearly visible
 const RING_FADE = RING_DEFS.map((_, i) => Math.max(0.5, 1 - i * 0.07));
@@ -394,7 +396,7 @@ function SparkleField({ live, state }: { live: MutableRefObject<Cfg>; state: Orb
   return (
     <Sparkles
       count={cfg.sparkleCount}
-      scale={4.4}
+      scale={3.0}
       size={1.6}
       speed={cfg.sparkleSpeed}
       opacity={0.5}
@@ -522,7 +524,7 @@ export function CosmicOrb({ state = "dormant", className = "" }: CosmicOrbProps)
           <Canvas
             dpr={[1, 2]}
             gl={{ alpha: true, antialias: true, premultipliedAlpha: false }}
-            camera={{ position: [0, 0, 3.6], fov: 38 }}
+            camera={{ position: [0, 0, 5.0], fov: 38 }}
             style={{ background: "transparent" }}
             onCreated={({ gl }) => {
               gl.domElement.addEventListener("webglcontextlost", (e) => e.preventDefault());
