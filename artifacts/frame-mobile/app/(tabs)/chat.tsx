@@ -54,6 +54,7 @@ import { FrameLogo } from "@/components/FrameLogo";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 import { FREE_TEXT } from "@/lib/textInputProps";
+import { TEXT_PRIMARY, TEXT_SECONDARY, body, label, meta, sectionTitle } from "@/constants/typography";
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 
@@ -89,27 +90,27 @@ function uid() {
 
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   {
-    label: "ANALYSE SESSION",
+    label: "Analyse session",
     prompt: ANALYSE_SESSION_PROMPT,
   },
   {
-    label: "BUILD DRILL",
+    label: "Build drill",
     prompt:
       "Build me a drill for my biggest current weakness. Use the drill block.",
   },
   {
-    label: "FIX MY GAME",
+    label: "Fix my game",
     prompt:
       "Identify the recurring gap in my game right now and give me a training plan to close it.",
   },
   {
-    label: "COMPETITION PREP",
+    label: "Competition prep",
     prompt:
       "Walk me through how to prepare my composure, decision-making, and tactics for an upcoming competition.",
   },
-  { label: "REGULATE", prompt: REGULATE_PROMPT },
+  { label: "Regulate", prompt: REGULATE_PROMPT },
   {
-    label: "REFLECT",
+    label: "Reflect",
     prompt:
       "Ask me one sharp question to surface what I'm not seeing about my training this week.",
   },
@@ -166,7 +167,7 @@ function RetryButton({ onPress, disabled }: { onPress: () => void; disabled: boo
       accessibilityState={{ disabled }}
     >
       <Feather name="refresh-ccw" size={12} color="#8A6A2F" />
-      <Text style={mb.retryText}>RETRY</Text>
+      <Text style={mb.retryText}>Retry</Text>
     </Pressable>
   );
 }
@@ -215,7 +216,7 @@ function MessageBubble({
             </>
           ) : msg.retry != null ? (
             <View style={mb.errorBox} accessibilityRole="alert">
-              <Text style={mb.errorTitle}>MESSAGE NOT DELIVERED</Text>
+              <Text style={mb.errorTitle}>Message not delivered</Text>
               <Text style={[mb.text, mb.assistantText]}>{msg.content}</Text>
               <RetryButton onPress={() => onRetry(msg)} disabled={retryDisabled} />
             </View>
@@ -239,15 +240,12 @@ const mb = StyleSheet.create({
     alignItems: "flex-start",
   },
   senderLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 4,
-    textTransform: "uppercase",
+    ...sectionTitle,
     marginBottom: 6,
     paddingHorizontal: 20,
   },
   senderLabelUser: {
-    color: "rgba(224,224,224,0.4)",
+    color: "#a8a8a8",
   },
   senderLabelFrame: {
     color: "rgba(138,106,47,0.7)",
@@ -300,9 +298,7 @@ const mb = StyleSheet.create({
     borderLeftColor: "#8A6A2F",
   },
   errorTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: "#8A6A2F",
   },
   retryBtn: {
@@ -329,12 +325,10 @@ const mb = StyleSheet.create({
   typingLabel: {
     fontFamily: "Outfit",
     fontSize: 13,
-    color: "rgba(224,224,224,0.55)",
+    color: "#a8a8a8",
   },
   retryText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: "#8A6A2F",
   },
   attachGrid: {
@@ -363,10 +357,8 @@ const mb = StyleSheet.create({
     paddingHorizontal: 8,
   },
   videoName: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 1,
-    color: "#888",
+    ...meta,
+    color: TEXT_SECONDARY,
     textAlign: "center",
   },
   thumbRemove: {
@@ -433,7 +425,7 @@ export default function ChatScreen() {
   const { fighter } = useFighter();
   const { isSignedIn } = useAuth();
 
-  const userLabel = (fighter?.name ?? "Operator").toUpperCase();
+  const userLabel = fighter?.name ?? "Operator";
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -968,7 +960,7 @@ export default function ChatScreen() {
           hitSlop={8}
         >
           <Feather name="chevron-left" size={20} color="#888" />
-          <Text style={styles.headerBackText}>HOME</Text>
+          <Text style={styles.headerBackText}>Home</Text>
         </Pressable>
         <View style={styles.headerBrand} pointerEvents="none" accessibilityRole="header" accessibilityLabel="Frame">
           <FrameLogo height={16} />
@@ -984,7 +976,7 @@ export default function ChatScreen() {
           ) : (
             <>
               <Feather name="refresh-ccw" size={12} color="#888" />
-              <Text style={styles.headerResetText}>RESET</Text>
+              <Text style={styles.headerResetText}>Reset</Text>
             </>
           )}
         </Pressable>
@@ -1017,7 +1009,7 @@ export default function ChatScreen() {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyOpen}>FRAME OPEN</Text>
+              <Text style={styles.emptyOpen}>FRAME open</Text>
               <Text style={styles.emptyText}>
                 Say what happened. Debrief a session, request a drill, regulate, or reflect.
               </Text>
@@ -1119,7 +1111,7 @@ export default function ChatScreen() {
           {uploading && (
             <View style={styles.draftStatus}>
               <OctagonSpinner size={16} color="#8A6A2F" />
-              <Text style={styles.draftStatusText}>UPLOADING…</Text>
+              <Text style={styles.draftStatusText}>Uploading…</Text>
             </View>
           )}
           {uploadError && <Text style={styles.draftError}>{uploadError}</Text>}
@@ -1211,10 +1203,7 @@ const styles = StyleSheet.create({
     minWidth: 76,
   },
   headerBackText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#888",
+    ...sectionTitle,
   },
   // Centred on the whole header, independent of the side buttons' widths.
   headerBrand: {
@@ -1234,10 +1223,7 @@ const styles = StyleSheet.create({
     minWidth: 76,
   },
   headerResetText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#888",
+    ...sectionTitle,
   },
   listContent: {
     paddingVertical: 12,
@@ -1251,10 +1237,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   emptyOpen: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 8,
-    color: "rgba(224,224,224,0.45)",
+    ...sectionTitle,
     marginBottom: 16,
   },
   emptyText: {
@@ -1284,16 +1267,16 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.04)",
   },
   suggestDash: {
-    fontFamily: "SpaceMono",
-    fontSize: 12,
-    color: "rgba(138,106,47,0.9)",
+    ...label,
+    fontSize: 13,
+    lineHeight: 17,
+    color: "#8A6A2F",
   },
   suggestText: {
-    fontFamily: "SpaceMono",
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0.5,
-    color: "rgba(224,224,224,0.85)",
+    ...body,
+    fontSize: 13,
+    lineHeight: 19,
+    color: TEXT_PRIMARY,
     flexShrink: 1,
   },
   quickRow: {
@@ -1322,13 +1305,12 @@ const styles = StyleSheet.create({
     borderColor: "#8A6A2F",
   },
   quickText: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    // Explicit lineHeight: SpaceMono metrics without one can measure
+    ...label,
+    fontSize: 13,
+    // Explicit lineHeight: some font metrics without one can measure
     // zero/near-zero text height on iOS, rendering the label invisible.
-    lineHeight: 14,
+    lineHeight: 17,
     color: "#d0d0d0",
-    letterSpacing: 0.5,
   },
   inputRow: {
     flexDirection: "row",
@@ -1394,9 +1376,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   draftStatusText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
+    ...label,
     color: "#8A6A2F",
   },
   draftError: {

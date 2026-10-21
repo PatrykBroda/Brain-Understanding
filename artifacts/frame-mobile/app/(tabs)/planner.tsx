@@ -39,6 +39,7 @@ import { FormScroll } from "@/components/FormScroll";
 import { KEYBOARD_DONE_ID } from "@/components/KeyboardDoneBar";
 import { useIsFramePlus } from "@/hooks/useEntitlement";
 import { FREE_TEXT, LABEL_TEXT, NAME_TEXT, RAW_TEXT } from "@/lib/textInputProps";
+import { TEXT_SECONDARY, caption, label, meta, sectionTitle } from "@/constants/typography";
 
 const TIER_ACCENT: Record<PressureTier, string> = {
   base: "#8A6A2F",
@@ -49,13 +50,13 @@ const TIER_ACCENT: Record<PressureTier, string> = {
 };
 
 const SESSION_TYPE_LABELS: Record<SessionType, string> = {
-  sparring: "SPARRING",
-  wrestling: "WRESTLING",
+  sparring: "Sparring",
+  wrestling: "Wrestling",
   bjj: "BJJ",
-  striking: "STRIKING",
-  conditioning: "CONDITIONING",
-  recovery: "RECOVERY",
-  mobility: "MOBILITY",
+  striking: "Striking",
+  conditioning: "Conditioning",
+  recovery: "Recovery",
+  mobility: "Mobility",
 };
 
 // Local YYYY-MM-DD -> readable label without timezone drift.
@@ -126,8 +127,8 @@ export default function CampScreen() {
             resizeMode="contain"
           />
           <View>
-            <Text style={shell.title}>CAMP</Text>
-            <Text style={shell.subtitle}>FIGHT CAMP</Text>
+            <Text style={shell.title}>Camp</Text>
+            <Text style={shell.subtitle}>Fight camp</Text>
           </View>
         </View>
 
@@ -499,7 +500,7 @@ function CampView() {
             onPress={() => void refetch()}
             accessibilityRole="button"
           >
-            <Text style={camp.ctaText}>TRY AGAIN</Text>
+            <Text style={camp.ctaText}>Try again</Text>
           </Pressable>
         </View>
       ) : !competition ? (
@@ -519,7 +520,7 @@ function CampView() {
                 }}
               >
                 <Feather name="plus" size={16} color="#8A6A2F" />
-                <Text style={camp.ctaText}>CREATE YOUR CAMP</Text>
+                <Text style={camp.ctaText}>Create your camp</Text>
               </Pressable>
             )}
           </View>
@@ -552,12 +553,12 @@ function CampView() {
             <>
               <View style={camp.viewTabRow}>
                 <ViewTab
-                  label="SCHEDULE"
+                  label="Schedule"
                   active={view === "schedule"}
                   onPress={() => setView("schedule")}
                 />
                 <ViewTab
-                  label="WEEKLY MISSION"
+                  label="Weekly mission"
                   active={view === "mission"}
                   onPress={() => setView("mission")}
                 />
@@ -567,7 +568,7 @@ function CampView() {
                 <>
                   {/* Session schedule */}
                   <View style={camp.sectionHead}>
-                    <Text style={camp.sectionTitle}>SESSION SCHEDULE</Text>
+                    <Text style={camp.sectionTitle}>Session schedule</Text>
                     {!showSessionForm && (
                       <Pressable
                         onPress={() => {
@@ -578,7 +579,7 @@ function CampView() {
                         style={camp.addBtn}
                       >
                         <Feather name="plus" size={14} color="#8A6A2F" />
-                        <Text style={camp.addBtnText}>ADD</Text>
+                        <Text style={camp.addBtnText}>Add</Text>
                       </Pressable>
                     )}
                   </View>
@@ -655,9 +656,9 @@ function CampReviewSection({ review }: { review: CampReview }) {
   return (
     <View style={rev.section}>
       <View style={rev.head}>
-        <Text style={rev.headLabel}>CAMP REVIEW</Text>
+        <Text style={rev.headLabel}>Camp review</Text>
         <Text style={rev.headCount}>
-          {totalAnalyses === 1 ? "1 ANALYSIS" : `${totalAnalyses} ANALYSES`}
+          {totalAnalyses === 1 ? "1 analysis" : `${totalAnalyses} analyses`}
         </Text>
       </View>
 
@@ -675,18 +676,18 @@ function CampReviewSection({ review }: { review: CampReview }) {
             {countsByKind.map((c) => (
               <View key={c.kind} style={rev.mixItem}>
                 <Text style={rev.mixCount}>{c.count}</Text>
-                <Text style={rev.mixLabel}>{c.label.toUpperCase()}</Text>
+                <Text style={rev.mixLabel}>{c.label}</Text>
               </View>
             ))}
           </View>
 
           {/* Biggest real improvement — two recorded endpoints + dates */}
           <View style={rev.block}>
-            <Text style={rev.blockLabel}>BIGGEST IMPROVEMENT</Text>
+            <Text style={rev.blockLabel}>Biggest improvement</Text>
             {biggestImprovement ? (
               <View style={{ marginTop: 8 }}>
                 <View style={rev.impTop}>
-                  <Text style={rev.impName}>{biggestImprovement.label.toUpperCase()}</Text>
+                  <Text style={rev.impName}>{biggestImprovement.label}</Text>
                   <Text style={rev.impDelta}>+{biggestImprovement.delta}</Text>
                 </View>
                 <Text style={rev.impValues}>
@@ -707,12 +708,12 @@ function CampReviewSection({ review }: { review: CampReview }) {
 
           {/* Most persistent real leak — a real recurrence count */}
           <View style={[rev.block, rev.blockLast]}>
-            <Text style={rev.blockLabel}>MOST PERSISTENT LEAK</Text>
+            <Text style={rev.blockLabel}>Most persistent leak</Text>
             {mostPersistentLeak ? (
               <View style={{ marginTop: 8 }}>
                 <Text style={rev.leakLabel}>{mostPersistentLeak.label}</Text>
                 <Text style={rev.leakMeta}>
-                  FLAGGED IN {mostPersistentLeak.sessions} OF {mostPersistentLeak.total} SESSIONS
+                  Flagged in {mostPersistentLeak.sessions} of {mostPersistentLeak.total} sessions
                 </Text>
               </View>
             ) : (
@@ -741,7 +742,7 @@ function CampReviewLocked() {
       }}
     >
       <View style={rev.head}>
-        <Text style={rev.headLabel}>CAMP REVIEW</Text>
+        <Text style={rev.headLabel}>Camp review</Text>
         <View style={rev.lockPill}>
           <Feather name="lock" size={10} color="#8A6A2F" />
           <Text style={rev.lockPillText}>FRAME+</Text>
@@ -818,11 +819,11 @@ function Dashboard({
       <View style={[camp.dashCard, { borderColor: `${accent}55` }]}>
         <View style={camp.dashCardTop}>
           <Text style={[camp.phaseLabel, { color: accent }]}>
-            {phase ? phase.toUpperCase() : "CAMP"}
+            {phase ? phase : "Camp"}
           </Text>
           <Pressable style={camp.editInline} onPress={onEdit} hitSlop={6}>
             <Feather name="edit-2" size={11} color="#888" />
-            <Text style={camp.editInlineText}>EDIT</Text>
+            <Text style={camp.editInlineText}>Edit</Text>
           </Pressable>
         </View>
 
@@ -830,17 +831,17 @@ function Dashboard({
           <>
             <Text style={[camp.countdown, { color: accent }]}>{days <= 0 ? 0 : days}</Text>
             <Text style={camp.countdownUnit}>
-              {days === 1 ? "DAY UNTIL" : "DAYS UNTIL"} {competition.eventName.toUpperCase()}
+              {days === 1 ? "day until" : "days until"} {competition.eventName}
             </Text>
             {tierLabel ? (
-              <Text style={camp.countdownTier}>{tierLabel.toUpperCase()}</Text>
+              <Text style={camp.countdownTier}>{tierLabel}</Text>
             ) : null}
             {daysToWeighIn != null ? (
               <Text style={camp.weighInLine}>
-                WEIGH-IN:{" "}
+                Weigh-in:{" "}
                 {daysToWeighIn <= 0
-                  ? "NOW"
-                  : `${daysToWeighIn} ${daysToWeighIn === 1 ? "DAY" : "DAYS"}`}
+                  ? "now"
+                  : `${daysToWeighIn} ${daysToWeighIn === 1 ? "day" : "days"}`}
               </Text>
             ) : null}
           </>
@@ -851,16 +852,16 @@ function Dashboard({
 
       {/* Detail rows */}
       <View style={camp.rowList}>
-        <Row label="EVENT DATE" value={formatDay(competition.eventDate)} />
+        <Row label="Event date" value={formatDay(competition.eventDate)} />
         {competition.weighInDate ? (
-          <Row label="WEIGH-IN DATE" value={formatDay(competition.weighInDate)} />
+          <Row label="Weigh-in date" value={formatDay(competition.weighInDate)} />
         ) : null}
         {competition.discipline?.trim() ? (
-          <Row label="DISCIPLINE" value={competition.discipline} />
+          <Row label="Discipline" value={competition.discipline} />
         ) : null}
-        {fightLine ? <Row label="FIGHT" value={fightLine} /> : null}
-        {weightCutValue ? <Row label="WEIGHT CUT" value={weightCutValue} /> : null}
-        {competition.notes?.trim() ? <Row label="NOTES" value={competition.notes} /> : null}
+        {fightLine ? <Row label="Fight" value={fightLine} /> : null}
+        {weightCutValue ? <Row label="Weight cut" value={weightCutValue} /> : null}
+        {competition.notes?.trim() ? <Row label="Notes" value={competition.notes} /> : null}
       </View>
 
       <Pressable
@@ -868,7 +869,7 @@ function Dashboard({
         onPress={onCancel}
         disabled={cancelling}
       >
-        <Text style={camp.endCampText}>{cancelling ? "ENDING…" : "END CAMP"}</Text>
+        <Text style={camp.endCampText}>{cancelling ? "Ending…" : "End camp"}</Text>
       </Pressable>
     </View>
   );
@@ -919,7 +920,7 @@ function SessionRow({
       <View style={{ flex: 1 }}>
         <View style={camp.sTopRow}>
           <Text style={camp.sType}>{SESSION_TYPE_LABELS[session.sessionType]}</Text>
-          {imported && <Text style={camp.importedTag}>IMPORTED</Text>}
+          {imported && <Text style={camp.importedTag}>Imported</Text>}
         </View>
         {detail ? <Text style={camp.sDetail}>{detail}</Text> : null}
         {session.objective ? <Text style={camp.sObjective}>{session.objective}</Text> : null}
@@ -960,9 +961,9 @@ function SessionForm(props: {
 }) {
   return (
     <View style={camp.form}>
-      <Text style={camp.formTitle}>{props.editing ? "EDIT SESSION" : "NEW SESSION"}</Text>
+      <Text style={camp.formTitle}>{props.editing ? "Edit session" : "New session"}</Text>
 
-      <Field label="SESSION TYPE">
+      <Field label="Session type">
         <View style={camp.chips}>
           {SESSION_TYPES.map((t) => (
             <Pressable
@@ -981,7 +982,7 @@ function SessionForm(props: {
         </View>
       </Field>
 
-      <Field label="DATE (YYYY-MM-DD)">
+      <Field label="Date (YYYY-MM-DD)">
         <TextInput
           {...RAW_TEXT}
           style={camp.input}
@@ -995,7 +996,7 @@ function SessionForm(props: {
 
       <View style={camp.row2}>
         <View style={camp.col}>
-          <Field label="TIME (HH:MM)">
+          <Field label="Time (HH:MM)">
             <TextInput
               {...RAW_TEXT}
               style={camp.input}
@@ -1008,7 +1009,7 @@ function SessionForm(props: {
           </Field>
         </View>
         <View style={camp.col}>
-          <Field label="DURATION (MIN)">
+          <Field label="Duration (min)">
             <TextInput
               {...RAW_TEXT}
               style={camp.input}
@@ -1023,7 +1024,7 @@ function SessionForm(props: {
         </View>
       </View>
 
-      <Field label="COACH (OPTIONAL)">
+      <Field label="Coach (optional)">
         <TextInput
           {...NAME_TEXT}
           style={camp.input}
@@ -1034,7 +1035,7 @@ function SessionForm(props: {
         />
       </Field>
 
-      <Field label="OBJECTIVE (OPTIONAL)">
+      <Field label="Objective (optional)">
         <TextInput
           {...FREE_TEXT}
           style={[camp.input, camp.inputMultiline]}
@@ -1051,7 +1052,7 @@ function SessionForm(props: {
 
       <View style={camp.formActions}>
         <Pressable style={camp.cancelBtn} onPress={props.onCancel}>
-          <Text style={camp.cancelText}>CANCEL</Text>
+          <Text style={camp.cancelText}>Cancel</Text>
         </Pressable>
         <Pressable
           style={[camp.submitBtn, props.saving && { opacity: 0.6 }]}
@@ -1061,7 +1062,7 @@ function SessionForm(props: {
           {props.saving ? (
             <ActivityIndicator size="small" color="#050505" />
           ) : (
-            <Text style={camp.submitText}>{props.editing ? "UPDATE" : "ADD SESSION"}</Text>
+            <Text style={camp.submitText}>{props.editing ? "Update" : "Add session"}</Text>
           )}
         </Pressable>
       </View>
@@ -1102,9 +1103,9 @@ function CampForm(props: {
 }) {
   return (
     <View style={camp.form}>
-      <Text style={camp.formTitle}>{props.editing ? "EDIT CAMP" : "NEW CAMP"}</Text>
+      <Text style={camp.formTitle}>{props.editing ? "Edit camp" : "New camp"}</Text>
 
-      <Field label="EVENT NAME">
+      <Field label="Event name">
         <TextInput
           {...LABEL_TEXT}
           style={camp.input}
@@ -1115,7 +1116,7 @@ function CampForm(props: {
         />
       </Field>
 
-      <Field label="DISCIPLINE">
+      <Field label="Discipline">
         <TextInput
           {...LABEL_TEXT}
           style={camp.input}
@@ -1126,7 +1127,7 @@ function CampForm(props: {
         />
       </Field>
 
-      <Field label="EVENT DATE (YYYY-MM-DD)">
+      <Field label="Event date (YYYY-MM-DD)">
         <TextInput
           {...RAW_TEXT}
           style={camp.input}
@@ -1138,7 +1139,7 @@ function CampForm(props: {
         />
       </Field>
 
-      <Field label="WEIGH-IN DATE (OPTIONAL)">
+      <Field label="Weigh-in date (optional)">
         <TextInput
           {...RAW_TEXT}
           style={camp.input}
@@ -1152,7 +1153,7 @@ function CampForm(props: {
 
       <View style={camp.row2}>
         <View style={camp.col}>
-          <Field label="OPPONENT">
+          <Field label="Opponent">
             <TextInput
               {...NAME_TEXT}
               style={camp.input}
@@ -1164,7 +1165,7 @@ function CampForm(props: {
           </Field>
         </View>
         <View style={camp.col}>
-          <Field label="PROMOTION">
+          <Field label="Promotion">
             <TextInput
               {...NAME_TEXT}
               style={camp.input}
@@ -1179,7 +1180,7 @@ function CampForm(props: {
 
       <View style={camp.row2}>
         <View style={camp.col}>
-          <Field label="WEIGHT CLASS">
+          <Field label="Weight class">
             <TextInput
               {...LABEL_TEXT}
               style={camp.input}
@@ -1191,7 +1192,7 @@ function CampForm(props: {
           </Field>
         </View>
         <View style={camp.col}>
-          <Field label="ROUNDS">
+          <Field label="Rounds">
             <TextInput
               {...RAW_TEXT}
               style={camp.input}
@@ -1206,7 +1207,7 @@ function CampForm(props: {
         </View>
       </View>
 
-      <Field label="LOCATION (OPTIONAL)">
+      <Field label="Location (optional)">
         <TextInput
           {...LABEL_TEXT}
           style={camp.input}
@@ -1219,7 +1220,7 @@ function CampForm(props: {
 
       <View style={camp.row2}>
         <View style={camp.col}>
-          <Field label="CURRENT WEIGHT">
+          <Field label="Current weight">
             <TextInput
               {...RAW_TEXT}
               style={camp.input}
@@ -1231,7 +1232,7 @@ function CampForm(props: {
           </Field>
         </View>
         <View style={camp.col}>
-          <Field label="TARGET WEIGHT">
+          <Field label="Target weight">
             <TextInput
               {...RAW_TEXT}
               style={camp.input}
@@ -1244,7 +1245,7 @@ function CampForm(props: {
         </View>
       </View>
 
-      <Field label="NOTES (OPTIONAL)">
+      <Field label="Notes (optional)">
         <TextInput
           {...FREE_TEXT}
           style={[camp.input, camp.inputMultiline]}
@@ -1261,7 +1262,7 @@ function CampForm(props: {
 
       <View style={camp.formActions}>
         <Pressable style={camp.cancelBtn} onPress={props.onCancel}>
-          <Text style={camp.cancelText}>CANCEL</Text>
+          <Text style={camp.cancelText}>Cancel</Text>
         </Pressable>
         <Pressable
           style={[camp.submitBtn, props.saving && { opacity: 0.6 }]}
@@ -1271,7 +1272,7 @@ function CampForm(props: {
           {props.saving ? (
             <ActivityIndicator size="small" color="#050505" />
           ) : (
-            <Text style={camp.submitText}>{props.editing ? "UPDATE CAMP" : "CREATE CAMP"}</Text>
+            <Text style={camp.submitText}>{props.editing ? "Update camp" : "Create camp"}</Text>
           )}
         </Pressable>
       </View>
@@ -1318,18 +1319,14 @@ const shell = StyleSheet.create({
     opacity: 0.8,
   },
   title: {
-    fontFamily: "Outfit",
-    fontWeight: "200",
-    fontSize: 13,
-    letterSpacing: 5,
-    color: "rgba(224,224,224,0.95)",
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: 16,
+    letterSpacing: 0,
+    color: "#e0e0e0",
   },
   subtitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 4,
-    color: "rgba(224,224,224,0.5)",
-    marginTop: 5,
+    ...caption,
+    marginTop: 2,
   },
   headerRight: {
     marginLeft: "auto",
@@ -1341,9 +1338,7 @@ const shell = StyleSheet.create({
     paddingVertical: 5,
   },
   plusPillText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
+    ...label,
     color: "#8A6A2F",
   },
 });
@@ -1363,16 +1358,16 @@ const camp = StyleSheet.create({
     padding: 20,
   },
   emptyTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 12,
-    letterSpacing: 2,
+    ...label,
+    fontSize: 13,
+    lineHeight: 17,
     color: "#e0e0e0",
     marginBottom: 10,
   },
   emptyBody: {
     fontFamily: "Outfit",
     fontSize: 14,
-    color: "#777",
+    color: "#a8a8a8",
     lineHeight: 21,
     marginBottom: 18,
   },
@@ -1390,9 +1385,7 @@ const camp = StyleSheet.create({
     backgroundColor: "rgba(138,106,47,0.06)",
   },
   ctaText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
+    ...label,
     color: "#8A6A2F",
   },
   dashCard: {
@@ -1409,9 +1402,7 @@ const camp = StyleSheet.create({
     width: "100%",
   },
   phaseLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3.5,
+    ...sectionTitle,
   },
   editInline: {
     flexDirection: "row",
@@ -1419,10 +1410,8 @@ const camp = StyleSheet.create({
     gap: 6,
   },
   editInlineText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#888",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   countdown: {
     fontFamily: "Outfit",
@@ -1432,33 +1421,25 @@ const camp = StyleSheet.create({
     marginTop: 14,
   },
   countdownUnit: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "rgba(224,224,224,0.55)",
+    ...sectionTitle,
     textAlign: "center",
     marginTop: 8,
   },
   countdownTier: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "rgba(224,224,224,0.4)",
+    ...sectionTitle,
     textAlign: "center",
     marginTop: 8,
   },
   weighInLine: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2.5,
-    color: "rgba(224,224,224,0.45)",
+    ...label,
+    color: TEXT_SECONDARY,
     textAlign: "center",
     marginTop: 12,
   },
   dashEventFallback: {
     fontFamily: "Outfit",
     fontSize: 15,
-    letterSpacing: 1,
+    letterSpacing: 0,
     color: "rgba(224,224,224,0.8)",
     marginTop: 14,
   },
@@ -1476,10 +1457,8 @@ const camp = StyleSheet.create({
     paddingBottom: 10,
   },
   rowLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "rgba(224,224,224,0.45)",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   rowValue: {
     fontFamily: "Outfit",
@@ -1501,10 +1480,7 @@ const camp = StyleSheet.create({
     borderColor: "rgba(210,85,63,0.5)",
   },
   endCampText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3.5,
-    color: "rgba(224,224,224,0.6)",
+    ...sectionTitle,
   },
   viewTabRow: {
     flexDirection: "row",
@@ -1523,10 +1499,8 @@ const camp = StyleSheet.create({
     backgroundColor: "rgba(138,106,47,0.06)",
   },
   viewTabText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2.5,
-    color: "rgba(255,255,255,0.5)",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   viewTabTextActive: {
     color: "#8A6A2F",
@@ -1539,9 +1513,7 @@ const camp = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: "#8A6A2F",
   },
   addBtn: {
@@ -1550,25 +1522,21 @@ const camp = StyleSheet.create({
     gap: 6,
   },
   addBtnText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
+    ...label,
     color: "#8A6A2F",
   },
   noSessions: {
     fontFamily: "Outfit",
     fontSize: 13,
-    color: "#555",
+    color: "#a8a8a8",
     lineHeight: 20,
   },
   dayGroup: {
     marginBottom: 18,
   },
   dayLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#555",
+    ...label,
+    color: TEXT_SECONDARY,
     marginBottom: 8,
   },
   sRow: {
@@ -1607,26 +1575,20 @@ const camp = StyleSheet.create({
     gap: 8,
   },
   sType: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 1.5,
+    ...label,
     color: "#d0d0d0",
   },
   importedTag: {
-    fontFamily: "SpaceMono",
-    fontSize: 7,
-    letterSpacing: 1.5,
-    color: "#666",
+    ...meta,
+    color: TEXT_SECONDARY,
     borderWidth: 1,
     borderColor: "#2a2a2a",
     paddingHorizontal: 4,
     paddingVertical: 1,
   },
   sDetail: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1,
-    color: "#666",
+    ...caption,
+    color: TEXT_SECONDARY,
     marginTop: 4,
   },
   sObjective: {
@@ -1651,9 +1613,7 @@ const camp = StyleSheet.create({
     padding: 18,
   },
   formTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: "#8A6A2F",
     marginBottom: 16,
   },
@@ -1661,10 +1621,8 @@ const camp = StyleSheet.create({
     marginBottom: 14,
   },
   fieldLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#555",
+    ...meta,
+    color: TEXT_SECONDARY,
     marginBottom: 6,
   },
   input: {
@@ -1697,10 +1655,8 @@ const camp = StyleSheet.create({
     backgroundColor: "rgba(138,106,47,0.10)",
   },
   chipText: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 1.5,
-    color: "#666",
+    ...meta,
+    color: TEXT_SECONDARY,
   },
   chipTextActive: {
     color: "#8A6A2F",
@@ -1731,10 +1687,8 @@ const camp = StyleSheet.create({
     alignItems: "center",
   },
   cancelText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#666",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   submitBtn: {
     flex: 1,
@@ -1744,9 +1698,7 @@ const camp = StyleSheet.create({
     justifyContent: "center",
   },
   submitText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
+    ...label,
     color: "#050505",
   },
 });
@@ -1768,16 +1720,10 @@ const rev = StyleSheet.create({
     borderBottomColor: "#1a1a1a",
   },
   headLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 4,
-    color: "#b0b0b0",
+    ...sectionTitle,
   },
   headCount: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "#555",
+    ...sectionTitle,
   },
   lockPill: {
     flexDirection: "row",
@@ -1789,9 +1735,7 @@ const rev = StyleSheet.create({
     paddingVertical: 3,
   },
   lockPillText: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
+    ...meta,
     color: "#8A6A2F",
   },
   body: {
@@ -1801,7 +1745,7 @@ const rev = StyleSheet.create({
   emptyText: {
     fontFamily: "Outfit",
     fontSize: 13,
-    color: "#777",
+    color: "#a8a8a8",
     lineHeight: 20,
   },
   mixRow: {
@@ -1825,10 +1769,8 @@ const rev = StyleSheet.create({
     color: "#e0e0e0",
   },
   mixLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#666",
+    ...meta,
+    color: TEXT_SECONDARY,
   },
   block: {
     paddingHorizontal: 16,
@@ -1840,15 +1782,12 @@ const rev = StyleSheet.create({
     borderBottomWidth: 0,
   },
   blockLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 3,
-    color: "#666",
+    ...sectionTitle,
   },
   blockEmpty: {
     fontFamily: "Outfit",
     fontSize: 12,
-    color: "#666",
+    color: "#a8a8a8",
     lineHeight: 18,
     marginTop: 8,
   },
@@ -1858,9 +1797,9 @@ const rev = StyleSheet.create({
     gap: 10,
   },
   impName: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 2,
+    ...label,
+    fontSize: 13,
+    lineHeight: 17,
     color: "#d0d0d0",
   },
   impDelta: {
@@ -1869,16 +1808,14 @@ const rev = StyleSheet.create({
     color: "#4fbf7b",
   },
   impValues: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 1,
-    color: "#888",
+    ...label,
+    color: TEXT_SECONDARY,
     marginTop: 4,
   },
   impDates: {
     fontFamily: "Outfit",
     fontSize: 11,
-    color: "#555",
+    color: "#a8a8a8",
     marginTop: 4,
   },
   leakLabel: {
@@ -1888,10 +1825,8 @@ const rev = StyleSheet.create({
     lineHeight: 20,
   },
   leakMeta: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#777",
+    ...label,
+    color: TEXT_SECONDARY,
     marginTop: 6,
   },
 });

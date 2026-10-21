@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { refreshModel } from "@/lib/modelRefresh";
+import { meta } from "@/constants/typography";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -53,9 +54,7 @@ export default function TabLayout() {
           ) : null,
         tabBarShowLabel: true,
         tabBarLabelStyle: {
-          fontFamily: "SpaceMono",
-          fontSize: 8,
-          letterSpacing: 1.5,
+          ...meta,
           marginBottom: 2,
         },
       }}
@@ -67,14 +66,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "HOME",
+          title: "Home",
           tabBarIcon: ({ color }) => <Feather name="home" size={20} color={color} />,
         }}
       />
       <Tabs.Screen
         name="state"
         options={{
-          title: "STATE",
+          title: "State",
           tabBarIcon: ({ color }) => (
             <Image
               source={require("@/assets/images/frame-logo.png")}
@@ -87,28 +86,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: "CHAT",
+          title: "Chat",
           tabBarIcon: ({ color }) => <Feather name="message-circle" size={20} color={color} />,
         }}
       />
       <Tabs.Screen
         name="analyse"
         options={{
-          title: "ANALYSE",
+          title: "Analyse",
           tabBarIcon: ({ color }) => <Feather name="film" size={20} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "PROFILE",
+          title: "Profile",
           tabBarIcon: ({ color }) => <Feather name="user" size={20} color={color} />,
         }}
       />
       <Tabs.Screen
         name="planner"
         options={{
-          title: "CAMP",
+          title: "Camp",
           tabBarIcon: ({ color }) => <Feather name="calendar" size={20} color={color} />,
         }}
       />

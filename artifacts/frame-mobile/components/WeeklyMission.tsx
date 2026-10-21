@@ -19,15 +19,16 @@ import {
   type PlanItem,
   type PlannerResponse,
 } from "@/lib/mission";
+import { TEXT_SECONDARY, label, meta, sectionTitle } from "@/constants/typography";
 
 const PLAN_KEY = ["plan"] as const;
 
 const CATEGORY_TITLE: Record<PlanCategory, string> = {
-  fix: "PRIMARY WEAKNESS",
-  goal_step: "STRUCTURAL OBJECTIVE",
-  train: "DAILY EXECUTION",
-  technique: "TECHNICAL DRILLING",
-  regulate: "RECOVERY PROTOCOL",
+  fix: "Primary weakness",
+  goal_step: "Structural objective",
+  train: "Daily execution",
+  technique: "Technical drilling",
+  regulate: "Recovery protocol",
 };
 
 const haptic = (style: Haptics.ImpactFeedbackStyle) => Haptics.impactAsync(style).catch(() => {});
@@ -187,9 +188,9 @@ export function WeeklyMission() {
       <View style={mission.wrap}>
         <View style={mission.header}>
           <View style={{ flex: 1 }}>
-            <Text style={mission.headerTitle}>WEEKLY MISSION</Text>
+            <Text style={mission.headerTitle}>Weekly mission</Text>
             {data?.weekStart ? (
-              <Text style={mission.week}>WEEK OF {formatWeekRange(data.weekStart).toUpperCase()}</Text>
+              <Text style={mission.week}>Week of {formatWeekRange(data.weekStart)}</Text>
             ) : null}
           </View>
           {plan ? (
@@ -213,7 +214,7 @@ export function WeeklyMission() {
 
         {genError ? (
           <View style={mission.errorCard} accessibilityRole="alert">
-            <Text style={mission.errorTitle}>COULDN'T BUILD YOUR MISSION</Text>
+            <Text style={mission.errorTitle}>Couldn't build your mission</Text>
             <Text style={mission.errorBody}>{genError}</Text>
             <Pressable
               style={({ pressed }) => [mission.retryBtn, pressed && { opacity: 0.8 }]}
@@ -223,7 +224,7 @@ export function WeeklyMission() {
               {generating ? (
                 <ActivityIndicator size="small" color="#8A6A2F" />
               ) : (
-                <Text style={mission.retryText}>TRY AGAIN</Text>
+                <Text style={mission.retryText}>Try again</Text>
               )}
             </Pressable>
           </View>
@@ -235,27 +236,27 @@ export function WeeklyMission() {
           </View>
         ) : planQuery.isError && !data ? (
           <View style={mission.emptyBlock}>
-            <Text style={mission.emptyTitle}>COULDN'T LOAD YOUR MISSION</Text>
+            <Text style={mission.emptyTitle}>Couldn't load your mission</Text>
             <Text style={mission.emptyText}>Check your connection and try again.</Text>
             <Pressable
               style={({ pressed }) => [mission.retryBtn, pressed && { opacity: 0.8 }]}
               onPress={() => void planQuery.refetch()}
             >
-              <Text style={mission.retryText}>TRY AGAIN</Text>
+              <Text style={mission.retryText}>Try again</Text>
             </Pressable>
           </View>
         ) : !plan ? (
           generating ? (
             <View style={mission.emptyBlock} accessibilityLiveRegion="polite">
               <ActivityIndicator color="#8A6A2F" />
-              <Text style={mission.emptyTitle}>BUILDING YOUR MISSION</Text>
+              <Text style={mission.emptyTitle}>Building your mission</Text>
               <Text style={mission.emptyText}>
                 FRAME is reading what it knows about you. This can take up to a minute.
               </Text>
             </View>
           ) : data?.canGenerate === false ? (
             <View style={mission.emptyBlock}>
-              <Text style={mission.emptyTitle}>NOTHING TO BUILD FROM YET</Text>
+              <Text style={mission.emptyTitle}>Nothing to build from yet</Text>
               <Text style={mission.emptyText}>
                 Tell your coach about your training, or add your goals and weaknesses to your
                 profile, then come back.
@@ -264,12 +265,12 @@ export function WeeklyMission() {
                 style={({ pressed }) => [mission.generateBtn, pressed && { opacity: 0.8 }]}
                 onPress={() => router.push("/(tabs)/chat")}
               >
-                <Text style={mission.generateBtnText}>TALK TO YOUR COACH</Text>
+                <Text style={mission.generateBtnText}>Talk to your coach</Text>
               </Pressable>
             </View>
           ) : (
             <View style={mission.emptyBlock}>
-              <Text style={mission.emptyTitle}>NO MISSION SET</Text>
+              <Text style={mission.emptyTitle}>No mission set</Text>
               <Text style={mission.emptyText}>
                 FRAME builds 5 to 7 actions for the week from your athlete model. Each one rests on
                 something you told it.
@@ -278,7 +279,7 @@ export function WeeklyMission() {
                 style={({ pressed }) => [mission.generateBtn, pressed && { opacity: 0.8 }]}
                 onPress={() => void handleGenerate()}
               >
-                <Text style={mission.generateBtnText}>GENERATE MISSION</Text>
+                <Text style={mission.generateBtnText}>Generate mission</Text>
               </Pressable>
             </View>
           )
@@ -293,7 +294,7 @@ export function WeeklyMission() {
 
             {plan.rationale ? (
               <View style={mission.focusCard}>
-                <Text style={mission.focusLabel}>MISSION FOCUS</Text>
+                <Text style={mission.focusLabel}>Mission focus</Text>
                 <Text style={mission.focusText}>{plan.rationale}</Text>
               </View>
             ) : null}
@@ -305,7 +306,7 @@ export function WeeklyMission() {
                 accessibilityLabel="Mission preview. FRAME+ unlocks the full week"
                 style={mission.previewCard}
               >
-                <Text style={mission.previewTitle}>MISSION PREVIEW</Text>
+                <Text style={mission.previewTitle}>Mission preview</Text>
                 <Text style={mission.previewBody}>
                   Your first action is open. FRAME+ unlocks the full week, every item with its
                   reason.
@@ -345,10 +346,8 @@ export function WeeklyMission() {
             ))}
 
             <Text style={mission.issued}>
-              BUILT{" "}
-              {new Date(plan.createdAt)
-                .toLocaleDateString("en-GB", { day: "numeric", month: "short" })
-                .toUpperCase()}
+              Built{" "}
+              {new Date(plan.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
             </Text>
           </>
         )}
@@ -457,12 +456,12 @@ const pi = StyleSheet.create({
   detail: {
     fontFamily: "Outfit",
     fontSize: 13,
-    color: "#777",
+    color: "#a8a8a8",
     lineHeight: 19,
   },
   textDone: {
     textDecorationLine: "line-through",
-    color: "#444",
+    color: "#8a8a8a",
   },
   meta: {
     flexDirection: "column",
@@ -482,9 +481,7 @@ const pi = StyleSheet.create({
     color: "#999",
   },
   plus: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
+    ...label,
     color: "#8A6A2F",
   },
 });
@@ -501,16 +498,12 @@ const mission = StyleSheet.create({
     marginBottom: 4,
   },
   headerTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 5,
+    ...sectionTitle,
     color: "#e0e0e0",
   },
   week: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#444",
+    ...meta,
+    color: TEXT_SECONDARY,
     marginTop: 4,
   },
   genBtn: {
@@ -527,9 +520,7 @@ const mission = StyleSheet.create({
     gap: 8,
   },
   errorTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: "#d2553f",
   },
   errorBody: {
@@ -549,9 +540,7 @@ const mission = StyleSheet.create({
     marginTop: 4,
   },
   retryText: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: "#8A6A2F",
   },
   loadingBlock: {
@@ -570,16 +559,13 @@ const mission = StyleSheet.create({
     gap: 16,
   },
   emptyTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 12,
-    letterSpacing: 4,
-    color: "#333",
+    ...sectionTitle,
     textAlign: "center",
   },
   emptyText: {
     fontFamily: "Outfit",
     fontSize: 14,
-    color: "#444",
+    color: "#a8a8a8",
     textAlign: "center",
     lineHeight: 22,
     flexShrink: 1,
@@ -591,9 +577,7 @@ const mission = StyleSheet.create({
     marginTop: 8,
   },
   generateBtnText: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: "#050505",
   },
   focusCard: {
@@ -606,9 +590,7 @@ const mission = StyleSheet.create({
     marginBottom: 16,
   },
   focusLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: "#8A6A2F",
     marginBottom: 6,
   },
@@ -627,15 +609,13 @@ const mission = StyleSheet.create({
     gap: 6,
   },
   previewTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: "#8A6A2F",
   },
   previewBody: {
     fontFamily: "Outfit",
     fontSize: 13,
-    color: "#777",
+    color: "#a8a8a8",
     lineHeight: 20,
   },
   progressRow: {
@@ -654,17 +634,14 @@ const mission = StyleSheet.create({
     backgroundColor: "#8A6A2F",
   },
   progressLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    color: "#444",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   section: {
     marginBottom: 16,
   },
   sectionLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: "#8A6A2F",
     marginBottom: 8,
   },
@@ -674,10 +651,8 @@ const mission = StyleSheet.create({
     backgroundColor: "#0a0a0a",
   },
   issued: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#333",
+    ...meta,
+    color: TEXT_SECONDARY,
     textAlign: "center",
     marginTop: 4,
   },

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/context/AuthContext";
 import { useEntitlement } from "@/hooks/useEntitlement";
+import { FONT, label } from "@/constants/typography";
 
 /**
  * The coach's Analyse page already runs the real MediaPipe pose pass locally
@@ -59,10 +60,10 @@ export default function AnalyseScreen() {
   if (isError || !entitlement || !url || (hasAccess && !token)) {
     return (
       <View style={[styles.center, { paddingTop: insets.top }]}>
-        <Text style={styles.title}>ANALYSE UNAVAILABLE</Text>
+        <Text style={styles.title}>Analyse unavailable</Text>
         <Text style={styles.body}>We couldn't verify your access or load the analysis screen. Check your connection and try again.</Text>
         <Pressable style={styles.button} onPress={() => { setLoadError(false); void refetch(); }}>
-          <Text style={styles.buttonText}>RETRY</Text>
+          <Text style={styles.buttonText}>Retry</Text>
         </Pressable>
       </View>
     );
@@ -71,7 +72,7 @@ export default function AnalyseScreen() {
     return (
       <View style={[styles.center, { paddingTop: insets.top, paddingBottom: insets.bottom + 48 }]}>
         <Feather name="film" size={30} color="#8A6A2F" />
-        <Text style={styles.title}>VIDEO ANALYSIS</Text>
+        <Text style={styles.title}>Video analysis</Text>
         <Text style={styles.body}>You've used your {entitlement.freeAnalyses?.limit ?? 2} free analyses. Keep analysing your footage and uncovering movement patterns with FRAME+.</Text>
         <Pressable
           style={styles.button}
@@ -79,7 +80,7 @@ export default function AnalyseScreen() {
           accessibilityLabel="Unlock video analysis with FRAME Plus"
           onPress={() => router.push("/paywall")}
         >
-          <Text style={styles.buttonText}>UNLOCK WITH FRAME+</Text>
+          <Text style={styles.buttonText}>Unlock with FRAME+</Text>
         </Pressable>
       </View>
     );
@@ -87,10 +88,10 @@ export default function AnalyseScreen() {
   if (loadError) {
     return (
       <View style={styles.center}>
-        <Text style={styles.title}>CAN'T LOAD ANALYSE</Text>
+        <Text style={styles.title}>Can't load analyse</Text>
         <Text style={styles.body}>The analysis screen needs a connection. Your footage has not been uploaded.</Text>
         <Pressable style={styles.button} onPress={() => setLoadError(false)}>
-          <Text style={styles.buttonText}>TRY AGAIN</Text>
+          <Text style={styles.buttonText}>Try again</Text>
         </Pressable>
       </View>
     );
@@ -101,7 +102,7 @@ export default function AnalyseScreen() {
     return (
       <View style={styles.center}>
         <Pressable style={styles.button} onPress={() => void Linking.openURL(url)}>
-          <Text style={styles.buttonText}>OPEN ANALYSE</Text>
+          <Text style={styles.buttonText}>Open analyse</Text>
         </Pressable>
       </View>
     );
@@ -139,8 +140,8 @@ const styles = StyleSheet.create({
   webHost: { flex: 1, backgroundColor: "#050505" },
   webview: { flex: 1, backgroundColor: "#050505" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, backgroundColor: "#050505", gap: 20 },
-  title: { fontFamily: "SpaceMono", fontSize: 16, color: "#e0e0e0", letterSpacing: 3, textAlign: "center" },
+  title: { fontFamily: FONT.medium, fontSize: 16, color: "#e0e0e0", textAlign: "center", letterSpacing: 0 },
   body: { fontFamily: "Outfit", fontSize: 15, lineHeight: 23, color: "#999", textAlign: "center" },
   button: { borderColor: "#8A6A2F", borderWidth: 1, paddingVertical: 15, paddingHorizontal: 26, marginTop: 12 },
-  buttonText: { fontFamily: "SpaceMono", fontSize: 11, letterSpacing: 2, color: "#d9bc84", textAlign: "center" },
+  buttonText: { ...label, fontSize: 13, lineHeight: 17, color: "#d9bc84", textAlign: "center" },
 });

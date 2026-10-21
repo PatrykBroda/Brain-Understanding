@@ -9,10 +9,12 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Image } from "expo-image";
+import { FrameLogo } from "@/components/FrameLogo";
 import { Feather } from "@expo/vector-icons";
 import { formatProviderList, type AiConsentDisclosure } from "@workspace/ai-consent";
 import type { AiConsentStatus } from "@/lib/aiConsent";
+import { TAGLINE_CAPS } from "@/components/TrainWithFrame";
+import { body } from "@/constants/typography";
 
 export function AiConsentModal({
   visible,
@@ -82,13 +84,10 @@ export function AiConsentModal({
           showsVerticalScrollIndicator={false}
         >
           <View style={s.header}>
-            <Image
-              source={require("@/assets/images/frame-wordmark.png")}
-              style={s.logo}
-              contentFit="contain"
-              accessibilityLabel="FRAME"
-            />
-            <Text style={s.tagline}>TRAIN SMARTER. FIGHT FURTHER.</Text>
+            <View style={s.logo} accessibilityRole="header" accessibilityLabel="FRAME">
+              <FrameLogo height={16} />
+            </View>
+            <Text style={s.tagline}>{TAGLINE_CAPS}</Text>
           </View>
 
           <Text style={s.title}>AI Data & Privacy</Text>
@@ -173,10 +172,10 @@ export function AiConsentModal({
                 style={s.linkRow}
                 onPress={onTerms}
                 accessibilityRole="link"
-                accessibilityLabel="Read our Terms of Service"
+                accessibilityLabel="Read our Terms of Use (EULA)"
               >
                 <Feather name="file-text" size={20} color="#9CA3AF" />
-                <Text style={s.linkText}>Read our Terms of Service</Text>
+                <Text style={s.linkText}>Read our Terms of Use (EULA)</Text>
                 <Feather name="chevron-right" size={20} color="#6B7280" />
               </Pressable>
             )}
@@ -256,8 +255,8 @@ const s = StyleSheet.create({
   content: { padding: 24, paddingTop: 64, paddingBottom: 48 },
 
   header: { alignItems: "center", marginBottom: 32 },
-  logo: { width: 120, height: 28, marginBottom: 8 },
-  tagline: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 2, color: "#9CA3AF" },
+  logo: { marginBottom: 12 },
+  tagline: { ...body, textAlign: "center" },
 
   title: { fontFamily: "Outfit_600SemiBold", fontSize: 28, color: "#FFFFFF", textAlign: "center", marginBottom: 16 },
   intro: { fontFamily: "Outfit", fontSize: 15, lineHeight: 22, color: "#D1D5DB", textAlign: "center", marginBottom: 32 },

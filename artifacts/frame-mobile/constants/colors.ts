@@ -13,7 +13,7 @@ const palette = {
   secondary: "#171717",
   secondaryForeground: "#adadad",
   muted: "#121212",
-  mutedForeground: "#666666",
+  mutedForeground: "#a8a8a8",
   accent: "#8A6A2F",
   accentForeground: "#050505",
   destructive: "#BF1D1D",

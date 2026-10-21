@@ -53,6 +53,7 @@ import {
   leadClause,
   type ModelFact,
 } from "@/lib/athleteModel";
+import { FONT, TEXT_PRIMARY, TEXT_SECONDARY, caption, label, meta, sectionTitle, sentence } from "@/constants/typography";
 
 const ACCENT = "#8A6A2F";
 
@@ -176,10 +177,10 @@ function RadarChart({ dims }: { dims: { label: string; value: number }[] }) {
             y={lp.y.toFixed(1)}
             textAnchor="middle"
             fontSize={7}
-            fontFamily="SpaceMono"
-            fill="rgba(255,255,255,0.45)"
+            fontFamily="Outfit"
+            fill="#a8a8a8"
           >
-            {d.label.toUpperCase()}
+            {d.label}
           </SvgText>
         );
       })}
@@ -192,7 +193,7 @@ function styleLine(f: Fighter): string {
   const raw = (f.primarySport || f.art || "").trim();
   const sport = raw ? (sportLabelFor(raw) ?? raw) : "";
   const parts = [sport, (f.level ?? "").trim()].filter(Boolean);
-  return parts.length ? parts.join(" · ").toUpperCase() : "—";
+  return parts.length ? parts.join(" · ") : "—";
 }
 
 // ─── Hero identity band — the cover photo, changeable in place ────────────
@@ -314,11 +315,11 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
         </View>
 
         <View style={s.bandBody}>
-          <Text style={s.bandKicker}>IDENTITY</Text>
+          <Text style={s.bandKicker}>Identity</Text>
           <Text style={s.bandName} numberOfLines={1}>
             {fighter.name.toUpperCase()}
           </Text>
-          {subtitle ? <Text style={s.bandArchetype}>{subtitle.toUpperCase()}</Text> : null}
+          {subtitle ? <Text style={s.bandArchetype}>{subtitle}</Text> : null}
         </View>
       </View>
       {uploadError && <Text style={s.bandError}>{uploadError}</Text>}
@@ -445,8 +446,8 @@ export default function ProfileScreen() {
   const focus = fighter ? primaryFocus(fighter, activeFacts) : null;
   const arch = getArchetype(fighter?.spiritAnimal);
   const comp = pressure
-    ? { value: `${pressure.daysToEvent}D · ${pressure.tierLabel.toUpperCase()}`, sub: pressure.competition.eventName }
-    : { value: "NONE SCHEDULED", sub: undefined as string | undefined };
+    ? { value: `${pressure.daysToEvent} ${pressure.daysToEvent === 1 ? "day" : "days"} · ${pressure.tierLabel}`, sub: pressure.competition.eventName }
+    : { value: "None scheduled", sub: undefined as string | undefined };
 
   const isLoading = fighterLoading || factsLoading;
 
@@ -564,8 +565,8 @@ export default function ProfileScreen() {
     >
       {/* PASSPORT HEADER */}
       <View style={s.passportHead}>
-        <Text style={s.passportKicker}>ATHLETE</Text>
-        <Text style={s.passportTitle}>PASSPORT</Text>
+        <Text style={s.passportKicker}>Athlete</Text>
+        <Text style={s.passportTitle}>Passport</Text>
       </View>
 
       {!fighter ? (
@@ -611,15 +612,15 @@ export default function ProfileScreen() {
 
           {/* ─── 1. ATHLETE MODEL — WHAT FRAME KNOWS ─────────────── */}
           <View style={s.sectionHeader}>
-            <Text style={s.sectionOverline}>ATHLETE MODEL</Text>
-            <Text style={s.sectionTitle}>WHAT FRAME KNOWS</Text>
+            <Text style={s.sectionOverline}>Athlete model</Text>
+            <Text style={s.sectionTitle}>What FRAME knows</Text>
           </View>
 
           <View style={s.panel}>
             <View style={s.panelPad}>
               <View style={s.headRow}>
-                <SectionHead overline="DOSSIER · MODEL CONFIDENCE" title="UNDERSTANDING YOUR GAME" />
-                {factsFetching ? <Text style={s.syncing}>SYNCING</Text> : null}
+                <SectionHead overline="Dossier · model confidence" title="Understanding your game" />
+                {factsFetching ? <Text style={s.syncing}>Syncing</Text> : null}
               </View>
 
               <View style={s.confRow}>
@@ -635,8 +636,8 @@ export default function ProfileScreen() {
               ) : null}
 
               <View style={s.stageRow}>
-                <Text style={s.stageLabel}>STAGE</Text>
-                <Text style={s.stageValue}>{model.maturity.stage.label.toUpperCase()}</Text>
+                <Text style={s.stageLabel}>Stage</Text>
+                <Text style={s.stageValue}>{model.maturity.stage.label}</Text>
               </View>
 
               <ConfidenceBar pct={model.frameConfidence} segments={20} />
@@ -646,18 +647,18 @@ export default function ProfileScreen() {
 
             {model.lowestCategories.length > 0 && (
               <View style={s.panelDivided}>
-                <Text style={s.subOverline}>LOWEST CONFIDENCE</Text>
+                <Text style={s.subOverline}>Lowest confidence</Text>
                 {model.lowestCategories.map((c) => (
                   <View key={c} style={s.bulletRow}>
                     <View style={s.bulletDot} />
-                    <Text style={s.bulletText}>{(CATEGORY_LABELS[c] ?? c).toUpperCase()}</Text>
+                    <Text style={s.bulletText}>{CATEGORY_LABELS[c] ?? c}</Text>
                   </View>
                 ))}
               </View>
             )}
 
             <Pressable style={s.ctaRow} onPress={() => router.push("/(tabs)/chat")}>
-              <Text style={s.ctaText}>CONTINUE CALIBRATION</Text>
+              <Text style={s.ctaText}>Continue calibration</Text>
               <Feather name="arrow-right" size={13} color={ACCENT} />
             </Pressable>
           </View>
@@ -665,25 +666,25 @@ export default function ProfileScreen() {
           {/* ─── 2. ATHLETE STATE — REAL SIGNAL ONLY ─────────────── */}
           <View style={s.panel}>
             <View style={s.stateTop}>
-              <Text style={s.stateTopLabel}>ATHLETE STATE</Text>
-              <Text style={s.stateTopAside}>REAL SIGNAL ONLY</Text>
+              <Text style={s.stateTopLabel}>Athlete state</Text>
+              <Text style={s.stateTopAside}>Real signal only</Text>
             </View>
             <View style={s.rowDivided}>
-              <DataRow label="STATE" value={frameState.label.toUpperCase()} sub={frameState.source} />
+              <DataRow label="State" value={frameState.label} sub={frameState.source} />
               <DataRow
-                label="COACHING MODE"
-                value={model.coachingMode.label.toUpperCase()}
+                label="Coaching mode"
+                value={model.coachingMode.label}
                 sub={model.coachingMode.focus}
               />
-              <DataRow label="COMPETITION" value={comp.value} sub={comp.sub} />
-              {focus ? <DataRow label="PRIMARY FOCUS" value={focus.label.toUpperCase()} sub={focus.source} /> : null}
+              <DataRow label="Competition" value={comp.value} sub={comp.sub} />
+              {focus ? <DataRow label="Primary focus" value={focus.label} sub={focus.source} /> : null}
             </View>
           </View>
 
           {/* ─── 3. MODEL COVERAGE — ATHLETE DNA ─────────────────── */}
           <View style={s.panel}>
             <View style={s.panelPad}>
-              <SectionHead overline="MODEL COVERAGE" title="ATHLETE DNA" />
+              <SectionHead overline="Model coverage" title="Athlete DNA" />
             </View>
             {isFramePlus ? (
               <View style={s.radarWrap}>
@@ -703,34 +704,34 @@ export default function ProfileScreen() {
           {/* ─── 4. DERIVED READ — ATHLETE IDENTITY ──────────────── */}
           <View style={s.panel}>
             <View style={s.panelPad}>
-              <SectionHead overline="DERIVED READ" title="ATHLETE IDENTITY" />
+              <SectionHead overline="Derived read" title="Athlete identity" />
             </View>
             <View style={s.rowDivided}>
               <DataRow
-                label="CURRENT STYLE"
+                label="Current style"
                 value={styleLine(fighter)}
               />
               {arch ? (
                 <>
-                  <DataRow label="PRIMARY ARCHETYPE" value={arch.name.toUpperCase()} />
-                  <DataRow label="PRESSURE RESPONSE" value={leadClause(arch.pressureSignature)} />
+                  <DataRow label="Primary archetype" value={arch.name} />
+                  <DataRow label="Pressure response" value={leadClause(arch.pressureSignature)} />
                 </>
               ) : (
                 <DataRow
-                  label="PRIMARY ARCHETYPE"
-                  value="NOT ASSIGNED YET"
+                  label="Primary archetype"
+                  value="Not assigned yet"
                   sub={`FRAME assigns one once it understands ${ARCHETYPE_UNLOCK_UNDERSTANDING}% of your game. Now ${model.frameConfidence}%.`}
                 />
               )}
               <DataRow
-                label="COACHING MODE"
-                value={model.coachingMode.label.toUpperCase()}
+                label="Coaching mode"
+                value={model.coachingMode.label}
                 sub={model.coachingMode.focus}
               />
               {model.topWeakness && (
                 <DataRow
-                  label="OBSERVED BLIND SPOT"
-                  value={(model.topWeakness.topic || model.topWeakness.content).toUpperCase()}
+                  label="Observed blind spot"
+                  value={model.topWeakness.topic || model.topWeakness.content}
                   sub={`conf ${model.topWeakness.confidence}/5`}
                 />
               )}
@@ -739,15 +740,15 @@ export default function ProfileScreen() {
             {/* INTEGRITY / CADENCE / DAYS IN FRAME strip */}
             <View style={s.tripleStrip}>
               <View style={s.tripleCell}>
-                <Text style={s.tripleLabel}>INTEGRITY</Text>
-                <Text style={s.tripleValue}>{model.integrityLabel.toUpperCase()}</Text>
+                <Text style={s.tripleLabel}>Integrity</Text>
+                <Text style={s.tripleValue}>{model.integrityLabel}</Text>
               </View>
               <View style={[s.tripleCell, s.tripleBorder]}>
-                <Text style={s.tripleLabel}>CADENCE</Text>
-                <Text style={s.tripleValue}>{(fighter.trainingFrequency?.trim() || "—").toUpperCase()}</Text>
+                <Text style={s.tripleLabel}>Cadence</Text>
+                <Text style={s.tripleValue}>{fighter.trainingFrequency?.trim() || "—"}</Text>
               </View>
               <View style={[s.tripleCell, s.tripleBorder]}>
-                <Text style={s.tripleLabel}>DAYS IN FRAME</Text>
+                <Text style={s.tripleLabel}>Days in FRAME</Text>
                 <Text style={s.tripleValue}>{model.sinceDays}</Text>
               </View>
             </View>
@@ -770,13 +771,13 @@ export default function ProfileScreen() {
           {/* ─── 5. FULL MODEL — N OBSERVATIONS ──────────────────── */}
           <View style={s.sectionHeaderRow}>
             <View>
-              <Text style={s.sectionOverline}>FULL MODEL</Text>
+              <Text style={s.sectionOverline}>Full model</Text>
               <Text style={s.sectionTitle}>
-                {activeFacts.length} OBSERVATION{activeFacts.length === 1 ? "" : "S"}
+                {activeFacts.length} observation{activeFacts.length === 1 ? "" : "s"}
               </Text>
             </View>
             <Pressable onPress={() => router.push("/history")} hitSlop={8}>
-              <Text style={s.viewHistory}>VIEW HISTORY →</Text>
+              <Text style={s.viewHistory}>View history →</Text>
             </Pressable>
           </View>
 
@@ -803,7 +804,7 @@ export default function ProfileScreen() {
               {CATEGORY_ORDER.filter((c) => (grouped[c]?.length ?? 0) > 0).map((c) => (
                 <View key={c}>
                   <View style={s.catHeadRow}>
-                    <Text style={s.catHeadLabel}>{(CATEGORY_LABELS[c] ?? c).toUpperCase()}</Text>
+                    <Text style={s.catHeadLabel}>{CATEGORY_LABELS[c] ?? c}</Text>
                     <View style={s.catHeadLine} />
                     <Text style={s.catHeadCount}>{grouped[c]!.length}</Text>
                   </View>
@@ -823,9 +824,9 @@ export default function ProfileScreen() {
                       >
                         <View style={{ flex: 1 }}>
                           <Text style={s.factText} numberOfLines={2}>
-                            {(f.topic || f.content).toUpperCase()}
+                            {f.topic || f.content}
                           </Text>
-                          <Text style={s.factSeen}>{factSeenLabel(f).toUpperCase()}</Text>
+                          <Text style={s.factSeen}>{sentence(factSeenLabel(f))}</Text>
                         </View>
                         <View style={s.factMeta}>
                           {(f.evidenceCount ?? 1) > 1 && (
@@ -866,14 +867,14 @@ export default function ProfileScreen() {
               {restoring ? (
                 <ActivityIndicator color="#666" size="small" />
               ) : (
-                <Text style={s.restoreLinkText}>RESTORE PURCHASES</Text>
+                <Text style={s.restoreLinkText}>Restore purchases</Text>
               )}
             </Pressable>
           </View>
 
           {/* ACCOUNT */}
           <View style={s.section}>
-            <Text style={s.privacyHeading}>AI COACHING & PRIVACY</Text>
+            <Text style={s.privacyHeading}>AI coaching & privacy</Text>
             <Text style={s.privacyCopy}>
               FRAME uses AI coaching services. Depending on the feature, FRAME may share the exact categories shown in the permission disclosure with Anthropic (Claude) or OpenAI. FRAME provides performance coaching, not medical advice or diagnosis.
             </Text>
@@ -885,7 +886,7 @@ export default function ProfileScreen() {
                 accessibilityRole="link"
                 accessibilityLabel={l.label}
               >
-                <Text style={s.privacyLinkText}>{l.label.toUpperCase()}</Text>
+                <Text style={s.privacyLinkText}>{l.label}</Text>
                 <Feather name="external-link" size={13} color={ACCENT} />
               </Pressable>
             ))}
@@ -894,7 +895,7 @@ export default function ProfileScreen() {
               onPress={() => void Linking.openURL(apiUrl("/privacy"))}
               accessibilityRole="link"
             >
-              <Text style={s.privacyLinkText}>PRIVACY POLICY</Text>
+              <Text style={s.privacyLinkText}>Privacy Policy</Text>
               <Feather name="external-link" size={13} color={ACCENT} />
             </Pressable>
             <Pressable
@@ -902,7 +903,7 @@ export default function ProfileScreen() {
               onPress={() => void Linking.openURL(apiUrl("/support"))}
               accessibilityRole="link"
             >
-              <Text style={s.privacyLinkText}>SUPPORT</Text>
+              <Text style={s.privacyLinkText}>Support</Text>
               <Feather name="external-link" size={13} color={ACCENT} />
             </Pressable>
             <Pressable
@@ -913,7 +914,7 @@ export default function ProfileScreen() {
               accessibilityRole="link"
               accessibilityLabel="Manage App Store subscriptions"
             >
-              <Text style={s.privacyLinkText}>MANAGE APP STORE SUBSCRIPTION</Text>
+              <Text style={s.privacyLinkText}>Manage App Store subscription</Text>
               <Feather name="external-link" size={13} color={ACCENT} />
             </Pressable>
             <Pressable
@@ -930,7 +931,7 @@ export default function ProfileScreen() {
               {withdrawingAi ? (
                 <ActivityIndicator size="small" color="#888" />
               ) : (
-                <Text style={s.withdrawAiText}>WITHDRAW AI PERMISSION</Text>
+                <Text style={s.withdrawAiText}>Withdraw AI permission</Text>
               )}
             </Pressable>
             <Pressable
@@ -952,7 +953,7 @@ export default function ProfileScreen() {
               disabled={deletingAccount}
             >
               <Feather name="log-out" size={14} color="#666" style={{ marginRight: 6 }} />
-              <Text style={s.signOutText}>SIGN OUT</Text>
+              <Text style={s.signOutText}>Sign out</Text>
             </Pressable>
             <Pressable
               style={({ pressed }) => [
@@ -970,7 +971,7 @@ export default function ProfileScreen() {
               ) : (
                 <>
                   <Feather name="trash-2" size={14} color="#b05245" style={{ marginRight: 6 }} />
-                  <Text style={s.deleteAccountText}>DELETE ACCOUNT</Text>
+                  <Text style={s.deleteAccountText}>Delete account</Text>
                 </>
               )}
             </Pressable>
@@ -994,22 +995,22 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#050505" },
   content: { paddingHorizontal: 20 },
   section: { marginBottom: 32 },
-  privacyHeading: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 2, color: "#aaa", marginBottom: 10 },
-  privacyCopy: { fontFamily: "Outfit", fontSize: 13, lineHeight: 20, color: "#777", marginBottom: 12 },
+  privacyHeading: { ...label, color: TEXT_SECONDARY, marginBottom: 10 },
+  privacyCopy: { fontFamily: "Outfit", fontSize: 13, lineHeight: 20, color: "#a8a8a8", marginBottom: 12 },
   privacyLink: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
-  privacyLinkText: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 1.5, color: ACCENT },
+  privacyLinkText: { ...label, color: ACCENT },
   emptyState: {
     fontFamily: "Outfit",
     fontSize: 14,
-    color: "#666",
+    color: "#a8a8a8",
     textAlign: "center",
     paddingVertical: 48,
   },
 
   // Passport header
   passportHead: { alignItems: "center", marginBottom: 16 },
-  passportKicker: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 5, color: "#666" },
-  passportTitle: { fontFamily: "SpaceMono", fontSize: 13, letterSpacing: 6, color: "#e0e0e0", marginTop: 4 },
+  passportKicker: { ...caption },
+  passportTitle: { fontFamily: FONT.medium, fontSize: 16, color: "#e0e0e0", marginTop: 2, letterSpacing: 0 },
 
   // Identity band
   identityWrap: { position: "relative", marginBottom: 16 },
@@ -1031,13 +1032,11 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   bandBody: { paddingHorizontal: 16, paddingTop: 32, paddingBottom: 16 },
-  bandKicker: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 6, color: "#888", marginBottom: 6 },
+  bandKicker: { ...sectionTitle, marginBottom: 6 },
   bandName: { fontFamily: "Outfit_600SemiBold", fontSize: 30, letterSpacing: 2, color: "#f2f2f2" },
-  bandArchetype: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: ACCENT, marginTop: 8 },
+  bandArchetype: { ...sectionTitle, color: ACCENT, marginTop: 8 },
   bandError: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 1,
+    ...label,
     color: "#d2553f",
     borderWidth: 1,
     borderTopWidth: 0,
@@ -1078,9 +1077,9 @@ const s = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
-  sectionOverline: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 5, color: "rgba(255,255,255,0.45)", marginBottom: 6 },
-  sectionTitle: { fontFamily: "Outfit", fontSize: 18, letterSpacing: 3, color: "rgba(255,255,255,0.9)" },
-  viewHistory: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 3, color: "rgba(255,255,255,0.45)" },
+  sectionOverline: { ...sectionTitle, marginBottom: 6 },
+  sectionTitle: { fontFamily: "Outfit", fontSize: 18, letterSpacing: 0, color: "rgba(255,255,255,0.9)" },
+  viewHistory: { ...sectionTitle },
 
   // Panel shell
   panel: {
@@ -1101,29 +1100,29 @@ const s = StyleSheet.create({
 
   // Section head (overline + title, inside panels)
   headBlock: {},
-  headOverline: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 4, color: "rgba(255,255,255,0.45)", marginBottom: 8 },
-  headTitle: { fontFamily: "Outfit", fontSize: 15, letterSpacing: 3, color: "rgba(255,255,255,0.9)" },
+  headOverline: { ...sectionTitle, marginBottom: 8 },
+  headTitle: { fontFamily: "Outfit", fontSize: 15, letterSpacing: 0, color: "rgba(255,255,255,0.9)" },
   headRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
-  syncing: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "rgba(138,106,47,0.6)" },
+  syncing: { ...label },
 
   // Model confidence
   confRow: { flexDirection: "row", alignItems: "baseline", gap: 14, marginTop: 24, marginBottom: 8 },
   confBig: { fontFamily: "Outfit", fontSize: 52, color: "rgba(255,255,255,0.95)", lineHeight: 52 },
   confPct: { fontSize: 24, color: "rgba(138,106,47,0.7)" },
-  confCaption: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 4, color: "rgba(255,255,255,0.5)", lineHeight: 14 },
-  updated: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 1.5, color: "rgba(255,255,255,0.4)", marginBottom: 16 },
+  confCaption: { ...sectionTitle },
+  updated: { ...label, color: TEXT_SECONDARY, marginBottom: 16 },
   stageRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14 },
-  stageLabel: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 4, color: "rgba(255,255,255,0.5)" },
-  stageValue: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 3, color: "rgba(138,106,47,0.85)" },
+  stageLabel: { ...label },
+  stageValue: { ...sectionTitle, color: "#8A6A2F" },
   barRow: { flexDirection: "row", gap: 2 },
   barSeg: { height: 3, flex: 1 },
-  bodyCopy: { fontFamily: "Outfit", fontSize: 13, lineHeight: 20, color: "rgba(255,255,255,0.5)", marginTop: 16 },
+  bodyCopy: { fontFamily: "Outfit", fontSize: 13, lineHeight: 20, color: "#a8a8a8", marginTop: 16 },
 
   // Lowest confidence bullets
-  subOverline: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 5, color: "rgba(255,255,255,0.4)", marginBottom: 12 },
+  subOverline: { ...sectionTitle, marginBottom: 12 },
   bulletRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   bulletDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(138,106,47,0.4)" },
-  bulletText: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 2, color: "rgba(255,255,255,0.65)" },
+  bulletText: { ...label, color: TEXT_SECONDARY },
 
   // CTA row
   ctaRow: {
@@ -1135,7 +1134,7 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.06)",
   },
-  ctaText: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: "rgba(138,106,47,0.75)" },
+  ctaText: { ...sectionTitle, color: "#8A6A2F" },
 
   // Athlete state top
   stateTop: {
@@ -1146,8 +1145,8 @@ const s = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 4,
   },
-  stateTopLabel: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: "rgba(138,106,47,0.85)" },
-  stateTopAside: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 3, color: "rgba(255,255,255,0.5)" },
+  stateTopLabel: { ...sectionTitle, color: "#8A6A2F" },
+  stateTopAside: { ...sectionTitle },
 
   // Data rows
   rowDivided: {},
@@ -1161,10 +1160,10 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.05)",
   },
-  dataLabel: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "rgba(255,255,255,0.55)", width: 108, paddingTop: 1 },
+  dataLabel: { ...label, width: 108, paddingTop: 1 },
   dataValueWrap: { flex: 1, alignItems: "flex-end" },
-  dataValue: { fontFamily: "SpaceMono", fontSize: 11, letterSpacing: 1, color: "rgba(255,255,255,0.95)", textAlign: "right" },
-  dataSub: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(255,255,255,0.45)", marginTop: 3, textAlign: "right" },
+  dataValue: { ...label, fontSize: 13, lineHeight: 17, color: TEXT_PRIMARY, textAlign: "right" },
+  dataSub: { ...caption, color: TEXT_SECONDARY, marginTop: 3, textAlign: "right" },
 
   // Locked FRAME+ body
   lockRow: {
@@ -1176,12 +1175,12 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.05)",
   },
-  lockNote: { flex: 1, fontFamily: "Outfit", fontSize: 13, lineHeight: 19, color: "rgba(255,255,255,0.55)" },
-  lockBadge: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "rgba(138,106,47,0.8)" },
+  lockNote: { flex: 1, fontFamily: "Outfit", fontSize: 13, lineHeight: 19, color: "#a8a8a8" },
+  lockBadge: { ...label, color: "#8A6A2F" },
 
   // Radar
   radarWrap: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20 },
-  radarCaption: { fontFamily: "Outfit", fontSize: 12, lineHeight: 17, color: "rgba(255,255,255,0.4)", textAlign: "center", marginTop: 8 },
+  radarCaption: { fontFamily: "Outfit", fontSize: 12, lineHeight: 17, color: "#a8a8a8", textAlign: "center", marginTop: 8 },
 
   // Integrity triple strip
   tripleStrip: {
@@ -1191,8 +1190,8 @@ const s = StyleSheet.create({
   },
   tripleCell: { flex: 1, paddingHorizontal: 12, paddingVertical: 12, alignItems: "center" },
   tripleBorder: { borderLeftWidth: 1, borderLeftColor: "rgba(255,255,255,0.06)" },
-  tripleLabel: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 2, color: "rgba(255,255,255,0.55)", marginBottom: 5 },
-  tripleValue: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 2, color: "rgba(255,255,255,0.95)", textAlign: "center" },
+  tripleLabel: { ...meta, color: TEXT_SECONDARY, marginBottom: 5 },
+  tripleValue: { ...label, color: TEXT_PRIMARY, textAlign: "center" },
   integrityBarWrap: {
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -1203,13 +1202,13 @@ const s = StyleSheet.create({
   integritySeg: { height: 4, flex: 1 },
   integrityOn: { backgroundColor: ACCENT },
   integrityOff: { backgroundColor: "rgba(255,255,255,0.12)" },
-  integrityCaption: { fontFamily: "Outfit", fontSize: 11, lineHeight: 16, color: "rgba(255,255,255,0.5)", marginTop: 10 },
+  integrityCaption: { fontFamily: "Outfit", fontSize: 11, lineHeight: 16, color: "#a8a8a8", marginTop: 10 },
 
   // Full model fact list
   catHeadRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
-  catHeadLabel: { fontFamily: "Outfit", fontSize: 13, letterSpacing: 3, color: "rgba(138,106,47,0.9)" },
+  catHeadLabel: { fontFamily: "Outfit_500Medium", fontSize: 13, letterSpacing: 0, color: "rgba(138,106,47,0.9)" },
   catHeadLine: { flex: 1, height: 1, backgroundColor: "rgba(138,106,47,0.22)" },
-  catHeadCount: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(255,255,255,0.4)" },
+  catHeadCount: { ...caption, color: TEXT_SECONDARY },
   factItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -1220,10 +1219,10 @@ const s = StyleSheet.create({
     borderLeftWidth: 1,
     borderLeftColor: "rgba(138,106,47,0.25)",
   },
-  factText: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 2, color: "rgba(255,255,255,0.75)" },
-  factSeen: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 2, color: "rgba(138,106,47,0.7)", marginTop: 4 },
+  factText: { ...label, color: TEXT_SECONDARY },
+  factSeen: { ...meta, color: "#8A6A2F", marginTop: 4 },
   factMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
-  factEvidence: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(138,106,47,0.7)" },
+  factEvidence: { ...caption, color: "#8A6A2F" },
 
   // Membership
   memberRow: {
@@ -1234,7 +1233,7 @@ const s = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 16,
   },
-  memberText: { fontFamily: "SpaceMono", fontSize: 10, color: ACCENT, letterSpacing: 3 },
+  memberText: { ...sectionTitle, color: ACCENT },
   upgradeCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -1243,13 +1242,13 @@ const s = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
-  upgradeTitle: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: "rgba(255,255,255,0.85)" },
-  upgradeSub: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 1, color: "rgba(255,255,255,0.45)", marginTop: 6, lineHeight: 14 },
+  upgradeTitle: { ...sectionTitle, color: TEXT_PRIMARY },
+  upgradeSub: { ...caption, color: TEXT_SECONDARY, marginTop: 6 },
   restoreLink: { alignItems: "center", paddingVertical: 14 },
-  restoreLinkText: { fontFamily: "SpaceMono", fontSize: 9, color: "#555", letterSpacing: 3 },
+  restoreLinkText: { ...sectionTitle },
 
   // Account
-  emailText: { fontFamily: "Outfit", fontSize: 13, color: "#666", marginBottom: 12, textAlign: "center" },
+  emailText: { fontFamily: "Outfit", fontSize: 13, color: "#a8a8a8", marginBottom: 12, textAlign: "center" },
   withdrawAiBtn: {
     alignItems: "center",
     justifyContent: "center",
@@ -1261,10 +1260,8 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   withdrawAiText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    color: "#888",
-    letterSpacing: 2,
+    ...label,
+    color: TEXT_SECONDARY,
   },
   signOutBtn: {
     flexDirection: "row",
@@ -1275,7 +1272,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
   },
-  signOutText: { fontFamily: "SpaceMono", fontSize: 10, color: "#666", letterSpacing: 3 },
+  signOutText: { ...sectionTitle },
   deleteAccountBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1287,15 +1284,13 @@ const s = StyleSheet.create({
     marginTop: 12,
   },
   deleteAccountText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
+    ...label,
     color: "#b05245",
-    letterSpacing: 2,
   },
   deleteAccountNote: {
     fontFamily: "Outfit",
     fontSize: 11,
-    color: "#555",
+    color: "#a8a8a8",
     textAlign: "center",
     marginTop: 8,
   },

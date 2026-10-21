@@ -20,6 +20,7 @@ import { FormScroll } from "@/components/FormScroll";
 import { KEYBOARD_DONE_ID } from "@/components/KeyboardDoneBar";
 import { useActiveCompetition, useCompetitionList } from "@/hooks/useCompetition";
 import { FREE_TEXT, LABEL_TEXT, RAW_TEXT } from "@/lib/textInputProps";
+import { FONT, TEXT_SECONDARY, caption, label, meta, sectionTitle, sentence } from "@/constants/typography";
 
 const TIER_ACCENT: Record<PressureTier, string> = {
   base: "#8A6A2F",
@@ -183,7 +184,7 @@ export default function CompetitionScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
           <Feather name="chevron-left" size={22} color="#999" />
         </Pressable>
-        <Text style={styles.headerTitle}>COMPETITION MODE</Text>
+        <Text style={styles.headerTitle}>Competition mode</Text>
         <View style={{ width: 22 }} />
       </View>
 
@@ -206,7 +207,7 @@ export default function CompetitionScreen() {
               accessibilityRole="button"
             >
               <Feather name="refresh-cw" size={14} color="#8A6A2F" />
-              <Text style={styles.scheduleText}>TRY AGAIN</Text>
+              <Text style={styles.scheduleText}>Try again</Text>
             </Pressable>
           </View>
         ) : pressure ? (
@@ -235,17 +236,17 @@ export default function CompetitionScreen() {
             }}
           >
             <Feather name="plus" size={16} color="#8A6A2F" />
-            <Text style={styles.scheduleText}>SCHEDULE COMPETITION</Text>
+            <Text style={styles.scheduleText}>Schedule competition</Text>
           </Pressable>
         )}
 
         {showForm && (
           <View style={styles.form}>
             <Text style={styles.formTitle}>
-              {editingId != null ? "EDIT COMPETITION" : "NEW COMPETITION"}
+              {editingId != null ? "Edit competition" : "New competition"}
             </Text>
 
-            <Field label="EVENT NAME">
+            <Field label="Event name">
               <TextInput
                 {...LABEL_TEXT}
                 style={styles.input}
@@ -256,7 +257,7 @@ export default function CompetitionScreen() {
               />
             </Field>
 
-            <Field label="DISCIPLINE">
+            <Field label="Discipline">
               <TextInput
                 {...LABEL_TEXT}
                 style={styles.input}
@@ -267,7 +268,7 @@ export default function CompetitionScreen() {
               />
             </Field>
 
-            <Field label="EVENT DATE (YYYY-MM-DD)">
+            <Field label="Event date (YYYY-MM-DD)">
               <TextInput
                 {...RAW_TEXT}
                 style={styles.input}
@@ -279,7 +280,7 @@ export default function CompetitionScreen() {
               />
             </Field>
 
-            <Field label="WEIGH-IN DATE (OPTIONAL)">
+            <Field label="Weigh-in date (optional)">
               <TextInput
                 {...RAW_TEXT}
                 style={styles.input}
@@ -293,7 +294,7 @@ export default function CompetitionScreen() {
 
             <View style={styles.row2}>
               <View style={styles.col}>
-                <Field label="CURRENT WEIGHT">
+                <Field label="Current weight">
                   <TextInput
                     {...RAW_TEXT}
                     style={styles.input}
@@ -305,7 +306,7 @@ export default function CompetitionScreen() {
                 </Field>
               </View>
               <View style={styles.col}>
-                <Field label="TARGET WEIGHT">
+                <Field label="Target weight">
                   <TextInput
                     {...RAW_TEXT}
                     style={styles.input}
@@ -335,7 +336,7 @@ export default function CompetitionScreen() {
 
             <View style={styles.formActions}>
               <Pressable style={styles.cancelBtn} onPress={resetForm}>
-                <Text style={styles.cancelText}>CANCEL</Text>
+                <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
               <Pressable
                 style={[styles.submitBtn, saving && { opacity: 0.6 }]}
@@ -346,7 +347,7 @@ export default function CompetitionScreen() {
                   <ActivityIndicator size="small" color="#050505" />
                 ) : (
                   <Text style={styles.submitText}>
-                    {editingId != null ? "UPDATE" : "SCHEDULE"}
+                    {editingId != null ? "Update" : "Schedule"}
                   </Text>
                 )}
               </Pressable>
@@ -356,7 +357,7 @@ export default function CompetitionScreen() {
 
         {activeComps.length > 1 && (
           <View style={styles.listSection}>
-            <Text style={styles.listHeader}>ALSO SCHEDULED</Text>
+            <Text style={styles.listHeader}>Also scheduled</Text>
             {activeComps
               .filter((c) => c.id !== pressure?.competition.id)
               .map((c) => (
@@ -373,7 +374,7 @@ export default function CompetitionScreen() {
 
         {pastComps.length > 0 && (
           <View style={styles.listSection}>
-            <Text style={styles.listHeader}>PAST</Text>
+            <Text style={styles.listHeader}>Past</Text>
             {pastComps.map((c) => (
               <CompRow key={c.id} comp={c} past />
             ))}
@@ -413,29 +414,29 @@ function ActiveCard({
     <View style={[styles.activeCard, { borderColor: accent }]}>
       <View style={styles.activeTop}>
         <Text style={[styles.tierLabel, { color: accent }]}>
-          {pressure.tierLabel.toUpperCase()}
+          {pressure.tierLabel}
         </Text>
         <Text style={[styles.daysBig, { color: accent }]}>
-          {days <= 0 ? "TODAY" : `${days}`}
+          {days <= 0 ? "Today" : `${days}`}
         </Text>
-        {days > 0 && <Text style={styles.daysUnit}>{days === 1 ? "DAY OUT" : "DAYS OUT"}</Text>}
+        {days > 0 && <Text style={styles.daysUnit}>{days === 1 ? "Day out" : "Days out"}</Text>}
       </View>
 
       <Text style={styles.activeName}>{c.eventName}</Text>
       {c.discipline ? <Text style={styles.activeDiscipline}>{c.discipline}</Text> : null}
 
       <View style={styles.metaGrid}>
-        <Meta label="EVENT" value={fmtDate(c.eventDate)} />
-        {c.weighInDate ? <Meta label="WEIGH-IN" value={fmtDate(c.weighInDate)} /> : null}
+        <Meta label="Event" value={fmtDate(c.eventDate)} />
+        {c.weighInDate ? <Meta label="Weigh-in" value={fmtDate(c.weighInDate)} /> : null}
         {pressure.daysToWeighIn != null ? (
           <Meta
-            label="TO WEIGH-IN"
+            label="To weigh-in"
             value={pressure.daysToWeighIn <= 0 ? "now" : `${pressure.daysToWeighIn} days`}
           />
         ) : null}
         {c.currentWeight || c.targetWeight ? (
           <Meta
-            label="WEIGHT"
+            label="Weight"
             value={`${c.currentWeight || "—"} → ${c.targetWeight || "—"}`}
           />
         ) : null}
@@ -446,11 +447,11 @@ function ActiveCard({
       <View style={styles.activeActions}>
         <Pressable style={styles.editComp} onPress={onEdit} hitSlop={6}>
           <Feather name="edit-2" size={11} color="#8A6A2F" />
-          <Text style={styles.editCompText}>EDIT</Text>
+          <Text style={styles.editCompText}>Edit</Text>
         </Pressable>
         <Pressable style={styles.cancelComp} onPress={onCancel} disabled={cancelling}>
           <Text style={styles.cancelCompText}>
-            {cancelling ? "CANCELLING…" : "CANCEL COMPETITION"}
+            {cancelling ? "Cancelling…" : "Cancel competition"}
           </Text>
         </Pressable>
       </View>
@@ -500,7 +501,7 @@ function CompRow({
           ) : null}
         </View>
       ) : (
-        <Text style={styles.compStatus}>{comp.status.toUpperCase()}</Text>
+        <Text style={styles.compStatus}>{sentence(comp.status)}</Text>
       )}
     </View>
   );
@@ -524,9 +525,7 @@ const styles = StyleSheet.create({
     width: 22,
   },
   headerTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 4,
+    ...sectionTitle,
     color: "#e0e0e0",
   },
   scroll: {
@@ -543,16 +542,16 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   emptyTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 12,
-    letterSpacing: 2,
+    ...label,
+    fontSize: 13,
+    lineHeight: 17,
     color: "#e0e0e0",
     marginBottom: 10,
   },
   emptyBody: {
     fontFamily: "Outfit",
     fontSize: 14,
-    color: "#777",
+    color: "#a8a8a8",
     lineHeight: 21,
   },
   activeCard: {
@@ -566,20 +565,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   tierLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
+    ...label,
     flex: 1,
   },
   daysBig: {
-    fontFamily: "SpaceMono",
+    fontFamily: FONT.medium,
     fontSize: 34,
+    letterSpacing: 0,
   },
   daysUnit: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1.5,
-    color: "#666",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   activeName: {
     fontFamily: "Outfit",
@@ -589,10 +585,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   activeDiscipline: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#666",
+    ...label,
+    color: TEXT_SECONDARY,
     marginTop: 4,
   },
   metaGrid: {
@@ -609,10 +603,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metaLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#555",
+    ...meta,
+    color: TEXT_SECONDARY,
   },
   metaValue: {
     fontFamily: "Outfit",
@@ -641,19 +633,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   editCompText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
+    ...label,
     color: "#8A6A2F",
   },
   cancelComp: {
     alignSelf: "flex-start",
   },
   cancelCompText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#6a3a35",
+    ...label,
+    color: "#b05245",
   },
   compRowActions: {
     flexDirection: "row",
@@ -675,9 +663,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(138,106,47,0.06)",
   },
   scheduleText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
+    ...label,
     color: "#8A6A2F",
   },
   form: {
@@ -688,9 +674,7 @@ const styles = StyleSheet.create({
     padding: 18,
   },
   formTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: "#8A6A2F",
     marginBottom: 16,
   },
@@ -698,10 +682,8 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   fieldLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#555",
+    ...meta,
+    color: TEXT_SECONDARY,
     marginBottom: 6,
   },
   input: {
@@ -744,10 +726,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cancelText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#666",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   submitBtn: {
     flex: 1,
@@ -757,19 +737,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   submitText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
+    ...label,
     color: "#050505",
   },
   listSection: {
     marginTop: 28,
   },
   listHeader: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "#444",
+    ...sectionTitle,
     marginBottom: 12,
   },
   compRow: {
@@ -790,16 +765,12 @@ const styles = StyleSheet.create({
     color: "#c0c0c0",
   },
   compRowDate: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1,
-    color: "#555",
+    ...caption,
+    color: TEXT_SECONDARY,
     marginTop: 3,
   },
   compStatus: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 1.5,
-    color: "#555",
+    ...meta,
+    color: TEXT_SECONDARY,
   },
 });

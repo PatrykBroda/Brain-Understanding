@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPatch, apiDelete, apiUrl } from "@/lib/api";
 import { AiConsentStatus } from "@/lib/aiConsent";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
+import { FONT, TEXT_SECONDARY, label } from "@/constants/typography";
 
 export function AiConsentGate({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, signOut } = useAuth();
@@ -105,31 +106,31 @@ export function AiConsentGate({ children }: { children: React.ReactNode }) {
   if (isError) {
     return (
       <View style={s.fullscreen}>
-        <Text style={s.errorTitle}>CONNECTION ERROR</Text>
+        <Text style={s.errorTitle}>Connection error</Text>
         <Text style={s.errorBody}>Could not load your permissions. Please check your connection and try again.</Text>
 
         <Pressable style={s.btnPrimary} onPress={() => refetch()}>
-          <Text style={s.btnPrimaryText}>RETRY</Text>
+          <Text style={s.btnPrimaryText}>Retry</Text>
         </Pressable>
 
         <View style={s.linksRow}>
           <Pressable onPress={() => void Linking.openURL(apiUrl("/privacy"))}>
-            <Text style={s.link}>PRIVACY POLICY</Text>
+            <Text style={s.link}>Privacy Policy</Text>
           </Pressable>
           <Pressable onPress={() => void Linking.openURL(apiUrl("/terms"))}>
-            <Text style={s.link}>TERMS OF SERVICE</Text>
+            <Text style={s.link}>Terms of Use (EULA)</Text>
           </Pressable>
         </View>
 
         <Pressable style={s.btnGhost} onPress={() => void handleSignOut()}>
-          <Text style={s.btnGhostText}>SIGN OUT</Text>
+          <Text style={s.btnGhostText}>Sign out</Text>
         </Pressable>
 
         <Pressable style={s.btnDanger} onPress={() => void handleDeleteAccount()} disabled={deletingAccount}>
           {deletingAccount ? (
             <ActivityIndicator size="small" color="#bf4040" />
           ) : (
-            <Text style={s.btnDangerText}>DELETE ACCOUNT</Text>
+            <Text style={s.btnDangerText}>Delete account</Text>
           )}
         </Pressable>
       </View>
@@ -169,10 +170,10 @@ const s = StyleSheet.create({
     padding: 32,
   },
   wordmark: {
-    fontFamily: "SpaceMono",
+    fontFamily: FONT.medium,
     fontSize: 18,
-    letterSpacing: 10,
     color: "#e0e0e0",
+    letterSpacing: 0,
   },
   errorTitle: {
     fontFamily: "Outfit_600SemiBold",
@@ -199,9 +200,9 @@ const s = StyleSheet.create({
     marginBottom: 24,
   },
   btnPrimaryText: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 2,
+    ...label,
+    fontSize: 13,
+    lineHeight: 17,
     color: "#050505",
   },
   linksRow: {
@@ -210,9 +211,7 @@ const s = StyleSheet.create({
     marginBottom: 32,
   },
   link: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 1.5,
+    ...label,
     color: "#b99250",
   },
   btnGhost: {
@@ -221,10 +220,8 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   btnGhostText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#777",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   btnDanger: {
     paddingVertical: 12,
@@ -233,9 +230,7 @@ const s = StyleSheet.create({
     marginTop: 8,
   },
   btnDangerText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
+    ...label,
     color: "#bf4040",
   },
 });

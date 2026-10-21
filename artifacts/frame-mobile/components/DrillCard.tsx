@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { FONT, TEXT_SECONDARY, caption, label } from "@/constants/typography";
 
 export type Drill = {
   title?: string;
@@ -24,8 +25,8 @@ export function DrillCard({ drill }: { drill: Drill }) {
   return (
     <View style={s.card}>
       <View style={s.head}>
-        <Text style={s.headLabel}>PRESCRIPTION</Text>
-        <Text style={s.headKind}>DRILL</Text>
+        <Text style={s.headLabel}>Prescription</Text>
+        <Text style={s.headKind}>Drill</Text>
       </View>
       {drill.title ? <Text style={s.title}>{drill.title}</Text> : null}
       <View style={s.body}>
@@ -60,25 +61,21 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(138,106,47,0.10)",
   },
   headLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "rgba(138,106,47,0.85)",
+    ...label,
+    color: "#8A6A2F",
   },
   headKind: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1,
-    color: "rgba(138,106,47,0.6)",
+    ...caption,
+    color: TEXT_SECONDARY,
   },
   title: {
+    fontFamily: FONT.regular,
     paddingHorizontal: 14,
     paddingTop: 14,
     paddingBottom: 4,
-    fontFamily: "SpaceMono",
     fontSize: 13,
-    letterSpacing: 1,
     color: "#e0e0e0",
+    letterSpacing: 0,
   },
   body: {
     paddingHorizontal: 14,
@@ -90,10 +87,8 @@ const s = StyleSheet.create({
     gap: 2,
   },
   fieldLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#666",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   fieldValue: {
     fontFamily: "Outfit",

@@ -24,6 +24,7 @@ import {
   type QuestionsDraft,
 } from "@/lib/profileAnswers";
 import { FREE_TEXT, RAW_TEXT } from "@/lib/textInputProps";
+import { TEXT_SECONDARY, label, meta, sectionTitle } from "@/constants/typography";
 
 const ACCENT = "#8A6A2F";
 
@@ -164,20 +165,20 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
   return (
     <View style={[st.section, highlighted && st.sectionHighlight]}>
       <View style={st.header}>
-        <Text style={st.overline}>ONBOARDING</Text>
-        <Text style={st.title}>ONBOARDING QUESTIONS</Text>
+        <Text style={st.overline}>Onboarding</Text>
+        <Text style={st.title}>Onboarding questions</Text>
         <Text style={st.progress}>
-          {answered} OF {REQUIRED_TOTAL} ANSWERED
+          {answered} of {REQUIRED_TOTAL} answered
         </Text>
       </View>
 
       <View style={st.panel}>
         <View style={st.field}>
-          <Text style={st.label}>DATE OF BIRTH</Text>
+          <Text style={st.label}>Date of birth</Text>
           <Text style={st.hint}>No hyphens needed</Text>
           <View style={st.dobRow}>
             <View style={st.dobField}>
-              <Text style={st.dobLabel}>DAY</Text>
+              <Text style={st.dobLabel}>Day</Text>
               <TextInput
                 {...RAW_TEXT}
                 style={[st.input, st.dobInput, dobError && st.inputError]}
@@ -192,7 +193,7 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
               />
             </View>
             <View style={st.dobField}>
-              <Text style={st.dobLabel}>MONTH</Text>
+              <Text style={st.dobLabel}>Month</Text>
               <TextInput
                 {...RAW_TEXT}
                 ref={monthRef}
@@ -208,7 +209,7 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
               />
             </View>
             <View style={[st.dobField, { flex: 1.45 }]}>
-              <Text style={st.dobLabel}>YEAR</Text>
+              <Text style={st.dobLabel}>Year</Text>
               <TextInput
                 {...RAW_TEXT}
                 ref={yearRef}
@@ -224,11 +225,11 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
               />
             </View>
           </View>
-          {age != null ? <Text style={st.age}>{age} YEARS OLD</Text> : null}
+          {age != null ? <Text style={st.age}>{age} years old</Text> : null}
         </View>
 
         <View style={st.field}>
-          <Text style={st.label}>PRIMARY SPORT</Text>
+          <Text style={st.label}>Primary sport</Text>
           <ChipSelector
             options={sportOptions}
             value={draft.sport}
@@ -243,7 +244,7 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
 
         {draft.sport ? (
           <View style={st.field}>
-            <Text style={st.label}>{levelLabelForSport(draft.sport).toUpperCase()}</Text>
+            <Text style={st.label}>{levelLabelForSport(draft.sport)}</Text>
             <ChipSelector
               options={levelOptions}
               value={draft.level}
@@ -256,7 +257,7 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
         ) : null}
 
         <View style={st.field}>
-          <Text style={st.label}>TRAINING FREQUENCY</Text>
+          <Text style={st.label}>Training frequency</Text>
           <ChipSelector
             options={frequencyChoicesFor(fighter.trainingFrequency)}
             value={draft.freq}
@@ -268,7 +269,7 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
         </View>
 
         <View style={st.field}>
-          <Text style={st.label}>PRIMARY GOALS</Text>
+          <Text style={st.label}>Primary goals</Text>
           <TextInput
             {...FREE_TEXT}
             style={[st.input, st.textarea]}
@@ -283,7 +284,7 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
         </View>
 
         <View style={st.field}>
-          <Text style={st.label}>KNOWN WEAKNESSES</Text>
+          <Text style={st.label}>Known weaknesses</Text>
           <TextInput
             {...FREE_TEXT}
             style={[st.input, st.textarea]}
@@ -314,10 +315,10 @@ export function AnswersSection({ fighter, highlighted = false }: { fighter: Figh
             {saving ? (
               <ActivityIndicator color="#050505" size="small" />
             ) : (
-              <Text style={st.saveText}>{error ? "TRY AGAIN" : "SAVE"}</Text>
+              <Text style={st.saveText}>{error ? "Try again" : "Save"}</Text>
             )}
           </Pressable>
-          {savedAt && !changed && !error ? <Text style={st.saved}>SAVED</Text> : null}
+          {savedAt && !changed && !error ? <Text style={st.saved}>Saved</Text> : null}
         </View>
       </View>
     </View>
@@ -328,9 +329,9 @@ const st = StyleSheet.create({
   section: { marginBottom: 32 },
   sectionHighlight: { borderLeftWidth: 2, borderLeftColor: ACCENT, paddingLeft: 10, marginLeft: -12 },
   header: { marginBottom: 16 },
-  overline: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 5, color: "rgba(255,255,255,0.45)", marginBottom: 6 },
-  title: { fontFamily: "Outfit", fontSize: 18, letterSpacing: 3, color: "rgba(255,255,255,0.9)" },
-  progress: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: ACCENT, marginTop: 8 },
+  overline: { ...sectionTitle, marginBottom: 6 },
+  title: { fontFamily: "Outfit", fontSize: 18, letterSpacing: 0, color: "rgba(255,255,255,0.9)" },
+  progress: { ...sectionTitle, color: ACCENT, marginTop: 8 },
   panel: {
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
@@ -340,18 +341,18 @@ const st = StyleSheet.create({
     gap: 24,
   },
   field: { gap: 0 },
-  label: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 3, color: ACCENT, marginBottom: 12 },
-  hint: { fontFamily: "Outfit", fontSize: 12, color: "#444", marginBottom: 8, marginTop: -4 },
+  label: { ...sectionTitle, color: ACCENT, marginBottom: 12 },
+  hint: { fontFamily: "Outfit", fontSize: 12, color: "#a8a8a8", marginBottom: 8, marginTop: -4 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { borderWidth: 1, borderColor: "#1a1a1a", paddingHorizontal: 16, paddingVertical: 10 },
   chipOn: { borderColor: ACCENT, backgroundColor: "rgba(138,106,47,0.1)" },
-  chipText: { fontFamily: "Outfit", fontSize: 14, color: "#666", letterSpacing: 0.5 },
+  chipText: { fontFamily: "Outfit", fontSize: 14, color: "#666", letterSpacing: 0 },
   chipTextOn: { color: ACCENT },
   dobRow: { flexDirection: "row", gap: 10 },
   dobField: { flex: 1 },
-  dobLabel: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 1.5, color: "#666", marginBottom: 6 },
+  dobLabel: { ...meta, color: TEXT_SECONDARY, marginBottom: 6 },
   dobInput: { textAlign: "center", paddingHorizontal: 8, fontSize: 18 },
-  age: { marginTop: 12, fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 2, color: ACCENT },
+  age: { ...label, marginTop: 12, color: ACCENT },
   input: {
     backgroundColor: "#0a0a0a",
     borderWidth: 1,
@@ -367,6 +368,6 @@ const st = StyleSheet.create({
   error: { fontFamily: "Outfit", fontSize: 13, color: "#BF1D1D" },
   saveRow: { flexDirection: "row", alignItems: "center", gap: 16 },
   saveBtn: { backgroundColor: ACCENT, paddingHorizontal: 28, paddingVertical: 14, minWidth: 140, alignItems: "center" },
-  saveText: { fontFamily: "SpaceMono", fontSize: 11, letterSpacing: 3, color: "#050505" },
-  saved: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 3, color: ACCENT },
+  saveText: { ...sectionTitle, color: "#050505" },
+  saved: { ...label, color: ACCENT },
 });

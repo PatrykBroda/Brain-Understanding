@@ -9,6 +9,7 @@ import {
   clampSec,
   makeBreathReducer,
 } from "@/lib/breathReducer";
+import { FONT, TEXT_SECONDARY, caption, label, sectionTitle } from "@/constants/typography";
 
 export type { Breath };
 
@@ -163,8 +164,8 @@ export function BreathCard({
   return (
     <View style={s.card}>
       <View style={s.head}>
-        <Text style={s.headLabel}>REGULATE</Text>
-        <Text style={s.headKind}>BREATH</Text>
+        <Text style={s.headLabel}>Regulate</Text>
+        <Text style={s.headKind}>Breath</Text>
       </View>
       {inner}
     </View>
@@ -189,25 +190,21 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(138,106,47,0.10)",
   },
   headLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "rgba(138,106,47,0.85)",
+    ...label,
+    color: "#8A6A2F",
   },
   headKind: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1,
-    color: "rgba(138,106,47,0.6)",
+    ...caption,
+    color: TEXT_SECONDARY,
   },
   title: {
+    fontFamily: FONT.regular,
     paddingHorizontal: 14,
     paddingTop: 14,
     paddingBottom: 2,
-    fontFamily: "SpaceMono",
     fontSize: 13,
-    letterSpacing: 1,
     color: "#e0e0e0",
+    letterSpacing: 0,
   },
   purpose: {
     paddingHorizontal: 14,
@@ -237,24 +234,20 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   phaseLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "rgba(138,106,47,0.85)",
-    textTransform: "uppercase",
+    ...sectionTitle,
+    color: "#8A6A2F",
   },
   count: {
-    fontFamily: "SpaceMono",
+    fontFamily: FONT.medium,
     fontSize: 30,
     color: "#e0e0e0",
     marginTop: 4,
+    letterSpacing: 0,
   },
   roundLine: {
+    ...label,
     marginTop: 16,
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#666",
+    color: TEXT_SECONDARY,
   },
   controls: {
     marginTop: 16,
@@ -268,11 +261,8 @@ const s = StyleSheet.create({
     borderColor: "rgba(138,106,47,0.5)",
   },
   btnPrimaryText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
+    ...label,
     color: "#8A6A2F",
-    textTransform: "uppercase",
   },
   btnGhost: {
     paddingHorizontal: 20,
@@ -281,11 +271,8 @@ const s = StyleSheet.create({
     borderColor: "#2a2a2a",
   },
   btnGhostText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#999",
-    textTransform: "uppercase",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   phaseList: {
     marginTop: 16,
@@ -295,11 +282,8 @@ const s = StyleSheet.create({
     gap: 12,
   },
   phaseChip: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1.5,
-    color: "rgba(150,150,150,0.7)",
-    textTransform: "uppercase",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   phaseChipActive: {
     color: "#8A6A2F",

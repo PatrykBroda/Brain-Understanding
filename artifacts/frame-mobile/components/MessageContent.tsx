@@ -4,6 +4,7 @@ import { DrillCard, type Drill } from "@/components/DrillCard";
 import { BreathCard, type Breath } from "@/components/BreathCard";
 import { RegulateSequence, type RegulateSequenceData } from "@/components/RegulateSequence";
 import { GLOSSARY, GLOSSARY_KEYS, isBrandMention, type GlossEntry } from "@/lib/glossary";
+import { FONT, TEXT_SECONDARY, label, meta } from "@/constants/typography";
 
 // ─── Block parsing ──────────────────────────────────────────────────────────
 const BLOCK_RE = /```(drill|breath|regulate)\s*\n([\s\S]*?)\n?```/g;
@@ -180,7 +181,7 @@ export function MessageContent({
                 {active.entry.why ? (
                   showWhy ? (
                     <View style={s.whyBlock}>
-                      <Text style={s.whyLabel}>WHY IT MATTERS</Text>
+                      <Text style={s.whyLabel}>Why it matters</Text>
                       <Text style={s.whyText}>{active.entry.why}</Text>
                     </View>
                   ) : (
@@ -267,12 +268,11 @@ const s = StyleSheet.create({
     padding: 20,
   },
   sheetTerm: {
-    fontFamily: "SpaceMono",
+    fontFamily: FONT.regular,
     fontSize: 13,
-    letterSpacing: 2,
     color: "#8A6A2F",
-    textTransform: "uppercase",
     marginBottom: 10,
+    letterSpacing: 0,
   },
   sheetQuick: {
     fontFamily: "Outfit",
@@ -287,10 +287,8 @@ const s = StyleSheet.create({
     borderTopColor: "#1a1a1a",
   },
   whyLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#666",
+    ...meta,
+    color: TEXT_SECONDARY,
     marginBottom: 6,
   },
   whyText: {
@@ -300,12 +298,9 @@ const s = StyleSheet.create({
     lineHeight: 21,
   },
   linkText: {
+    ...label,
     marginTop: 14,
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: "rgba(138,106,47,0.85)",
-    textTransform: "uppercase",
+    color: "#8A6A2F",
   },
   trainBtn: {
     marginTop: 16,
@@ -316,21 +311,15 @@ const s = StyleSheet.create({
     paddingVertical: 8,
   },
   trainText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
+    ...label,
     color: "#8A6A2F",
-    textTransform: "uppercase",
   },
   closeBtn: {
     marginTop: 18,
     alignSelf: "flex-end",
   },
   closeText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#555",
-    textTransform: "uppercase",
+    ...label,
+    color: TEXT_SECONDARY,
   },
 });

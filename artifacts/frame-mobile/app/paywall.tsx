@@ -31,6 +31,7 @@ import { apiUrl } from "@/lib/api";
 import { didVerifiedPriceChange, toShownPriceReport, verifyApplePrice, type VerifiedPackage } from "@/lib/applePrice";
 import { formatSubscriptionRenewal } from "@/lib/subscriptionDisclosure";
 import { reportCrash, reportPriceShown } from "@/lib/crashReporter";
+import { TEXT_SECONDARY, body, caption, label, sectionTitle } from "@/constants/typography";
 
 const FRAME_PLUS_PERKS = [
   "Unlimited coaching conversations",
@@ -223,7 +224,7 @@ export default function PaywallScreen() {
               style={({ pressed }) => [s.retryBtn, pressed && s.pressed]}
               onPress={() => setLoadAttempt((attempt) => attempt + 1)}
             >
-              <Text style={s.retryText}>TRY AGAIN</Text>
+              <Text style={s.retryText}>Try again</Text>
             </Pressable>
           </View>
         ) : (
@@ -271,7 +272,7 @@ export default function PaywallScreen() {
           {restoring ? (
             <ActivityIndicator color="#666" />
           ) : (
-            <Text style={s.restoreText}>RESTORE PURCHASES</Text>
+            <Text style={s.restoreText}>Restore purchases</Text>
           )}
         </Pressable>
 
@@ -287,7 +288,7 @@ export default function PaywallScreen() {
             accessibilityLabel="Open Privacy Policy"
             hitSlop={8}
           >
-            <Text style={s.legalLink}>PRIVACY POLICY</Text>
+            <Text style={s.legalLink}>Privacy Policy</Text>
           </Pressable>
           <Text style={s.legalDivider}>·</Text>
           <Pressable
@@ -296,7 +297,7 @@ export default function PaywallScreen() {
             accessibilityLabel="Open Terms of Use"
             hitSlop={8}
           >
-            <Text style={s.legalLink}>TERMS OF USE (EULA)</Text>
+            <Text style={s.legalLink}>Terms of Use (EULA)</Text>
           </Pressable>
           {Platform.OS === "ios" ? (
             <>
@@ -309,7 +310,7 @@ export default function PaywallScreen() {
                 accessibilityLabel="Manage App Store subscriptions"
                 hitSlop={8}
               >
-                <Text style={s.legalLink}>MANAGE SUBSCRIPTION</Text>
+                <Text style={s.legalLink}>Manage subscription</Text>
               </Pressable>
             </>
           ) : null}
@@ -324,10 +325,8 @@ const s = StyleSheet.create({
   closeBtn: { alignSelf: "flex-end", padding: 8 },
   content: { paddingTop: 12 },
   kicker: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
+    ...sectionTitle,
     color: "#8A6A2F",
-    letterSpacing: 4,
     marginBottom: 8,
   },
   title: {
@@ -375,10 +374,10 @@ const s = StyleSheet.create({
     flexShrink: 1,
   },
   planPrice: {
-    fontFamily: "SpaceMono",
-    fontSize: 12,
+    ...body,
+    fontSize: 13,
+    lineHeight: 19,
     color: "#3a2a12",
-    lineHeight: 18,
     marginTop: 2,
     flexShrink: 1,
   },
@@ -394,18 +393,16 @@ const s = StyleSheet.create({
   unavailable: {
     fontFamily: "Outfit",
     fontSize: 14,
-    color: "#666",
+    color: "#a8a8a8",
     textAlign: "center",
     marginTop: 24,
     lineHeight: 20,
   },
   unavailableWrap: { alignItems: "center" },
   diagnostic: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    color: "#555",
+    ...caption,
+    color: TEXT_SECONDARY,
     textAlign: "center",
-    lineHeight: 14,
     marginTop: 8,
   },
   retryBtn: {
@@ -416,22 +413,17 @@ const s = StyleSheet.create({
     marginTop: 16,
   },
   retryText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    color: "#888",
-    letterSpacing: 2,
+    ...label,
+    color: TEXT_SECONDARY,
   },
   restoreBtn: { alignItems: "center", paddingVertical: 18, marginTop: 8 },
   restoreText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    color: "#666",
-    letterSpacing: 3,
+    ...sectionTitle,
   },
   legal: {
     fontFamily: "Outfit",
     fontSize: 11,
-    color: "#444",
+    color: "#a8a8a8",
     textAlign: "center",
     lineHeight: 16,
     marginTop: 12,
@@ -446,11 +438,9 @@ const s = StyleSheet.create({
     paddingBottom: 8,
   },
   legalLink: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
+    ...caption,
     color: "#8A6A2F",
-    letterSpacing: 1.2,
     textDecorationLine: "underline",
   },
-  legalDivider: { color: "#444", fontSize: 12 },
+  legalDivider: { color: "#a8a8a8", fontSize: 12 },
 });

@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatDay } from "@/lib/localDay";
 import { barSlots, checkinScore } from "@/lib/readinessBars";
 import type { DailyCheckinRow } from "@/lib/today";
+import { TEXT_SECONDARY, caption, meta, sectionTitle } from "@/constants/typography";
 
 /**
  * Readiness history, one bar per calendar day over the last 14. Each bar with a
@@ -69,20 +70,20 @@ export function ReadinessBars({
         <View style={s.detail}>
           <View style={s.detailHead}>
             <Text style={s.detailTitle}>
-              {formatDay(open.checkinDate).toUpperCase()}
+              {formatDay(open.checkinDate)}
               {open.checkinDate === today ? " · TODAY" : ""}
             </Text>
             <Text style={s.detailScore}>{checkinScore(open)}</Text>
           </View>
           <Text style={s.detailNote}>
-            {open.checkinDate === today ? "LOGGED TODAY." : "A PAST CHECK-IN. IT IS NOT TODAY'S STATE."}
+            {open.checkinDate === today ? "Logged today." : "A past check-in. It is not today's state."}
           </Text>
           <View style={s.grid}>
-            <Metric label="SLEEP" value={open.sleep} />
-            <Metric label="ENERGY" value={open.energy} />
-            <Metric label="SORENESS" value={100 - open.soreness} />
-            <Metric label="STRESS" value={100 - open.stress} />
-            {open.restingHr != null ? <Metric label="CARDIO HR" value={open.restingHr} unit="bpm" /> : null}
+            <Metric label="Sleep" value={open.sleep} />
+            <Metric label="Energy" value={open.energy} />
+            <Metric label="Soreness" value={100 - open.soreness} />
+            <Metric label="Stress" value={100 - open.stress} />
+            {open.restingHr != null ? <Metric label="Cardio HR" value={open.restingHr} unit="bpm" /> : null}
           </View>
         </View>
       ) : null}
@@ -111,7 +112,7 @@ const s = StyleSheet.create({
   bar: { width: "100%", borderTopLeftRadius: 1, borderTopRightRadius: 1, minHeight: 4 },
   barOn: { borderWidth: 1, borderColor: "#e0e0e0" },
   empty: { width: "100%", height: 2, backgroundColor: "#1e1e1e" },
-  tick: { fontFamily: "SpaceMono", fontSize: 8, color: "#444" },
+  tick: { ...meta, color: TEXT_SECONDARY },
   tickOn: { color: "#e0e0e0" },
   detail: {
     marginTop: 16,
@@ -120,12 +121,12 @@ const s = StyleSheet.create({
     paddingTop: 14,
   },
   detailHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
-  detailTitle: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: "#aaa" },
+  detailTitle: { ...sectionTitle },
   detailScore: { fontFamily: "Outfit", fontSize: 22, color: "#8A6A2F" },
-  detailNote: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 2, color: "#555", marginTop: 4 },
+  detailNote: { ...meta, color: TEXT_SECONDARY, marginTop: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", marginTop: 14, rowGap: 12 },
   metric: { width: "33.33%", gap: 3 },
-  metricLabel: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "#777" },
+  metricLabel: { ...meta },
   metricValue: { fontFamily: "Outfit", fontSize: 16, color: "#d8d8d8" },
-  metricUnit: { fontFamily: "SpaceMono", fontSize: 9, color: "#666" },
+  metricUnit: { ...caption, color: TEXT_SECONDARY },
 });

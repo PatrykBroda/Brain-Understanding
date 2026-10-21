@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Defs, RadialGradient as SvgRadialGradient, Rect, Stop } from "react-native-svg";
+import { TEXT_SECONDARY, meta, sectionTitle, sentence } from "@/constants/typography";
 
 // BJJ belt psychology — ported verbatim from @workspace/archetypes (the web's
 // source of truth). This component is rendered only for BJJ athletes.
@@ -202,7 +203,7 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
   if (ladderIndex < 0) {
     return (
       <View style={beltStyles.unranked}>
-        <Text style={beltStyles.unrankedText}>UNRANKED / OTHER</Text>
+        <Text style={beltStyles.unrankedText}>Unranked / other</Text>
       </View>
     );
   }
@@ -215,11 +216,11 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
       <RealisticBelt cloth={rung.cloth} ink={rung.ink} label={rung.label} />
 
       <View style={beltStyles.headRow}>
-        <Text style={beltStyles.rankLabel}>{rung.label.toUpperCase()} BELT</Text>
+        <Text style={beltStyles.rankLabel}>{rung.label} belt</Text>
         {next ? (
-          <Text style={beltStyles.nextLabel}>NEXT · {next.label.toUpperCase()}</Text>
+          <Text style={beltStyles.nextLabel}>Next · {next.label}</Text>
         ) : (
-          <Text style={beltStyles.apexLabel}>APEX</Text>
+          <Text style={beltStyles.apexLabel}>Apex</Text>
         )}
       </View>
 
@@ -227,7 +228,7 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
 
       {showMeaning && meaning && (
         <View style={beltStyles.meaning}>
-          <Text style={beltStyles.meaningState}>{meaning.state.toUpperCase()}</Text>
+          <Text style={beltStyles.meaningState}>{sentence(meaning.state)}</Text>
           <Text style={beltStyles.meaningText}>{meaning.meaning}</Text>
         </View>
       )}
@@ -401,9 +402,7 @@ const beltStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
   },
   rungLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 7,
-    letterSpacing: 1,
+    ...meta,
   },
   headRow: {
     flexDirection: "row",
@@ -411,21 +410,15 @@ const beltStyles = StyleSheet.create({
     justifyContent: "space-between",
   },
   rankLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 4,
+    ...sectionTitle,
     color: "#e0e0e0",
   },
   nextLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#777",
+    ...meta,
+    color: TEXT_SECONDARY,
   },
   apexLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
+    ...meta,
     color: "#8A6A2F",
   },
   meaning: {
@@ -435,9 +428,7 @@ const beltStyles = StyleSheet.create({
     paddingTop: 2,
   },
   meaningState: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: "#8A6A2F",
   },
   meaningText: {
@@ -455,9 +446,6 @@ const beltStyles = StyleSheet.create({
     justifyContent: "center",
   },
   unrankedText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "#666",
+    ...sectionTitle,
   },
 });

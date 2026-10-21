@@ -20,6 +20,7 @@ import { CATEGORY_LABELS, factSeenLabel, type ModelFact } from "@/lib/athleteMod
 import { bucketByDay, observationPrompt } from "@/lib/factHistory";
 import { refreshModel } from "@/lib/modelRefresh";
 import { FactConfidence } from "@/components/FactConfidence";
+import { TEXT_SECONDARY, caption, meta, sectionTitle, sentence } from "@/constants/typography";
 
 const ACCENT = "#8A6A2F";
 
@@ -76,9 +77,9 @@ export default function HistoryScreen() {
           <Feather name="arrow-left" size={18} color="rgba(255,255,255,0.7)" />
         </Pressable>
         <View>
-          <Text style={s.headerOverline}>FULL MODEL</Text>
-          <Text style={s.headerTitle}>OBSERVATION HISTORY</Text>
-          <Text style={s.headerSub}>BY LAST SEEN · NEWEST FIRST</Text>
+          <Text style={s.headerOverline}>Full model</Text>
+          <Text style={s.headerTitle}>Observation history</Text>
+          <Text style={s.headerSub}>By last seen · newest first</Text>
         </View>
       </View>
 
@@ -95,7 +96,7 @@ export default function HistoryScreen() {
                   ? "FRAME records durable observations as you train and talk. The full timeline is a FRAME+ feature."
                   : `FRAME holds ${activeFacts.length} recorded observation${activeFacts.length === 1 ? "" : "s"} on you. The full timeline is a FRAME+ feature.`}
               </Text>
-              <Text style={s.unlockLink}>UNLOCK FRAME+ →</Text>
+              <Text style={s.unlockLink}>Unlock FRAME+ →</Text>
             </View>
           </Pressable>
         ) : isLoading ? (
@@ -121,7 +122,7 @@ export default function HistoryScreen() {
             {buckets.map((bucket) => (
               <View key={bucket.key}>
                 <View style={s.dayHeadRow}>
-                  <Text style={s.dayHeadLabel}>{bucket.label.toUpperCase()}</Text>
+                  <Text style={s.dayHeadLabel}>{bucket.label}</Text>
                   <View style={s.dayHeadLine} />
                   <Text style={s.dayHeadCount}>{bucket.facts.length}</Text>
                 </View>
@@ -141,12 +142,12 @@ export default function HistoryScreen() {
                     >
                       <View style={{ flex: 1 }}>
                         <Text style={s.factCat}>
-                          {(CATEGORY_LABELS[f.category] ?? f.category).toUpperCase()}
+                          {CATEGORY_LABELS[f.category] ?? f.category}
                         </Text>
                         <Text style={s.factText} numberOfLines={3}>
-                          {(f.topic || f.content).toUpperCase()}
+                          {f.topic || f.content}
                         </Text>
-                        <Text style={s.factSeen}>{factSeenLabel(f).toUpperCase()}</Text>
+                        <Text style={s.factSeen}>{sentence(factSeenLabel(f))}</Text>
                       </View>
                       <View style={s.factMeta}>
                         {(f.evidenceCount ?? 1) > 1 && (
@@ -185,17 +186,14 @@ const s = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.1)",
   },
   headerOverline: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 5,
-    color: "rgba(255,255,255,0.45)",
+    ...sectionTitle,
     marginBottom: 6,
   },
-  headerSub: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 3, color: "rgba(255,255,255,0.35)", marginTop: 5 },
+  headerSub: { ...sectionTitle, marginTop: 5 },
   headerTitle: {
     fontFamily: "Outfit",
     fontSize: 18,
-    letterSpacing: 3,
+    letterSpacing: 0,
     color: "rgba(255,255,255,0.9)",
   },
 
@@ -210,12 +208,10 @@ const s = StyleSheet.create({
     fontFamily: "Outfit",
     fontSize: 13,
     lineHeight: 20,
-    color: "rgba(255,255,255,0.5)",
+    color: "#a8a8a8",
   },
   unlockLink: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: ACCENT,
     marginTop: 16,
   },
@@ -223,9 +219,9 @@ const s = StyleSheet.create({
   loadingWrap: { paddingVertical: 48, alignItems: "center" },
 
   dayHeadRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
-  dayHeadLabel: { fontFamily: "Outfit", fontSize: 13, letterSpacing: 3, color: "rgba(138,106,47,0.9)" },
+  dayHeadLabel: { fontFamily: "Outfit_500Medium", fontSize: 13, letterSpacing: 0, color: "rgba(138,106,47,0.9)" },
   dayHeadLine: { flex: 1, height: 1, backgroundColor: "rgba(138,106,47,0.22)" },
-  dayHeadCount: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(255,255,255,0.4)" },
+  dayHeadCount: { ...caption, color: TEXT_SECONDARY },
 
   factItem: {
     flexDirection: "row",
@@ -238,20 +234,15 @@ const s = StyleSheet.create({
     borderLeftColor: "rgba(138,106,47,0.25)",
   },
   factCat: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "rgba(138,106,47,0.7)",
+    ...meta,
+    color: "#8A6A2F",
     marginBottom: 3,
   },
   factText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    lineHeight: 15,
-    color: "rgba(255,255,255,0.75)",
+    ...caption,
+    color: TEXT_SECONDARY,
   },
-  factSeen: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 2, color: "rgba(138,106,47,0.7)", marginTop: 4 },
+  factSeen: { ...meta, color: "#8A6A2F", marginTop: 4 },
   factMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
-  factEvidence: { fontFamily: "SpaceMono", fontSize: 9, color: "rgba(138,106,47,0.7)" },
+  factEvidence: { ...caption, color: "#8A6A2F" },
 });

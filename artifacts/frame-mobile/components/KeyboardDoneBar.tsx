@@ -1,5 +1,6 @@
 import React from "react";
 import { InputAccessoryView, Keyboard, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { FONT } from "@/constants/typography";
 
 
 /** nativeID shared by every Field so iOS shows one "Done" bar above the keyboard. */
@@ -39,5 +40,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   btn: { minHeight: 44, minWidth: 64, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
-  text: { fontFamily: "SpaceMono", fontSize: 16, color: "#8A6A2F" },
+  text: { fontFamily: FONT.medium, fontSize: 16, color: "#8A6A2F", letterSpacing: 0 },
 });

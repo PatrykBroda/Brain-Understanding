@@ -1,5 +1,4 @@
 import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold } from "@expo-google-fonts/outfit";
-import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
 import {
   InterTight_400Regular,
   InterTight_500Medium,
@@ -37,6 +36,7 @@ import { APP_DOMAIN, resolveApiBase } from "@/lib/appDomain";
 import { configurePurchases, syncPurchasesUser } from "@/lib/purchases";
 import { reportStartup } from "@/lib/crashReporter";
 import { FrameLogo } from "@/components/FrameLogo";
+import { label } from "@/constants/typography";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -139,7 +139,7 @@ function SessionPersistenceNotice() {
         hitSlop={12}
         onPress={dismissSessionPersistenceWarning}
       >
-        <Text style={noticeStyles.dismiss}>CLOSE</Text>
+        <Text style={noticeStyles.dismiss}>Close</Text>
       </Pressable>
     </View>
   );
@@ -169,10 +169,8 @@ const noticeStyles = StyleSheet.create({
     lineHeight: 18,
   },
   dismiss: {
+    ...label,
     color: "#C8A96A",
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 1.5,
   },
 });
 
@@ -238,7 +236,7 @@ function ConfigErrorScreen({ message }: { message: string }) {
     <View style={configErrorStyles.root}>
       <Text style={configErrorStyles.wordmark}>FRAME</Text>
       <Text accessibilityRole="alert" style={configErrorStyles.heading}>
-        BUILD MISCONFIGURED
+        Build misconfigured
       </Text>
       <Text style={configErrorStyles.body}>{message}</Text>
       <Text style={configErrorStyles.body}>
@@ -267,7 +265,7 @@ const configErrorStyles = StyleSheet.create({
   },
   heading: {
     fontSize: 12,
-    letterSpacing: 2,
+    letterSpacing: 0,
     color: "#C8A96A",
   },
   body: {
@@ -279,8 +277,8 @@ const configErrorStyles = StyleSheet.create({
   meta: {
     marginTop: 8,
     fontSize: 11,
-    letterSpacing: 1.5,
-    color: "#6d6d6d",
+    letterSpacing: 0,
+    color: "#a8a8a8",
   },
 });
 
@@ -333,8 +331,6 @@ export default function RootLayout() {
     Outfit_400Regular,
     Outfit_500Medium,
     Outfit_600SemiBold,
-    SpaceMono: SpaceMono_400Regular,
-    SpaceMono_400Regular,
     // entry screens only (sign-in / sign-up / splash / loading)
     InterTight: InterTight_400Regular,
     InterTightMedium: InterTight_500Medium,

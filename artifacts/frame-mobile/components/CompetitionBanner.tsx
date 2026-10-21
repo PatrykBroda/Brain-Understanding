@@ -5,6 +5,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import type { PressureTier } from "@/lib/competition";
+import { TEXT_SECONDARY, meta, sectionTitle } from "@/constants/typography";
 
 // Visual pressure scales with the camp phase: calm amber far out, hard red in
 // fight week. Ported to match the web banner (coach/competition-banner.tsx):
@@ -45,7 +46,7 @@ export function CompetitionBanner() {
 
   if (!pressure || !competition) return null;
 
-  const dayWord = pressure.daysToEvent === 1 ? "DAY" : "DAYS";
+  const dayWord = pressure.daysToEvent === 1 ? "Day" : "Days";
   const showWeighIn =
     pressure.daysToWeighIn !== null && pressure.daysToWeighIn <= pressure.daysToEvent;
 
@@ -70,10 +71,10 @@ export function CompetitionBanner() {
         <View style={styles.row}>
           <View style={styles.left}>
             <Text style={[styles.tierLabel, { color: tier.accent }]} numberOfLines={1}>
-              {pressure.tierLabel.toUpperCase()}
+              {pressure.tierLabel}
             </Text>
             <Text style={styles.event} numberOfLines={1}>
-              {competition.eventName.toUpperCase()}
+              {competition.eventName}
             </Text>
           </View>
           <View style={styles.right}>
@@ -82,7 +83,7 @@ export function CompetitionBanner() {
                 <Text style={[styles.weighNum, { color: tier.accent }]}>
                   {pressure.daysToWeighIn}
                 </Text>
-                <Text style={styles.metricLabel}>WEIGH-IN</Text>
+                <Text style={styles.metricLabel}>Weigh-in</Text>
               </View>
             ) : null}
             <View style={styles.metric}>
@@ -119,9 +120,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   tierLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3.6,
+    ...sectionTitle,
   },
   event: {
     fontFamily: "Outfit",
@@ -149,10 +148,8 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   metricLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2.4,
-    color: "rgba(224,224,224,0.55)",
+    ...meta,
+    color: TEXT_SECONDARY,
     marginLeft: 4,
   },
 });

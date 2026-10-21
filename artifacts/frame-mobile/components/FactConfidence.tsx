@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { TEXT_SECONDARY, meta } from "@/constants/typography";
 
 /** Fact confidence (1-5): five small pips plus an "n/5" count (original Profile idiom). */
 export function FactConfidence({ value }: { value: number }) {
@@ -22,5 +23,5 @@ const cd = StyleSheet.create({
   pip: { width: 3, height: 9 },
   active: { backgroundColor: "#d29a4d" },
   inactive: { backgroundColor: "rgba(255,255,255,0.1)" },
-  count: { fontFamily: "SpaceMono", fontSize: 8, letterSpacing: 1.5, color: "rgba(255,255,255,0.4)" },
+  count: { ...meta, color: TEXT_SECONDARY },
 });

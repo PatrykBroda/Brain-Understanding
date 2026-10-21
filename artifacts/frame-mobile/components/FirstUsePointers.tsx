@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
 
 import { parseDismissed, pointersKey, pointersToShow, type PointerId } from "@/lib/pointers";
+import { sectionTitle } from "@/constants/typography";
 
 /**
  * Up to three short, dismissible first-use hints. Each one goes away when dismissed or when the
@@ -60,10 +61,10 @@ export function FirstUsePointers({
             accessibilityRole="button"
             accessibilityLabel={`${p.title}. ${p.body} ${p.action}`}
           >
-            <Text style={s.title}>{p.title.toUpperCase()}</Text>
+            <Text style={s.title}>{p.title}</Text>
             <Text style={s.body}>{p.body}</Text>
             <View style={s.actionRow}>
-              <Text style={s.action}>{p.action.toUpperCase()}</Text>
+              <Text style={s.action}>{p.action}</Text>
               <Feather name="chevron-right" size={11} color="#8A6A2F" />
             </View>
           </Pressable>
@@ -91,9 +92,9 @@ const s = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "flex-start" },
   rule: { borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.07)" },
   main: { flex: 1, paddingVertical: 14, gap: 6 },
-  title: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 4, color: "#aaa" },
+  title: { ...sectionTitle },
   body: { fontFamily: "Outfit", fontSize: 14, lineHeight: 20, color: "#8a8a8a" },
   actionRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
-  action: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "#8A6A2F" },
+  action: { ...sectionTitle, color: "#8A6A2F" },
   close: { width: 36, height: 44, alignItems: "center", justifyContent: "center" },
 });

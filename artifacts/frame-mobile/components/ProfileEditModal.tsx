@@ -20,6 +20,7 @@ import { dismissProps } from "@/components/FormScroll";
 import { useAuth } from "@/context/AuthContext";
 import { commitFighterProfile } from "@/lib/fighterProfileCache";
 import { NAME_TEXT } from "@/lib/textInputProps";
+import { sectionTitle } from "@/constants/typography";
 
 /**
  * Edit profile: the name. Sport, belt / level, frequency, goals and weaknesses are the ONBOARDING
@@ -89,9 +90,9 @@ export function ProfileEditModal({
             { paddingTop: Platform.OS === "ios" ? insets.top + 12 : 16 },
           ]}
         >
-          <Text style={styles.sheetTitle}>EDIT PROFILE</Text>
+          <Text style={styles.sheetTitle}>Edit profile</Text>
           <Pressable onPress={onClose} hitSlop={12}>
-            <Text style={styles.cancelText}>CANCEL</Text>
+            <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
         </View>
 
@@ -104,7 +105,7 @@ export function ProfileEditModal({
           {...dismissProps}
         >
           <View style={styles.field}>
-            <Text style={styles.label}>NAME</Text>
+            <Text style={styles.label}>Name</Text>
             <TextInput
               {...NAME_TEXT}
               style={[styles.input, nameTouched && nameErr ? styles.inputError : null]}
@@ -121,7 +122,7 @@ export function ProfileEditModal({
               onSubmitEditing={() => void handleSave()}
             />
             {nameTouched && nameErr ? <Text style={styles.errorText}>{nameErr}</Text> : null}
-            <Text style={styles.note}>Your sport, belt, training frequency, goals and weaknesses are under ONBOARDING QUESTIONS on your profile.</Text>
+            <Text style={styles.note}>Your sport, belt, training frequency, goals and weaknesses are under Onboarding questions on your profile.</Text>
           </View>
 
           {error && <Text style={styles.errorText}>{error}</Text>}
@@ -138,7 +139,7 @@ export function ProfileEditModal({
             {saving ? (
               <ActivityIndicator color="#050505" size="small" />
             ) : (
-              <Text style={styles.saveBtnText}>SAVE</Text>
+              <Text style={styles.saveBtnText}>Save</Text>
             )}
           </Pressable>
         </ScrollView>
@@ -159,16 +160,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#050505",
   },
   sheetTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 5,
+    ...sectionTitle,
     color: "#e0e0e0",
   },
   cancelText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#666",
+    ...sectionTitle,
   },
   content: {
     paddingHorizontal: 20,
@@ -179,10 +175,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   label: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 4,
-    color: "#444",
+    ...sectionTitle,
   },
   input: {
     fontFamily: "Outfit",
@@ -195,7 +188,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   inputError: { borderColor: "#c0392b" },
-  note: { fontFamily: "Outfit", fontSize: 12, lineHeight: 18, color: "#555" },
+  note: { fontFamily: "Outfit", fontSize: 12, lineHeight: 18, color: "#a8a8a8" },
   errorText: {
     fontFamily: "Outfit",
     fontSize: 13,
@@ -208,9 +201,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   saveBtnText: {
-    fontFamily: "SpaceMono",
-    fontSize: 11,
-    letterSpacing: 4,
+    ...sectionTitle,
     color: "#050505",
   },
 });

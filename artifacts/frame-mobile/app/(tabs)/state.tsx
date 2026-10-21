@@ -10,7 +10,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -22,9 +21,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { OrbGL } from "@/components/OrbGL";
 import { GOLD } from "@/constants/colors";
-import { useAuth } from "@/context/AuthContext";
 import { useToday } from "@/hooks/useToday";
-import { apiGet } from "@/lib/api";
 import { stateHeadline } from "@/lib/today";
 
 type OrbState =
@@ -108,7 +105,6 @@ const TIP_MS = 3500;
 export default function StateScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isSignedIn } = useAuth();
 
   // The server is the one authority on the athlete's State for their local day. An older
   // read is never presented as today's.
@@ -121,18 +117,6 @@ export default function StateScreen() {
   const loading = todayQuery.isLoading;
   const failed = todayQuery.isError && !todayQuery.data;
 
-  // Doorway label mirrors the prototype: "Continue" only when a real prior session exists,
-  // else "Enter".
-  const conversationQuery = useQuery<unknown[]>({
-    queryKey: ["conversation-active"],
-    queryFn: () =>
-      apiGet<{ messages: unknown[] }>("/conversation/active").then((r) =>
-        Array.isArray(r?.messages) ? r.messages : [],
-      ),
-    enabled: !!isSignedIn,
-    staleTime: 60_000,
-  });
-  const hasSession = (conversationQuery.data?.length ?? 0) > 0;
 
   // Why this state is showing, then what to do next.
   const why = loading
@@ -264,14 +248,14 @@ export default function StateScreen() {
         )}
       </View>
 
-      {/* Enter / Continue */}
+      {/* Continue into chat */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 90 }]}>
         <Pressable
           style={({ pressed }) => [styles.enterBtn, pressed && styles.enterPressed]}
           onPress={() => router.push("/(tabs)/chat")}
           accessibilityRole="button"
         >
-          <Text style={styles.enterText}>{hasSession ? "Continue" : "Enter"}</Text>
+          <Text style={styles.enterText}>Continue</Text>
           <Feather name="chevron-right" size={16} color="#cfcfcf" />
         </Pressable>
       </View>

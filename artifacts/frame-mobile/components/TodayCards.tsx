@@ -5,6 +5,7 @@ import { Feather } from "@expo/vector-icons";
 import { GOLD } from "@/constants/colors";
 import { formatDay } from "@/lib/localDay";
 import type { FocusView, TodayView } from "@/lib/today";
+import { TEXT_SECONDARY, caption, meta, sectionTitle } from "@/constants/typography";
 
 /**
  * Said when FRAME holds nothing new today (or no check-in): what it knows, from
@@ -50,21 +51,21 @@ export function FocusCard({
   const stale = focus != null && !focus.current;
   const dateTag = focus?.forDate
     ? stale
-      ? `FROM ${formatDay(focus.forDate).toUpperCase()}`
+      ? `From ${formatDay(focus.forDate)}`
       : focus.carriedOver
-        ? "SAME AS YESTERDAY"
-        : "TODAY"
+        ? "Same as yesterday"
+        : "Today"
     : null;
 
   return (
     <View>
       <View style={s.head}>
-        <Text style={s.title}>TODAY'S FOCUS</Text>
+        <Text style={s.title}>Today's focus</Text>
         {dateTag ? <Text style={[s.tag, stale && s.tagStale]}>{dateTag}</Text> : null}
       </View>
 
       {loading ? (
-        <Text style={s.detail}>READING YOUR DAY…</Text>
+        <Text style={s.detail}>Reading your day…</Text>
       ) : focus ? (
         <>
           <Pressable
@@ -93,13 +94,13 @@ export function FocusCard({
           ) : null}
           {stale ? (
             <Text style={s.staleNote}>
-              NOT SET FOR TODAY. CHECK IN OR TELL YOUR COACH HOW TRAINING WENT AND FRAME WILL SET TODAY'S.
+              Not set for today. Check in or tell your coach how training went and FRAME will set today's.
             </Text>
           ) : null}
         </>
       ) : (
         <>
-          <Text style={[s.focusLabel, { color: "#666", paddingTop: 16 }]}>Your focus appears here</Text>
+          <Text style={[s.focusLabel, { color: "#a8a8a8", paddingTop: 16 }]}>Your focus appears here</Text>
           <Text style={s.detail}>
             Log a check-in or tell your coach how training is going. FRAME sets a focus from what it knows about your day.
           </Text>
@@ -130,8 +131,8 @@ const s = StyleSheet.create({
     borderBottomColor: "rgba(255,255,255,0.07)",
     paddingBottom: 8,
   },
-  title: { fontFamily: "SpaceMono", fontSize: 10, letterSpacing: 6, color: "#777" },
-  tag: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "#555" },
+  title: { ...sectionTitle },
+  tag: { ...meta },
   tagStale: { color: "#8A6A2F" },
   focusRow: {
     flexDirection: "row",
@@ -149,12 +150,9 @@ const s = StyleSheet.create({
     marginTop: 8,
   },
   because: { marginTop: 12, gap: 4 },
-  becauseLine: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 2, lineHeight: 15, color: "#555" },
+  becauseLine: { ...caption, color: TEXT_SECONDARY },
   staleNote: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    lineHeight: 15,
+    ...caption,
     color: "#8A6A2F",
     marginTop: 12,
   },

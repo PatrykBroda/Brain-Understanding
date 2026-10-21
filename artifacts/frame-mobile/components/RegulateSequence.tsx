@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BreathCard, type Breath } from "@/components/BreathCard";
+import { FONT, TEXT_SECONDARY, label } from "@/constants/typography";
 
 type StateStep = { type: "state"; content: string };
 type BreathStep = { type: "breath" } & Breath;
@@ -128,7 +129,7 @@ export function RegulateSequence({ data }: { data: RegulateSequenceData }) {
   return (
     <View style={s.card}>
       <View style={s.head}>
-        <Text style={s.headLabel}>REGULATE</Text>
+        <Text style={s.headLabel}>Regulate</Text>
         {!finished && (
           <Text style={s.headKind}>
             {label} · {stepIdx + 1}/{steps.length}
@@ -184,17 +185,12 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(138,106,47,0.10)",
   },
   headLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "rgba(138,106,47,0.85)",
+    ...label,
+    color: "#8A6A2F",
   },
   headKind: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 1.5,
-    color: "rgba(138,106,47,0.6)",
-    textTransform: "uppercase",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   stepPad: {
     paddingHorizontal: 16,
@@ -221,11 +217,8 @@ const s = StyleSheet.create({
     borderColor: "rgba(138,106,47,0.5)",
   },
   continueText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
+    ...label,
     color: "#8A6A2F",
-    textTransform: "uppercase",
   },
   groundWrap: {
     alignItems: "center",
@@ -233,22 +226,19 @@ const s = StyleSheet.create({
     paddingVertical: 24,
   },
   groundTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#666",
+    ...label,
+    color: TEXT_SECONDARY,
     marginBottom: 18,
-    textTransform: "uppercase",
   },
   groundDone: {
     alignItems: "center",
     gap: 16,
   },
   anchored: {
-    fontFamily: "SpaceMono",
+    fontFamily: FONT.medium,
     fontSize: 28,
-    letterSpacing: 6,
-    color: "rgba(138,106,47,0.70)",
+    color: "#8A6A2F",
+    letterSpacing: 0,
   },
   groundActive: {
     alignItems: "center",
@@ -256,10 +246,11 @@ const s = StyleSheet.create({
     width: "100%",
   },
   bigCount: {
-    fontFamily: "SpaceMono",
+    fontFamily: FONT.medium,
     fontSize: 88,
     lineHeight: 96,
-    color: "rgba(138,106,47,0.22)",
+    color: TEXT_SECONDARY,
+    letterSpacing: 0,
   },
   groundPrompt: {
     fontFamily: "Outfit",
@@ -287,11 +278,8 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   finishedText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "rgba(138,106,47,0.5)",
-    textTransform: "uppercase",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   seqDots: {
     flexDirection: "row",

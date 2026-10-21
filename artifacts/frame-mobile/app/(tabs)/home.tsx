@@ -45,6 +45,8 @@ import {
   type ChatMessageLike,
 } from "@/lib/readinessModifier";
 import { RAW_TEXT } from "@/lib/textInputProps";
+import { FrameLogo } from "@/components/FrameLogo";
+import { TEXT_SECONDARY, caption, label, meta, sectionTitle } from "@/constants/typography";
 
 // ── Real-composite band read (interpretation, not fabrication) ─────────────
 function bandFor(score: number): string {
@@ -229,23 +231,23 @@ function CheckinForm({
   return (
     <View style={styles.formCard}>
       <Text style={styles.formIntro}>
-        RATE HOW YOU ACTUALLY FEEL. 100 = FULLY RECOVERED.
+        Rate how you actually feel. 100 = fully recovered.
       </Text>
       {METRIC_LABELS.map(({ key, label, hint }) => (
         <View key={key} style={styles.formRow}>
           <View style={styles.formRowHead}>
-            <Text style={styles.formLabel}>{label.toUpperCase()}</Text>
+            <Text style={styles.formLabel}>{label}</Text>
             <Text style={styles.formValue}>{values[key]}</Text>
           </View>
           <MetricSlider
             value={values[key]}
             onChange={(v) => setValues((prev) => ({ ...prev, [key]: v }))}
           />
-          <Text style={styles.formHint}>{hint.toUpperCase()}</Text>
+          <Text style={styles.formHint}>{hint}</Text>
         </View>
       ))}
       <View style={styles.formRow}>
-        <Text style={styles.formLabel}>RESTING HR (OPTIONAL, BPM)</Text>
+        <Text style={styles.formLabel}>Resting HR (optional, bpm)</Text>
         <TextInput
           {...RAW_TEXT}
           value={hr}
@@ -265,11 +267,11 @@ function CheckinForm({
           style={[styles.saveBtn, save.isPending && { opacity: 0.4 }]}
         >
           <Text style={styles.saveBtnText}>
-            {save.isPending ? "SAVING" : existing ? "UPDATE" : "LOG CHECK-IN"}
+            {save.isPending ? "Saving" : existing ? "Update" : "Log check-in"}
           </Text>
         </Pressable>
         <Pressable onPress={onDone} hitSlop={8}>
-          <Text style={styles.cancelText}>CANCEL</Text>
+          <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
       </View>
     </View>
@@ -288,9 +290,9 @@ function ReadinessHistory({
   return (
     <View>
       <View style={styles.trendHead}>
-        <Text style={styles.sectionLabel}>READINESS HISTORY</Text>
+        <Text style={styles.sectionLabel}>Readiness history</Text>
         <Text style={styles.trendMeta}>
-          {hasAny ? "LAST 14 DAYS · TAP A BAR" : "LAST 14 DAYS"}
+          {hasAny ? "Last 14 days · tap a bar" : "Last 14 days"}
         </Text>
       </View>
       <View style={{ marginTop: 16 }}>
@@ -379,9 +381,9 @@ export default function HomeScreen() {
   const readiness = applyReadinessModifier(checkinScore, chatModifier);
   const provenance =
     checkinScore != null
-      ? "TODAY'S CHECK-IN"
+      ? "Today's check-in"
       : latestCheckin
-        ? `LAST CHECK-IN ${formatDay(latestCheckin.date).toUpperCase()}`
+        ? `Last check-in ${formatDay(latestCheckin.date)}`
         : null;
   const readinessLoading = todayQuery.isLoading;
   const readinessFailed = !readinessLoading && todayQuery.isError && readiness == null;
@@ -402,10 +404,10 @@ export default function HomeScreen() {
 
   const metaParts = fighter
     ? [
-        fighter.primarySport ? sportDisplayName(fighter.primarySport).toUpperCase() : null,
-        fighter.level ? fighter.level.toUpperCase() : null,
+        fighter.primarySport ? sportDisplayName(fighter.primarySport) : null,
+        fighter.level ? fighter.level : null,
         fighter.weightClass || null,
-        fighter.stance ? fighter.stance.toUpperCase() : null,
+        fighter.stance ? fighter.stance : null,
       ].filter((p): p is string => !!p)
     : [];
 
@@ -454,16 +456,14 @@ export default function HomeScreen() {
 
         {/* Header over hero */}
         <View style={[styles.heroHeader, { paddingTop: topPad + 8 }]}>
-          <Image
-            source={require("@/assets/images/frame-wordmark.png")}
-            style={styles.wordmark}
-            resizeMode="contain"
-          />
+          <View style={styles.wordmark} accessibilityRole="header" accessibilityLabel="FRAME">
+            <FrameLogo height={16} color="#e0e0e0" />
+          </View>
         </View>
 
         {/* Identity overlay */}
         <View style={styles.heroIdentity}>
-          <Text style={styles.heroKicker}>ATHLETE</Text>
+          <Text style={styles.heroKicker}>Athlete</Text>
           <Text style={styles.heroName}>{(fighter?.name ?? "—").toUpperCase()}</Text>
           {metaParts.length > 0 && (
             <Text style={styles.heroMeta}>{metaParts.join("   ·   ")}</Text>
@@ -482,10 +482,10 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Answer your onboarding questions so FRAME can coach you"
           >
-            <Text style={styles.qLabel}>ONBOARDING QUESTIONS</Text>
+            <Text style={styles.qLabel}>Onboarding questions</Text>
             <Text style={styles.qText}>Answer your onboarding questions so FRAME can coach you</Text>
             <View style={styles.editRow}>
-              <Text style={styles.editText}>ANSWER NOW</Text>
+              <Text style={styles.editText}>Answer now</Text>
               <Feather name="chevron-right" size={11} color={GOLD} />
             </View>
           </Pressable>
@@ -506,7 +506,7 @@ export default function HomeScreen() {
       {/* ─── Fight readiness ──────────────────────────────────────────── */}
       <View style={styles.section}>
         <View style={styles.sectionHeadRow}>
-          <Text style={styles.sectionTitle}>FIGHT READINESS</Text>
+          <Text style={styles.sectionTitle}>Fight readiness</Text>
           {provenance && <Text style={styles.sectionMeta}>{provenance}</Text>}
         </View>
 
@@ -515,7 +515,7 @@ export default function HomeScreen() {
             {readiness != null ? (
               <>
                 <Text style={styles.readyBig}>{readiness}</Text>
-                <Text style={styles.readyBand}>{bandFor(readiness).toUpperCase()}</Text>
+                <Text style={styles.readyBand}>{bandFor(readiness)}</Text>
               </>
             ) : (
               <>
@@ -525,12 +525,12 @@ export default function HomeScreen() {
                 {readinessLoading || readinessFailed || !showCheckinNotice ? (
                   <Text style={styles.readyEmptyNote}>
                     {readinessLoading
-                      ? "READING YOUR DAY…"
+                      ? "Reading your day…"
                       : readinessFailed
-                        ? "COULDN'T LOAD YOUR READINESS."
+                        ? "Couldn't load your readiness."
                         : latestCheckin
-                          ? `NO CHECK-IN TODAY. LAST CHECK-IN ${formatDay(latestCheckin.date).toUpperCase()}: ${latestCheckin.score} / 100. THAT IS NOT TODAY'S READINESS.`
-                          : "NO READINESS YET. IT COMES FROM TODAY'S CHECK-IN."}
+                          ? `No check-in today. Last check-in ${formatDay(latestCheckin.date)}: ${latestCheckin.score} / 100. That is not today's readiness.`
+                          : "No readiness yet. It comes from today's check-in."}
                   </Text>
                 ) : null}
                 {readinessFailed && (
@@ -542,7 +542,7 @@ export default function HomeScreen() {
                     hitSlop={8}
                     accessibilityRole="button"
                   >
-                    <Text style={styles.editText}>TRY AGAIN</Text>
+                    <Text style={styles.editText}>Try again</Text>
                     <Feather name="chevron-right" size={11} color={GOLD} />
                   </Pressable>
                 )}
@@ -553,7 +553,7 @@ export default function HomeScreen() {
           <View style={styles.readyRight}>
             {METRIC_LABELS.map(({ key, label }) => (
               <View key={key} style={styles.breakdownRow}>
-                <Text style={styles.breakdownLabel}>{label.toUpperCase()}</Text>
+                <Text style={styles.breakdownLabel}>{label}</Text>
                 <Text style={styles.breakdownValue}>
                   {checkin
                     ? INVERTED_METRICS[key]
@@ -564,7 +564,7 @@ export default function HomeScreen() {
               </View>
             ))}
             <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>CARDIO HR</Text>
+              <Text style={styles.breakdownLabel}>Cardio HR</Text>
               <Text style={styles.breakdownValue}>
                 {checkin?.restingHr != null ? `${checkin.restingHr}` : "—"}
                 {checkin?.restingHr != null && (
@@ -582,11 +582,11 @@ export default function HomeScreen() {
                 {checkin ? (
                   <>
                     <Feather name="edit-2" size={11} color={GOLD} />
-                    <Text style={styles.editText}>EDIT TODAY'S CHECK-IN</Text>
+                    <Text style={styles.editText}>Edit today's check-in</Text>
                   </>
                 ) : (
                   <>
-                    <Text style={styles.editText}>LOG TODAY'S CHECK-IN</Text>
+                    <Text style={styles.editText}>Log today's check-in</Text>
                     <Feather name="chevron-right" size={11} color={GOLD} />
                   </>
                 )}
@@ -625,7 +625,7 @@ export default function HomeScreen() {
             >
               <View style={styles.lockedLeft}>
                 <Feather name="lock" size={13} color="#555" />
-                <Text style={styles.lockedLabel}>READINESS HISTORY</Text>
+                <Text style={styles.lockedLabel}>Readiness history</Text>
               </View>
               <Text style={styles.lockedPlus}>FRAME+</Text>
             </Pressable>
@@ -651,7 +651,7 @@ export default function HomeScreen() {
       {/* ─── Competition context ──────────────────────────────────────── */}
       <View style={[styles.section, { paddingBottom: 32 }]}>
         <View style={styles.sectionHead}>
-          <Text style={styles.sectionTitle}>COMPETITION CONTEXT</Text>
+          <Text style={styles.sectionTitle}>Competition context</Text>
         </View>
         {competition && pressure ? (
           <Pressable
@@ -660,22 +660,22 @@ export default function HomeScreen() {
           >
             <View style={{ flex: 1 }}>
               <Text style={styles.compEvent}>{competition.eventName}</Text>
-              <Text style={styles.compPhase}>{pressure.phase.toUpperCase()}</Text>
+              <Text style={styles.compPhase}>{pressure.phase}</Text>
             </View>
             <View style={styles.compRight}>
               <Text style={styles.compDays}>{pressure.daysToEvent}</Text>
-              <Text style={styles.compDaysLabel}>DAYS OUT</Text>
+              <Text style={styles.compDaysLabel}>Days out</Text>
             </View>
           </Pressable>
         ) : (
           <View style={styles.compEmpty}>
-            <Text style={styles.compEmptyText}>NO ACTIVE CAMP.</Text>
+            <Text style={styles.compEmptyText}>No active camp.</Text>
             <Pressable
               style={styles.compEmptyCta}
               onPress={() => router.push("/(tabs)/planner")}
               hitSlop={8}
             >
-              <Text style={styles.compEmptyCtaText}>SET A CAMP</Text>
+              <Text style={styles.compEmptyCtaText}>Set a camp</Text>
               <Feather name="chevron-right" size={11} color={GOLD} />
             </Pressable>
           </View>
@@ -692,7 +692,7 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 8,
   },
-  qLabel: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 4, color: GOLD },
+  qLabel: { ...sectionTitle, color: GOLD },
   qText: { fontFamily: "Outfit", fontSize: 15, lineHeight: 22, color: "#e0e0e0" },
   root: {
     flex: 1,
@@ -715,9 +715,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   wordmark: {
-    width: 104,
     height: 33,
-    tintColor: "#e0e0e0",
+    justifyContent: "center",
   },
   profileBtn: {
     width: 34,
@@ -734,10 +733,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   heroKicker: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 6,
-    color: "#888",
+    ...sectionTitle,
     marginBottom: 8,
   },
   heroName: {
@@ -747,10 +743,7 @@ const styles = StyleSheet.create({
     color: "#f2f2f2",
   },
   heroMeta: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#999",
+    ...sectionTitle,
     marginTop: 10,
   },
   // Sections
@@ -772,22 +765,13 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   sectionTitle: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 6,
-    color: "#777",
+    ...sectionTitle,
   },
   sectionMeta: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "#555",
+    ...sectionTitle,
   },
   sectionLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 4,
-    color: "#777",
+    ...sectionTitle,
   },
   // Focus
   focusRow: {
@@ -805,10 +789,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   focusSource: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "#555",
+    ...sectionTitle,
     marginTop: 8,
   },
   // Readiness
@@ -827,9 +808,7 @@ const styles = StyleSheet.create({
     color: "#f2f2f2",
   },
   readyBand: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 6,
+    ...sectionTitle,
     color: GOLD,
     marginTop: 10,
   },
@@ -840,13 +819,10 @@ const styles = StyleSheet.create({
     color: "#2a2a2a",
   },
   readyEmptyNote: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#666",
+    ...caption,
+    color: TEXT_SECONDARY,
     marginTop: 10,
     maxWidth: 170,
-    lineHeight: 15,
   },
   readyRight: {
     flex: 1,
@@ -859,10 +835,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   breakdownLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#777",
+    ...sectionTitle,
   },
   breakdownValue: {
     fontFamily: "Outfit",
@@ -870,9 +843,8 @@ const styles = StyleSheet.create({
     color: "#d8d8d8",
   },
   bpm: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    color: "#666",
+    ...caption,
+    color: TEXT_SECONDARY,
   },
   editRow: {
     flexDirection: "row",
@@ -881,9 +853,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   editText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: GOLD,
   },
   // Check-in form
@@ -897,11 +867,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   formIntro: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#777",
-    lineHeight: 15,
+    ...caption,
+    color: TEXT_SECONDARY,
   },
   formRow: {
     gap: 6,
@@ -912,10 +879,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   formLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#aaa",
+    ...sectionTitle,
   },
   formValue: {
     fontFamily: "Outfit",
@@ -923,10 +887,8 @@ const styles = StyleSheet.create({
     color: GOLD,
   },
   formHint: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 2,
-    color: "#444",
+    ...meta,
+    color: TEXT_SECONDARY,
   },
   hrInput: {
     width: 96,
@@ -942,8 +904,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   formErr: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
+    ...label,
     color: "#d2553f",
   },
   formActions: {
@@ -962,16 +923,11 @@ const styles = StyleSheet.create({
     backgroundColor: GOLD,
   },
   saveBtnText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: "#050505",
   },
   cancelText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#666",
+    ...sectionTitle,
   },
   // Trend
   trendWrap: {
@@ -985,18 +941,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   trendMeta: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#555",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   trendEmpty: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
-    color: "#555",
+    ...caption,
+    color: TEXT_SECONDARY,
     marginTop: 8,
-    lineHeight: 15,
   },
   lockedRow: {
     flexDirection: "row",
@@ -1010,15 +961,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   lockedLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#777",
+    ...sectionTitle,
   },
   lockedPlus: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 2,
+    ...label,
     color: GOLD,
   },
   // Competition
@@ -1035,10 +981,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   compPhase: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
-    color: "#666",
+    ...sectionTitle,
     marginTop: 6,
   },
   compRight: {
@@ -1051,10 +994,7 @@ const styles = StyleSheet.create({
     color: GOLD,
   },
   compDaysLabel: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 3,
-    color: "#666",
+    ...sectionTitle,
     marginTop: 4,
   },
   compEmpty: {
@@ -1064,10 +1004,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   compEmptyText: {
-    fontFamily: "SpaceMono",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#555",
+    ...label,
+    color: TEXT_SECONDARY,
   },
   compEmptyCta: {
     flexDirection: "row",
@@ -1075,9 +1013,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   compEmptyCtaText: {
-    fontFamily: "SpaceMono",
-    fontSize: 9,
-    letterSpacing: 3,
+    ...sectionTitle,
     color: GOLD,
   },
 });
