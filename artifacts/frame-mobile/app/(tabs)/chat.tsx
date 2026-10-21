@@ -4,6 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  AppState,
   FlatList,
   Image,
   Linking,
@@ -32,18 +33,27 @@ import {
   type AttachmentDto,
 } from "@/lib/api";
 import { reportLayout } from "@/lib/crashReporter";
-import { sendErrorMessage, streamErrorMessage, uploadErrorMessage } from "@/lib/chatErrors";
+import {
+  REPLY_INTERRUPTED_LABEL,
+  STILL_WORKING_AFTER_MS,
+  STILL_WORKING_LABEL,
+  THINKING_LABEL,
+  hasCompleteReply,
+  newClientMessageId,
+  sendErrorMessage,
+  streamErrorMessage,
+  uploadErrorMessage,
+} from "@/lib/chatErrors";
 import { ANALYSE_SESSION_PROMPT, REGULATE_PROMPT } from "@/lib/chat-prompts";
 import { useFighter } from "@/context/FighterContext";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { MessageContent } from "@/components/MessageContent";
 import { CompetitionBanner } from "@/components/CompetitionBanner";
 import { OctagonSpinner } from "@/components/OctagonSpinner";
+import { FrameLogo } from "@/components/FrameLogo";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 import { FREE_TEXT } from "@/lib/textInputProps";
-
-const FRAME_WORDMARK = require("@/assets/images/frame-wordmark.png");
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 
@@ -53,14 +63,22 @@ const MAX_FILE_BYTES = 12 * 1024 * 1024;
 const FIRST_TOKEN_TIMEOUT_MS = 60_000;
 // Once bytes are flowing, a gap longer than this means the stream stalled.
 const STREAM_IDLE_TIMEOUT_MS = 30_000;
+// Before calling a send failed, ask the server whether the reply landed anyway.
+const RECOVERY_TIMEOUT_MS = 8_000;
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   attachments?: AttachmentDto[];
+  /** The send's idempotency key: on a user bubble, and on a failed / interrupted
+   *  reply so RETRY resends with the same key (the server never answers twice). */
+  clientMessageId?: string;
   /** set on an inline failure message: the text to resend when the athlete taps RETRY */
   retry?: string;
+  retryAttachments?: AttachmentDto[];
+  /** The stream stopped before the reply finished: `content` is what arrived. */
+  interrupted?: boolean;
 }
 
 let _counter = 0;
@@ -137,16 +155,34 @@ function AttachmentThumb({
   );
 }
 
+function RetryButton({ onPress, disabled }: { onPress: () => void; disabled: boolean }) {
+  return (
+    <Pressable
+      style={[mb.retryBtn, disabled && mb.retryBtnDisabled]}
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+    >
+      <Feather name="refresh-ccw" size={12} color="#8A6A2F" />
+      <Text style={mb.retryText}>RETRY</Text>
+    </Pressable>
+  );
+}
+
 function MessageBubble({
   msg,
   onTrain,
   userLabel,
   onRetry,
+  retryDisabled,
 }: {
   msg: Message;
   onTrain: (prompt: string) => void;
   userLabel: string;
   onRetry: (msg: Message) => void;
+  retryDisabled: boolean;
 }) {
   const isUser = msg.role === "user";
   const hasAttachments = (msg.attachments?.length ?? 0) > 0;
@@ -169,14 +205,19 @@ function MessageBubble({
             msg.content ? (
               <Text style={[mb.text, mb.userText]}>{msg.content}</Text>
             ) : null
+          ) : msg.interrupted ? (
+            <>
+              <MessageContent content={msg.content} onTrain={onTrain} />
+              <View style={[mb.errorBox, mb.interruptedBox]} accessibilityRole="alert">
+                <Text style={[mb.text, mb.assistantText]}>{REPLY_INTERRUPTED_LABEL}</Text>
+                {msg.retry != null && <RetryButton onPress={() => onRetry(msg)} disabled={retryDisabled} />}
+              </View>
+            </>
           ) : msg.retry != null ? (
             <View style={mb.errorBox} accessibilityRole="alert">
               <Text style={mb.errorTitle}>MESSAGE NOT DELIVERED</Text>
               <Text style={[mb.text, mb.assistantText]}>{msg.content}</Text>
-              <Pressable style={mb.retryBtn} onPress={() => onRetry(msg)} hitSlop={8}>
-                <Feather name="refresh-ccw" size={12} color="#8A6A2F" />
-                <Text style={mb.retryText}>RETRY</Text>
-              </Pressable>
+              <RetryButton onPress={() => onRetry(msg)} disabled={retryDisabled} />
             </View>
           ) : (
             <MessageContent content={msg.content} onTrain={onTrain} />
@@ -274,6 +315,22 @@ const mb = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#8A6A2F",
   },
+  retryBtnDisabled: {
+    opacity: 0.4,
+  },
+  interruptedBox: {
+    marginTop: 10,
+  },
+  typingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  typingLabel: {
+    fontFamily: "Outfit",
+    fontSize: 13,
+    color: "rgba(224,224,224,0.55)",
+  },
   retryText: {
     fontFamily: "SpaceMono",
     fontSize: 10,
@@ -326,12 +383,21 @@ const mb = StyleSheet.create({
   },
 });
 
+// Mounted while a reply is pending: says FRAME is working, and says so again if
+// it is slow, so a long first token never looks stuck.
 function TypingIndicator() {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), STILL_WORKING_AFTER_MS);
+    return () => clearTimeout(t);
+  }, []);
+  const label = slow ? STILL_WORKING_LABEL : THINKING_LABEL;
   return (
     <View style={[mb.row, mb.assistantRow]}>
       <View style={mb.dot} />
-      <View style={[mb.bubble, mb.assistantBubble]}>
+      <View style={[mb.bubble, mb.assistantBubble, mb.typingRow]} accessibilityLiveRegion="polite" accessibilityLabel={label}>
         <OctagonSpinner size={30} color="#EDEDED" />
+        <Text style={mb.typingLabel}>{label}</Text>
       </View>
     </View>
   );
@@ -344,7 +410,20 @@ interface ConversationResponse {
     role: string;
     content: string;
     attachments?: AttachmentDto[];
+    clientMessageId?: string | null;
   }>;
+}
+
+function toMessages(data: ConversationResponse): Message[] {
+  return data.messages
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map((m) => ({
+      id: String(m.id),
+      role: m.role as "user" | "assistant",
+      content: m.content,
+      attachments: m.attachments ?? [],
+      clientMessageId: m.clientMessageId ?? undefined,
+    }));
 }
 
 export default function ChatScreen() {
@@ -369,7 +448,12 @@ export default function ChatScreen() {
   const [consentVisible, setConsentVisible] = useState(false);
   const [consentStatus, setConsentStatus] = useState<AiConsentStatus | null>(null);
   const [consentBusy, setConsentBusy] = useState(false);
-  const pendingSendRef = useRef<{ text: string; attachments: AttachmentDto[] } | null>(null);
+  const pendingSendRef = useRef<{ text: string; attachments: AttachmentDto[]; clientMessageId?: string } | null>(null);
+  // AI permission confirmed this session: skip the extra /ai-consent round trip on
+  // every send. Cleared when the chat endpoint itself says consent is missing.
+  const consentOkRef = useRef(false);
+  // The send whose reply we haven't seen complete yet; re-checked on foreground.
+  const pendingRecoveryRef = useRef<string | null>(null);
   // This guard is deliberately synchronous: React state does not update fast
   // enough to close the window between a tap and the consent lookup resolving.
   // It stays set while the consent sheet is open so acceptance can resume the
@@ -395,6 +479,8 @@ export default function ChatScreen() {
     if (isSignedIn) return;
     pendingSendRef.current = null;
     sendInFlightRef.current = false;
+    consentOkRef.current = false;
+    pendingRecoveryRef.current = null;
     setConsentVisible(false);
   }, [isSignedIn]);
 
@@ -432,21 +518,16 @@ export default function ChatScreen() {
     // instead of an empty thread. The server no-ops for anyone who already has a
     // message, so this is safe on every mount; a swallowed error (e.g. no
     // fighter yet) just falls through to loading whatever history exists.
+    // Warm the coach's prompt cache while the athlete reads and types, so the first
+    // reply doesn't wait on it. Best effort; the server rate-limits it.
+    apiPost("/coach/warm").catch(() => {});
     apiPost("/coach/welcome")
       .catch(() => {})
       .then(() => apiGet<ConversationResponse>("/conversation/active"))
       .then((data) => {
         if (cancelled) return;
         setConversationId(data.conversation?.id ?? null);
-        const loaded: Message[] = data.messages
-          .filter((m) => m.role === "user" || m.role === "assistant")
-          .map((m) => ({
-            id: String(m.id),
-            role: m.role as "user" | "assistant",
-            content: m.content,
-            attachments: m.attachments ?? [],
-          }));
-        setMessages(loaded);
+        setMessages(toMessages(data));
       })
       .catch(() => {
         // history unavailable — start fresh, no error shown
@@ -459,10 +540,46 @@ export default function ChatScreen() {
     };
   }, [isSignedIn]);
 
+  /**
+   * Ask the server whether the reply to this send was saved after all (the stream
+   * dropped, the app was backgrounded, the watchdog fired). If it was, show the
+   * server's thread instead of an error.
+   */
+  async function recoverReply(clientMessageId: string): Promise<boolean> {
+    try {
+      const data = await Promise.race([
+        apiGet<ConversationResponse>("/conversation/active"),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("recovery timed out")), RECOVERY_TIMEOUT_MS)),
+      ]);
+      if (!hasCompleteReply(data.messages, clientMessageId)) return false;
+      setConversationId(data.conversation?.id ?? null);
+      setMessages(toMessages(data));
+      if (pendingRecoveryRef.current === clientMessageId) pendingRecoveryRef.current = null;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Back from the background with a send that never completed: the reply may have
+  // landed while the app was away.
+  useEffect(() => {
+    if (!isSignedIn) return;
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      const pending = pendingRecoveryRef.current;
+      if (!pending || sendInFlightRef.current) return;
+      void recoverReply(pending);
+    });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn]);
+
   async function handleSend(
     text: string,
     attachments: AttachmentDto[] = [],
     resumeAfterConsent = false,
+    clientMessageId?: string,
   ): Promise<boolean> {
     if (
       (!text.trim() && attachments.length === 0) ||
@@ -476,22 +593,30 @@ export default function ChatScreen() {
     }
     if (!resumeAfterConsent) sendInFlightRef.current = true;
 
-    // Consent is checked at the boundary immediately before each AI coaching
-    // request. This also notices a withdrawal made from Profile while this
-    // tab stayed mounted. Keep the draft in the composer while the sheet is
-    // open so accepting it can resume this exact message and attachments.
-    if (!resumeAfterConsent) {
+    // One idempotency key per send; a retry passes the same one back in.
+    const cmid = clientMessageId ?? newClientMessageId();
+
+    // Consent is checked before the first AI coaching request of the session and
+    // again whenever it may have changed (the chat endpoint refused for consent,
+    // or Profile recorded a withdrawal in the shared query cache). The server
+    // still enforces it on every request. Keep the draft in the composer while
+    // the sheet is open so accepting it can resume this exact message.
+    const cachedConsent = qc.getQueryData<{ accepted?: boolean }>(["ai-consent"]);
+    if (!resumeAfterConsent && (!consentOkRef.current || cachedConsent?.accepted === false)) {
       try {
         const status = await apiGet<AiConsentStatus>("/ai-consent");
         setConsentStatus(status);
         if (!status.accepted) {
-          pendingSendRef.current = { text, attachments };
+          consentOkRef.current = false;
+          pendingSendRef.current = { text, attachments, clientMessageId: cmid };
           setConsentVisible(true);
           return false;
         }
+        consentOkRef.current = true;
       } catch (e: unknown) {
         sendInFlightRef.current = false;
         if (e instanceof ApiError && e.code === "AI_CONSENT_REQUIRED") {
+          consentOkRef.current = false;
           qc.setQueryData(["ai-consent"], { accepted: false });
           return false;
         }
@@ -500,7 +625,10 @@ export default function ChatScreen() {
           {
             id: uid(),
             role: "assistant",
-            content: (e as Error).message ?? "Could not check AI permission.",
+            content: sendErrorMessage(e, { timedOut: false }),
+            retry: text.trim(),
+            retryAttachments: attachments,
+            clientMessageId: cmid,
           },
         ]);
         return false;
@@ -521,15 +649,21 @@ export default function ChatScreen() {
       role: "user",
       content: trimmed,
       attachments,
+      clientMessageId: cmid,
     };
     setMessages((prev) => [...prev, userMsg]);
+    pendingRecoveryRef.current = cmid;
 
     // Show a failure as a fresh assistant bubble (mobile has no error banner).
     const showAssistant = (content: string) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      setMessages((prev) => [...prev, { id: uid(), role: "assistant", content, retry: trimmed }]);
+      setMessages((prev) => [
+        ...prev,
+        { id: uid(), role: "assistant", content, retry: trimmed, retryAttachments: attachments, clientMessageId: cmid },
+      ]);
     };
 
+    const assistantId = uid();
     let fullContent = "";
     let added = false;
     let receivedContent = false;
@@ -537,6 +671,30 @@ export default function ChatScreen() {
     let serverError = false;
     let serverErrorCode: string | undefined;
     let streamSucceeded = false;
+    let recovered = false;
+
+    // A transport failure: the reply may have been saved anyway. Show it if so,
+    // otherwise the given error.
+    const failOrRecover = async (message: string) => {
+      if (await recoverReply(cmid)) recovered = true;
+      else showAssistant(message);
+    };
+    // Text arrived but the stream never finished: keep what arrived, say so, and
+    // offer a retry (same key, so the server replaces it rather than adding one).
+    const markInterrupted = async () => {
+      if (await recoverReply(cmid)) {
+        recovered = true;
+        return;
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId
+            ? { ...m, interrupted: true, retry: trimmed, retryAttachments: attachments, clientMessageId: cmid }
+            : m,
+        ),
+      );
+    };
 
     // Watchdog: abort a turn that never produces a first byte, or that stalls
     // mid-stream. Without this a hung request sits forever behind the spinner.
@@ -555,7 +713,7 @@ export default function ChatScreen() {
     try {
       await apiStream(
         "/coach/chat",
-        { content: trimmed, attachmentIds: attachments.map((a) => a.id) },
+        { content: trimmed, attachmentIds: attachments.map((a) => a.id), clientMessageId: cmid },
         (chunk) => {
           if (chunk.error) {
             serverError = true;
@@ -578,18 +736,12 @@ export default function ChatScreen() {
             if (!added) {
               setMessages((prev) => [
                 ...prev,
-                { id: uid(), role: "assistant", content: fullContent },
+                { id: assistantId, role: "assistant", content: fullContent },
               ]);
               added = true;
             } else {
-              setMessages((prev) => {
-                const updated = [...prev];
-                updated[updated.length - 1] = {
-                  ...updated[updated.length - 1],
-                  content: fullContent,
-                };
-                return updated;
-              });
+              const latest = fullContent;
+              setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: latest } : m)));
             }
           }
         },
@@ -601,15 +753,20 @@ export default function ChatScreen() {
       setShowTyping(false);
       if (!receivedContent) {
         if (serverError) {
-          if (serverErrorCode === "AI_CONSENT_REQUIRED") qc.setQueryData(["ai-consent"], { accepted: false });
+          if (serverErrorCode === "AI_CONSENT_REQUIRED") {
+            consentOkRef.current = false;
+            qc.setQueryData(["ai-consent"], { accepted: false });
+          }
           showAssistant(streamErrorMessage(serverErrorCode, attachments.length > 0));
-        }
-        else if (!sawDone) showAssistant("Lost the thread. Try again.");
+        } else if (!sawDone) await failOrRecover("Lost the thread. Try again.");
+      } else if (!sawDone || serverError) {
+        await markInterrupted();
       }
-      streamSucceeded = sawDone && !serverError && !timedOut;
+      streamSucceeded = (sawDone && !serverError && !timedOut) || recovered;
     } catch (err) {
       setShowTyping(false);
       if (err instanceof ApiError && err.code === "AI_CONSENT_REQUIRED") {
+        consentOkRef.current = false;
         qc.setQueryData(["ai-consent"], { accepted: false });
         return false;
       }
@@ -621,9 +778,15 @@ export default function ChatScreen() {
         setInput(trimmed);
         if (err.code === "FRAME_PLUS_REQUIRED") router.push("/paywall");
         else showAssistant("That message couldn't be sent.");
-      } else if (!receivedContent) {
+      } else if (receivedContent) {
+        await markInterrupted();
+      } else if (err instanceof ApiError) {
+        // The server answered with an error status: nothing was generated.
         showAssistant(sendErrorMessage(err, { timedOut }));
+      } else {
+        await failOrRecover(sendErrorMessage(err, { timedOut }));
       }
+      streamSucceeded = recovered;
     } finally {
       if (watchdog) clearTimeout(watchdog);
       setIsStreaming(false);
@@ -631,6 +794,7 @@ export default function ChatScreen() {
       sendInFlightRef.current = false;
     }
 
+    if (streamSucceeded && pendingRecoveryRef.current === cmid) pendingRecoveryRef.current = null;
     inputRef.current?.focus();
     if (!streamSucceeded && trimmed) setInput(trimmed);
     return streamSucceeded;
@@ -652,7 +816,8 @@ export default function ChatScreen() {
       setConsentStatus(status);
       pendingSendRef.current = null;
       setConsentVisible(false);
-      const sent = await handleSend(pending.text, pending.attachments, true);
+      consentOkRef.current = status.accepted;
+      const sent = await handleSend(pending.text, pending.attachments, true, pending.clientMessageId);
       if (sent) setDrafts((draft) => draft.filter((d) => !pending.attachments.some((a) => a.id === d.att.id)));
     } catch (e: unknown) {
       sendInFlightRef.current = false;
@@ -666,18 +831,24 @@ export default function ChatScreen() {
     }
   }
 
-  // Inline retry: drop the failed exchange (error + the user bubble it answered) and send again.
-  function retryMessage(failed: { id: string; retry?: string }) {
-    if (isStreaming || failed.retry == null) return;
+  // Inline retry: drop the failed exchange (error / partial reply + the user bubble
+  // it answered) and send again with the SAME client message id, so the server
+  // returns the saved reply or the one in progress instead of generating twice.
+  function retryMessage(failed: Message) {
+    // sendInFlightRef is synchronous, so a double tap can't start two sends.
+    if (isStreaming || sendInFlightRef.current || failed.retry == null) return;
     const text = failed.retry;
+    const cmid = failed.clientMessageId;
     setMessages((prev) => {
       const idx = prev.findIndex((m) => m.id === failed.id);
       if (idx < 0) return prev;
-      const cut = idx > 0 && prev[idx - 1].role === "user" && prev[idx - 1].content === text ? idx - 1 : idx;
-      return prev.filter((_, i) => i !== idx && i !== cut);
+      const isOwnUser = (m: Message, i: number) =>
+        m.role === "user" &&
+        (cmid ? m.clientMessageId === cmid : i === idx - 1 && m.content === text);
+      return prev.filter((m, i) => i !== idx && !isOwnUser(m, i));
     });
     setInput("");
-    handleSend(text);
+    void handleSend(text, failed.retryAttachments ?? [], false, cmid);
   }
 
   function sendQuick(prompt: string) {
@@ -799,7 +970,9 @@ export default function ChatScreen() {
           <Feather name="chevron-left" size={20} color="#888" />
           <Text style={styles.headerBackText}>HOME</Text>
         </Pressable>
-        <Image source={FRAME_WORDMARK} style={styles.headerWordmark} resizeMode="contain" />
+        <View style={styles.headerBrand} pointerEvents="none" accessibilityRole="header" accessibilityLabel="Frame">
+          <FrameLogo height={16} />
+        </View>
         <Pressable
           style={styles.headerReset}
           onPress={resetConversation}
@@ -829,7 +1002,13 @@ export default function ChatScreen() {
           data={reversed}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <MessageBubble msg={item} onTrain={handleSend} userLabel={userLabel} onRetry={retryMessage} />
+            <MessageBubble
+              msg={item}
+              onTrain={handleSend}
+              userLabel={userLabel}
+              onRetry={retryMessage}
+              retryDisabled={isStreaming}
+            />
           )}
           inverted={messages.length > 0}
           ListHeaderComponent={showTyping ? <TypingIndicator /> : null}
@@ -1037,9 +1216,15 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
     color: "#888",
   },
-  headerWordmark: {
-    width: 96,
-    height: 22,
+  // Centred on the whole header, independent of the side buttons' widths.
+  headerBrand: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerReset: {
     flexDirection: "row",

@@ -38,3 +38,24 @@ describe("uploadErrorMessage", () => {
     expect(uploadErrorMessage(apiError(413, "file too large (max 12582912 bytes)"))).not.toContain("12582912");
   });
 });
+
+describe("send reliability helpers", () => {
+  it("client message ids are short, safe and distinct", async () => {
+    const { newClientMessageId } = await import("../lib/chatErrors");
+    const a = newClientMessageId();
+    const b = newClientMessageId();
+    expect(a).not.toBe(b);
+    expect(a.length).toBeLessThanOrEqual(64);
+    expect(a).toMatch(/^[A-Za-z0-9_-]+$/);
+  });
+  it("only a reply tagged with the send's id counts as complete", async () => {
+    const { hasCompleteReply } = await import("../lib/chatErrors");
+    const thread = [
+      { role: "user", clientMessageId: "m_1" },
+      { role: "assistant", clientMessageId: null }, // partial left by a dropped stream
+    ];
+    expect(hasCompleteReply(thread, "m_1")).toBe(false);
+    expect(hasCompleteReply([...thread, { role: "assistant", clientMessageId: "m_1" }], "m_1")).toBe(true);
+    expect(hasCompleteReply([{ role: "user", clientMessageId: "m_2" }], "m_2")).toBe(false);
+  });
+});

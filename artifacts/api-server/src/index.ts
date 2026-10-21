@@ -25,6 +25,12 @@ function startListening(attempt = 1): void {
   const server = app.listen(port, () => {
     logger.info({ port }, "Server listening");
   });
+  // Node's default keep-alive is 5s. Proxies and iOS reuse idle connections for
+  // longer than that, so the first request after a pause could land on a socket
+  // the server had just closed. Keep sockets open longer than the proxy does, and
+  // headersTimeout must stay above keepAliveTimeout.
+  server.keepAliveTimeout = 65_000;
+  server.headersTimeout = 66_000;
 
   server.on("error", (err: NodeJS.ErrnoException) => {
     if (err.code === "EADDRINUSE" && attempt < MAX_BIND_RETRIES) {

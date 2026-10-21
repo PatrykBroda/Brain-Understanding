@@ -24,6 +24,11 @@ export interface Recorded {
   status: number;
   /** true for the coach's streamed turns (the memory writer and planner are not streamed). */
   stream: boolean;
+  /** Anthropic only: cache_control of the first system block, and max_tokens. */
+  cacheControl?: unknown;
+  maxTokens?: number;
+  /** Set when the caller hung up before this streamed reply was fully written. */
+  abortedEarly?: boolean;
 }
 
 export interface MockProviders {
@@ -37,6 +42,8 @@ export interface MockProviders {
   anthropicTool?: (toolName: string) => unknown;
   /** Delay (ms) before the first byte of every streamed reply. */
   firstByteDelayMs: number;
+  /** Delay (ms) between streamed words (to test a client hanging up mid-reply). */
+  wordDelayMs: number;
   reset(): void;
   close(): Promise<void>;
 }
@@ -56,12 +63,14 @@ export async function startMockProviders(): Promise<MockProviders> {
     openai: { mode: "ok" },
     requests: [],
     firstByteDelayMs: 0,
+    wordDelayMs: 0,
     reset() {
       onceUsed.clear();
       state.anthropic = { mode: "ok" };
       state.openai = { mode: "ok" };
       state.requests = [];
       state.firstByteDelayMs = 0;
+      state.wordDelayMs = 0;
     },
     close: () => new Promise((r) => server.close(() => r())),
   };
@@ -91,6 +100,8 @@ export async function startMockProviders(): Promise<MockProviders> {
         messages: (body.messages ?? []).filter((m: any) => m.role !== "system"),
         status: 200,
         stream: body.stream === true,
+        cacheControl: !isOpenAI && Array.isArray(body.system) ? body.system[0]?.cache_control : undefined,
+        maxTokens: typeof body.max_tokens === "number" ? body.max_tokens : undefined,
       };
       state.requests.push(rec);
 
@@ -160,9 +171,15 @@ export async function startMockProviders(): Promise<MockProviders> {
       }
 
       res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
+      res.on("close", () => {
+        if (!res.writableFinished) rec.abortedEarly = true;
+      });
+      const pause = () => (state.wordDelayMs > 0 ? new Promise((r) => setTimeout(r, state.wordDelayMs)) : null);
       const words = reply.split(" ");
       if (isOpenAI) {
         for (const w of words) {
+          await pause();
+          if (res.destroyed) return;
           res.write(`data: ${JSON.stringify({ id: "c1", object: "chat.completion.chunk", choices: [{ index: 0, delta: { content: `${w} ` }, finish_reason: null }] })}\n\n`);
         }
         res.write(`data: ${JSON.stringify({ id: "c1", object: "chat.completion.chunk", choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\n`);
@@ -177,6 +194,8 @@ export async function startMockProviders(): Promise<MockProviders> {
       });
       ev("content_block_start", { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } });
       for (const w of words) {
+        await pause();
+        if (res.destroyed) return;
         ev("content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: `${w} ` } });
       }
       ev("content_block_stop", { type: "content_block_stop", index: 0 });

@@ -70,3 +70,33 @@ export function uploadErrorMessage(error: unknown): string {
   }
   return "Upload failed. Try again.";
 }
+
+// ── Send reliability ────────────────────────────────────────────────────────
+
+/** Typing indicator copy: shown at once, then swapped if the reply is slow. */
+export const THINKING_LABEL = "Thinking…";
+export const STILL_WORKING_LABEL = "Still working on this…";
+export const STILL_WORKING_AFTER_MS = 15_000;
+/** Shown under a reply whose stream stopped before the server said it was done. */
+export const REPLY_INTERRUPTED_LABEL = "Reply interrupted.";
+
+/**
+ * Idempotency key for one send. Every retry of that send reuses it, so the server
+ * returns (or attaches to) the same reply instead of generating a second one.
+ * Short and limited to [A-Za-z0-9_-] to match what the server accepts.
+ */
+export function newClientMessageId(now: number = Date.now(), rand: () => number = Math.random): string {
+  const r = () => Math.floor(rand() * 36 ** 6).toString(36).padStart(6, "0");
+  return `m_${now.toString(36)}_${r()}${r()}`;
+}
+
+export type StoredChatMessage = { role: string; clientMessageId?: string | null };
+
+/**
+ * True when the server has saved the COMPLETE reply to this send. The server tags
+ * a finished reply with the send's id; a partial reply saved after a dropped
+ * stream is left untagged, so it never counts here.
+ */
+export function hasCompleteReply(messages: StoredChatMessage[], clientMessageId: string): boolean {
+  return messages.some((m) => m.role === "assistant" && m.clientMessageId === clientMessageId);
+}

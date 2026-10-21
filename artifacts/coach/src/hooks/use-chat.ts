@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, authHeaders, coachChatUrl, type AiProvider, type AttachmentDto, type ServerMessage } from "@/lib/api";
+import {
+  api,
+  authHeaders,
+  coachChatUrl,
+  coachWarmUrl,
+  type AiProvider,
+  type AttachmentDto,
+  type ServerMessage,
+} from "@/lib/api";
 import { POST_CHAT_MEMORY_REFRESH_MS } from "@/lib/fact-seen";
 import { useFramePlus } from "@/components/frame-plus-modal";
 
@@ -27,6 +35,35 @@ function toClient(msg: ServerMessage): ChatMessage {
 const FIRST_TOKEN_TIMEOUT_MS = 60_000;
 // Once bytes are flowing, a gap longer than this means the stream stalled.
 const STREAM_IDLE_TIMEOUT_MS = 30_000;
+// Before calling a send failed, ask the server whether the reply landed anyway.
+const RECOVERY_TIMEOUT_MS = 8_000;
+
+export const REPLY_INTERRUPTED_LABEL = "Reply interrupted.";
+
+/** Idempotency key for one send; every retry of that send reuses it. */
+export function newClientMessageId(): string {
+  const r = () => Math.floor(Math.random() * 36 ** 6).toString(36).padStart(6, "0");
+  return `w_${Date.now().toString(36)}_${r()}${r()}`;
+}
+
+/** True when the server saved the COMPLETE reply to this send (partials stay untagged). */
+export function hasCompleteReply(messages: ServerMessage[], clientMessageId: string): boolean {
+  return messages.some((m) => m.role === "assistant" && m.clientMessageId === clientMessageId);
+}
+
+/** The chat request was refused with an HTTP status: say what actually happened. */
+export function chatHttpErrorMessage(status: number, code?: string): string {
+  if (status === 401) return "Your session expired. Sign in again to keep going.";
+  if (status === 403) {
+    return code === "AI_CONSENT_REQUIRED"
+      ? "FRAME needs your AI permission before it can reply. Review it, then send again."
+      : "You don't have access to that. Sign out and back in, then try again.";
+  }
+  if (status === 413) return "That message is too large to send.";
+  if (status === 429) return "You're sending too fast. Wait a moment and try again.";
+  if (status >= 500) return "FRAME's server hit a problem. Try again in a moment.";
+  return "That message couldn't be sent. Try again.";
+}
 
 export function useChat() {
   const qc = useQueryClient();
@@ -42,7 +79,9 @@ export function useChat() {
   const [error, setError] = useState<string | null>(null);
   const [userTurnsThisSession, setUserTurnsThisSession] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
-  const lastAttemptRef = useRef<{ content: string; attachments: AttachmentDto[] } | null>(null);
+  // The last send that hasn't completed: retried with the same clientMessageId, and
+  // re-checked against the server when the tab becomes visible again.
+  const lastAttemptRef = useRef<{ content: string; attachments: AttachmentDto[]; clientMessageId: string } | null>(null);
   const retryInFlightRef = useRef(false);
   const lastUserBubbleIdRef = useRef<string | null>(null);
   const lastAssistantBubbleIdRef = useRef<string | null>(null);
@@ -53,6 +92,37 @@ export function useChat() {
       setError(null);
     }
   }, [conversationQuery.data]);
+
+  // Warm the coach's prompt cache while the athlete reads and types. Best effort.
+  useEffect(() => {
+    fetch(coachWarmUrl, { method: "POST", headers: { ...authHeaders() } }).catch(() => {});
+  }, []);
+
+  /**
+   * Did the reply to this send land on the server after all (the stream dropped,
+   * the tab slept)? If so, show the server's thread instead of an error.
+   */
+  const recoverReply = useCallback(
+    async (clientMessageId: string): Promise<boolean> => {
+      try {
+        const data = await Promise.race([
+          api.getActiveConversation(),
+          new Promise<never>((_, reject) =>
+            window.setTimeout(() => reject(new Error("recovery timed out")), RECOVERY_TIMEOUT_MS),
+          ),
+        ]);
+        if (!hasCompleteReply(data.messages, clientMessageId)) return false;
+        qc.setQueryData(["conversation"], data);
+        setLocalMessages(data.messages.map(toClient));
+        setError(null);
+        if (lastAttemptRef.current?.clientMessageId === clientMessageId) lastAttemptRef.current = null;
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [qc],
+  );
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
@@ -73,7 +143,11 @@ export function useChat() {
   });
 
   const sendMessage = useCallback(
-    async (content: string, attachments: AttachmentDto[] = []): Promise<boolean> => {
+    async (
+      content: string,
+      attachments: AttachmentDto[] = [],
+      clientMessageId?: string,
+    ): Promise<boolean> => {
       const trimmed = content.trim();
       if (!trimmed && attachments.length === 0) return false;
       if (isStreaming) return false;
@@ -81,8 +155,10 @@ export function useChat() {
       setError(null);
       let succeeded = false;
 
-      // Remember this attempt so a failed turn can be retried one-tap.
-      lastAttemptRef.current = { content: trimmed, attachments };
+      // Remember this attempt so a failed turn can be retried one-tap, with the
+      // same key so the server never generates a second reply for it.
+      const cmid = clientMessageId ?? newClientMessageId();
+      lastAttemptRef.current = { content: trimmed, attachments, clientMessageId: cmid };
 
       const userBubbleId = `u-${Date.now()}`;
       const assistantId = `a-${Date.now()}`;
@@ -136,6 +212,15 @@ export function useChat() {
         settleBubble();
         setError(message);
       };
+      // A transport failure: the reply may have been saved anyway. Show it if so.
+      // If text had arrived, the reply is marked interrupted rather than complete.
+      const failOrRecover = async (message: string) => {
+        if (await recoverReply(cmid)) {
+          succeeded = true;
+          return;
+        }
+        failTurn(receivedContent ? REPLY_INTERRUPTED_LABEL : message);
+      };
 
       armWatchdog(FIRST_TOKEN_TIMEOUT_MS);
 
@@ -146,6 +231,7 @@ export function useChat() {
           body: JSON.stringify({
             content: trimmed,
             attachmentIds: attachments.map((a) => a.id),
+            clientMessageId: cmid,
           }),
           signal: ctrl.signal,
         });
@@ -169,17 +255,22 @@ export function useChat() {
           }
           return false;
         }
-        if (!res.ok || !res.body) {
-          throw new Error(`Stream failed: ${res.status}`);
+        if (!res.ok) {
+          // The server refused the request: nothing was generated, so no recovery.
+          let payload: { code?: string } = {};
+          try {
+            payload = (await res.json()) as { code?: string };
+          } catch {}
+          failTurn(chatHttpErrorMessage(res.status, payload.code));
+          return false;
         }
+        if (!res.body) throw new Error("Stream failed: no body");
         const reader = res.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let buf = "";
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          // Bytes are flowing — reset the (now shorter) idle watchdog.
-          armWatchdog(STREAM_IDLE_TIMEOUT_MS);
           buf += decoder.decode(value, { stream: true });
           const blocks = buf.split("\n\n");
           buf = blocks.pop() ?? "";
@@ -200,6 +291,9 @@ export function useChat() {
                 continue;
               }
               if ("content" in evt) {
+                // Text is flowing: switch to the (shorter) idle watchdog. Only real
+                // content re-arms it; the server's keep-alive pings never do.
+                armWatchdog(STREAM_IDLE_TIMEOUT_MS);
                 receivedContent = true;
                 setLocalMessages((prev) =>
                   prev.map((m) =>
@@ -231,20 +325,20 @@ export function useChat() {
             }, ms);
           }
         } else if (outcome === "server-error") {
-          failTurn("Something jammed on my end. Send that again.");
+          failTurn(receivedContent ? REPLY_INTERRUPTED_LABEL : "Something jammed on my end. Send that again.");
         } else {
           // Stream closed with no completion signal — interrupted, not done.
-          failTurn("Lost the thread. Send that again.");
+          await failOrRecover("Lost the thread. Send that again.");
         }
       } catch (err) {
         const e = err as Error;
         if (timedOut) {
-          failTurn("That hung — the line went quiet. Send it again.");
+          await failOrRecover("That hung — the line went quiet. Send it again.");
         } else if (e.name === "AbortError") {
           // User pressed stop: keep whatever streamed, surface no error.
           settleBubble();
         } else {
-          failTurn("Connection dropped. Send that again.");
+          await failOrRecover("Connection dropped. Send that again.");
         }
       } finally {
         if (watchdog) clearTimeout(watchdog);
@@ -253,8 +347,20 @@ export function useChat() {
       }
       return succeeded;
     },
-    [isStreaming, qc, stop, openUpgrade],
+    [isStreaming, qc, stop, openUpgrade, recoverReply],
   );
+
+  // Back to a tab whose last send never completed: the reply may have landed.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      const pending = lastAttemptRef.current;
+      if (!pending || abortRef.current || retryInFlightRef.current) return;
+      void recoverReply(pending.clientMessageId);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [recoverReply]);
 
   const retry = useCallback(async (): Promise<{
     success: boolean;
@@ -276,7 +382,7 @@ export function useChat() {
       ),
     );
     try {
-      const success = await sendMessage(last.content, last.attachments);
+      const success = await sendMessage(last.content, last.attachments, last.clientMessageId);
       return { success, attachments: last.attachments };
     } finally {
       retryInFlightRef.current = false;

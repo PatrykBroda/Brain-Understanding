@@ -57,6 +57,8 @@ export type ServerMessage = {
   content: string;
   createdAt: string;
   attachments?: AttachmentDto[];
+  /** The send's idempotency key. On an assistant row it marks the COMPLETE reply to that send. */
+  clientMessageId?: string | null;
 };
 
 export type AiProvider = "claude" | "openai";
@@ -1262,6 +1264,8 @@ export const billingApi = {
 };
 
 export const coachChatUrl = `${base}api/coach/chat`;
+/** Warms the coach's shared prompt cache when Chat opens (rate-limited server-side). */
+export const coachWarmUrl = `${base}api/coach/warm`;
 export const attachmentFileUrl = (id: number) => `${base}api/attachments/${id}/file`;
 // Cache-busted with the fighter's updatedAt so a new upload shows immediately.
 export const heroFileUrl = (cacheKey: string | number) =>

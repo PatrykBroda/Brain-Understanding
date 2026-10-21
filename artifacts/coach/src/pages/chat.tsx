@@ -10,7 +10,7 @@ import { FramePlusPill } from "@/components/frame-plus-modal";
 import { EntrySequence } from "@/components/entry-sequence";
 import { CompetitionBanner } from "@/components/competition-banner";
 import { FrameOctagon } from "@/components/frame-octagon";
-import { FrameWordmark } from "@/components/frame-wordmark";
+import { FrameLogo } from "@/components/frame-logo";
 import { Button } from "@/components/ui/button";
 import { api, attachmentFileUrl, type AttachmentDto } from "@/lib/api";
 import { useAuthedObjectUrl } from "@/lib/useAuthedObjectUrl";
@@ -25,6 +25,24 @@ const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   { label: "Regulate", prompt: REGULATE_PROMPT },
   { label: "Reflect", prompt: "Ask me one sharp question to surface what I'm not seeing about my training this week." },
 ];
+
+const STILL_WORKING_AFTER_MS = 15_000;
+
+// Shown while a reply is pending: says FRAME is working, and says so again if the
+// first words are slow, so a long wait never looks stuck.
+function PendingReply() {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setSlow(true), STILL_WORKING_AFTER_MS);
+    return () => window.clearTimeout(t);
+  }, []);
+  return (
+    <div className="flex items-center gap-3 py-2" role="status" aria-live="polite">
+      <FrameOctagon size={30} spin spinSeconds={4} glow={false} color="#EDEDED" />
+      <span className="text-sm text-foreground/55">{slow ? "Still working on this…" : "Thinking…"}</span>
+    </div>
+  );
+}
 
 const SUGGESTED_PROMPTS = [
   "Debrief tonight's roll",
@@ -255,27 +273,30 @@ export default function ChatPage() {
         />
       )}
       <div className="flex flex-col h-[100dvh] bg-background text-foreground font-sans">
-        <header className="flex-none flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-border/60 bg-background/95 backdrop-blur-sm">
+        <header className="flex-none grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-border/60 bg-background/95 backdrop-blur-sm">
           <Link
             href="/home"
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="justify-self-start flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
             <span className="font-mono text-[10px] uppercase tracking-widest">Home</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <FrameWordmark size={22} />
-            <FramePlusPill />
+          {/* The login screen's wordmark, centred (equal side columns keep it on the axis). */}
+          <div className="flex justify-center" role="img" aria-label="Frame">
+            <FrameLogo height={14} />
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => reset()}
-            className="text-muted-foreground hover:text-foreground font-mono text-[10px] uppercase tracking-widest -mr-2"
-          >
-            <RefreshCcw className="w-3 h-3 mr-1.5" />
-            Reset
-          </Button>
+          <div className="justify-self-end flex items-center gap-2">
+            <FramePlusPill />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => reset()}
+              className="text-muted-foreground hover:text-foreground font-mono text-[10px] uppercase tracking-widest -mr-2"
+            >
+              <RefreshCcw className="w-3 h-3 mr-1.5" />
+              Reset
+            </Button>
+          </div>
         </header>
 
         <div className="flex-none">
@@ -340,9 +361,7 @@ export default function ChatPage() {
                         </div>
                       )}
                       {msg.role === "assistant" && msg.pending && !msg.content ? (
-                        <div className="flex items-center py-2">
-                          <FrameOctagon size={30} spin spinSeconds={4} glow={false} color="#EDEDED" />
-                        </div>
+                        <PendingReply />
                       ) : msg.role === "user" && msg.content ? (
                         <div className="text-foreground/90 px-4 py-3 border-l-2 border-primary/30 bg-white/[0.015] whitespace-pre-wrap text-[0.95rem] leading-relaxed">
                           {msg.content}
