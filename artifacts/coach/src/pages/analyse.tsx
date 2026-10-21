@@ -14,7 +14,6 @@ import { WeeklyReportOverlay } from "@/components/weekly-report-overlay";
 import { FEATURES } from "@/lib/features";
 import { BottomNav } from "@/components/bottom-nav";
 import { ModelUpdateCard } from "@/components/model-update-card";
-import { FrameOctagon } from "@/components/frame-octagon";
 import { FrameReportCard } from "@/components/frame-report-card";
 import { OpponentReport, SavedOpponentReport } from "@/components/opponent-report";
 import { useFighter } from "@/hooks/use-fighter";
@@ -36,10 +35,10 @@ import {
 } from "@/lib/pose";
 import { computeMetrics } from "@/lib/analysis-metrics";
 import { OPPONENT_COLOR, YOU_COLOR, encodePoseTrack } from "@/lib/pose-track";
-import { detectTwoPeople, splitAthlete } from "@/lib/pose-people";
+import { autoSelectionPoint, pickerStartTime, splitAthlete } from "@/lib/pose-people";
 import { useIsDesktop } from "@/hooks/use-mobile";
 import { scrubInsaneSkeletons, trackReliability } from "@/lib/pose-sanity";
-import { PersonPicker, type PersonPickerData } from "@/components/person-picker";
+import { PersonPicker, type PersonPick, type PersonPickerData, type WhoIsWho } from "@/components/person-picker";
 import { Playback } from "@/lib/playback";
 import { FootageBlock, useDecodedOpponent, useDecodedTrack } from "@/components/footage-player";
 import { MovementGraphs } from "@/components/movement-graphs";
@@ -62,6 +61,7 @@ import type {
   VideoAnalysis,
   Fighter,
   AthleteContext,
+  AthleteSelection,
 } from "@/lib/api";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -109,6 +109,17 @@ const PHASE_TITLE: Record<string, string> = {
   loading_ai: "Building the read",
 };
 
+/** Who is measured: an index into the tracked people, and where the user tapped (sent with the read). */
+type AthleteChoice = { index: number; selection?: AthleteSelection };
+
+/** A finished read kept open for "Which one are you?": its pose pass, the clip, and the last choice. */
+type LiveRun = { extract: ExtractResult; file: File; choice: AthleteChoice; analysisId: number };
+
+function roundSelection(s: AthleteSelection): AthleteSelection {
+  const r = (v: number, k: number) => Math.round(v * k) / k;
+  return { ...s, timeSec: r(s.timeSec, 100), x: r(s.x, 1000), y: r(s.y, 1000) };
+}
+
 function toErrorPhase(err: unknown): Extract<Phase, { stage: "error" }> {
   if (err instanceof ApiError) {
     return { stage: "error", title: err.title, causes: err.causes, retryable: err.retryable };
@@ -151,7 +162,10 @@ export default function AnalysePage() {
   const [subject, setSubject] = useState<AnalysisSubject>("self");
   const [opponentName, setOpponentName] = useState("");
   // Who is who in the clip, as the user describes it. Sent with the analysis and kept with it.
-  const [who, setWho] = useState<WhoIsWho>({ side: null, athlete: "", other: "" });
+  const [who, setWho] = useState<WhoIsWho>({ athlete: "", other: "" });
+  // Typed in the picker WHILE a run awaits it: the run reads the latest value, not its closure's.
+  const whoRef = useRef(who);
+  whoRef.current = who;
   const [openOpponentId, setOpenOpponentId] = useState<number | null>(null);
 
   // Prefill the scout's opponent name from the active camp's opponent, if any —
@@ -199,15 +213,29 @@ export default function AnalysePage() {
   const pendingFile = useRef<File | null>(null);
   const lastLink = useRef<string | null>(null);
   const videoUrlRef = useRef<string | null>(null);
-  // "Which one is you?" - the picker data plus the resolver the analysis run awaits.
+  // "Which one are you?" (pause and tap) - the picker data plus the resolver the analysis run awaits.
   const [pickData, setPickData] = useState<PersonPickerData | null>(null);
-  const pickResolve = useRef<((choice: 0 | 1 | null) => void) | null>(null);
+  const pickResolve = useRef<((pick: PersonPick | null) => void) | null>(null);
+  // A finished read whose AI could not tell who the athlete is keeps its pose pass (not disposed)
+  // so the user can tap themselves and the read is run again for that person without re-reading
+  // the clip. repickFor = the id of the read that prompt belongs to.
+  const liveRun = useRef<LiveRun | null>(null);
+  const [repickFor, setRepickFor] = useState<number | null>(null);
+  const [repickError, setRepickError] = useState<string | null>(null);
 
-  function answerPick(choice: 0 | 1 | null) {
+  function answerPick(pick: PersonPick | null) {
     const resolve = pickResolve.current;
     pickResolve.current = null;
     setPickData(null);
-    resolve?.(choice);
+    resolve?.(pick);
+  }
+
+  function releaseLive() {
+    const live = liveRun.current;
+    liveRun.current = null;
+    setRepickFor(null);
+    setRepickError(null);
+    if (live) disposeExtract(live.extract);
   }
 
   // Revoke any outstanding blob URL when the component unmounts
@@ -217,6 +245,9 @@ export default function AnalysePage() {
       // Leaving mid-question: release the run (it disposes the video on the way out).
       pickResolve.current?.(null);
       pickResolve.current = null;
+      const live = liveRun.current;
+      liveRun.current = null;
+      if (live) disposeExtract(live.extract);
     };
   }, []);
 
@@ -240,6 +271,156 @@ export default function AnalysePage() {
     phase.retryable &&
     (!!pendingFile.current || (sourceMode === "link" && !!lastLink.current));
 
+  /**
+   * Who is the athlete (or the scouted fighter)? One person tracked: them, nothing to ask.
+   * Two or more: the pause-and-tap step, always - never a silent default to the best-tracked body.
+   * Null = the user cancelled.
+   */
+  async function chooseAthlete(extract: ExtractResult, file: File, reason: "two" | "unsure"): Promise<AthleteChoice | null> {
+    const { people, width, height } = extract;
+    if (people.length < 2) {
+      const p = people[0] ? autoSelectionPoint(people[0], width, height) : null;
+      return { index: 0, selection: p ? roundSelection({ ...p, method: "auto", trackMatched: true }) : undefined };
+    }
+    const url = URL.createObjectURL(file);
+    try {
+      const pick = await new Promise<PersonPick | null>((resolve) => {
+        pickResolve.current = resolve;
+        setPickData({ videoUrl: url, tracks: people, width, height, startTime: pickerStartTime(people, width, height), reason });
+        setPhase({ stage: "pick" });
+      });
+      if (!pick) return null;
+      return {
+        // No tracked body at the tap: the best-tracked person is measured, and the read is told the
+        // choice is UNVERIFIED (trackMatched=false) so it says when it cannot tell.
+        index: pick.index ?? 0,
+        selection: roundSelection({ timeSec: pick.timeSec, x: pick.x, y: pick.y, method: pick.method, trackMatched: pick.trackMatched }),
+      };
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  /**
+   * Measure the chosen person, build the key frames (them blue, the other person red) and ask for
+   * the read. Returns the new read's id and whether the AI was unsure who the athlete is.
+   */
+  async function measureAndSend(
+    extract: ExtractResult,
+    choice: AthleteChoice,
+    opts: { opponentMode: boolean; rerunOf?: number },
+  ): Promise<{ id: number; unsureWho: boolean }> {
+    const { opponentMode } = opts;
+    let athleteFrames = extract.frames;
+    let opponentFrames: PoseFrame[] | null = null;
+    if (extract.people.length >= 2) {
+      const split = splitAthlete(extract.people, choice.index);
+      athleteFrames = split.athlete;
+      // A scout is categorical about ONE person: the other fighter is not stored as "opponent".
+      opponentFrames = opponentMode ? null : split.opponent;
+    }
+
+    // Never draw or score a skeleton that cannot be a body (folded/twisted, limbs far too long):
+    // those frames become "no lock". Then judge the clip as a whole: if the tracker was not
+    // reliable, the read is kept but no skeleton visuals are built or shown.
+    const scrub = scrubInsaneSkeletons(athleteFrames, extract.width, extract.height);
+    athleteFrames = scrub.frames;
+    if (opponentFrames) opponentFrames = scrubInsaneSkeletons(opponentFrames, extract.width, extract.height).frames;
+    const reliability = trackReliability(athleteFrames, extract.width, extract.height, scrub);
+
+    const metrics = computeMetrics(athleteFrames);
+
+    if (metrics.poseFrames < 3) {
+      throw new Error(
+        "couldn't get a reliable body lock in this clip. Ground work, close-ups and heavy overlap confuse the tracker - try a wider, steadier shot with the athlete clearly in frame",
+      );
+    }
+
+    const keyframes: AnalysisKeyframe[] = [];
+    for (const m of metrics.keyMoments) {
+      const fi = athleteFrames.findIndex((f) => Math.abs(f.timestamp - m.timestamp) < 0.001);
+      const frame = athleteFrames[fi];
+      if (!frame) continue;
+      // With an opponent in the clip the still shows you in blue and them in red.
+      const img = await captureKeyframe(
+        extract,
+        frame,
+        520,
+        opponentFrames
+          ? { youColor: YOU_COLOR, opponent: opponentFrames[fi]?.landmarks ?? null, opponentColor: OPPONENT_COLOR }
+          : undefined,
+      );
+      if (img)
+        keyframes.push({
+          timestamp: m.timestamp,
+          imageBase64: img,
+          caption: m.reason,
+          eventType: m.type,
+        });
+    }
+
+    const detectedEvents: DetectedEvent[] = metrics.events;
+
+    setPhase({ stage: "loading_ai" });
+    const res = await create.mutateAsync({
+      kind,
+      focus: focus.trim(),
+      load: metrics.load,
+      fragmentationRisk: metrics.fragmentationRisk,
+      loadBasis: metrics.loadBasis,
+      // A scout is categorical — never a scorecard. Send no composite / no
+      // scores for opponent reads; the server also zeroes these server-side.
+      sessionScore: opponentMode ? 0 : metrics.sessionScore,
+      durationSec: extract.durationSec,
+      framesAnalysed: metrics.framesAnalysed,
+      poseFrames: metrics.poseFrames,
+      signals: metrics.signals,
+      scores: opponentMode ? [] : metrics.scores,
+      detectedEvents,
+      keyframes,
+      athleteContext: buildAthleteContext(whoRef.current),
+      // Where the user tapped themselves: the server states it in the read's "who is who".
+      ...(choice.selection ? { athleteSelection: choice.selection } : {}),
+      ...(opts.rerunOf != null ? { rerunOf: opts.rerunOf } : {}),
+      // Per-frame landmarks (quantised) for overlay/graphs/annotations/comparisons.
+      // null when too few frames locked or it would exceed the size cap.
+      poseTrack:
+        reliability.level === "good" ? encodePoseTrack(athleteFrames, extract.width, extract.height, opponentFrames) : null,
+      ...(opponentMode
+        ? { subject: "opponent" as const, opponentName: opponentName.trim() }
+        : {}),
+    });
+    setResult(res.analysis);
+    setModelUpdate(res.modelUpdate ?? null);
+    setTrackNote(
+      reliability.level === "good"
+        ? null
+        : `Skeleton, graphs and comparisons are off for this clip: ${reliability.reasons.join("; ")}. The read below only uses the ${metrics.poseFrames} frames where a body was found.`,
+    );
+    setPhase({ stage: "idle" });
+    // Create a blob URL for the desktop video player — revoke the previous one first
+    if (pendingFile.current) {
+      if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
+      const url = URL.createObjectURL(pendingFile.current);
+      videoUrlRef.current = url;
+      setVideoUrl(url);
+    }
+    const unsureWho = !opponentMode && extract.people.length >= 2 && res.analysis.metrics?.identity?.confident === false;
+    return { id: res.analysis.id, unsureWho };
+  }
+
+  function handleRunError(err: unknown) {
+    if (err instanceof ApiError && err.kind === "consent") {
+      queryClient.invalidateQueries({ queryKey: ["ai-consent"] });
+      setPhase({ stage: "idle" });
+    } else if (err instanceof ApiError && err.kind === "upgrade_required") {
+      setPhase({ stage: "idle" });
+      openUpgrade(err.feature || "video_analysis");
+    } else {
+      setPhase(toErrorPhase(err));
+    }
+  }
+
   async function runAnalysis(file: File) {
     // Prompt before expensive on-device pose work; server enforces the same
     // gate for every new analysis.
@@ -248,6 +429,7 @@ export default function AnalysePage() {
       openUpgrade(opponentMode ? "opponent_analysis" : "video_analysis");
       return;
     }
+    releaseLive();
     setResult(null);
     setModelUpdate(null);
     setTrackNote(null);
@@ -266,6 +448,7 @@ export default function AnalysePage() {
       return;
     }
     let extract: ExtractResult | null = null;
+    let kept = false;
     try {
       const consent = await api.getAiConsent();
       if (!consent.accepted) {
@@ -281,138 +464,57 @@ export default function AnalysePage() {
 
       setPhase({ stage: "detecting" });
 
-      // Two people in the clip? Ask who is the athlete BEFORE anything is scored.
-      // Single-person clips (and opponent scouts) skip this and behave as before.
-      let athleteFrames = extract.frames;
-      let opponentFrames: PoseFrame[] | null = null;
-      // A scout upload asks too ("who are you scouting?") - otherwise a two-person clip would
-      // silently scout whoever the tracker happened to rank first.
-      const two = detectTwoPeople(extract.people, extract.width, extract.height);
-      if (two) {
-        const shot = await captureKeyframe(extract, {
-          timestamp: extract.people[0]![two.pickerFrame]!.timestamp,
-          landmarks: null,
-        });
-        const a = extract.people[0]![two.pickerFrame]!.landmarks;
-        const b = extract.people[1]![two.pickerFrame]!.landmarks;
-        let choice: 0 | 1 = 0; // no usable still -> fall back to the suggestion rather than blocking
-        if (shot && a && b) {
-          const picked = await new Promise<0 | 1 | null>((resolve) => {
-            pickResolve.current = resolve;
-            setPickData({
-              image: shot,
-              aspect: extract!.width / extract!.height,
-              people: [{ landmarks: a }, { landmarks: b }],
-            });
-            setPhase({ stage: "pick" });
-          });
-          if (picked === null) {
-            setPhase({ stage: "idle" });
-            return;
-          }
-          choice = picked;
-          setPhase({ stage: "detecting" });
-        }
-        const split = splitAthlete(extract.people, choice);
-        athleteFrames = split.athlete;
-        // A scout is categorical about ONE person: the other fighter is not stored as "opponent".
-        opponentFrames = opponentMode ? null : split.opponent;
+      // Two or more people in the clip? Ask who is the athlete (or who is being scouted) BEFORE
+      // anything is scored. Single-person clips skip this and behave as before.
+      const choice = await chooseAthlete(extract, file, "two");
+      if (!choice) {
+        setPhase({ stage: "idle" });
+        return;
       }
-
-      // Never draw or score a skeleton that cannot be a body (folded/twisted, limbs far too long):
-      // those frames become "no lock". Then judge the clip as a whole: if the tracker was not
-      // reliable, the read is kept but no skeleton visuals are built or shown.
-      const scrub = scrubInsaneSkeletons(athleteFrames, extract.width, extract.height);
-      athleteFrames = scrub.frames;
-      if (opponentFrames) opponentFrames = scrubInsaneSkeletons(opponentFrames, extract.width, extract.height).frames;
-      const reliability = trackReliability(athleteFrames, extract.width, extract.height, scrub);
-
-      const metrics = computeMetrics(athleteFrames);
-
-      if (metrics.poseFrames < 3) {
-        throw new Error(
-          "couldn't get a reliable body lock in this clip. Ground work, close-ups and heavy overlap confuse the tracker - try a wider, steadier shot with the athlete clearly in frame",
-        );
-      }
-
-      const keyframes: AnalysisKeyframe[] = [];
-      for (const m of metrics.keyMoments) {
-        const fi = athleteFrames.findIndex((f) => Math.abs(f.timestamp - m.timestamp) < 0.001);
-        const frame = athleteFrames[fi];
-        if (!frame) continue;
-        // With an opponent in the clip the still shows you in blue and them in red.
-        const img = await captureKeyframe(
-          extract,
-          frame,
-          520,
-          opponentFrames
-            ? { youColor: YOU_COLOR, opponent: opponentFrames[fi]?.landmarks ?? null, opponentColor: OPPONENT_COLOR }
-            : undefined,
-        );
-        if (img)
-          keyframes.push({
-            timestamp: m.timestamp,
-            imageBase64: img,
-            caption: m.reason,
-            eventType: m.type,
-          });
-      }
-
-      const detectedEvents: DetectedEvent[] = metrics.events;
-
-      setPhase({ stage: "loading_ai" });
-      const res = await create.mutateAsync({
-        kind,
-        focus: focus.trim(),
-        load: metrics.load,
-        fragmentationRisk: metrics.fragmentationRisk,
-        loadBasis: metrics.loadBasis,
-        // A scout is categorical — never a scorecard. Send no composite / no
-        // scores for opponent reads; the server also zeroes these server-side.
-        sessionScore: opponentMode ? 0 : metrics.sessionScore,
-        durationSec: extract.durationSec,
-        framesAnalysed: metrics.framesAnalysed,
-        poseFrames: metrics.poseFrames,
-        signals: metrics.signals,
-        scores: opponentMode ? [] : metrics.scores,
-        detectedEvents,
-        keyframes,
-        // Per-frame landmarks (quantised) for overlay/graphs/annotations/comparisons.
-        // null when too few frames locked or it would exceed the size cap.
-        athleteContext: buildAthleteContext(who),
-        poseTrack:
-          reliability.level === "good" ? encodePoseTrack(athleteFrames, extract.width, extract.height, opponentFrames) : null,
-        ...(opponentMode
-          ? { subject: "opponent" as const, opponentName: opponentName.trim() }
-          : {}),
-      });
-      setResult(res.analysis);
-      setModelUpdate(res.modelUpdate ?? null);
-      setTrackNote(
-        reliability.level === "good"
-          ? null
-          : `Skeleton, graphs and comparisons are off for this clip: ${reliability.reasons.join("; ")}. The read below only uses the ${metrics.poseFrames} frames where a body was found.`,
-      );
-      setPhase({ stage: "idle" });
-      // Create a blob URL for the desktop video player — revoke the previous one first
-      if (pendingFile.current) {
-        if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
-        const url = URL.createObjectURL(pendingFile.current);
-        videoUrlRef.current = url;
-        setVideoUrl(url);
+      setPhase({ stage: "detecting" });
+      const sent = await measureAndSend(extract, choice, { opponentMode });
+      if (sent.unsureWho) {
+        // The AI could not tell who the athlete is: keep the pose pass for "Which one are you?".
+        liveRun.current = { extract, file, choice, analysisId: sent.id };
+        kept = true;
+        setRepickFor(sent.id);
       }
     } catch (err) {
-      if (err instanceof ApiError && err.kind === "consent") {
-        queryClient.invalidateQueries({ queryKey: ["ai-consent"] });
-        setPhase({ stage: "idle" });
-      } else if (err instanceof ApiError && err.kind === "upgrade_required") {
-        setPhase({ stage: "idle" });
-        openUpgrade(err.feature || "video_analysis");
-      } else {
-        setPhase(toErrorPhase(err));
-      }
+      handleRunError(err);
     } finally {
-      if (extract) disposeExtract(extract);
+      if (extract && !kept) disposeExtract(extract);
+    }
+  }
+
+  /** "Which one are you?" after an unsure read: tap yourself, then the read is run again for that person. */
+  async function repickAthlete() {
+    const live = liveRun.current;
+    if (!live || busy) return;
+    setRepickError(null);
+    try {
+      const choice = await chooseAthlete(live.extract, live.file, "unsure");
+      if (!choice) {
+        setPhase({ stage: "idle" });
+        return;
+      }
+      setPhase({ stage: "detecting" });
+      const sent = await measureAndSend(live.extract, choice, { opponentMode: false, rerunOf: live.analysisId });
+      if (liveRun.current !== live) return; // released while running (left the read)
+      if (sent.unsureWho) {
+        live.choice = choice;
+        live.analysisId = sent.id;
+        setRepickFor(sent.id);
+      } else {
+        releaseLive();
+      }
+    } catch (err) {
+      if (err instanceof ApiError && (err.kind === "consent" || err.kind === "upgrade_required")) {
+        handleRunError(err);
+        return;
+      }
+      // The current read stays on screen: say what went wrong next to the prompt, not on the hidden form.
+      setPhase({ stage: "idle" });
+      setRepickError(toErrorPhase(err).causes[0] ?? "Couldn't run the read again");
     }
   }
 
@@ -453,6 +555,7 @@ export default function AnalysePage() {
   }
 
   function clearResult() {
+    releaseLive();
     setResult(null);
     setTrackNote(null);
     setModelUpdate(null);
@@ -500,15 +603,6 @@ export default function AnalysePage() {
           </Link>
         </div>
         <div className="text-center flex flex-col items-center gap-1.5">
-          <img
-            src={`${basePath}/frame-octagon-logo.png`}
-            srcSet={`${basePath}/frame-octagon-logo.png 1x, ${basePath}/frame-octagon-logo@2x.png 2x, ${basePath}/frame-octagon-logo@3x.png 3x`}
-            alt=""
-            aria-hidden
-            width={30}
-            height={30}
-            className="object-contain opacity-90"
-          />
           <div className="font-mono text-[11px] uppercase tracking-[0.4em] text-foreground/90">
             Analyse
           </div>
@@ -535,6 +629,9 @@ export default function AnalysePage() {
             </div>
           ) : selfResult ? (
             <div className="space-y-6" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
+              {repickFor != null && selfResult.id === repickFor && (
+                <IdentityPrompt onPick={() => void repickAthlete()} error={repickError} busy={busy} />
+              )}
               <Report analysis={selfResult} fighter={fighter} videoUrl={videoUrl} trackNote={trackNote} onClose={clearResult} onSelectSession={onSelectSession} />
               {modelUpdate && <ModelUpdateCard update={modelUpdate} />}
             </div>
@@ -570,8 +667,6 @@ export default function AnalysePage() {
               setSubject={setSubject}
               opponentName={opponentName}
               setOpponentName={setOpponentName}
-              who={who}
-              setWho={setWho}
               opponentItems={opponentAnalyses.data?.opponents ?? []}
               opponentLoading={opponentAnalyses.isLoading}
               onOpenOpponent={(id) => setOpenOpponentId(id)}
@@ -636,6 +731,9 @@ export default function AnalysePage() {
             <div ref={desktopRightScrollRef} className="flex-1 overflow-y-auto px-7 py-6" style={{ opacity: reportVisible ? 1 : 0, transition: "opacity 150ms ease" }}>
               {result ? (
                 <div className="space-y-6">
+                  {repickFor != null && result.id === repickFor && (
+                    <IdentityPrompt onPick={() => void repickAthlete()} error={repickError} busy={busy} />
+                  )}
                   <WorkstationRight analysis={result} fighter={fighter} playback={desktopPlayback} onClose={clearResult} onSelectSession={onSelectSession} />
                   {modelUpdate && <ModelUpdateCard update={modelUpdate} />}
                 </div>
@@ -854,8 +952,10 @@ export default function AnalysePage() {
       {phase.stage === "pick" && pickData && (
         <PersonPicker
           data={pickData}
-          mode={subject === "opponent" ? "scout" : "athlete"}
-          onPick={answerPick}
+          who={who}
+          setWho={setWho}
+          mode={subject === "opponent" && pickData.reason === "two" ? "scout" : "athlete"}
+          onConfirm={answerPick}
           onCancel={() => answerPick(null)}
         />
       )}
@@ -1021,86 +1121,47 @@ function LinkInput({
   );
 }
 
-export type WhoIsWho = { side: "left" | "right" | null; athlete: string; other: string };
+export type { WhoIsWho };
 
 /** The "who is who" the user gave, in the shape the server stores; undefined when they gave nothing. */
 export function buildAthleteContext(who: WhoIsWho): AthleteContext | undefined {
   const athlete = who.athlete.trim();
   const other = who.other.trim();
-  if (!who.side && !athlete && !other) return undefined;
+  if (!athlete && !other) return undefined;
   return {
-    ...(who.side ? { side: who.side } : {}),
     ...(athlete ? { athlete } : {}),
     ...(other ? { other } : {}),
   };
 }
 
-function WhoIsWhoInput({
-  who,
-  setWho,
-  disabled,
-  scout,
-}: {
-  who: WhoIsWho;
-  setWho: (w: WhoIsWho) => void;
-  disabled: boolean;
-  scout: boolean;
-}) {
-  const subject = scout ? "Who are you scouting" : "Which one are you";
-  const field =
-    "w-full bg-transparent border-b border-border/40 focus:border-primary/40 outline-none py-2.5 text-sm text-foreground/85 placeholder:text-muted-foreground/35 transition-colors disabled:opacity-40";
+/**
+ * Shown on a fresh read when the AI could not tell which person is the athlete: the read is not
+ * final. Reopens the pause-and-tap step; the read is then run again for the person tapped.
+ */
+function IdentityPrompt({ onPick, error, busy }: { onPick: () => void; error: string | null; busy: boolean }) {
   return (
-    <section className="space-y-2" data-testid="who-is-who">
-      <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
-        {subject}{" "}
-        <span className="font-sans normal-case tracking-normal text-muted-foreground/40 text-[11px]">
-          optional
-        </span>
-      </div>
-      <div className="grid grid-cols-2 gap-[3px]">
-        {(["left", "right"] as const).map((side) => {
-          const on = who.side === side;
-          return (
-            <button
-              key={side}
-              type="button"
-              data-testid={`who-side-${side}`}
-              aria-pressed={on}
-              disabled={disabled}
-              onClick={() => setWho({ ...who, side: on ? null : side })}
-              className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
-              style={{
-                borderLeft: `2px solid ${on ? "hsla(0,68%,46%,0.9)" : "hsla(0,0%,100%,0.1)"}`,
-                borderTop: `1px solid ${on ? "hsla(0,68%,46%,0.2)" : "hsla(0,0%,100%,0.06)"}`,
-                borderRight: "1px solid hsla(0,0%,100%,0.04)",
-                borderBottom: "1px solid hsla(0,0%,100%,0.04)",
-                background: on ? "hsla(0,68%,46%,0.08)" : "transparent",
-                color: on ? "hsl(0,55%,65%)" : "hsla(0,0%,100%,0.55)",
-              }}
-            >
-              {scout ? `They are on the ${side}` : `I am on the ${side}`}
-            </button>
-          );
-        })}
-      </div>
-      <input
-        type="text"
-        data-testid="who-athlete"
-        value={who.athlete}
-        onChange={(e) => setWho({ ...who, athlete: e.target.value.slice(0, 80) })}
-        disabled={disabled}
-        placeholder={scout ? "what they wear: white gi, red shorts…" : "what you wear: red shorts, blue rashguard…"}
-        className={field}
-      />
-      <input
-        type="text"
-        data-testid="who-other"
-        value={who.other}
-        onChange={(e) => setWho({ ...who, other: e.target.value.slice(0, 80) })}
-        disabled={disabled}
-        placeholder={scout ? "the other person: black gi, taller…" : "the other person: white gi, black shorts…"}
-        className={field}
-      />
+    <section
+      role="status"
+      data-testid="identity-prompt"
+      className="border px-4 py-3 space-y-2 font-sans"
+      style={{ borderColor: "rgba(77,163,255,0.45)", background: "rgba(77,163,255,0.07)" }}
+    >
+      <div className="text-base font-medium text-foreground">Which one are you?</div>
+      <p className="text-sm text-foreground/80 leading-relaxed">
+        FRAME couldn't tell which person in this clip is you, so this read may describe the wrong person. Tap yourself
+        on a clear frame and it's run again for you.
+      </p>
+      {error && <p className="text-sm text-destructive/90">{error}</p>}
+      <button
+        type="button"
+        onClick={onPick}
+        disabled={busy}
+        data-testid="identity-prompt-pick"
+        className="w-full py-2.5 text-sm font-medium text-foreground border disabled:opacity-40"
+        style={{ borderColor: "#4da3ff", background: "rgba(77,163,255,0.13)" }}
+      >
+        Pick myself
+      </button>
     </section>
   );
 }
@@ -1132,8 +1193,6 @@ function UploadControls({
   setSubject,
   opponentName,
   setOpponentName,
-  who,
-  setWho,
   opponentItems,
   opponentLoading,
   onOpenOpponent,
@@ -1164,8 +1223,6 @@ function UploadControls({
   setSubject: (s: AnalysisSubject) => void;
   opponentName: string;
   setOpponentName: (v: string) => void;
-  who: WhoIsWho;
-  setWho: (w: WhoIsWho) => void;
   opponentItems: OpponentListItem[];
   opponentLoading: boolean;
   onOpenOpponent: (id: number) => void;
@@ -1263,7 +1320,6 @@ function UploadControls({
         <FocusPresets focus={focus} setFocus={setFocus} disabled={busy} />
       </section>
 
-      <WhoIsWhoInput who={who} setWho={setWho} disabled={busy} scout={subject === "opponent"} />
 
       {/* Source: upload a file or paste a link */}
       <section className="space-y-3">
@@ -1664,7 +1720,7 @@ function SavedWorkstationLeft({
   if (isLoading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 py-16">
-        <FrameOctagon size={56} spin spinSeconds={4} glow={false} />
+        <OctagonPulse size={56} />
         <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
           Loading read
         </div>
@@ -2578,7 +2634,7 @@ function SavedReport({
   if (isLoading) {
     return (
       <div className="py-16 flex flex-col items-center gap-4">
-        <FrameOctagon size={56} spin spinSeconds={4} glow={false} />
+        <OctagonPulse size={56} />
         <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
           Loading read
         </div>
@@ -2727,6 +2783,23 @@ function TrendSection({
 // Shared utility components
 // ---------------------------------------------------------------------------
 
+/** The FRAME octagon (transparent PNG, square, no box behind it) with a slow breath: the analysis loader. */
+function OctagonPulse({ size, alt = "" }: { size: number; alt?: string }) {
+  return (
+    <img
+      src={`${basePath}/frame-octagon-logo.png`}
+      srcSet={`${basePath}/frame-octagon-logo.png 1x, ${basePath}/frame-octagon-logo@2x.png 2x, ${basePath}/frame-octagon-logo@3x.png 3x`}
+      alt={alt}
+      aria-hidden={alt ? undefined : true}
+      width={size}
+      height={size}
+      className="object-contain frame-logo-pulse"
+      style={{ width: size, height: size }}
+      draggable={false}
+    />
+  );
+}
+
 function CinematicOverlay({ phase }: { phase: Phase }) {
   const key =
     phase.stage === "fetching"
@@ -2752,20 +2825,7 @@ function CinematicOverlay({ phase }: { phase: Phase }) {
       <div className="pointer-events-none absolute inset-x-0 h-24 frame-scan-sweep" />
 
       <div className="relative flex items-center justify-center w-32 h-32">
-        <img
-          src={`${basePath}/frame-octagon-logo.png`}
-          srcSet={`${basePath}/frame-octagon-logo.png 1x, ${basePath}/frame-octagon-logo@2x.png 2x, ${basePath}/frame-octagon-logo@3x.png 3x`}
-          alt="FRAME"
-          className="w-32 h-32 object-contain"
-          style={{ animation: "frame-logo-pulse 2.4s ease-in-out infinite", opacity: 0.92 }}
-          draggable={false}
-        />
-        <style>{`
-          @keyframes frame-logo-pulse {
-            0%, 100% { opacity: 0.6; transform: scale(0.97); }
-            50% { opacity: 0.95; transform: scale(1.03); }
-          }
-        `}</style>
+        <OctagonPulse size={128} alt="FRAME" />
       </div>
 
       <div className="mt-10 text-center space-y-2 relative">

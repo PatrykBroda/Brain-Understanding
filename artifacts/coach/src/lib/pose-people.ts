@@ -912,3 +912,177 @@ export function selectFighters(raw: RawPoseFrame[], w: number, h: number): PoseF
     h,
   );
 }
+
+// ---------------------------------------------------------------------------
+// Pause and tap: the user pauses the clip on a clear moment and taps themselves.
+// The tap (normalised to the video frame) is matched to a tracked person at the
+// nearest sampled time, so the person measured is the person the user pointed at.
+// ---------------------------------------------------------------------------
+
+export type SelectionMethod = "tap" | "side" | "auto";
+
+/** A tap on the paused video: media time (s) and position, 0..1 across / down the frame. */
+export type TapPoint = { timeSec: number; x: number; y: number };
+
+export type TapMatch = {
+  /** Index into the tracks of the chosen person, or null when no tracked body could be tied to the tap. */
+  index: number | null;
+  method: "tap" | "side";
+  trackMatched: boolean;
+  /** The sampled frame the match was made on (index into each track), or null. */
+  frameIndex: number | null;
+};
+
+/** A track's body near a given time, in normalised (0..1) frame coordinates. */
+export type BodyNear = {
+  frameIndex: number;
+  landmarks: Landmark[];
+  box: { x0: number; y0: number; x1: number; y1: number };
+  /** Hip centre (shoulders / box centre when the hips are not visible). */
+  cx: number;
+  cy: number;
+};
+
+// A tap this far (in body heights) from a body's centre still counts as tapping that body.
+const TAP_NEAR = 0.6;
+// Search this far (s) either side of the tap time for each person's pose.
+const TAP_MAX_DT = 0.5;
+
+/** Index of the sampled frame nearest to time t (frames sorted by time); -1 when there are none. */
+export function nearestSampleIndex(frames: { timestamp: number }[], t: number): number {
+  if (!frames.length) return -1;
+  let lo = 0;
+  let hi = frames.length - 1;
+  while (lo < hi) {
+    const m = (lo + hi) >> 1;
+    if (frames[m]!.timestamp < t) lo = m + 1;
+    else hi = m;
+  }
+  if (lo > 0 && Math.abs(frames[lo - 1]!.timestamp - t) <= Math.abs(frames[lo]!.timestamp - t)) return lo - 1;
+  return lo;
+}
+
+/** Each track's body nearest to time t (within maxDt seconds), or null where that person wasn't found. */
+export function bodiesNear(
+  tracks: PoseFrame[][],
+  t: number,
+  w: number,
+  h: number,
+  maxDt = TAP_MAX_DT,
+): (BodyNear | null)[] {
+  return tracks.map((frames) => {
+    const i0 = nearestSampleIndex(frames, t);
+    if (i0 < 0) return null;
+    let best: BodyNear | null = null;
+    let bestDt = Infinity;
+    for (let k = 0; k < frames.length; k++) {
+      let any = false;
+      for (const i of k === 0 ? [i0] : [i0 - k, i0 + k]) {
+        const f = frames[i];
+        if (!f) continue;
+        const dt = Math.abs(f.timestamp - t);
+        if (dt > maxDt) continue;
+        any = true;
+        if (!f.landmarks || dt >= bestDt) continue;
+        const g = poseGeom(f.landmarks, w, h);
+        if (!g) continue;
+        best = {
+          frameIndex: i,
+          landmarks: f.landmarks,
+          box: { x0: g.x0 / w, y0: g.y0 / h, x1: g.x1 / w, y1: g.y1 / h },
+          cx: g.cx / w,
+          cy: g.cy / h,
+        };
+        bestDt = dt;
+      }
+      if (!any && k > 0) break; // both directions are past maxDt
+    }
+    return best;
+  });
+}
+
+/**
+ * Which tracked person did the user tap? 1) a body whose box contains the tap (the one whose centre
+ * is closest when boxes overlap), or one whose centre is within ~half a body height; 2) the tap missed
+ * every body: the person on the tapped side of the frame (by hip position at that moment); 3) nobody
+ * tracked near that time: no match (trackMatched false; the caller sends the tap as an unverified note).
+ */
+export function matchTapToTrack(
+  tracks: PoseFrame[][],
+  tap: TapPoint,
+  w: number,
+  h: number,
+  opts: { maxDt?: number } = {},
+): TapMatch {
+  const near = bodiesNear(tracks, tap.timeSec, w, h, opts.maxDt ?? TAP_MAX_DT);
+  const present = near
+    .map((b, i) => (b ? { i, b } : null))
+    .filter((p): p is { i: number; b: BodyNear } => p != null);
+  const fallbackFrame = tracks[0] ? nearestSampleIndex(tracks[0], tap.timeSec) : -1;
+  if (!present.length) {
+    return { index: null, method: "tap", trackMatched: false, frameIndex: fallbackFrame >= 0 ? fallbackFrame : null };
+  }
+  // Distances in pixels, scaled by body height, so a wide frame doesn't distort them.
+  const scored = present.map(({ i, b }) => {
+    const size = Math.max((b.box.y1 - b.box.y0) * h, 0.08 * h);
+    const pad = 0.04 * size;
+    const px = tap.x * w;
+    const py = tap.y * h;
+    const inside =
+      px >= b.box.x0 * w - pad && px <= b.box.x1 * w + pad && py >= b.box.y0 * h - pad && py <= b.box.y1 * h + pad;
+    const d = Math.hypot(px - b.cx * w, py - b.cy * h) / size;
+    return { i, b, inside, d };
+  });
+  const hits = scored.filter((s) => s.inside);
+  const pool = hits.length ? hits : scored.filter((s) => s.d <= TAP_NEAR);
+  if (pool.length) {
+    const best = pool.reduce((a, c) => (c.d < a.d ? c : a));
+    return { index: best.i, method: "tap", trackMatched: true, frameIndex: best.b.frameIndex };
+  }
+  // Missed every body: use the side of the frame the user tapped.
+  const left = tap.x < 0.5;
+  if (scored.length >= 2) {
+    const sorted = scored.slice().sort((a, c) => a.b.cx - c.b.cx);
+    const pick = left ? sorted[0]! : sorted[sorted.length - 1]!;
+    return { index: pick.i, method: "side", trackMatched: true, frameIndex: pick.b.frameIndex };
+  }
+  const only = scored[0]!;
+  if (only.b.cx < 0.5 === left) {
+    return { index: only.i, method: "side", trackMatched: true, frameIndex: only.b.frameIndex };
+  }
+  // The one body seen is on the other side: with exactly two people, the tap is the other one.
+  if (tracks.length === 2) {
+    return { index: 1 - only.i, method: "side", trackMatched: true, frameIndex: only.b.frameIndex };
+  }
+  return { index: null, method: "side", trackMatched: false, frameIndex: only.b.frameIndex };
+}
+
+/**
+ * Where the pause-and-tap step opens: the clean still with both fighters (if any), else the
+ * frame where the two are best seen together, else the first frame with anybody, else 0.
+ */
+export function pickerStartTime(tracks: PoseFrame[][], w: number, h: number): number {
+  if (tracks.length >= 2) {
+    const still = pickerStill(tracks[0]!, tracks[1]!, w, h);
+    if (still) return tracks[0]![still.index]!.timestamp;
+  }
+  for (const f of tracks[0] ?? []) if (f.landmarks) return f.timestamp;
+  return 0;
+}
+
+/** For a one-person clip: where that person is on their best-seen frame (sent as an "auto" selection). */
+export function autoSelectionPoint(frames: PoseFrame[], w: number, h: number): TapPoint | null {
+  let best: TapPoint | null = null;
+  let bestScore = -Infinity;
+  for (const f of frames) {
+    if (!f.landmarks) continue;
+    const g = poseGeom(f.landmarks, w, h);
+    if (!g) continue;
+    const s = poseQuality(f.landmarks, w, h).score;
+    if (s > bestScore) {
+      bestScore = s;
+      best = { timeSec: f.timestamp, x: g.cx / w, y: g.cy / h };
+    }
+  }
+  return best;
+}

@@ -10,7 +10,7 @@ vi.mock("@workspace/db", () => ({
 vi.mock("../synochi", () => ({ COACH_SYSTEM_PROMPT_STATIC: "static", buildDynamicContext: () => "dynamic" }));
 vi.mock("@anthropic-ai/sdk", () => ({ default: vi.fn(function () { return {}; }) }));
 
-import { sanitiseAthleteContext, athleteContextLines } from "../lib/athleteContext";
+import { sanitiseAthleteContext, sanitiseAthleteSelection, athleteContextLines } from "../lib/athleteContext";
 import {
   ANALYSIS_SYSTEM_PROMPT,
   IDENTITY_UNSURE_QUESTION,
@@ -93,6 +93,75 @@ describe("metricsText", () => {
     const t = metricsText(base);
     expect(t).toContain("# Who is who");
     expect(t).toContain("did not say who is who");
+  });
+});
+
+describe("sanitiseAthleteSelection", () => {
+  it("keeps a valid tap and rounds it", () => {
+    expect(sanitiseAthleteSelection({ timeSec: 12.437, x: 0.3125, y: 0.55551, method: "tap", trackMatched: true })).toEqual({
+      timeSec: 12.4,
+      x: 0.313,
+      y: 0.556,
+      method: "tap",
+      trackMatched: true,
+    });
+  });
+  it("clamps to the frame and only trusts an explicit trackMatched=true", () => {
+    expect(sanitiseAthleteSelection({ timeSec: -4, x: 1.7, y: -0.2, method: "side", trackMatched: "yes" })).toEqual({
+      timeSec: 0,
+      x: 1,
+      y: 0,
+      method: "side",
+      trackMatched: false,
+    });
+  });
+  it("drops malformed input", () => {
+    expect(sanitiseAthleteSelection(undefined)).toBeUndefined();
+    expect(sanitiseAthleteSelection([1, 2])).toBeUndefined();
+    expect(sanitiseAthleteSelection({ timeSec: 1, x: 0.5, y: 0.5, method: "guess" })).toBeUndefined();
+    expect(sanitiseAthleteSelection({ timeSec: "1", x: 0.5, y: 0.5, method: "tap" })).toBeUndefined();
+    expect(sanitiseAthleteSelection({ timeSec: 1, x: Number.NaN, y: 0.5, method: "tap" })).toBeUndefined();
+    expect(sanitiseAthleteSelection({ timeSec: 1, x: 0.5, method: "tap" })).toBeUndefined();
+  });
+});
+
+describe("athlete selection in the prompt", () => {
+  it("a matched tap reaches the Who is who section of the self prompt", () => {
+    const sel = sanitiseAthleteSelection({ timeSec: 12.4, x: 0.31, y: 0.6, method: "tap", trackMatched: true, extra: "ignore" });
+    const t = metricsText({ ...base, metrics: { ...metrics, athleteSelection: sel }, opponentTracked: true });
+    const who = t.slice(t.indexOf("# Who is who"));
+    expect(who).toContain("tapped themselves at 12.4s, at x=0.31 (left third of the frame)");
+    expect(who).toContain("BLUE in the key frames");
+    expect(who).not.toContain("UNVERIFIED");
+    expect(who).not.toContain("did not say who is who");
+    expect(who).not.toContain("ignore");
+  });
+  it("an unmatched tap is flagged unverified", () => {
+    const sel = sanitiseAthleteSelection({ timeSec: 3, x: 0.8, y: 0.5, method: "tap", trackMatched: false });
+    const t = metricsText({ ...base, metrics: { ...metrics, athleteSelection: sel }, athleteContext: { athlete: "black rashguard" } });
+    expect(t).toContain("right third of the frame");
+    expect(t).toContain("UNVERIFIED");
+    expect(t).toContain('"black rashguard"');
+  });
+  it("a side fallback names the side", () => {
+    const lines = athleteContextLines(undefined, {
+      twoTracked: true,
+      selection: { timeSec: 5, x: 0.9, y: 0.4, method: "side", trackMatched: true },
+    }).join("\n");
+    expect(lines).toContain("RIGHT side");
+    expect(lines).toContain("likely, not certain");
+  });
+  it("reaches the scout prompt, scoped to the scouted fighter", () => {
+    const t = opponentMetricsText({
+      kind: "sparring",
+      focus: "",
+      opponentName: "Sam",
+      load: "high",
+      metrics: { ...metrics, athleteSelection: { timeSec: 2, x: 0.5, y: 0.5, method: "tap", trackMatched: true } },
+      keyframes: [],
+    });
+    expect(t).toContain("tapped the fighter they are scouting at 2.0s");
+    expect(t).not.toContain("BLUE");
   });
 });
 

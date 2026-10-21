@@ -582,6 +582,11 @@ export type AnalysisMetrics = {
   durationSec: number;
   loadBasis: string;
   signals: AnalysisSignal[];
+  athleteContext?: AthleteContext;
+  athleteSelection?: AthleteSelection;
+  // The AI's verdict on who is who; confident=false means it could not tell which person is the athlete.
+  identity?: { confident: boolean; note?: string };
+  rerunOf?: number;
 };
 
 export type { BodyRegion, PoseTrackWire } from "./pose-track";
@@ -729,6 +734,18 @@ export type AnalysisModelUpdate = {
 
 export type AthleteContext = { side?: "left" | "right"; athlete?: string; other?: string };
 
+// Where the user paused the clip and tapped themselves (or the fighter being scouted).
+// x/y are normalised 0..1 across / down the video frame. method: "tap" = matched by the tap,
+// "side" = the tap missed every body so the person on that side was used, "auto" = one person
+// tracked, nothing to choose. trackMatched=false: the tap could not be tied to a tracked person.
+export type AthleteSelection = {
+  timeSec: number;
+  x: number;
+  y: number;
+  method: "tap" | "side" | "auto";
+  trackMatched: boolean;
+};
+
 export type CreateAnalysisInput = {
   kind: AnalysisKind;
   focus: string;
@@ -747,6 +764,9 @@ export type CreateAnalysisInput = {
   poseTrack?: PoseTrackWire | null;
   // Who is who in the clip, as the user described it. Stored with the analysis.
   athleteContext?: AthleteContext;
+  athleteSelection?: AthleteSelection;
+  // Re-running an earlier read whose AI could not tell who the athlete was (that read's id).
+  rerunOf?: number;
   // Opponent Mode. Defaults to a "self" read server-side when omitted.
   subject?: AnalysisSubject;
   opponentName?: string;

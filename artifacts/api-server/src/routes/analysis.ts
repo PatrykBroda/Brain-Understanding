@@ -43,7 +43,7 @@ import {
   RemoteFetchError,
 } from "../lib/remoteFetch";
 import { downloadYouTube, YtDlpError } from "../lib/ytdlp";
-import { sanitiseAthleteContext } from "../lib/athleteContext";
+import { sanitiseAthleteContext, sanitiseAthleteSelection } from "../lib/athleteContext";
 import { sanitisePoseTrack, withoutOpponent } from "../lib/poseTrack";
 
 // The "Athlete Model Updated" payload — every value read back from the DB
@@ -179,6 +179,26 @@ async function insertAnalysisWithRetry<T>(
   }
 }
 
+/**
+ * The id of the athlete's own earlier read that this request re-runs, when that read exists and
+ * the AI flagged it as unsure who the athlete was; null otherwise (a normal new analysis).
+ */
+async function rerunTarget(fighterId: number, input: unknown): Promise<number | null> {
+  if (typeof input !== "number" || !Number.isInteger(input) || input <= 0) return null;
+  const [row] = await db
+    .select({ id: videoAnalysesTable.id, metrics: videoAnalysesTable.metrics })
+    .from(videoAnalysesTable)
+    .where(
+      and(
+        eq(videoAnalysesTable.id, input),
+        eq(videoAnalysesTable.fighterId, fighterId),
+        eq(videoAnalysesTable.subject, "self"),
+      ),
+    )
+    .limit(1);
+  return row && row.metrics?.identity?.confident === false ? row.id : null;
+}
+
 router.post("/analysis", async (req, res) => {
   const fighter = await getUserFighter(req);
   if (!fighter) {
@@ -206,6 +226,8 @@ router.post("/analysis", async (req, res) => {
     keyframes?: unknown;
     poseTrack?: unknown;
     athleteContext?: unknown;
+    athleteSelection?: unknown;
+    rerunOf?: unknown;
   };
 
   // "self" = the athlete's own footage (scored FRAME REPORT). "opponent" = a
@@ -216,7 +238,13 @@ router.post("/analysis", async (req, res) => {
   // All new footage reads require FRAME+. Check before sanitising inputs or
   // calling the expensive analysis service; the client gate is only UX.
   const entitlement = await getEntitlementForUserId(req.userId as string);
-  const freeUsed = entitlement.plan === "free" && subject === "self" ? await countSelfAnalyses(fighter.id) : 0;
+  // A re-run for a different person (the AI could not tell who the athlete was and the user
+  // picked again) replaces that read: it does not spend another free analysis.
+  const rerunOf = subject === "self" ? await rerunTarget(fighter.id, body.rerunOf) : null;
+  const freeUsed =
+    entitlement.plan === "free" && subject === "self"
+      ? Math.max(0, (await countSelfAnalyses(fighter.id)) - (rerunOf != null ? 1 : 0))
+      : 0;
   const upgrade = analysisUpgradeRequired(entitlement.plan, subject, freeUsed);
   if (upgrade) {
     res.status(402).json(upgrade);
@@ -248,6 +276,8 @@ router.post("/analysis", async (req, res) => {
   const poseTrack = sanitisePoseTrack(body.poseTrack);
   // Optional "who is who" the user gave before upload; stored with the analysis (metrics.athleteContext).
   const athleteContext = sanitiseAthleteContext(body.athleteContext);
+  // Where the user paused and tapped themselves; stated in the prompt and kept (metrics.athleteSelection).
+  const athleteSelection = sanitiseAthleteSelection(body.athleteSelection);
   if (signals.length === 0) {
     res.status(400).json({ error: "no movement signals — could not read a pose from this clip" });
     return;
@@ -287,6 +317,8 @@ router.post("/analysis", async (req, res) => {
     loadBasis: typeof body.loadBasis === "string" ? body.loadBasis.slice(0, 240) : "",
     signals,
     ...(athleteContext ? { athleteContext } : {}),
+    ...(athleteSelection ? { athleteSelection } : {}),
+    ...(rerunOf != null ? { rerunOf } : {}),
   };
 
   try {
@@ -427,7 +459,13 @@ router.post("/analysis", async (req, res) => {
         styleParallels: narrative.styleParallels,
         detectedEvents,
         comparison,
-        metrics,
+        metrics: {
+          ...metrics,
+          identity: {
+            confident: narrative.identityConfident,
+            ...(narrative.identityNote ? { note: narrative.identityNote } : {}),
+          },
+        },
         keyframes,
         poseTrack,
         reviewQuestion: applyIdentity(narrative),

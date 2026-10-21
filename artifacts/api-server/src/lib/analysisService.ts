@@ -466,7 +466,7 @@ export function metricsText(args: {
     ...sig,
   ];
 
-  parts.push(``, ...athleteContextLines(athleteContext, { twoTracked: !!opponentTracked }));
+  parts.push(``, ...athleteContextLines(athleteContext, { twoTracked: !!opponentTracked, selection: metrics.athleteSelection }));
 
   parts.push(
     ``,
@@ -1034,7 +1034,7 @@ export function opponentMetricsText(args: {
     `duration analysed: ${metrics.durationSec.toFixed(1)}s`,
     `frames sampled: ${metrics.framesAnalysed}, frames with a clear pose lock: ${metrics.poseFrames}`,
     ``,
-    ...athleteContextLines(athleteContext, { twoTracked: false, scout: true }),
+    ...athleteContextLines(athleteContext, { twoTracked: false, scout: true, selection: metrics.athleteSelection }),
     ``,
     `# Opponent nervous-system read (categorical — describe in words, NEVER as a number)`,
     `load: ${load.toUpperCase()}`,

@@ -105,6 +105,20 @@ export type AthleteContext = {
   other?: string;
 };
 
+// Which person in the clip the user picked as the athlete (or the scouted fighter): where they
+// paused and tapped, and whether that tap was matched to a tracked body. "side" = the tap missed
+// every body, so the person on that side of the frame was used; "auto" = only one person was
+// tracked, nothing to choose. Stored inside `metrics` (jsonb), like AthleteContext.
+export type AthleteSelection = {
+  timeSec: number;
+  // Tap position, normalised 0..1 across / down the video frame.
+  x: number;
+  y: number;
+  method: "tap" | "side" | "auto";
+  // False = the tap could not be tied to a tracked person (the read is unverified).
+  trackMatched: boolean;
+};
+
 export type AnalysisMetrics = {
   framesAnalysed: number;
   poseFrames: number;
@@ -112,6 +126,11 @@ export type AnalysisMetrics = {
   loadBasis: string;
   signals: AnalysisSignal[];
   athleteContext?: AthleteContext;
+  athleteSelection?: AthleteSelection;
+  // The model's verdict on who is who. confident=false: the client asks the user to pick again.
+  identity?: { confident: boolean; note?: string };
+  // Set when this read re-ran an earlier one for a different person (that earlier read's id).
+  rerunOf?: number;
 };
 
 export type AnalysisKeyframe = {

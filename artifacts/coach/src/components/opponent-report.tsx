@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { X, Crosshair, Shield, AlertTriangle, Target, ScanLine } from "lucide-react";
-import { FrameOctagon } from "@/components/frame-octagon";
 import { useAnalysis } from "@/hooks/use-analysis";
 import { AthleteVsOpponent } from "@/components/pose-comparison";
 import type {
@@ -11,6 +10,8 @@ import type {
   StyleParallel,
   Matchup,
 } from "@/lib/api";
+
+const LOGO_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 // Opponent Mode uses a deliberately COOL accent (steel/cyan) so a scouting read
 // can never be mistaken for the athlete's own red-accented FRAME REPORT. This is
@@ -38,7 +39,16 @@ export function SavedOpponentReport({
   if (isLoading) {
     return (
       <div className="py-16 flex flex-col items-center gap-4">
-        <FrameOctagon size={56} spin spinSeconds={4} glow={false} />
+        <img
+          src={`${LOGO_BASE}/frame-octagon-logo.png`}
+          srcSet={`${LOGO_BASE}/frame-octagon-logo.png 1x, ${LOGO_BASE}/frame-octagon-logo@2x.png 2x, ${LOGO_BASE}/frame-octagon-logo@3x.png 3x`}
+          alt=""
+          aria-hidden
+          width={56}
+          height={56}
+          className="w-14 h-14 object-contain frame-logo-pulse"
+          draggable={false}
+        />
         <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
           Loading scout
         </div>

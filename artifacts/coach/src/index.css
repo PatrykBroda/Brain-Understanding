@@ -445,3 +445,12 @@ html[data-keyboard="open"] main,
 html[data-keyboard="open"] [data-scroll] {
   padding-bottom: calc(var(--kb-inset, 0px) + 16px);
 }
+
+/* Octagon PNG loader (analysis "Reading footage" / "Loading read"): a slow breath on the image
+   itself, no box behind it. */
+@keyframes frame-logo-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(0.97); }
+  50% { opacity: 0.95; transform: scale(1.03); }
+}
+.frame-logo-pulse { animation: frame-logo-pulse 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .frame-logo-pulse { animation-duration: 4.8s; } }
