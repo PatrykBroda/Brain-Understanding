@@ -11,9 +11,10 @@
  *                      normalized email/IP pair and 25 register attempts per IP
  *                      per 15 minutes. Uses injectable in-process stores so
  *                      tests can isolate windows without spawning a process.
- *   Token TTL        : 30 days (down from 90; bearer tokens are long-lived and
- *                      not revocable at this point — shorter TTL is the primary
- *                      control; force-reissue on password change is next step).
+ *   Token TTL        : 90 days, sliding — every launch swaps the token via
+ *                      POST /api/auth/refresh, so this is the longest an athlete
+ *                      can go without opening FRAME. Tokens are not revocable at
+ *                      this point; force-reissue on password change is next step.
  *   Generic errors   : login always returns "Incorrect email or password"
  *                      whether the account exists or not.
  */

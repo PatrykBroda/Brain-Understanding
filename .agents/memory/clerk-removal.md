@@ -9,10 +9,10 @@ description: Durable decisions for the in-house email+password system that repla
 
 ## Token contract
 - All API requests carry `Authorization: Bearer <token>` — no cookies.
-- JWT: HS256, 30-day TTL, signed with `SESSION_SECRET`.
-- Storage: `localStorage["frame:token"]` (web), `expo-secure-store["frame:token"]` (mobile).
+- JWT: HS256, 90-day TTL (`TOKEN_TTL` in `routes/auth.ts`), signed with `SESSION_SECRET`. Sliding: clients swap it via `POST /api/auth/refresh` on every launch. Only a real 401 from `/auth/refresh` (or an explicit Log out) clears the saved token — never offline/5xx/timeouts.
+- Storage: `localStorage["frame:token"]` (coach web and the frame-mobile web build), `expo-secure-store["frame.token"]` (native mobile, `AFTER_FIRST_UNLOCK`). SecureStore rejects `:` in keys ("Invalid key") — the old `frame:token` native key made every save throw, so every cold start went to sign-in. Never put a colon back in the native key (see `frame-mobile/lib/tokenBackend.ts`).
 - `verifyToken()` in `routes/auth.ts` is the single decoding entry point; `requireAuth` middleware calls it and sets `req.userId`.
-- Tokens are not currently revocable. Password change (next feature) must reissue a token and discard the old one. Shorter TTL (30d) is the primary control.
+- Tokens are not currently revocable. Password change (next feature) must reissue a token and discard the old one. TTL (90d, sliding) bounds an unused token.
 
 ## Users table PK
 - PK is now `id` (UUID text), NOT `clerk_user_id`.

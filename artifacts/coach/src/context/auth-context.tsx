@@ -1,6 +1,8 @@
 /**
  * Custom auth context — replaces Clerk.
- * JWT is stored in localStorage under "frame:token".
+ * JWT is stored in localStorage under "frame:token" (the native app uses SecureStore "frame.token").
+ * The saved login is deleted ONLY by an explicit sign-out or a real 401 from /auth/refresh —
+ * never by offline, a 5xx, a timeout, or a 403 (a 403 is a permission answer, not a dead login).
  * Provides: isLoaded, isSignedIn, userId, email, token, signOut.
  * Call setApiTokenGetter once on mount so api.ts can inject the token.
  */
@@ -56,6 +58,18 @@ function parseToken(token: string): { sub: string; email: string } | null {
   }
 }
 
+/** How long POST /auth/refresh may take before it is abandoned (the login is kept). */
+const REFRESH_TIMEOUT_MS = 15_000;
+
+/**
+ * A localStorage write that fails (private mode, quota, blocked storage) means the login will not
+ * survive a reload. Report it rather than swallowing it; never logs the token itself.
+ */
+function reportStorageError(stage: string, error: unknown): void {
+  const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  console.warn(`[auth] localStorage ${stage} failed | ${detail} | ua=${typeof navigator !== "undefined" ? navigator.userAgent : "?"}`);
+}
+
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -87,8 +101,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Token expired or invalid — clear it.
         if (!embeddedToken) localStorage.removeItem(TOKEN_KEY);
       }
-    } catch {
+    } catch (e) {
       // localStorage blocked / transient read error: leave any saved token in place.
+      reportStorageError("read", e);
     }
     setState((s) => ({ ...s, isLoaded: true }));
   }, []);
@@ -105,13 +120,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     if (!token || !parseToken(token)) return;
     const sent = token;
-    fetch(`${basePath}/api/auth/refresh`, { method: "POST", headers: { Authorization: `Bearer ${sent}` } })
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
+    fetch(`${basePath}/api/auth/refresh`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${sent}` },
+      signal: controller.signal,
+    })
       .then(async (res) => {
+        // Only 401 means the login is dead. 403, 5xx, etc. keep it.
         if (res.status === 401) {
           try {
             if (localStorage.getItem(TOKEN_KEY) === sent) localStorage.removeItem(TOKEN_KEY);
-          } catch {
-            // ignore
+          } catch (e) {
+            reportStorageError("remove-after-401", e);
           }
           setState((s) => (s.token === sent ? { isLoaded: true, isSignedIn: false, userId: null, email: null, token: null } : s));
           return;
@@ -122,12 +144,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const fresh = body.token;
         try {
           if (localStorage.getItem(TOKEN_KEY) === sent) localStorage.setItem(TOKEN_KEY, fresh);
-        } catch {
-          // ignore
+        } catch (e) {
+          reportStorageError("save-refreshed", e);
         }
         setState((s) => (s.token === sent ? { ...s, token: fresh } : s));
       })
-      .catch(() => undefined);
+      .catch(() => undefined) // offline / aborted after the timeout: keep the login
+      .finally(() => clearTimeout(timer));
+    return () => clearTimeout(timer);
   }, []);
 
   const signIn = useCallback((token: string) => {
@@ -135,8 +159,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!parsed) return;
     try {
       localStorage.setItem(TOKEN_KEY, token);
-    } catch {
-      // ignore storage errors
+    } catch (e) {
+      // Signed in for this tab only; the login will not survive a reload.
+      reportStorageError("save-sign-in", e);
     }
     setState({
       isLoaded: true,
@@ -147,11 +172,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // Explicit sign-out: the only client-initiated deletion of the saved login.
   const signOut = useCallback(() => {
     try {
       localStorage.removeItem(TOKEN_KEY);
-    } catch {
-      // ignore
+    } catch (e) {
+      reportStorageError("remove-on-sign-out", e);
     }
     setState({
       isLoaded: true,

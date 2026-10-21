@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   establishSession,
+  persistToken,
   refreshSessionToken,
   restoreSession,
+  restoreWithBackoff,
   type TokenBackend,
 } from "../lib/authSession";
 
@@ -105,5 +107,164 @@ describe("transient storage failures never log the user out", () => {
     const fresh = jwt({ sub: "u1", email: "a@b.co", exp: 4_100_000_000 });
     expect(await refreshSessionToken(GOOD, async () => ({ token: fresh }))).toEqual({ status: "refreshed", token: fresh });
     expect(await refreshSessionToken(GOOD, async () => ({ token: "nope" }))).toEqual({ status: "unavailable" });
+  });
+});
+
+/** A fake clock + sleep so backoff runs instantly and the give-up window is deterministic. */
+function fakeTime() {
+  let t = 0;
+  const slept: number[] = [];
+  return {
+    clock: () => t,
+    sleep: async (ms: number) => {
+      slept.push(ms);
+      t += ms;
+    },
+    slept,
+  };
+}
+
+describe("cold start with a briefly unreadable keychain (launched while locked)", () => {
+  it("unreadable then readable keeps the user signed in, never reaching the sign-in fallback", async () => {
+    // 3 restore attempts × 2 reads each fail, then the device unlocks.
+    const disk = memoryBackend({ failReads: 6 });
+    await disk.backend.set(GOOD);
+    const time = fakeTime();
+    const errors: number[] = [];
+    const restored = await restoreWithBackoff(disk.backend, {
+      clock: time.clock,
+      sleep: time.sleep,
+      pauseMs: 0,
+      onError: (_e, attempt) => errors.push(attempt),
+    });
+    expect(restored.status).toBe("restored");
+    expect(time.slept).toEqual([300, 1000, 3000]);
+    expect(errors).toEqual([1, 2, 3]); // the real read error is reported each time
+    expect(disk.calls.remove).toBe(0);
+    expect(disk.peek()).toBe(GOOD);
+  });
+
+  it("only gives up (unreadable) after the keychain has failed for the whole window, token kept", async () => {
+    const disk = memoryBackend({ failReads: Number.POSITIVE_INFINITY });
+    await disk.backend.set(GOOD);
+    const time = fakeTime();
+    const restored = await restoreWithBackoff(disk.backend, {
+      clock: time.clock,
+      sleep: time.sleep,
+      pauseMs: 0,
+      giveUpAfterMs: 10_000,
+    });
+    expect(restored).toEqual({ status: "unreadable" });
+    expect(time.clock()).toBeGreaterThanOrEqual(10_000);
+    expect(disk.peek()).toBe(GOOD);
+    expect(disk.calls.remove).toBe(0);
+  });
+
+  it("no saved token is final at once (no retry delay before the sign-in screen)", async () => {
+    const disk = memoryBackend();
+    const time = fakeTime();
+    expect(await restoreWithBackoff(disk.backend, { clock: time.clock, sleep: time.sleep, pauseMs: 0 })).toEqual({ status: "none" });
+    expect(time.slept).toEqual([]);
+  });
+
+  it("stops waiting when a sign-in happens meanwhile", async () => {
+    const disk = memoryBackend({ failReads: Number.POSITIVE_INFINITY });
+    let signedIn = false;
+    const time = fakeTime();
+    const restored = await restoreWithBackoff(disk.backend, {
+      clock: time.clock,
+      sleep: async (ms) => {
+        await time.sleep(ms);
+        signedIn = true;
+      },
+      pauseMs: 0,
+      shouldStop: () => signedIn,
+    });
+    expect(restored.status).toBe("unreadable");
+    expect(time.slept).toEqual([300]);
+  });
+});
+
+describe("refresh outcome decides whether the saved token is deleted", () => {
+  // Mirrors AuthContext.refreshInBackground: only "rejected" removes the saved login.
+  async function applyRefresh(
+    backend: TokenBackend,
+    token: string,
+    call: (t: string) => Promise<{ token?: unknown }>,
+  ) {
+    const outcome = await refreshSessionToken(token, call);
+    if (outcome.status === "rejected") await backend.remove();
+    else if (outcome.status === "refreshed") await backend.set(outcome.token);
+    return outcome;
+  }
+
+  it("a network error keeps the saved token", async () => {
+    const disk = memoryBackend();
+    await disk.backend.set(GOOD);
+    await applyRefresh(disk.backend, GOOD, async () => {
+      throw new TypeError("Network request failed");
+    });
+    expect(disk.peek()).toBe(GOOD);
+    expect(disk.calls.remove).toBe(0);
+  });
+
+  it("a timeout (aborted fetch, no status) keeps the saved token", async () => {
+    const disk = memoryBackend();
+    await disk.backend.set(GOOD);
+    const outcome = await applyRefresh(disk.backend, GOOD, async () => {
+      throw Object.assign(new Error("Aborted"), { name: "AbortError" });
+    });
+    expect(outcome).toEqual({ status: "unavailable" });
+    expect(disk.peek()).toBe(GOOD);
+  });
+
+  it("a 5xx or 403 keeps the saved token", async () => {
+    for (const status of [500, 502, 503, 403, 429]) {
+      const disk = memoryBackend();
+      await disk.backend.set(GOOD);
+      await applyRefresh(disk.backend, GOOD, async () => {
+        throw Object.assign(new Error(`HTTP ${status}`), { status });
+      });
+      expect(disk.peek()).toBe(GOOD);
+    }
+  });
+
+  it("a real 401 clears the saved token", async () => {
+    const disk = memoryBackend();
+    await disk.backend.set(GOOD);
+    const outcome = await applyRefresh(disk.backend, GOOD, async () => {
+      throw Object.assign(new Error("HTTP 401"), { status: 401 });
+    });
+    expect(outcome).toEqual({ status: "rejected" });
+    expect(disk.peek()).toBeNull();
+  });
+});
+
+describe("saving the login retries before falling back to memory-only", () => {
+  it("a save that fails transiently (3 times) is retried with backoff and ends up secure", async () => {
+    const disk = memoryBackend({ failWrites: 3 });
+    const errors: string[] = [];
+    const res = await establishSession(
+      GOOD,
+      { setItem: disk.backend.set, deleteItem: disk.backend.remove },
+      { delaysMs: [0, 0, 0], onError: (e) => errors.push((e as Error).message) },
+    );
+    expect(res.persistence).toBe("secure");
+    expect(disk.peek()).toBe(GOOD);
+    expect(errors).toEqual(["keychain write failed", "keychain write failed", "keychain write failed"]);
+  });
+
+  it("memory-only only after every retry failed; a later foreground save succeeds", async () => {
+    const disk = memoryBackend({ failWrites: 4 });
+    const res = await establishSession(
+      GOOD,
+      { setItem: disk.backend.set, deleteItem: disk.backend.remove },
+      { delaysMs: [0, 0, 0] },
+    );
+    expect(res.persistence).toBe("memory-only");
+    expect(disk.calls.set).toBe(4);
+    // App returns to the foreground: try to persist again (what AuthContext does to clear the banner).
+    expect(await persistToken(GOOD, disk.backend.set, { delaysMs: [0, 0, 0] })).toBe(true);
+    expect(disk.peek()).toBe(GOOD);
   });
 });
