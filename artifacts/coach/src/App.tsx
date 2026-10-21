@@ -22,17 +22,25 @@ import { FramePlusProvider } from "@/components/frame-plus-modal";
 import { AuthProvider, useAuth } from "@/context/auth-context";
 import { useAiConsent, useSetAiConsent } from "@/hooks/use-ai-consent";
 import { AiConsentModal } from "@/components/ai-consent-modal";
-import { FrameOctagon } from "@/components/frame-octagon";
 import { FrameLogo } from "@/components/frame-logo";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-/** Loading screen: new wordmark + octagon spinner (entry look, scoped via .entry-theme). */
+/** Loading screen: new wordmark + the FRAME octagon PNG with a soft pulse (entry look, scoped via .entry-theme). */
 function BootScreen({ label }: { label: string }) {
   return (
     <div className="entry-theme relative flex h-[100dvh] flex-col items-center justify-center gap-5 overflow-hidden px-6 text-center">
       <FrameLogo height={16} />
-      <FrameOctagon size={56} spin spinSeconds={6} color="#B9A477" />
+      <img
+        src={`${basePath}/frame-octagon-logo.png`}
+        srcSet={`${basePath}/frame-octagon-logo.png 1x, ${basePath}/frame-octagon-logo@2x.png 2x, ${basePath}/frame-octagon-logo@3x.png 3x`}
+        alt=""
+        aria-hidden
+        width={56}
+        height={56}
+        className="h-14 w-14 object-contain animate-pulse motion-reduce:animate-none"
+        draggable={false}
+      />
       <span className="entry-label relative">{label}</span>
       <div className="entry-loader-track relative" role="status" aria-label="Loading">
         <div className="entry-loader-bar" />

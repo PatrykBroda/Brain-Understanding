@@ -76,12 +76,13 @@ export default function CampPage() {
         </Link>
         <div className="flex items-center gap-2.5">
           <img
-            src={`${basePath}/frame-logo.png`}
+            src={`${basePath}/frame-octagon-logo.png`}
+            srcSet={`${basePath}/frame-octagon-logo.png 1x, ${basePath}/frame-octagon-logo@2x.png 2x, ${basePath}/frame-octagon-logo@3x.png 3x`}
             alt=""
             aria-hidden
             width={22}
             height={22}
-            className="object-contain opacity-80"
+            className="h-[22px] w-[22px] object-contain opacity-80"
           />
           <div>
             <div className="font-sans font-extralight text-[13px] tracking-[0.45em] text-foreground/95 leading-none">

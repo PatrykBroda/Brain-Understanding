@@ -938,7 +938,7 @@ export default function ProfileScreen() {
               onPress={() => void Linking.openURL(apiUrl("/terms"))}
               accessibilityRole="link"
             >
-              <Text style={s.privacyLinkText}>TERMS OF SERVICE</Text>
+              <Text style={s.privacyLinkText}>Terms of Use (EULA)</Text>
               <Feather name="external-link" size={13} color={ACCENT} />
             </Pressable>
             {email ? <Text style={s.emailText}>{email}</Text> : null}

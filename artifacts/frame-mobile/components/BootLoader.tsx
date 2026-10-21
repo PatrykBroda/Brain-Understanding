@@ -40,7 +40,7 @@ export function BootLoader({ label = "Starting up" }: { label?: string }) {
   return (
     <Screen light="silver" focus="center" intensity={0.7}>
       <View style={s.root} accessible accessibilityRole="progressbar" accessibilityLabel={label}>
-        <Image source={require("../assets/images/frame-logo.png")} style={s.logo} resizeMode="contain" />
+        <Image source={require("../assets/images/frame-octagon.png")} style={s.logo} resizeMode="contain" />
         <View style={s.wordmark}><FrameLogo height={16} /></View>
         <Text style={s.label}>{label}</Text>
         <View style={s.track}>

@@ -12,7 +12,7 @@ import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import { useActiveCompetition } from "@/hooks/use-competition";
 import { useSaveCheckin, useCheckinHistory } from "@/hooks/use-checkin";
 import { useLocalDay, useToday } from "@/hooks/use-today";
-import { FocusSection } from "@/components/today-cards";
+import { DisclosureNotice, FocusSection } from "@/components/today-cards";
 import { FirstUsePointers } from "@/components/first-use-pointers";
 import { ReadinessBars } from "@/components/readiness-bars";
 import { questionnaireAnswered } from "@workspace/onboarding";
@@ -304,6 +304,17 @@ export default function DashboardPage() {
         : null;
   const readinessLoading = todayQuery.isLoading;
   const readinessError = !readinessLoading && todayQuery.isError && readiness == null;
+  // The "No readiness check-in today…" note (server copy) shows under Fight Readiness only
+  // when there is no check-in today.
+  const showCheckinNotice = !checkin && today?.disclosure.code === "no_checkin_today";
+
+  // Opening the check-in form (from the notice, a pointer or State) brings it into view.
+  const formRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!editing) return;
+    const t = setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+    return () => clearTimeout(t);
+  }, [editing]);
 
   const hasHero = !!fighter && fighter.heroImageUrl.trim() !== "";
   const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
@@ -537,24 +548,14 @@ export default function DashboardPage() {
           loading={todayQuery.isLoading}
           askHref={(prompt) => `/chat?prefill=${encodeURIComponent(prompt)}&n=${Date.now()}`}
         />
+        {/* The Home gold button: filled with the brand gold token (--primary), dark label. */}
         <Link
           href="/chat"
-          className="mx-6 mt-5 flex items-center justify-between border border-primary/40 px-5 py-3.5 font-mono text-[10px] uppercase tracking-[0.35em] text-primary hover:border-primary/70 transition-colors"
+          className="mx-6 mt-5 flex items-center justify-between rounded-xl border border-primary bg-primary px-5 py-3.5 font-sans text-[15px] font-medium text-[#050505] hover:bg-primary/90 transition-colors"
         >
           {today?.focus?.current ? "Work on it with your coach" : "Start coaching"}
-          <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+          <ChevronRight className="w-4 h-4" strokeWidth={1.75} />
         </Link>
-        <FirstUsePointers
-          userId={userId}
-          hasCheckinToday={!!checkin}
-          hasEverCheckedIn={!!lastCheckin}
-          hasChatted={(conversationQuery.data?.messages?.length ?? 0) > 0}
-          onAction={(id) => {
-            if (id === "log-training") setLocation("/chat");
-            else if (id === "checkin") setEditing(true);
-            else setLocation("/profile");
-          }}
-        />
 
         {/* ─── Fight readiness — real composite or an honest prompt ──────── */}
         <section className="px-6 pt-7 pb-2">
@@ -585,15 +586,19 @@ export default function DashboardPage() {
                   <div className="font-sans font-extralight text-[clamp(4.6rem,20vw,7rem)] leading-[0.9] text-foreground/25" aria-hidden>
                     —
                   </div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/45 mt-3 max-w-[180px] leading-relaxed">
-                    {readinessLoading
-                      ? "Reading your day…"
-                      : readinessError
-                        ? "Couldn't load readiness."
-                        : lastCheckin
-                          ? `No read today. Last check-in ${formatDay(lastCheckin.date)} (${lastCheckin.score} / 100) is not today's readiness.`
-                          : "No read today. Log a check-in to set your readiness."}
-                  </div>
+                  {/* With no check-in today the notice under this card says so; the card
+                      stays quiet rather than saying it twice. */}
+                  {(readinessLoading || readinessError || !showCheckinNotice) && (
+                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/45 mt-3 max-w-[180px] leading-relaxed">
+                      {readinessLoading
+                        ? "Reading your day…"
+                        : readinessError
+                          ? "Couldn't load readiness."
+                          : lastCheckin
+                            ? `No read today. Last check-in ${formatDay(lastCheckin.date)} (${lastCheckin.score} / 100) is not today's readiness.`
+                            : "No read today. Log a check-in to set your readiness."}
+                    </div>
+                  )}
                   {readinessError && (
                     <button
                       type="button"
@@ -663,11 +668,24 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {editing && <CheckinForm existing={checkin} onDone={() => setEditing(false)} />}
+          {editing && (
+            <div ref={formRef}>
+              <CheckinForm existing={checkin} onDone={() => setEditing(false)} />
+            </div>
+          )}
+        </section>
 
-          {/* Readiness trend — advanced readiness insight (FRAME+). Built ONLY
-              from real logged check-ins; free tier sees a locked teaser. */}
-          <div className="mt-7 border-t border-white/[0.05] pt-5">
+        {/* No check-in today: say so once, under the readiness card, with the way to fix it */}
+        {showCheckinNotice && today && !editing && (
+          <section className="px-6 pt-5">
+            <DisclosureNotice disclosure={today.disclosure} onCheckIn={() => setEditing(true)} />
+          </section>
+        )}
+
+        {/* ─── Readiness history — advanced readiness insight (FRAME+). Built ONLY
+            from real logged check-ins; free tier sees a locked teaser. ───── */}
+        <section className="px-6 pt-7 pb-2">
+          <div className="border-t border-white/[0.05] pt-5">
             {isFramePlus ? (
               <>
                 <ReadinessTrend checkins={historyCheckins} />
@@ -702,6 +720,19 @@ export default function DashboardPage() {
             )}
           </div>
         </section>
+
+        {/* First-use pointers: log training, check in, keep your profile current */}
+        <FirstUsePointers
+          userId={userId}
+          hasCheckinToday={!!checkin}
+          hasEverCheckedIn={!!lastCheckin}
+          hasChatted={(conversationQuery.data?.messages?.length ?? 0) > 0}
+          onAction={(id) => {
+            if (id === "log-training") setLocation("/chat");
+            else if (id === "checkin") setEditing(true);
+            else setLocation("/profile");
+          }}
+        />
 
         {/* ─── Competition context — real camp or a quiet empty state ────── */}
         <section className="px-6 pt-8 pb-10">

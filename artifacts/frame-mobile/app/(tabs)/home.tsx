@@ -29,7 +29,8 @@ import {
 } from "@/hooks/useCheckin";
 import { useToday } from "@/hooks/useToday";
 import { useLocalDay } from "@/hooks/useLocalDay";
-import { FocusCard } from "@/components/TodayCards";
+import { DisclosureNotice, FocusCard } from "@/components/TodayCards";
+import { GOLD } from "@/constants/colors";
 import { FirstUsePointers } from "@/components/FirstUsePointers";
 import { ReadinessBars } from "@/components/ReadinessBars";
 import { dismissProps } from "@/components/FormScroll";
@@ -165,14 +166,14 @@ const sliderStyles = StyleSheet.create({
     left: 0,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#8A6A2F",
+    backgroundColor: GOLD,
   },
   thumb: {
     position: "absolute",
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "#8A6A2F",
+    backgroundColor: GOLD,
     top: 6,
   },
 });
@@ -334,7 +335,7 @@ export default function HomeScreen() {
   const [editing, setEditing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const formY = useRef(0);
-  // "Check in now" on State lands here with the form open.
+  // A deep link with ?checkin=1 lands here with the form open (the in-page "Check in now" sets it directly).
   const { checkin: checkinParam, n: checkinNonce } = useLocalSearchParams<{
     checkin?: string;
     n?: string;
@@ -384,6 +385,9 @@ export default function HomeScreen() {
         : null;
   const readinessLoading = todayQuery.isLoading;
   const readinessFailed = !readinessLoading && todayQuery.isError && readiness == null;
+  // The "No readiness check-in today…" note (server copy) shows under Fight Readiness only
+  // when there is no check-in today.
+  const showCheckinNotice = !checkin && today?.disclosure.code === "no_checkin_today";
 
   const hasHero = !!fighter && (fighter.heroImageUrl ?? "").trim() !== "";
   const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
@@ -473,7 +477,7 @@ export default function HomeScreen() {
       {fighter && !questionnaireAnswered(fighter) && (
         <View style={styles.section}>
           <Pressable
-            style={({ pressed }) => [styles.qCard, pressed && { borderColor: "#8A6A2F" }]}
+            style={({ pressed }) => [styles.qCard, pressed && { borderColor: GOLD }]}
             onPress={() => router.push({ pathname: "/(tabs)/profile", params: { section: "questions", n: String(Date.now()) } })}
             accessibilityRole="button"
             accessibilityLabel="Answer your onboarding questions so FRAME can coach you"
@@ -482,7 +486,7 @@ export default function HomeScreen() {
             <Text style={styles.qText}>Answer your onboarding questions so FRAME can coach you</Text>
             <View style={styles.editRow}>
               <Text style={styles.editText}>ANSWER NOW</Text>
-              <Feather name="chevron-right" size={11} color="#8A6A2F" />
+              <Feather name="chevron-right" size={11} color={GOLD} />
             </View>
           </Pressable>
         </View>
@@ -496,21 +500,6 @@ export default function HomeScreen() {
           onAskCoach={(prompt) =>
             router.push({ pathname: "/(tabs)/chat", params: { prefill: prompt, n: String(Date.now()) } })
           }
-        />
-      </View>
-
-      {/* First-use pointers: log training, check in, update profile */}
-      <View style={styles.section}>
-        <FirstUsePointers
-          userId={userId}
-          hasCheckinToday={!!checkin}
-          hasEverCheckedIn={!!latestCheckin}
-          hasChatted={hasChat}
-          onAction={(id) => {
-            if (id === "log-training") router.push("/(tabs)/chat");
-            else if (id === "checkin") setEditing(true);
-            else router.push("/(tabs)/profile");
-          }}
         />
       </View>
 
@@ -531,15 +520,19 @@ export default function HomeScreen() {
             ) : (
               <>
                 <Text style={styles.readyBigEmpty}>—</Text>
-                <Text style={styles.readyEmptyNote}>
-                  {readinessLoading
-                    ? "READING YOUR DAY…"
-                    : readinessFailed
-                      ? "COULDN'T LOAD YOUR READINESS."
-                      : latestCheckin
-                        ? `NO CHECK-IN TODAY. LAST CHECK-IN ${formatDay(latestCheckin.date).toUpperCase()}: ${latestCheckin.score} / 100. THAT IS NOT TODAY'S READINESS.`
-                        : "NO READINESS YET. IT COMES FROM TODAY'S CHECK-IN."}
-                </Text>
+                {/* With no check-in today the notice under this card says so; the card
+                    stays quiet rather than saying it twice. */}
+                {readinessLoading || readinessFailed || !showCheckinNotice ? (
+                  <Text style={styles.readyEmptyNote}>
+                    {readinessLoading
+                      ? "READING YOUR DAY…"
+                      : readinessFailed
+                        ? "COULDN'T LOAD YOUR READINESS."
+                        : latestCheckin
+                          ? `NO CHECK-IN TODAY. LAST CHECK-IN ${formatDay(latestCheckin.date).toUpperCase()}: ${latestCheckin.score} / 100. THAT IS NOT TODAY'S READINESS.`
+                          : "NO READINESS YET. IT COMES FROM TODAY'S CHECK-IN."}
+                  </Text>
+                ) : null}
                 {readinessFailed && (
                   <Pressable
                     onPress={() => {
@@ -550,7 +543,7 @@ export default function HomeScreen() {
                     accessibilityRole="button"
                   >
                     <Text style={styles.editText}>TRY AGAIN</Text>
-                    <Feather name="chevron-right" size={11} color="#8A6A2F" />
+                    <Feather name="chevron-right" size={11} color={GOLD} />
                   </Pressable>
                 )}
               </>
@@ -588,13 +581,13 @@ export default function HomeScreen() {
               >
                 {checkin ? (
                   <>
-                    <Feather name="edit-2" size={11} color="#8A6A2F" />
+                    <Feather name="edit-2" size={11} color={GOLD} />
                     <Text style={styles.editText}>EDIT TODAY'S CHECK-IN</Text>
                   </>
                 ) : (
                   <>
                     <Text style={styles.editText}>LOG TODAY'S CHECK-IN</Text>
-                    <Feather name="chevron-right" size={11} color="#8A6A2F" />
+                    <Feather name="chevron-right" size={11} color={GOLD} />
                   </>
                 )}
               </Pressable>
@@ -607,12 +600,21 @@ export default function HomeScreen() {
             <CheckinForm existing={checkin} onDone={() => setEditing(false)} />
           </View>
         )}
+      </View>
 
-        {/* Readiness trend — FRAME+ */}
+      {/* No check-in today: say so once, under the readiness card, with the way to fix it */}
+      {showCheckinNotice && today && !editing ? (
+        <View style={styles.section}>
+          <DisclosureNotice disclosure={today.disclosure} onCheckIn={() => setEditing(true)} />
+        </View>
+      ) : null}
+
+      {/* ─── Readiness history — FRAME+ ───────────────────────────────── */}
+      <View style={styles.section}>
         <View style={styles.trendWrap}>
           {isFramePlus ? (
             historyQuery.isLoading ? (
-              <ActivityIndicator size="small" color="#8A6A2F" />
+              <ActivityIndicator size="small" color={GOLD} />
             ) : (
               <ReadinessHistory checkins={historyCheckins} today={localDay} />
             )
@@ -629,6 +631,21 @@ export default function HomeScreen() {
             </Pressable>
           )}
         </View>
+      </View>
+
+      {/* First-use pointers: log training, check in, keep your profile current */}
+      <View style={styles.section}>
+        <FirstUsePointers
+          userId={userId}
+          hasCheckinToday={!!checkin}
+          hasEverCheckedIn={!!latestCheckin}
+          hasChatted={hasChat}
+          onAction={(id) => {
+            if (id === "log-training") router.push("/(tabs)/chat");
+            else if (id === "checkin") setEditing(true);
+            else router.push("/(tabs)/profile");
+          }}
+        />
       </View>
 
       {/* ─── Competition context ──────────────────────────────────────── */}
@@ -659,7 +676,7 @@ export default function HomeScreen() {
               hitSlop={8}
             >
               <Text style={styles.compEmptyCtaText}>SET A CAMP</Text>
-              <Feather name="chevron-right" size={11} color="#8A6A2F" />
+              <Feather name="chevron-right" size={11} color={GOLD} />
             </Pressable>
           </View>
         )}
@@ -675,7 +692,7 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 8,
   },
-  qLabel: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 4, color: "#8A6A2F" },
+  qLabel: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 4, color: GOLD },
   qText: { fontFamily: "Outfit", fontSize: 15, lineHeight: 22, color: "#e0e0e0" },
   root: {
     flex: 1,
@@ -813,7 +830,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 6,
-    color: "#8A6A2F",
+    color: GOLD,
     marginTop: 10,
   },
   readyBigEmpty: {
@@ -867,7 +884,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 3,
-    color: "#8A6A2F",
+    color: GOLD,
   },
   // Check-in form
   formCard: {
@@ -903,7 +920,7 @@ const styles = StyleSheet.create({
   formValue: {
     fontFamily: "Outfit",
     fontSize: 15,
-    color: "#8A6A2F",
+    color: GOLD,
   },
   formHint: {
     fontFamily: "SpaceMono",
@@ -935,18 +952,20 @@ const styles = StyleSheet.create({
     gap: 18,
     paddingTop: 4,
   },
+  // The Home gold button: filled with the brand gold token, dark label.
   saveBtn: {
     paddingHorizontal: 20,
     paddingVertical: 11,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(138,106,47,0.4)",
+    borderColor: GOLD,
+    backgroundColor: GOLD,
   },
   saveBtnText: {
     fontFamily: "SpaceMono",
     fontSize: 10,
     letterSpacing: 3,
-    color: "#8A6A2F",
+    color: "#050505",
   },
   cancelText: {
     fontFamily: "SpaceMono",
@@ -956,7 +975,6 @@ const styles = StyleSheet.create({
   },
   // Trend
   trendWrap: {
-    marginTop: 28,
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.05)",
     paddingTop: 20,
@@ -1001,7 +1019,7 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 2,
-    color: "#8A6A2F",
+    color: GOLD,
   },
   // Competition
   compRow: {
@@ -1030,7 +1048,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit",
     fontSize: 34,
     lineHeight: 34,
-    color: "#8A6A2F",
+    color: GOLD,
   },
   compDaysLabel: {
     fontFamily: "SpaceMono",
@@ -1060,6 +1078,6 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     fontSize: 9,
     letterSpacing: 3,
-    color: "#8A6A2F",
+    color: GOLD,
   },
 });

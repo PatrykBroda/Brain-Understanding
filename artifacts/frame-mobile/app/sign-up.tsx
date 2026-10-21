@@ -155,13 +155,13 @@ export default function SignUpScreen() {
                   style={styles.legalRow}
                   onPress={() => setAcceptedLegal((value) => !value)}
                   accessibilityRole="checkbox"
-                  accessibilityLabel="Accept the Terms of Service and Privacy Policy"
+                  accessibilityLabel="Accept the Terms of Use (EULA) and Privacy Policy"
                   accessibilityState={{ checked: acceptedLegal }}
                 >
                   <View style={[styles.checkbox, acceptedLegal && styles.checkboxChecked]}>
                     {acceptedLegal ? <Feather name="check" size={16} color={palette.onGold} /> : null}
                   </View>
-                  <Text style={styles.legalCopy}>I accept the Terms of Service and Privacy Policy.</Text>
+                  <Text style={styles.legalCopy}>I accept the Terms of Use (EULA) and Privacy Policy.</Text>
                 </Pressable>
                 {legalError ? (
                   <Text style={styles.errorText} accessibilityRole="alert">
@@ -174,7 +174,7 @@ export default function SignUpScreen() {
                     accessibilityRole="link"
                     onPress={() => void Linking.openURL(apiUrl("/terms"))}
                   >
-                    <Text style={styles.policyLink}>Terms of Service</Text>
+                    <Text style={styles.policyLink}>Terms of Use (EULA)</Text>
                   </Pressable>
                   <Pressable
                     style={styles.policyBtn}

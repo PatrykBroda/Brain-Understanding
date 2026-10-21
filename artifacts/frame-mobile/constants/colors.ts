@@ -1,6 +1,9 @@
 const palette = {
   text: "#e0e0e0",
   tint: "#8A6A2F",
+  // Brand gold: the one named token for gold buttons/actions. Exact approved hex
+  // still awaiting Harry's confirmation (see docs/FRAME_update_plan_21_Oct.md §3).
+  gold: "#8A6A2F",
   background: "#050505",
   foreground: "#e0e0e0",
   card: "#0a0a0a",
@@ -24,5 +27,8 @@ const colors = {
   dark: palette,
   radius: 0,
 };
+
+/** Brand gold token (same value as `colors.light.gold`). */
+export const GOLD = palette.gold;
 
 export default colors;

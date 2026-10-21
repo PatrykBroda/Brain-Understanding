@@ -1,18 +1,18 @@
-import { Link, useLocation } from "wouter";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "wouter";
 import { ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { CosmicOrb, ORB_PALETTE, type OrbState } from "@/components/cosmic-orb";
 import { FramePlusPill } from "@/components/frame-plus-modal";
-import { FrameWordmark } from "@/components/frame-wordmark";
 import { BottomNav } from "@/components/bottom-nav";
 import { useFighter } from "@/hooks/use-fighter";
 import { useAutoWelcome } from "@/hooks/use-auto-welcome";
 import type { FrameStateLabel } from "@/hooks/use-frame-state";
 import { useToday } from "@/hooks/use-today";
-import { OPEN_CHECKIN_FLAG, stateDateLine, stateHeadline } from "@/lib/today";
-import { formatDay } from "@/lib/local-day";
+import { stateHeadline } from "@/lib/today";
 import { api } from "@/lib/api";
-import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 // One coaching cue per interpretive state. Deterministic — keyed to the same
 // honestly-derived state as the orb label, never generated, never a metric.
@@ -27,12 +27,67 @@ const STATE_CUE: Record<FrameStateLabel, string> = {
   Overextended: "Cut volume. Keep structure.",
 };
 
+// Short tips shown when the athlete taps the orb, one per tap, rotating. Mirrors frame-mobile.
+// DRAFT COPY: needs Harry's sign-off before release (FRAME update 21 Oct, §5).
+const STATE_TIPS: Record<FrameStateLabel, string[]> = {
+  Dormant: [
+    "Tell your coach how training went.",
+    "Log a check-in. The read starts there.",
+    "Name one thing you are working on.",
+  ],
+  Stable: [
+    "Keep the plan simple. Execute it.",
+    "One read, one answer. Don't hunt.",
+    "Good day to sharpen one detail.",
+  ],
+  Loaded: [
+    "Position first. Speed comes back.",
+    "Shorter rounds, cleaner reps.",
+    "Recover between efforts, not after.",
+  ],
+  Recovering: [
+    "Quality over volume today.",
+    "Move well before you move hard.",
+    "Sleep is part of the session.",
+  ],
+  Tight: [
+    "Exhale on the first move.",
+    "Decide before the exchange starts.",
+    "Loose shoulders, quick hands.",
+  ],
+  Volatile: [
+    "Slow the breath. Then the feet.",
+    "Reset your stance between exchanges.",
+    "One clear intention per round.",
+  ],
+  Composed: [
+    "Raise the pressure. Keep the shape.",
+    "Test the standard against a harder look.",
+    "Stay patient. Make them come to you.",
+  ],
+  Overextended: [
+    "Fewer rounds. Same intent.",
+    "Protect the structure. Drop the extras.",
+    "Rest is part of the next session.",
+  ],
+};
+
+/** "today's check-in (readiness 62/100)" → "Read from today's check-in.": no readiness wording on State. */
+function stateWhy(source: string): string {
+  const clean = source.replace(/\s*\([^)]*readiness[^)]*\)/gi, "").trim();
+  if (!clean) return "";
+  if (/^not enough/i.test(clean)) return `${clean.charAt(0).toUpperCase()}${clean.slice(1)}.`;
+  return `Read from ${clean}.`;
+}
+
+const TIP_MS = 3500;
+const DRAG_THRESHOLD = 6;
+
 export default function StatePage() {
   const { data: fighterData } = useFighter();
   const fighter = fighterData?.fighter ?? null;
 
   useAutoWelcome();
-  const [, setLocation] = useLocation();
 
   // The server decides what "today" is (athlete's timezone). The orb and name follow the
   // athlete's current read; an old state is never presented as today's.
@@ -42,27 +97,10 @@ export default function StatePage() {
   const label: FrameStateLabel = current ? (state!.name as FrameStateLabel) : "Dormant";
   const orb = label.toLowerCase() as OrbState;
   const headline = state ? stateHeadline(state) : "No read yet";
-  // "Last read <date>" only when the old read says something (a stale "Dormant" is noise).
-  const dateLine =
-    state && !current && state.name && state.name !== "Dormant"
-      ? stateDateLine(state, formatDay)
-      : state && current
-        ? stateDateLine(state, formatDay)
-        : null;
-  const lastRead = todayQuery.data?.readiness.latest ?? null;
 
-  // Today's readiness comes from today's check-in only (same as Home).
-  const checkinScore = todayQuery.data?.readiness.today?.score ?? null;
-  const baseReadiness = checkinScore;
-
-  const checkInNow = () => {
-    try {
-      sessionStorage.setItem(OPEN_CHECKIN_FLAG, "1");
-    } catch {
-      // storage blocked
-    }
-    setLocation("/home");
-  };
+  // Why this state is showing, then what to do next.
+  const why = current && state ? stateWhy(state.source) : "FRAME holds no read for today, so the orb is resting.";
+  const next = current ? STATE_CUE[label] : "Check in or tell your coach how training went.";
 
   // Warms the shared ["conversation"] cache Chat reuses; lets the doorway read
   // "Continue" only when there's a real prior session (not keyed on analyses).
@@ -73,16 +111,63 @@ export default function StatePage() {
   });
   const hasSession = (conversationQuery.data?.messages?.length ?? 0) > 0;
 
-  // Recent chat drives a small ±10 modifier on top of the base readiness,
-  // reusing the conversation already fetched above — no new data flow. Mirrors
-  // the native app so the Fight Readiness number matches across surfaces.
-  const chatModifier = readinessModifier(conversationQuery.data?.messages ?? []);
-  const readiness = applyReadinessModifier(baseReadiness, chatModifier);
-
   const { hue, sat, light } = ORB_PALETTE[orb];
   const labelColor = `hsl(${hue}, ${Math.round(sat * 35)}%, 91%)`;
   const labelGlow = `0 0 48px hsla(${hue}, ${Math.round(sat * 100)}%, ${Math.round(light * 100)}%, 0.38), 0 2px 12px rgba(0,0,0,0.6)`;
 
+  // ── Orb interaction: drag (springs home on release) and click/tap (a short tip) ──
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null);
+  const [tip, setTip] = useState<string | null>(null);
+  const tipIndex = useRef(0);
+  const tipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showTip = () => {
+    const tips = STATE_TIPS[label];
+    setTip(tips[tipIndex.current % tips.length]);
+    tipIndex.current += 1;
+    if (tipTimer.current) clearTimeout(tipTimer.current);
+    tipTimer.current = setTimeout(() => setTip(null), TIP_MS);
+  };
+  useEffect(() => {
+    tipIndex.current = 0;
+    setTip(null);
+  }, [label]);
+  useEffect(
+    () => () => {
+      if (tipTimer.current) clearTimeout(tipTimer.current);
+    },
+    [],
+  );
+
+  const onOrbPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    dragRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onOrbPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = dragRef.current;
+    if (!d || d.id !== e.pointerId) return;
+    const dx = e.clientX - d.x;
+    const dy = e.clientY - d.y;
+    if (!d.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    if (!d.moved) {
+      d.moved = true;
+      setDragging(true);
+    }
+    // Keep the orb's centre on screen.
+    const maxX = window.innerWidth / 2;
+    const maxY = window.innerHeight / 2;
+    setOffset({ x: Math.max(-maxX, Math.min(maxX, dx)), y: Math.max(-maxY, Math.min(maxY, dy)) });
+  };
+  const endOrbPointer = (e: React.PointerEvent<HTMLDivElement>, cancelled = false) => {
+    const d = dragRef.current;
+    if (!d || d.id !== e.pointerId) return;
+    dragRef.current = null;
+    if (!d.moved && !cancelled) showTip();
+    setDragging(false);
+    setOffset({ x: 0, y: 0 });
+  };
 
   return (
     <div
@@ -93,7 +178,7 @@ export default function StatePage() {
       }}
     >
       {/* ─── Ambient environment — pure OLED black. No photo here by request:
-          the hub is just the orb, the state and readiness on true black.
+          the hub is just the orb and the state on true black.
           (The uploaded hero still drives the Home-tab + Profile surfaces.) */}
 
       {/* Page-wide vignette — anchored on the orb, eases off so it doesn't eat the CTA */}
@@ -117,41 +202,72 @@ export default function StatePage() {
         <rect width="100%" height="100%" filter="url(#frame-grain)" />
       </svg>
 
+      {/* Header: the octagon only */}
       <header className="relative z-10 flex items-center justify-between px-6 pt-[max(1.1rem,env(safe-area-inset-top))] pb-3">
-        <div>
-          <FrameWordmark size={30} />
-          <div className="font-mono text-[10px] tracking-[0.5em] text-foreground/55 mt-2 font-light">
-            STATE CALIBRATION SYSTEM
-          </div>
-        </div>
+        <img
+          src={`${basePath}/frame-octagon-logo.png`}
+          srcSet={`${basePath}/frame-octagon-logo.png 1x, ${basePath}/frame-octagon-logo@2x.png 2x, ${basePath}/frame-octagon-logo@3x.png 3x`}
+          alt="FRAME"
+          width={34}
+          height={34}
+          className="h-[34px] w-[34px] object-contain"
+          draggable={false}
+        />
         <div className="flex items-center gap-2">
           <FramePlusPill />
         </div>
       </header>
 
-      <main className="relative z-10 min-h-0 grid place-items-center overflow-hidden px-2">
+      <main className="relative z-20 min-h-0 grid place-items-center overflow-visible px-2">
         <div className="frame-fade-in h-full w-full grid place-items-center">
-          <CosmicOrb
-            state={orb}
-            className="w-full max-w-[560px] max-h-full h-auto"
-          />
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label={`Your state orb: ${label}. Click for a tip; drag to move it.`}
+            onPointerDown={onOrbPointerDown}
+            onPointerMove={onOrbPointerMove}
+            onPointerUp={(e) => endOrbPointer(e)}
+            onPointerCancel={(e) => endOrbPointer(e, true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                showTip();
+              }
+            }}
+            className="relative h-full w-full max-w-[640px] grid place-items-center outline-none focus-visible:ring-1 focus-visible:ring-primary/40 rounded-3xl"
+            style={{
+              touchAction: "none",
+              cursor: dragging ? "grabbing" : "grab",
+              userSelect: "none",
+              transform: `translate(${offset.x}px, ${offset.y}px)`,
+              // Spring back: an overshooting ease when released, none while dragging.
+              transition: dragging ? "none" : "transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
+            }}
+          >
+            <CosmicOrb state={orb} className="w-full max-h-full h-auto" />
+            {tip && (
+              <div
+                key={tip}
+                role="status"
+                className="frame-tip-in pointer-events-none absolute top-[18%] left-1/2 -translate-x-1/2 max-w-[280px] w-max rounded-2xl border border-white/[0.12] bg-black/80 px-4 py-2.5 text-center font-sans text-[14px] leading-snug text-[#cfcfcf]"
+              >
+                {tip}
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
       <section className="relative z-10 flex flex-col items-center text-center px-6 gap-5 pb-3">
-        <div className="space-y-3">
-          <div className="frame-state-caption-top font-mono text-[10px] uppercase tracking-[0.55em] text-foreground/65 font-light">
-            State
-          </div>
+        <div className="space-y-2">
+          <div className="frame-state-caption-top font-sans text-[13px] text-[#999]">State</div>
           {todayQuery.isError ? (
             <div className="space-y-3" role="alert">
-              <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-destructive">
-                Couldn't load your state
-              </div>
+              <div className="font-sans text-[15px] text-destructive">Couldn't load your state</div>
               <button
                 type="button"
                 onClick={() => void todayQuery.refetch()}
-                className="font-mono text-[9px] uppercase tracking-[0.35em] text-primary/80 hover:text-primary transition-colors"
+                className="font-sans text-[14px] text-primary hover:text-primary/80 transition-colors"
               >
                 Try again
               </button>
@@ -160,85 +276,27 @@ export default function StatePage() {
             <>
               <div
                 key={headline}
-                className={`frame-state-label font-sans font-extralight uppercase tracking-[0.4em] leading-none ${
+                className={`frame-state-label font-sans font-light leading-none ${
                   current || todayQuery.isLoading
-                    ? "text-[clamp(1.7rem,7vw,2.4rem)]"
-                    : "text-[clamp(1.2rem,5vw,1.7rem)]"
+                    ? "text-[clamp(1.9rem,8vw,2.6rem)]"
+                    : "text-[clamp(1.4rem,6vw,1.9rem)]"
                 }`}
                 style={{
                   color: labelColor,
                   textShadow: labelGlow,
                   transition: "color 1.6s cubic-bezier(0.22, 0.61, 0.36, 1), text-shadow 1.6s cubic-bezier(0.22, 0.61, 0.36, 1)",
                 }}
-                title={state?.source}
                 role={todayQuery.isLoading ? "status" : undefined}
               >
                 {todayQuery.isLoading ? "…" : headline}
               </div>
-              <div className="frame-state-caption-bottom font-mono text-[10px] uppercase tracking-[0.45em] text-foreground/65 font-light pt-2">
-                {current ? STATE_CUE[label] : dateLine ?? "Check in to set today's state"}
-              </div>
-              {current && dateLine && (
-                <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/35">{dateLine}</div>
+              {!todayQuery.isLoading && (
+                <p className="frame-state-caption-bottom mx-auto max-w-[26rem] pt-2 font-sans text-[15px] leading-relaxed text-[#cfcfcf]">
+                  {[why, next].filter(Boolean).join(" ")}
+                </p>
               )}
             </>
           )}
-        </div>
-
-        {/* ─── Fight readiness — real, or an honest prompt ─────────────
-            Same as the Home dashboard: today's self-reported check-in
-            composite only. No check-in today, no number — it says so,
-            dates the last one, and offers the check-in. */}
-        {readiness != null ? (
-          <Link
-            href="/home"
-            className="group frame-readiness-in flex items-center gap-3 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg px-3 py-1"
-            aria-label="View readiness detail"
-          >
-            <span className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 font-light">
-              Fight readiness
-            </span>
-            <span aria-hidden className="w-px h-3 bg-white/10" />
-            <span className="flex items-baseline gap-1.5">
-              <span className="font-sans font-light text-[19px] tabular-nums leading-none text-primary/90">
-                {readiness}
-              </span>
-              <span className="font-mono text-[9px] uppercase tracking-widest text-foreground/40">
-                / 100 · today
-              </span>
-            </span>
-          </Link>
-        ) : (
-          <button
-            type="button"
-            onClick={checkInNow}
-            className="group frame-readiness-in flex flex-col items-center gap-1.5 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg px-3 py-1"
-            aria-label="Check in now"
-          >
-            <span className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45 font-light">
-              Fight readiness
-            </span>
-            {lastRead && (
-              <span className="flex items-baseline gap-1.5">
-                <span className="font-sans font-light text-[19px] tabular-nums leading-none text-foreground/45">
-                  {lastRead.score}
-                </span>
-                <span className="font-mono text-[9px] uppercase tracking-widest text-foreground/40">
-                  / 100 · {lastRead.daysAgo <= 0 ? "earlier" : lastRead.daysAgo === 1 ? "yesterday" : `${lastRead.daysAgo} days ago`}
-                </span>
-              </span>
-            )}
-            <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/50 group-hover:text-primary/80 transition-colors">
-              Check in now
-              <ChevronRight className="w-3 h-3" strokeWidth={1.5} />
-            </span>
-          </button>
-        )}
-
-        <div className="w-full max-w-[10rem] flex items-center gap-3 px-1" aria-hidden>
-          <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, hsla(39,49%,36%,0.18))" }} />
-          <div className="w-1 h-1 rounded-full" style={{ background: "hsla(39,49%,36%,0.22)" }} />
-          <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, hsla(39,49%,36%,0.18))" }} />
         </div>
 
         <div className="w-full max-w-sm">
@@ -248,7 +306,7 @@ export default function StatePage() {
             className="group block w-full rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
             <div
-              className="relative w-full h-[58px] rounded-2xl flex items-center justify-center transition-all duration-500"
+              className="relative w-full h-[58px] rounded-2xl flex items-center justify-center gap-1.5 transition-all duration-500"
               style={{
                 background:
                   "linear-gradient(180deg, hsla(39,49%,36%, 0.05) 0%, hsla(39,49%,36%, 0.015) 100%)",
@@ -257,9 +315,10 @@ export default function StatePage() {
                   "0 10px 50px -12px hsla(39,49%,36%, 0.32), inset 0 1px 0 hsla(39,49%,36%, 0.14)",
               }}
             >
-              <span className="font-sans text-[13px] uppercase tracking-[0.5em] font-light text-primary group-hover:tracking-[0.55em] transition-all duration-500">
+              <span className="font-sans text-[16px] text-[#cfcfcf] group-hover:text-foreground transition-colors duration-500">
                 Continue
               </span>
+              <ChevronRight className="w-4 h-4 text-[#cfcfcf]" strokeWidth={1.5} />
               <div
                 className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                 style={{
@@ -292,21 +351,14 @@ export default function StatePage() {
         .frame-state-caption-top {
           animation: frame-caption-in 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) 0.1s both;
         }
-
-        @keyframes frame-state-in {
-          from { opacity: 0; letter-spacing: 0.18em; }
-          to   { opacity: 1; letter-spacing: 0.4em; }
-        }
         .frame-state-label {
-          animation: frame-state-in 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) 0.35s both;
+          animation: frame-caption-in 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) 0.35s both;
         }
-
         .frame-state-caption-bottom {
           animation: frame-caption-in 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) 0.9s both;
         }
-
-        .frame-readiness-in {
-          animation: frame-caption-in 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) 1.05s both;
+        .frame-tip-in {
+          animation: frame-caption-in 0.18s ease-out both;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -314,7 +366,7 @@ export default function StatePage() {
           .frame-state-caption-top,
           .frame-state-label,
           .frame-state-caption-bottom,
-          .frame-readiness-in { animation: none; }
+          .frame-tip-in { animation: none; }
         }
       `}</style>
     </div>

@@ -451,6 +451,12 @@ export function CampMission() {
   );
 }
 
+/** First letter up, the rest as written (labels arrive lower-case from the planner). */
+function sentenceCase(v: string): string {
+  const t = v.trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+}
+
 function PlanItemCard({
   item,
   cat,
@@ -564,24 +570,33 @@ function PlanItemCard({
             {item.detail}
           </p>
 
-          {/* Source + days footer */}
-          <div
-            className="flex items-center justify-between mt-3"
-            title={[
-              item.sourceFactIds.length ? `facts: ${item.sourceFactIds.join(", ")}` : "",
-              item.sourceCalibrationKeys.length ? `calibrations: ${item.sourceCalibrationKeys.join(", ")}` : "",
-            ].filter(Boolean).join(" · ")}
-          >
-            <div className="flex items-center gap-2">
-              <span className="flex-none" style={{ display: "inline-block", width: 14, height: 1, background: done ? "hsla(39,49%,36%,0.5)" : col.bar, opacity: 0.7 }} />
-              <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/55">
-                {item.sourceLabel}
-              </span>
+          {/* Why (summary) above when (schedule), both wrapping in full; the card grows to fit. */}
+          {(item.sourceLabel || item.suggestedDays) && (
+            <div
+              className="mt-3 flex flex-col gap-1"
+              title={[
+                item.sourceFactIds.length ? `facts: ${item.sourceFactIds.join(", ")}` : "",
+                item.sourceCalibrationKeys.length ? `calibrations: ${item.sourceCalibrationKeys.join(", ")}` : "",
+              ].filter(Boolean).join(" · ")}
+            >
+              {item.sourceLabel && (
+                <div className="flex items-start gap-2">
+                  <span
+                    className="mt-[0.6em] flex-none"
+                    style={{ display: "inline-block", width: 14, height: 1, background: done ? "hsla(39,49%,36%,0.5)" : col.bar, opacity: 0.7 }}
+                  />
+                  <span className="min-w-0 break-words font-sans text-[13px] leading-snug text-[#cfcfcf]">
+                    {sentenceCase(item.sourceLabel)}
+                  </span>
+                </div>
+              )}
+              {item.suggestedDays && (
+                <span className="break-words pl-[22px] font-sans text-[12px] leading-snug text-[#999]">
+                  {sentenceCase(item.suggestedDays)}
+                </span>
+              )}
             </div>
-            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40">
-              {item.suggestedDays}
-            </span>
-          </div>
+          )}
         </div>
       </div>
     </div>

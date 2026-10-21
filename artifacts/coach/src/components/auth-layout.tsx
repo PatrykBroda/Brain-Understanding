@@ -41,7 +41,7 @@ export default function AuthLayout({ children, compact = false }: { children: Re
         </div>
         <nav aria-label="Legal" className="entry-rise flex items-center justify-center gap-1 text-sm text-[var(--f-text-2)]" style={{ animationDelay: "100ms" }}>
           <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center px-3 underline underline-offset-2 hover:text-[var(--f-text)]">
-            Terms
+            Terms of Use (EULA)
           </a>
           <span aria-hidden>·</span>
           <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center px-3 underline underline-offset-2 hover:text-[var(--f-text)]">

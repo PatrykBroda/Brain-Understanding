@@ -400,15 +400,22 @@ function PlanItemRow({
       <View style={{ flex: 1, gap: 3 }}>
         <Text style={[pi.text, checked && pi.textDone]}>{item.title}</Text>
         {item.detail ? <Text style={[pi.detail, checked && pi.textDone]}>{item.detail}</Text> : null}
-        <View style={pi.meta}>
-          <Text style={pi.metaText} numberOfLines={1}>
-            {item.sourceLabel}
-          </Text>
-          <Text style={pi.metaText}>{item.suggestedDays}</Text>
-        </View>
+        {/* Why (summary) above when (schedule), both wrapping in full: the card grows to fit. */}
+        {item.sourceLabel || item.suggestedDays ? (
+          <View style={pi.meta}>
+            {item.sourceLabel ? <Text style={pi.metaSummary}>{sentenceCase(item.sourceLabel)}</Text> : null}
+            {item.suggestedDays ? <Text style={pi.metaSchedule}>{sentenceCase(item.suggestedDays)}</Text> : null}
+          </View>
+        ) : null}
       </View>
     </Pressable>
   );
+}
+
+/** First letter up, the rest as written (labels arrive lower-case from the planner). */
+function sentenceCase(s: string): string {
+  const t = s.trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
 }
 
 const pi = StyleSheet.create({
@@ -458,17 +465,21 @@ const pi = StyleSheet.create({
     color: "#444",
   },
   meta: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-    marginTop: 2,
+    flexDirection: "column",
+    gap: 2,
+    marginTop: 4,
   },
-  metaText: {
-    fontFamily: "SpaceMono",
-    fontSize: 8,
-    letterSpacing: 1.5,
-    color: "#444",
-    flexShrink: 1,
+  metaSummary: {
+    fontFamily: "Outfit",
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#cfcfcf",
+  },
+  metaSchedule: {
+    fontFamily: "Outfit",
+    fontSize: 12,
+    lineHeight: 17,
+    color: "#999",
   },
   plus: {
     fontFamily: "SpaceMono",

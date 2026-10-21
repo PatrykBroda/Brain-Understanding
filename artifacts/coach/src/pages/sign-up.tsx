@@ -168,7 +168,7 @@ export default function SignUpPage() {
             />
             <span>
               I accept the{" "}
-              <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-[var(--f-gold)] underline underline-offset-2">Terms of Service</a>
+              <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-[var(--f-gold)] underline underline-offset-2">Terms of Use (EULA)</a>
               {" "}and{" "}
               <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-[var(--f-gold)] underline underline-offset-2">Privacy Policy and AI data-use disclosure</a>.
             </span>

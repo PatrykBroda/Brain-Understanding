@@ -90,7 +90,7 @@ export default function SignInScreen() {
               </View>
               <View style={styles.legalRow}>
                 <Pressable accessibilityRole="link" hitSlop={8} onPress={() => void Linking.openURL(apiUrl("/terms"))} style={styles.legalBtn}>
-                  <Text style={styles.legalLink}>Terms</Text>
+                  <Text style={styles.legalLink}>Terms of Use (EULA)</Text>
                 </Pressable>
                 <Text style={styles.legalDot}>·</Text>
                 <Pressable accessibilityRole="link" hitSlop={8} onPress={() => void Linking.openURL(apiUrl("/privacy"))} style={styles.legalBtn}>

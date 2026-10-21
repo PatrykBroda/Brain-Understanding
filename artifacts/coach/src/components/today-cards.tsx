@@ -5,8 +5,8 @@ import type { FocusView, TodayView } from "@/lib/today";
 
 /**
  * Said when FRAME holds nothing new today (or no check-in): what it knows, from which day,
- * and one clear action. Never dresses an old read up as today's. Original idiom: mono
- * spaced-uppercase labels on hairline rows.
+ * and one clear action. Never dresses an old read up as today's. Shown on Home under
+ * Fight Readiness; matches the mobile notice (gold hairlines, plain sentence-case text).
  */
 export function DisclosureNotice({
   disclosure,
@@ -17,18 +17,18 @@ export function DisclosureNotice({
 }) {
   if (disclosure.code === "none") return null;
   return (
-    <div role="status" className="border-y border-white/[0.07] py-3">
-      <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/55 leading-relaxed">
+    <div role="status" className="border-y border-primary/35 py-3.5">
+      <p className="font-sans text-[14px] leading-relaxed text-[#cfcfcf]">
         {disclosure.message}
       </p>
       {disclosure.action === "check_in" && (
         <button
           type="button"
           onClick={onCheckIn}
-          className="mt-3 inline-flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.35em] text-primary/80 hover:text-primary transition-colors"
+          className="mt-2.5 inline-flex items-center gap-1.5 font-sans text-[14px] text-primary hover:text-primary/80 transition-colors"
         >
           Check in now
-          <ChevronRight className="w-3 h-3" strokeWidth={1.5} />
+          <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.5} />
         </button>
       )}
     </div>

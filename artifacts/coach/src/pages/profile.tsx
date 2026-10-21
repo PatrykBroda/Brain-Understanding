@@ -382,7 +382,7 @@ export default function ProfilePage() {
                     Privacy & AI permissions
                   </a>
                   <a href={`${basePath}/api/terms`} target="_blank" rel="noreferrer" className="text-primary hover:underline">
-                    Terms
+                    Terms of Use (EULA)
                   </a>
                 </div>
                 {email && (

@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
+import { GOLD } from "@/constants/colors";
 import { formatDay } from "@/lib/localDay";
 import type { FocusView, TodayView } from "@/lib/today";
 
@@ -28,8 +29,8 @@ export function DisclosureNotice({
       </Text>
       {disclosure.action === "check_in" ? (
         <Pressable onPress={onCheckIn} style={[s.noticeAction, centered && s.noticeActionCentered]} hitSlop={8} accessibilityRole="button">
-          <Text style={s.noticeActionText}>CHECK IN NOW</Text>
-          <Feather name="chevron-right" size={11} color="#8A6A2F" />
+          <Text style={s.noticeActionText}>Check in now</Text>
+          <Feather name="chevron-right" size={13} color={GOLD} />
         </Pressable>
       ) : null}
     </View>
@@ -120,7 +121,7 @@ const s = StyleSheet.create({
   noticeAction: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
   centered: { textAlign: "center" },
   noticeActionCentered: { alignSelf: "center" },
-  noticeActionText: { fontFamily: "SpaceMono", fontSize: 9, letterSpacing: 3, color: "#8A6A2F" },
+  noticeActionText: { fontFamily: "Outfit", fontSize: 14, color: GOLD },
   head: {
     flexDirection: "row",
     alignItems: "center",

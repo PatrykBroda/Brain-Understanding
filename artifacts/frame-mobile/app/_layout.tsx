@@ -12,7 +12,16 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
 import React, { useEffect, useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  Easing as REasing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,7 +37,6 @@ import { APP_DOMAIN, resolveApiBase } from "@/lib/appDomain";
 import { configurePurchases, syncPurchasesUser } from "@/lib/purchases";
 import { reportStartup } from "@/lib/crashReporter";
 import { FrameLogo } from "@/components/FrameLogo";
-import { OctagonSpinner } from "@/components/OctagonSpinner";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -176,12 +184,26 @@ const noticeStyles = StyleSheet.create({
  * SystemUI background (#050505), so there is no white flash on either side.
  */
 function LoadingScreen() {
+  // The FRAME octagon (transparent PNG, square) with a slow opacity pulse. Reduced motion = static.
+  const reduced = useReducedMotion();
+  const pulse = useSharedValue(1);
+  useEffect(() => {
+    if (reduced) return;
+    pulse.value = withRepeat(withTiming(0.45, { duration: 1100, easing: REasing.inOut(REasing.ease) }), -1, true);
+    return () => cancelAnimation(pulse);
+  }, [pulse, reduced]);
+  const pulseStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
   return (
     <View style={loadingStyles.root}>
       <FrameLogo height={16} />
-      <View style={loadingStyles.indicator}>
-        <OctagonSpinner size={44} color="#B9A477" />
-      </View>
+      <Animated.View style={[loadingStyles.indicator, pulseStyle]}>
+        <Image
+          source={require("@/assets/images/frame-octagon.png")}
+          style={loadingStyles.octagon}
+          resizeMode="contain"
+          accessibilityLabel="Loading"
+        />
+      </Animated.View>
     </View>
   );
 }
@@ -195,6 +217,10 @@ const loadingStyles = StyleSheet.create({
   },
   indicator: {
     marginTop: 28,
+  },
+  octagon: {
+    width: 56,
+    height: 56,
   },
 });
 

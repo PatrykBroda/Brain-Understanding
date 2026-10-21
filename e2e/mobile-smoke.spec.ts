@@ -14,7 +14,7 @@ async function completeSignupForm(page: Page, email: string): Promise<void> {
   await page.getByPlaceholder("Password (min 8 characters)").fill(PASSWORD);
   await page
     .getByRole("checkbox", {
-      name: "Accept the Terms of Service and Privacy Policy",
+      name: "Accept the Terms of Use (EULA) and Privacy Policy",
     })
     .click();
 }
