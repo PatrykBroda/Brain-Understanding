@@ -8,7 +8,7 @@ export function FrameWordmark({ size = 30 }: { size?: number }) {
       <FrameOctagon size={size} glow={false} color="hsl(39,49%,36%)" />
       <div className="font-sans font-extralight text-[14px] tracking-[0.5em] text-foreground/95 leading-none">
         FRAME
-        <span className="font-mono text-[9px] tracking-[0.4em] text-primary/80 ml-3">
+        <span className="font-sans font-light text-[11px] tracking-[0.3em] text-primary/90 ml-3">
           AI
         </span>
       </div>

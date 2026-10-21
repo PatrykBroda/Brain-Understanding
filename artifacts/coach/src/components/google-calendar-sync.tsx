@@ -109,11 +109,11 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
   if (statusQ.isSuccess && !configured) {
     return (
       <section className="border border-white/[0.08] px-4 py-3.5">
-        <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/45">
+        <div className="flex items-center gap-2 type-meta text-foreground/80">
           <Calendar className="w-3.5 h-3.5" strokeWidth={1.5} />
           Google Calendar
         </div>
-        <p className="mt-2 text-[11px] leading-relaxed text-foreground/45">
+        <p className="mt-2 text-[13px] leading-relaxed text-foreground/80">
           Calendar sync isn't enabled on this server yet.
         </p>
       </section>
@@ -124,7 +124,7 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
     <section className="border border-white/[0.08]">
       <div className="px-4 py-3.5">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/55">
+          <div className="flex items-center gap-2 type-meta text-foreground/80">
             <Calendar className="w-3.5 h-3.5" strokeWidth={1.5} />
             Google Calendar
           </div>
@@ -137,7 +137,7 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
                 }
               }}
               disabled={disconnect.isPending}
-              className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/40 hover:text-[hsl(var(--red-accent))] transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 type-meta text-foreground/80 hover:text-[hsl(var(--red-accent))] transition-colors disabled:opacity-50"
             >
               <Unlink className="w-3 h-3" strokeWidth={1.5} />
               {disconnect.isPending ? "Unlinking" : "Unlink"}
@@ -147,7 +147,7 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
 
         {!connected ? (
           <>
-            <p className="mt-2 text-[11px] leading-relaxed text-foreground/50">
+            <p className="mt-2 text-[13px] leading-relaxed text-foreground/80">
               Link your Google Calendar to pull training into your camp schedule and push
               manual sessions back. You confirm every change before it happens.
             </p>
@@ -155,19 +155,19 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
               type="button"
               onClick={connect}
               disabled={start.isPending || linking}
-              className="mt-3 w-full border border-primary/40 py-2.5 font-mono text-[10px] uppercase tracking-[0.3em] text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+              className="mt-3 w-full border border-primary/40 py-2.5 type-label font-medium text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
             >
               {linking ? "Waiting for Google" : start.isPending ? "Opening" : "Connect Google Calendar"}
             </button>
             {start.isError && (
-              <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.2em] text-[hsl(var(--red-accent))]">
+              <p className="mt-2 type-meta text-[hsl(var(--red-accent))]">
                 Could not start linking — try again
               </p>
             )}
           </>
         ) : (
           <>
-            <div className="mt-2 flex items-center gap-2 text-[11px] text-foreground/60">
+            <div className="mt-2 flex items-center gap-2 text-[13px] text-foreground/80">
               <Check className="w-3.5 h-3.5 text-primary" strokeWidth={2} />
               <span className="truncate">
                 Linked{statusQ.data?.googleEmail ? ` · ${statusQ.data.googleEmail}` : ""}
@@ -178,7 +178,7 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
                 type="button"
                 onClick={runPreview}
                 disabled={preview.isPending}
-                className="mt-3 w-full flex items-center justify-center gap-2 border border-primary/40 py-2.5 font-mono text-[10px] uppercase tracking-[0.3em] text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+                className="mt-3 w-full flex items-center justify-center gap-2 border border-primary/40 py-2.5 type-label font-medium text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
               >
                 <RefreshCw
                   className={`w-3.5 h-3.5 ${preview.isPending ? "animate-spin" : ""}`}
@@ -188,12 +188,12 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
               </button>
             )}
             {(preview.isError || apply.isError) && (
-              <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.2em] text-[hsl(var(--red-accent))]">
+              <p className="mt-2 type-meta text-[hsl(var(--red-accent))]">
                 {syncErrorLabel(preview.error ?? apply.error)}
               </p>
             )}
             {result && mode === "idle" && (
-              <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/55">
+              <p className="mt-2 type-meta text-foreground/80">
                 Imported {result.imported} · Exported {result.exported}
               </p>
             )}
@@ -203,12 +203,12 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
 
       {mode === "preview" && (
         <div className="border-t border-white/[0.08] px-4 py-3.5 space-y-3">
-          <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/55">
+          <div className="type-meta text-foreground/80">
             Review import · {rows.filter((r) => r.selected).length}/{rows.length} selected
           </div>
 
           {rows.length === 0 ? (
-            <p className="text-[11px] text-foreground/45">
+            <p className="text-[13px] text-foreground/80">
               No calendar events found in your camp window.
             </p>
           ) : (
@@ -235,7 +235,7 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
                     </button>
                     <div className="min-w-0 flex-1">
                       <div className="text-[12px] text-foreground/85 truncate">{r.title}</div>
-                      <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-foreground/40 mt-0.5">
+                      <div className="type-meta text-foreground/80 mt-0.5">
                         {r.sessionDate}
                         {r.startTime ? ` · ${r.startTime}` : " · all day"}
                         {r.durationMin ? ` · ${r.durationMin}m` : ""}
@@ -276,7 +276,7 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
             >
               {exportSessions && <Check className="w-3 h-3 text-black" strokeWidth={3} />}
             </button>
-            <span className="text-[11px] text-foreground/60">
+            <span className="text-[13px] text-foreground/80">
               Also push my manual sessions to Google Calendar
             </span>
           </label>
@@ -285,7 +285,7 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
             <button
               type="button"
               onClick={() => setMode("idle")}
-              className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.1] py-2.5 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/55 hover:text-foreground/85 transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.1] py-2.5 type-label font-medium text-foreground/80 hover:text-foreground/85 transition-colors"
             >
               <X className="w-3 h-3" strokeWidth={1.5} />
               Cancel
@@ -294,7 +294,7 @@ export function GoogleCalendarSync({ campId }: { campId: number }) {
               type="button"
               onClick={runApply}
               disabled={apply.isPending}
-              className="flex-1 border border-primary/40 py-2.5 font-mono text-[10px] uppercase tracking-[0.3em] text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+              className="flex-1 border border-primary/40 py-2.5 type-label font-medium text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
             >
               {apply.isPending ? "Syncing" : "Apply sync"}
             </button>

@@ -80,7 +80,7 @@ export function AnnotatedFindingFrame({
           </text>
         </svg>
       </div>
-      <figcaption className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/70 leading-relaxed">
+      <figcaption className="type-meta text-foreground/75 leading-relaxed">
         {v.keyframe.timestamp.toFixed(1)}s · {v.keyframe.caption}
         {v.arrow && v.lookbackSec != null
           ? ` · arrow = measured travel over the previous ${v.lookbackSec.toFixed(1)}s`

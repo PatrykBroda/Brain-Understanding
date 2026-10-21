@@ -22,15 +22,15 @@ function Row({
 }) {
   return (
     <div className="px-4 py-3 flex items-start justify-between gap-4" title={title}>
-      <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/70 pt-0.5 flex-none w-28">
+      <div className="type-meta text-foreground/75 pt-0.5 flex-none w-28">
         {label}
       </div>
       <div className="min-w-0 text-right">
-        <div className="font-mono text-[12px] uppercase tracking-[0.12em] text-foreground/95 truncate">
+        <div className="type-caption text-foreground/95 truncate">
           {value}
         </div>
         {sub && (
-          <div className="font-mono text-[9px] tracking-wide text-muted-foreground/55 mt-1 normal-case leading-snug">
+          <div className="type-meta text-foreground/75 mt-1 leading-snug">
             {sub}
           </div>
         )}
@@ -71,10 +71,10 @@ export function AthleteStatePanel({
       style={{ border: "1px solid hsla(0,0%,100%,0.08)" }}
     >
       <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
-        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary/85">
+        <div className="type-label font-medium text-primary/85">
           Athlete state
         </div>
-        <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/55">
+        <div className="type-meta text-foreground/75">
           Real signal only
         </div>
       </div>

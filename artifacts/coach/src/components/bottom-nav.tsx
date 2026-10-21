@@ -34,7 +34,7 @@ export function BottomNav() {
               aria-label={label}
               aria-current={active ? "page" : undefined}
               className={`flex flex-col items-center justify-center gap-1 py-3 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:rounded-md ${
-                active ? "text-primary" : "text-foreground/45 hover:text-foreground/85"
+                active ? "text-primary" : "text-foreground/70 hover:text-foreground/90"
               }`}
             >
               {Icon ? (
@@ -42,7 +42,7 @@ export function BottomNav() {
               ) : (
                 <FrameOctagon size={20} glow={false} color="currentColor" />
               )}
-              <span className="font-mono text-[9px] uppercase tracking-widest">{label}</span>
+              <span className="type-meta">{label}</span>
             </Link>
           );
         })}

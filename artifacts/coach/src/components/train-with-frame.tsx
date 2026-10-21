@@ -20,7 +20,7 @@ export function TrainWithFrame({ className = "", showTagline = true }: { classNa
         </g>
       </svg>
       {showTagline && (
-        <p className="mt-2.5 text-center text-[13px] font-medium tracking-[0.02em] text-[#B9A477]">
+        <p className="mt-2.5 text-center text-[13px] font-medium text-[#B9A477]">
           {TAGLINE_CAPS}
         </p>
       )}

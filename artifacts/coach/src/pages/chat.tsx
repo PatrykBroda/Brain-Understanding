@@ -65,7 +65,7 @@ function AttachmentThumb({
   return (
     <div className="relative inline-block border border-border/60 bg-black overflow-hidden">
       {!url ? (
-        <div className="flex h-24 w-24 items-center justify-center text-muted-foreground/60 font-mono text-[9px] uppercase tracking-widest">
+        <div className="flex h-24 w-24 items-center justify-center text-foreground/75 type-meta">
           Loading
         </div>
       ) : att.kind === "image" ? (
@@ -279,7 +279,7 @@ export default function ChatPage() {
             className="justify-self-start flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
-            <span className="font-mono text-[10px] uppercase tracking-widest">Home</span>
+            <span className="type-label font-medium">Home</span>
           </Link>
           {/* The login screen's wordmark, centred (equal side columns keep it on the axis). */}
           <div className="flex justify-center" role="img" aria-label="Frame">
@@ -291,7 +291,7 @@ export default function ChatPage() {
               variant="ghost"
               size="sm"
               onClick={() => reset()}
-              className="text-muted-foreground hover:text-foreground font-mono text-[10px] uppercase tracking-widest -mr-2"
+              className="text-foreground/75 hover:text-foreground type-label font-medium -mr-2"
             >
               <RefreshCcw className="w-3 h-3 mr-1.5" />
               Reset
@@ -306,14 +306,14 @@ export default function ChatPage() {
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
             {isLoading ? (
-              <div className="flex justify-center pt-20 text-muted-foreground font-mono text-xs uppercase tracking-widest">
+              <div className="flex justify-center pt-20 text-foreground/75 font-sans text-xs">
                 Loading state…
               </div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[55vh] gap-10 animate-in fade-in duration-700">
                 <div className="text-center space-y-4">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/45">
-                    Frame open
+                  <div className="type-label font-medium text-foreground/80">
+                    FRAME open
                   </div>
                   <p className="font-sans font-extralight text-lg leading-relaxed text-foreground/70 max-w-sm">
                     Say what happened. Debrief a session, request a drill, regulate, or reflect.
@@ -324,7 +324,7 @@ export default function ChatPage() {
                     <button
                       key={prompt}
                       onClick={() => void requestSend(prompt)}
-                      className="group text-left p-4 bg-background hover:bg-white/[0.02] transition-colors font-mono text-[11px] tracking-wide text-foreground/55 hover:text-foreground"
+                      className="group text-left p-4 bg-background hover:bg-white/[0.02] transition-colors type-caption text-foreground/80 hover:text-foreground"
                     >
                       <span className="text-primary/50 group-hover:text-primary mr-2 transition-colors">—</span>
                       {prompt}
@@ -340,8 +340,8 @@ export default function ChatPage() {
                     className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
                   >
                     <div
-                      className={`text-[10px] font-mono uppercase tracking-[0.4em] mb-2.5 px-1 ${
-                        msg.role === "user" ? "text-foreground/40" : "text-primary/70"
+                      className={`type-label font-medium mb-2.5 px-1 ${
+                        msg.role === "user" ? "text-foreground/80" : "text-primary/70"
                       }`}
                     >
                       {msg.role === "user" ? (fighter?.name ?? "Operator") : "FRAME"}
@@ -378,7 +378,7 @@ export default function ChatPage() {
                   </div>
                 ))}
                 {error && (
-                  <div className="p-4 border border-destructive/40 bg-destructive/10 text-destructive/90 font-mono text-xs flex flex-col items-center gap-3 text-center">
+                  <div className="p-4 border border-destructive/40 bg-destructive/10 text-destructive/90 font-sans text-xs flex flex-col items-center gap-3 text-center">
                     <span>{error}</span>
                     <button
                       type="button"
@@ -403,7 +403,7 @@ export default function ChatPage() {
                           });
                       }}
                       disabled={isStreaming}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-destructive/50 text-destructive/90 hover:bg-destructive/15 uppercase tracking-widest disabled:opacity-40 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-destructive/50 text-destructive/90 hover:bg-destructive/15 disabled:opacity-40 transition-colors"
                     >
                       <RefreshCcw className="w-3 h-3" />
                       Retry
@@ -429,7 +429,7 @@ export default function ChatPage() {
                       // label to near-invisible, so the chips looked empty.
                       if (!isStreaming) void requestSend(qa.prompt);
                     }}
-                    className="flex-none font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                    className="flex-none type-label font-medium px-3 py-1.5 border border-border/60 text-foreground/75 hover:text-foreground hover:border-primary/50 transition-colors"
                   >
                     {qa.label}
                   </button>
@@ -446,7 +446,7 @@ export default function ChatPage() {
             )}
 
             {uploadError && (
-              <div className="font-mono text-[10px] uppercase tracking-widest text-destructive px-1">
+              <div className="type-label font-medium text-destructive px-1">
                 {uploadError}
               </div>
             )}
@@ -480,7 +480,7 @@ export default function ChatPage() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={listening ? "Listening..." : "Enter transmission..."}
-                  className={`w-full bg-transparent border border-border/60 text-foreground placeholder:text-muted-foreground/70 placeholder:font-mono focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 resize-none min-h-[52px] max-h-[200px] py-3.5 pl-4 text-sm ${
+                  className={`w-full bg-transparent border border-border/60 text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 resize-none min-h-[52px] max-h-[200px] py-3.5 pl-4 text-sm ${
                     voiceSupported ? "pr-[5.25rem]" : "pr-12"
                   }`}
                   rows={1}
@@ -498,7 +498,7 @@ export default function ChatPage() {
                       className={`h-9 w-9 transition-colors ${
                         listening
                           ? "text-destructive hover:text-destructive hover:bg-destructive/10 frame-mic-live"
-                          : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                          : "text-foreground/75 hover:text-foreground hover:bg-foreground/5"
                       }`}
                     >
                       <Mic className="w-4 h-4" strokeWidth={1.5} />
@@ -535,7 +535,7 @@ export default function ChatPage() {
                   <button
                     key={qa.label}
                     onClick={() => void requestSend(qa.prompt)}
-                    className="font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                    className="type-label font-medium px-3 py-1.5 border border-border/60 text-foreground/75 hover:text-foreground hover:border-primary/50 transition-colors"
                   >
                     {qa.label}
                   </button>

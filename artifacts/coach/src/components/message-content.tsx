@@ -81,7 +81,7 @@ function Glossable({ term, entry }: { term: string; entry: GlossEntry }) {
           role="tooltip"
           className="absolute left-0 bottom-full z-20 mb-1 w-64 max-w-[78vw] rounded-sm border border-primary/30 bg-popover px-3 py-2.5 text-[0.78rem] leading-snug text-foreground/90 shadow-lg"
         >
-          <span className="block font-mono text-[9px] uppercase tracking-widest text-primary/70 mb-1">
+          <span className="block type-meta text-primary/70 mb-1">
             {term}
           </span>
           <span className="block">{entry.quick}</span>
@@ -97,7 +97,7 @@ function Glossable({ term, entry }: { term: string; entry: GlossEntry }) {
               <button
                 type="button"
                 onClick={() => setShowWhy(true)}
-                className="font-mono text-[9px] uppercase tracking-widest text-primary/80 hover:text-primary transition-colors"
+                className="type-meta text-primary/80 hover:text-primary transition-colors"
               >
                 Why it matters
               </button>
@@ -109,7 +109,7 @@ function Glossable({ term, entry }: { term: string; entry: GlossEntry }) {
                   onTrain(entry.train!);
                   close();
                 }}
-                className="font-mono text-[9px] uppercase tracking-widest text-primary/80 hover:text-primary transition-colors"
+                className="type-meta text-primary/80 hover:text-primary transition-colors"
               >
                 Train this →
               </button>

@@ -45,7 +45,7 @@ export function NervousSystemOrb({
         )}
       </div>
       {label && (
-        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <span className="type-label font-medium text-foreground/75">
           {label}
         </span>
       )}

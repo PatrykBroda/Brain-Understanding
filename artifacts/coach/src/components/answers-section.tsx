@@ -22,7 +22,7 @@ import {
 } from "@/lib/profile-answers";
 
 // The same look as the original onboarding screen, moved onto Profile.
-const FIELD_LABEL = "block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2";
+const FIELD_LABEL = "block type-label font-medium text-foreground/75 mb-2";
 const INPUT_CLASS =
   "w-full bg-transparent border border-border/70 text-foreground text-sm px-3 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 placeholder:text-muted-foreground/60 hover:border-border/90 transition-colors duration-150";
 
@@ -121,8 +121,8 @@ export function AnswersSection({ fighter, highlight = false }: { fighter: Fighte
       aria-label="Onboarding questions"
       className={`scroll-mt-4 transition-shadow duration-500 ${highlight ? "ring-1 ring-primary/60" : ""}`}
     >
-      <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-muted-foreground/65 mb-3">
-        Onboarding Questions
+      <div className="type-meta text-foreground/75 mb-3">
+        Onboarding questions
       </div>
       <form
         onSubmit={(e) => {
@@ -131,7 +131,7 @@ export function AnswersSection({ fighter, highlight = false }: { fighter: Fighte
         }}
         className="border border-white/[0.08] p-4 space-y-6"
       >
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-foreground/75 leading-relaxed">
           Tell FRAME about your training. The coach, your State and Today&apos;s Focus use your latest answers. Change
           them any time.
         </p>
@@ -142,7 +142,7 @@ export function AnswersSection({ fighter, highlight = false }: { fighter: Fighte
           return (
             <div key={q.id} className="space-y-3">
               <div className="space-y-1.5">
-                <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/80">
+                <div className="type-label font-medium text-primary/80">
                   Calibration {qi + 1} / {QUESTIONS.length}
                 </div>
                 <h3 className="text-base text-foreground font-light leading-snug">{q.prompt}</h3>
@@ -162,7 +162,7 @@ export function AnswersSection({ fighter, highlight = false }: { fighter: Fighte
                           : "border-border/70 text-foreground/85 hover:border-primary/50"
                       }`}
                     >
-                      <span className="font-mono text-[10px] text-muted-foreground mr-3">
+                      <span className="type-label font-medium text-foreground/75 mr-3">
                         {String.fromCharCode(65 + idx)}
                       </span>
                       {c.label}
@@ -192,14 +192,14 @@ export function AnswersSection({ fighter, highlight = false }: { fighter: Fighte
                 aria-invalid={fieldErrors.dateOfBirth ? true : undefined}
               />
               {fieldErrors.dateOfBirth && (
-                <p role="alert" className="mt-1.5 font-mono text-[10px] text-destructive">
+                <p role="alert" className="mt-1.5 type-label font-medium text-destructive">
                   {fieldErrors.dateOfBirth}
                 </p>
               )}
             </div>
             <div>
               <label htmlFor="oq-freq" className={FIELD_LABEL}>
-                Training Frequency
+                Training frequency
               </label>
               <select
                 id="oq-freq"
@@ -220,7 +220,7 @@ export function AnswersSection({ fighter, highlight = false }: { fighter: Fighte
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="oq-sport" className={FIELD_LABEL}>
-                Primary Combat Sport
+                Primary combat sport
               </label>
               <select
                 id="oq-sport"
@@ -261,7 +261,7 @@ export function AnswersSection({ fighter, highlight = false }: { fighter: Fighte
                   ))}
               </select>
               {fieldErrors.level && (
-                <p role="alert" className="mt-1.5 font-mono text-[10px] text-destructive">
+                <p role="alert" className="mt-1.5 type-label font-medium text-destructive">
                   {fieldErrors.level}
                 </p>
               )}
@@ -356,7 +356,7 @@ export function AnswersSection({ fighter, highlight = false }: { fighter: Fighte
         </div>
 
         {error && (
-          <div role="alert" className="text-sm text-destructive font-mono">
+          <div role="alert" className="text-sm text-destructive font-sans">
             {error}
           </div>
         )}
@@ -365,12 +365,12 @@ export function AnswersSection({ fighter, highlight = false }: { fighter: Fighte
           <button
             type="submit"
             disabled={saving || !changed}
-            className="px-5 py-2.5 border border-primary/60 font-mono text-[10px] uppercase tracking-[0.3em] text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
+            className="px-5 py-2.5 border border-primary/60 type-label font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
           >
             {saving ? "Saving…" : error ? "Retry" : "Save"}
           </button>
           {saved && !changed && (
-            <span role="status" className="font-mono text-[10px] uppercase tracking-widest text-primary">
+            <span role="status" className="type-label font-medium text-primary">
               Saved
             </span>
           )}

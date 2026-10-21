@@ -163,9 +163,9 @@ export default function HistoryPage() {
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
-          <span className="font-mono text-[10px] uppercase tracking-widest">Frame</span>
+          <span className="type-label font-medium">FRAME</span>
         </Link>
-        <div className="font-sans font-extralight text-[13px] uppercase tracking-[0.45em] text-foreground/90">
+        <div className="font-sans font-extralight text-[13px] text-foreground/90">
           History
         </div>
         <div className="w-[74px]" aria-hidden />
@@ -175,10 +175,10 @@ export default function HistoryPage() {
         <div className="max-w-2xl mx-auto px-6 py-9">
           {/* Editorial intro */}
           <div className="mb-11 text-center">
-            <div className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/45">
+            <div className="type-label font-medium text-foreground/80">
               The record
             </div>
-            <p className="mt-3 font-sans font-extralight text-[0.95rem] leading-relaxed text-foreground/60">
+            <p className="mt-3 font-sans font-extralight text-[0.95rem] leading-relaxed text-foreground/80">
               Your sessions and what FRAME holds now, newest first.
             </p>
             <div
@@ -207,7 +207,7 @@ export default function HistoryPage() {
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center pt-16 text-muted-foreground font-mono text-xs uppercase tracking-widest">
+            <div className="flex justify-center pt-16 text-foreground/75 font-sans text-xs">
               Loading record…
             </div>
           ) : hasError ? (
@@ -215,7 +215,7 @@ export default function HistoryPage() {
               role="alert"
               className="flex flex-col items-center gap-4 pt-16 text-center border border-destructive/40 bg-destructive/10 p-6"
             >
-              <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-destructive/90">
+              <div className="type-label font-medium text-destructive/90">
                 Could not load your history
               </div>
               <p className="text-sm text-foreground/70">Check your connection and try again.</p>
@@ -225,14 +225,14 @@ export default function HistoryPage() {
                   void memoryQuery.refetch();
                   void analysesQuery.refetch();
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-destructive/50 text-destructive/90 hover:bg-destructive/15 font-mono text-[10px] uppercase tracking-widest transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-destructive/50 text-destructive/90 hover:bg-destructive/15 type-label font-medium transition-colors"
               >
                 Try again
               </button>
             </div>
           ) : isEmpty ? (
             <div className="flex flex-col items-center justify-center min-h-[45vh] gap-6 text-center px-4">
-              <div className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/45">
+              <div className="type-label font-medium text-foreground/80">
                 No record yet
               </div>
               <p className="font-sans font-extralight text-lg leading-relaxed text-foreground/70 max-w-sm">
@@ -273,11 +273,11 @@ export default function HistoryPage() {
                           }}
                         />
                       </span>
-                      <h2 className="font-sans font-extralight uppercase text-[1.35rem] tracking-[0.3em] leading-none text-foreground/90">
+                      <h2 className="font-sans font-extralight text-[1.35rem] leading-none text-foreground/90">
                         {dayHeader(day.date)}
                       </h2>
                       {dayHeader(day.date) !== explicitDate(day.date) && (
-                        <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/40">
+                        <div className="mt-2 type-meta text-foreground/80">
                           {explicitDate(day.date)}
                         </div>
                       )}
@@ -300,11 +300,11 @@ export default function HistoryPage() {
                               boxShadow: "0 0 8px hsla(39,49%,36%,0.4)",
                             }}
                           />
-                          <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-foreground/45">
+                          <div className="type-meta text-foreground/80">
                             Analysed session
                           </div>
                           <div className="mt-1.5 flex items-baseline justify-between gap-4">
-                            <div className="font-sans font-extralight text-[1.05rem] tracking-wide leading-snug text-foreground/90 group-hover:text-primary/90 transition-colors">
+                            <div className="font-sans font-extralight text-[1.05rem] leading-snug text-foreground/90 group-hover:text-primary/90 transition-colors">
                               {a.styleProfile}
                             </div>
                             <ChevronRight
@@ -313,7 +313,7 @@ export default function HistoryPage() {
                             />
                           </div>
                           <div className="mt-2 flex items-baseline gap-2">
-                            <span className="font-mono text-[9px] uppercase tracking-[0.4em] text-foreground/45">
+                            <span className="type-meta text-foreground/80">
                               Session score
                             </span>
                             <span className="font-sans font-light text-[17px] tabular-nums leading-none text-primary/90">
@@ -335,11 +335,11 @@ export default function HistoryPage() {
                             }}
                           />
                           <div className="flex items-baseline justify-between gap-3">
-                            <div className="font-mono text-[9px] uppercase tracking-[0.5em] text-primary/70">
+                            <div className="type-meta text-primary/70">
                               FRAME noticed
                             </div>
                             {day.facts.length > 1 && (
-                              <div className="flex-none font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/40">
+                              <div className="flex-none type-meta text-foreground/80">
                                 {day.facts.length} observations
                               </div>
                             )}
@@ -353,11 +353,11 @@ export default function HistoryPage() {
                             >
                               <span className="flex items-center gap-2.5 min-w-0">
                                 <Lock className="h-3.5 w-3.5 flex-none text-foreground/40" strokeWidth={1.5} />
-                                <span className="text-[0.85rem] text-foreground/55 leading-relaxed">
+                                <span className="text-[0.85rem] text-foreground/80 leading-relaxed">
                                   {day.facts.length} observation{day.facts.length === 1 ? "" : "s"} recorded — the full model is FRAME+
                                 </span>
                               </span>
-                              <span className="flex-none font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 group-hover:text-primary transition-colors">
+                              <span className="flex-none type-meta text-primary/80 group-hover:text-primary transition-colors">
                                 FRAME+
                               </span>
                             </button>
@@ -371,7 +371,7 @@ export default function HistoryPage() {
                                   className="group block border-l border-white/[0.08] hover:border-primary/50 pl-3.5 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 transition-colors"
                                 >
                                   <div className="flex items-baseline justify-between gap-3 mb-1">
-                                    <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 truncate">
+                                    <div className="type-meta text-primary/80 truncate">
                                       {CATEGORY_LABELS[f.category]}
                                     </div>
                                     <ConfidenceDots value={f.confidence} source={f.source} />

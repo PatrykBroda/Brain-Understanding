@@ -35,7 +35,7 @@ function StateCard({ step, onDone }: { step: StateStep; onDone: () => void }) {
       <button
         type="button"
         onClick={onDone}
-        className="px-5 py-2 border border-primary/50 font-mono text-[10px] uppercase tracking-[0.25em] text-primary hover:bg-primary/10 transition-colors"
+        className="px-5 py-2 border border-primary/50 type-label font-medium text-primary hover:bg-primary/10 transition-colors"
       >
         Continue →
       </button>
@@ -56,7 +56,7 @@ function BreathStepCard({ step, onDone }: { step: BreathStep; onDone: () => void
           <button
             type="button"
             onClick={onDone}
-            className="px-5 py-2 border border-primary/50 font-mono text-[10px] uppercase tracking-[0.25em] text-primary hover:bg-primary/10 transition-colors"
+            className="px-5 py-2 border border-primary/50 type-label font-medium text-primary hover:bg-primary/10 transition-colors"
           >
             Continue →
           </button>
@@ -96,18 +96,18 @@ function GroundingCard({ step, onDone }: { step: GroundingStep; onDone: () => vo
   return (
     <div className="flex flex-col items-center px-4 py-6">
       {step.title && (
-        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-5">
+        <div className="type-label font-medium text-foreground/75 mb-5">
           {step.title}
         </div>
       )}
 
       {done ? (
         <div className="flex flex-col items-center gap-4" style={{ animation: "reg-fade 0.4s ease-out" }}>
-          <div className="font-mono text-3xl tracking-[0.25em] text-primary/70">Anchored</div>
+          <div className="font-sans text-3xl text-primary/70">Anchored</div>
           <button
             type="button"
             onClick={onDone}
-            className="mt-2 px-5 py-2 border border-primary/50 font-mono text-[10px] uppercase tracking-[0.25em] text-primary hover:bg-primary/10 transition-colors"
+            className="mt-2 px-5 py-2 border border-primary/50 type-label font-medium text-primary hover:bg-primary/10 transition-colors"
           >
             Continue →
           </button>
@@ -116,7 +116,7 @@ function GroundingCard({ step, onDone }: { step: GroundingStep; onDone: () => vo
         <div key={animKey} className="flex flex-col items-center gap-3 w-full" style={{ animation: "reg-up 0.35s ease-out" }}>
           {/* Big count */}
           <div
-            className="font-mono leading-none select-none tabular-nums"
+            className="font-sans leading-none select-none tabular-nums"
             style={{ fontSize: "6.5rem", color: "hsl(var(--primary) / 0.22)" }}
           >
             {remaining}
@@ -146,7 +146,7 @@ function GroundingCard({ step, onDone }: { step: GroundingStep; onDone: () => vo
           <button
             type="button"
             onClick={advance}
-            className="mt-3 px-5 py-2 border border-primary/50 font-mono text-[10px] uppercase tracking-[0.25em] text-primary hover:bg-primary/10 transition-colors"
+            className="mt-3 px-5 py-2 border border-primary/50 type-label font-medium text-primary hover:bg-primary/10 transition-colors"
           >
             Got it →
           </button>
@@ -172,7 +172,7 @@ function FocusCard({ step, onDone }: { step: FocusStep; onDone: () => void }) {
       <button
         type="button"
         onClick={onDone}
-        className="px-5 py-2 border border-primary/50 font-mono text-[10px] uppercase tracking-[0.25em] text-primary hover:bg-primary/10 transition-colors"
+        className="px-5 py-2 border border-primary/50 type-label font-medium text-primary hover:bg-primary/10 transition-colors"
       >
         Done
       </button>
@@ -206,11 +206,11 @@ export function RegulateSequence({ data }: { data: RegulateSequenceData }) {
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-primary/20 bg-primary/10">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-primary/80">
+        <div className="type-label font-medium text-primary/80">
           Regulate
         </div>
         {!finished && (
-          <div className="font-mono text-[10px] text-primary/60 uppercase tracking-widest">
+          <div className="type-label font-medium text-primary/60">
             {label} · {stepIdx + 1}/{steps.length}
           </div>
         )}
@@ -222,7 +222,7 @@ export function RegulateSequence({ data }: { data: RegulateSequenceData }) {
           className="px-4 py-8 flex flex-col items-center gap-2"
           style={{ animation: "reg-fade 0.5s ease-out" }}
         >
-          <div className="font-mono text-[10px] uppercase tracking-widest text-primary/50">
+          <div className="type-label font-medium text-primary/50">
             Sequence complete
           </div>
         </div>

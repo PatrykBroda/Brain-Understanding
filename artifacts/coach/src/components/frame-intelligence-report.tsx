@@ -7,8 +7,8 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const GOLD = "#d6a05a";
 const GOLD_SOFT = "#c9a24b";
 const INK = "#ece7df";
-const MUTE = "#8c857a";
-const FAINT = "#6f685e";
+const MUTE = "#b0a99e";
+const FAINT = "#968f84";
 const HAIR = "rgba(255,255,255,0.07)";
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -24,7 +24,7 @@ function sourceLabel(t: string): string {
 
 function TinyLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 8, letterSpacing: "0.3em", textTransform: "uppercase", color: MUTE }}>
+    <div style={{ fontSize: 11, color: MUTE }}>
       {children}
     </div>
   );
@@ -36,9 +36,7 @@ function LearnedRow({ item, tag, tagColor }: { item: WeeklyReportLearnedItem; ta
       <span
         style={{
           flex: "none",
-          fontSize: 7,
-          letterSpacing: "0.18em",
-          textTransform: "uppercase",
+          fontSize: 10,
           color: tagColor,
           border: `1px solid ${tagColor}44`,
           padding: "2px 5px",
@@ -50,7 +48,7 @@ function LearnedRow({ item, tag, tagColor }: { item: WeeklyReportLearnedItem; ta
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 11, lineHeight: 1.35, color: INK }}>{item.topic}</div>
         {item.domainLabel && (
-          <div style={{ fontSize: 8, letterSpacing: "0.14em", textTransform: "uppercase", color: FAINT, marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: FAINT, marginTop: 2 }}>
             {item.domainLabel}
             {item.evidenceCount > 1 ? ` · seen ×${item.evidenceCount}` : ""}
           </div>
@@ -84,7 +82,7 @@ export const FrameIntelligenceReport = forwardRef<
         width: 380,
         background: "radial-gradient(120% 80% at 50% 0%, #161311 0%, #0a0908 60%, #060504 100%)",
         color: INK,
-        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        fontFamily: "'Outfit', system-ui, -apple-system, sans-serif",
         padding: "26px 24px 20px",
         border: "1px solid rgba(255,255,255,0.08)",
         position: "relative",
@@ -127,15 +125,15 @@ export const FrameIntelligenceReport = forwardRef<
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <TinyLabel>FRAME Intelligence</TinyLabel>
-          <div style={{ fontSize: 15, letterSpacing: "0.18em", textTransform: "uppercase", marginTop: 4, color: "#f3efe7" }}>
+          <div style={{ fontSize: 15, marginTop: 4, color: "#f3efe7" }}>
             {fighter?.name ?? "Athlete"}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 8, letterSpacing: "0.3em", textTransform: "uppercase", color: MUTE }}>
+          <div style={{ fontSize: 11, color: MUTE }}>
             Week
           </div>
-          <div style={{ fontSize: 10, letterSpacing: "0.12em", color: "#b8b0a4", marginTop: 3 }}>
+          <div style={{ fontSize: 12, color: "#b8b0a4", marginTop: 3 }}>
             {report.weekLabel}
           </div>
         </div>
@@ -148,13 +146,13 @@ export const FrameIntelligenceReport = forwardRef<
           <span style={{ fontSize: 22, color: GOLD_SOFT }}>%</span>
         </div>
         <div style={{ marginLeft: "auto", textAlign: "right" }}>
-          <div style={{ fontSize: 8, letterSpacing: "0.3em", textTransform: "uppercase", color: MUTE }}>
+          <div style={{ fontSize: 11, color: MUTE }}>
             Model confidence
           </div>
-          <div style={{ fontSize: 11, letterSpacing: "0.08em", color: GOLD, marginTop: 3 }}>
+          <div style={{ fontSize: 11, color: GOLD, marginTop: 3 }}>
             {report.stage.label}
           </div>
-          <div style={{ fontSize: 10, color: FAINT, marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: FAINT, marginTop: 4 }}>
             {delta == null
               ? "Baseline week"
               : delta > 0
@@ -170,13 +168,13 @@ export const FrameIntelligenceReport = forwardRef<
         <>
           {/* This week FRAME learned */}
           <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: GOLD_SOFT }}>
+            <div style={{ fontSize: 11, color: GOLD_SOFT }}>
               This week FRAME learned
             </div>
             {report.learned.confirmed.length === 0 &&
             report.learned.observed.length === 0 &&
             report.learned.hypotheses.length === 0 ? (
-              <div style={{ fontSize: 10, color: FAINT, marginTop: 8, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12, color: FAINT, marginTop: 8, lineHeight: 1.5 }}>
                 Evidence recorded, no new distinct reads this week.
               </div>
             ) : (
@@ -212,7 +210,7 @@ export const FrameIntelligenceReport = forwardRef<
                 }}
               >
                 <div style={{ fontSize: 22, fontWeight: 600, color: INK, lineHeight: 1 }}>{s.n}</div>
-                <div style={{ fontSize: 7, letterSpacing: "0.2em", textTransform: "uppercase", color: MUTE, marginTop: 6 }}>
+                <div style={{ fontSize: 10, color: MUTE, marginTop: 6 }}>
                   {s.l}
                 </div>
               </div>
@@ -223,10 +221,10 @@ export const FrameIntelligenceReport = forwardRef<
           {report.mostReinforced && (
             <div style={{ marginTop: 18 }}>
               <TinyLabel>Most reinforced</TinyLabel>
-              <div style={{ fontSize: 12, letterSpacing: "0.04em", color: INK, marginTop: 5 }}>
+              <div style={{ fontSize: 12, color: INK, marginTop: 5 }}>
                 {report.mostReinforced.topic}
               </div>
-              <div style={{ fontSize: 9, color: FAINT, marginTop: 3, letterSpacing: "0.04em" }}>
+              <div style={{ fontSize: 11, color: FAINT, marginTop: 3 }}>
                 +{report.mostReinforced.sightingsThisWeek} this week
                 {report.mostReinforced.sourceBreakdown.length > 0
                   ? ` · from ${report.mostReinforced.sourceBreakdown.map((b) => sourceLabel(b.type)).join(", ")}`
@@ -241,7 +239,7 @@ export const FrameIntelligenceReport = forwardRef<
               <TinyLabel>Understanding by area</TinyLabel>
               {report.domains.map((d) => (
                 <div key={d.key}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, letterSpacing: "0.14em", textTransform: "uppercase" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
                     <span style={{ color: "#aaa298" }}>{d.label}</span>
                     <span style={{ color: GOLD }}>{d.coverage}</span>
                   </div>
@@ -274,7 +272,7 @@ export const FrameIntelligenceReport = forwardRef<
                 {report.biggestOpportunity.topic}
               </div>
               {report.biggestOpportunity.domainLabel && (
-                <div style={{ fontSize: 8, letterSpacing: "0.14em", textTransform: "uppercase", color: FAINT, marginTop: 3 }}>
+                <div style={{ fontSize: 11, color: FAINT, marginTop: 3 }}>
                   {report.biggestOpportunity.domainLabel}
                 </div>
               )}
@@ -284,7 +282,7 @@ export const FrameIntelligenceReport = forwardRef<
       ) : (
         /* honest empty state — never invent a busy week */
         <div style={{ marginTop: 22, marginBottom: 6 }}>
-          <div style={{ fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: GOLD_SOFT }}>
+          <div style={{ fontSize: 11, color: GOLD_SOFT }}>
             Quiet week
           </div>
           <div style={{ fontFamily: "Georgia, serif", fontSize: 13, lineHeight: 1.55, color: "#d8d2c8", marginTop: 8 }}>
@@ -300,23 +298,23 @@ export const FrameIntelligenceReport = forwardRef<
       {report.archetype && (
         <div style={{ marginTop: 18, paddingTop: 12, borderTop: `1px solid ${HAIR}` }}>
           <TinyLabel>Fighting identity</TinyLabel>
-          <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: GOLD, marginTop: 5 }}>
+          <div style={{ fontSize: 12, color: GOLD, marginTop: 5 }}>
             {report.archetype.name}
           </div>
           <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 7, letterSpacing: "0.2em", textTransform: "uppercase", color: GOLD_SOFT }}>
+              <div style={{ fontSize: 10, color: GOLD_SOFT }}>
                 Gift
               </div>
-              <div style={{ fontSize: 10, lineHeight: 1.45, color: "#b8b0a4", marginTop: 3 }}>
+              <div style={{ fontSize: 12, lineHeight: 1.45, color: "#b8b0a4", marginTop: 3 }}>
                 {report.archetype.gift}
               </div>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 7, letterSpacing: "0.2em", textTransform: "uppercase", color: MUTE }}>
+              <div style={{ fontSize: 10, color: MUTE }}>
                 Shadow
               </div>
-              <div style={{ fontSize: 10, lineHeight: 1.45, color: "#9aa0a6", marginTop: 3 }}>
+              <div style={{ fontSize: 12, lineHeight: 1.45, color: "#9aa0a6", marginTop: 3 }}>
                 {report.archetype.shadow}
               </div>
             </div>
@@ -332,9 +330,7 @@ export const FrameIntelligenceReport = forwardRef<
           borderTop: `1px solid ${HAIR}`,
           display: "flex",
           justifyContent: "space-between",
-          fontSize: 8,
-          letterSpacing: "0.25em",
-          textTransform: "uppercase",
+          fontSize: 11,
           color: FAINT,
         }}
       >

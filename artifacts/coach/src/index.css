@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap');
 
 @layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
@@ -63,7 +63,6 @@
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
   --font-sans: var(--app-font-sans);
-  --font-mono: var(--app-font-mono);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -107,7 +106,6 @@
   --ring: 39 49% 36%;
 
   --app-font-sans: 'Outfit', sans-serif;
-  --app-font-mono: 'Space Mono', monospace;
   --radius: 0rem; 
 }
 
@@ -164,6 +162,45 @@
   }
 }
 
+/* Typography (§4) — one text family (Outfit), normal tracking, natural case.
+   Replaces the old Space Mono / uppercase / wide-tracking "code" labels.
+   Size + line-height only; colour and weight stay on the element so gold
+   actions (text-primary) and state colours keep working. Named type-* (not
+   text-*) so tailwind-merge doesn't treat them as text colours in cn(). */
+@utility type-meta {
+  /* dates, counts, timestamps, tiny captions */
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+}
+@utility type-label {
+  /* field labels, small headings, compact buttons */
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+}
+@utility type-caption {
+  /* supporting sentences and list rows */
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+}
+@utility type-section {
+  /* section titles */
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 /* Custom Scrollbar for a monastic feel */
 ::-webkit-scrollbar {
   width: 6px;
@@ -179,7 +216,7 @@
 }
 
 .synochi-concept {
-  @apply font-mono text-[0.9em] px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20;
+  @apply font-sans text-[0.95em] px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20;
 }
 
 .glossable {

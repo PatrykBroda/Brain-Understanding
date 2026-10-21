@@ -48,7 +48,7 @@ export function CompetitionBanner() {
   const style = TIER_STYLE[pressure.tier];
   const { competition: c, daysToEvent, daysToWeighIn } = pressure;
 
-  const dayWord = daysToEvent === 1 ? "DAY" : "DAYS";
+  const dayWord = daysToEvent === 1 ? "day" : "days";
 
   return (
     <Link
@@ -68,12 +68,12 @@ export function CompetitionBanner() {
         <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
           <div className="min-w-0">
             <div
-              className="font-mono text-[9px] uppercase tracking-[0.4em] opacity-80"
+              className="type-meta opacity-80"
               style={{ color: style.fg }}
             >
               {pressure.tierLabel}
             </div>
-            <div className="font-sans uppercase tracking-[0.06em] text-foreground/90 text-[12px] truncate mt-0.5">
+            <div className="font-sans text-foreground/90 text-[13px] truncate mt-0.5">
               {c.eventName}
             </div>
           </div>
@@ -86,8 +86,8 @@ export function CompetitionBanner() {
                 >
                   {daysToWeighIn}
                 </span>
-                <span className="font-mono text-[8px] uppercase tracking-[0.3em] text-foreground/55 ml-1">
-                  weigh-in
+                <span className="type-meta text-foreground/80 ml-1">
+                  Weigh-in
                 </span>
               </div>
             )}
@@ -98,7 +98,7 @@ export function CompetitionBanner() {
               >
                 {daysToEvent}
               </span>
-              <span className="font-mono text-[8px] uppercase tracking-[0.3em] text-foreground/55 ml-1">
+              <span className="type-meta text-foreground/80 ml-1">
                 {dayWord}
               </span>
             </div>

@@ -12,6 +12,7 @@ import {
 import { api, ApiError, type PlanCategory, type PlanItem } from "@/lib/api";
 import { missionErrorMessage } from "@/lib/mission";
 import { Link } from "wouter";
+import { capitalise } from "@/lib/utils";
 
 const CATEGORY_ORDER: PlanCategory[] = ["fix", "goal_step", "train", "technique", "regulate"];
 
@@ -123,10 +124,10 @@ export function CampMission() {
       {/* Fighter + regenerate row */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/60">
+          <div className="type-meta text-foreground/75">
             {fighter?.name ?? "Athlete"}
           </div>
-          <div className="font-sans text-[13px] font-light tracking-[0.12em] text-foreground/80 mt-0.5">
+          <div className="font-sans text-[13px] font-light text-foreground/80 mt-0.5">
             {formatWeekRange(weekStart)}
           </div>
         </div>
@@ -143,7 +144,7 @@ export function CampMission() {
             type="button"
             onClick={() => void requestGenerate()}
             disabled={regen.isPending || !!generationInFlightRef.current}
-            className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40 flex items-center gap-1.5"
+            className="type-label font-medium border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40 flex items-center gap-1.5"
           >
             {regen.isPending ? (
               <>
@@ -187,7 +188,7 @@ export function CampMission() {
                 />
               )}
               <div
-                className="font-mono text-[9px] uppercase tracking-widest"
+                className="type-meta"
                 style={{ color: isToday ? "hsl(0,55%,62%)" : isPast ? "hsla(0,0%,100%,0.25)" : "hsla(0,0%,100%,0.45)" }}
               >
                 {label}
@@ -203,7 +204,7 @@ export function CampMission() {
       {regen.isError &&
         !(regen.error instanceof ApiError && regen.error.kind === "upgrade_required") && (
         <div role="alert" className="border-l-2 border-destructive/70 bg-destructive/8 px-4 py-3 space-y-3">
-          <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+          <div className="type-label font-medium text-destructive/90">
             Mission build failed
           </div>
           <p className="text-sm text-foreground/80 leading-relaxed">{missionErrorMessage(regen.error)}</p>
@@ -211,7 +212,7 @@ export function CampMission() {
             type="button"
             onClick={() => void requestGenerate()}
             disabled={regen.isPending}
-            className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40 inline-flex items-center gap-1.5"
+            className="type-label font-medium border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40 inline-flex items-center gap-1.5"
           >
             <RefreshCcw className="w-3 h-3" strokeWidth={1.5} />
             Try again
@@ -224,10 +225,10 @@ export function CampMission() {
           <div className="mx-auto mb-3 flex justify-center">
             <FrameOctagon size={20} spin spinSeconds={3} glow={false} />
           </div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/80">
+          <div className="type-label font-medium text-foreground/80">
             Building your mission
           </div>
-          <p className="mt-2 text-sm text-muted-foreground/70 leading-relaxed">
+          <p className="mt-2 text-sm text-foreground/75 leading-relaxed">
             FRAME is reading what it knows about you. This can take up to a minute.
           </p>
         </div>
@@ -241,30 +242,30 @@ export function CampMission() {
         >
           <div className="flex items-center gap-2.5">
             <Lock className="w-3.5 h-3.5 flex-none text-primary/80" strokeWidth={1.5} />
-            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/90">
+            <span className="type-label font-medium text-primary/90">
               Mission preview
             </span>
           </div>
-          <p className="text-[0.8rem] text-foreground/60 leading-relaxed mt-1.5">
+          <p className="text-[0.8rem] text-foreground/80 leading-relaxed mt-1.5">
             Your first directive is open. FRAME+ unlocks the full week — every item, every rationale.
           </p>
         </button>
       )}
 
       {planner.isLoading ? (
-        <div className="text-muted-foreground font-mono text-[10px] uppercase tracking-widest py-16 text-center opacity-60">
+        <div className="text-foreground/75 type-label font-medium py-16 text-center opacity-60">
           Loading
         </div>
       ) : planner.isError ? (
         <div role="alert" className="border-l-2 border-destructive/70 bg-destructive/8 px-4 py-3 space-y-3">
-          <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+          <div className="type-label font-medium text-destructive/90">
             Could not load the mission
           </div>
           <p className="text-sm text-foreground/80 leading-relaxed">Check your connection and try again.</p>
           <button
             type="button"
             onClick={() => void planner.refetch()}
-            className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 inline-flex items-center gap-1.5"
+            className="type-label font-medium border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 inline-flex items-center gap-1.5"
           >
             <RefreshCcw className="w-3 h-3" strokeWidth={1.5} />
             Retry
@@ -272,13 +273,13 @@ export function CampMission() {
         </div>
       ) : !plan && regen.isPending ? null : !plan && planner.data?.canGenerate === false ? (
         <div className="border border-border/30 p-6 space-y-4 mt-4">
-          <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/70">
+          <div className="type-meta text-destructive/70">
             Nothing to build from yet
           </div>
           <p className="text-sm text-foreground/80 leading-relaxed">
             Tell your coach about your training, or add your goals and weaknesses to your profile, then come back.
           </p>
-          <Link href="/chat" className="inline-block font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300">
+          <Link href="/chat" className="inline-block type-label font-medium border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300">
             Talk to your coach
           </Link>
         </div>
@@ -292,7 +293,7 @@ export function CampMission() {
           <span className="absolute right-0 top-0 h-3 w-3 border-r-2 border-t-2 border-destructive/40" />
           <span className="absolute left-0 bottom-0 h-3 w-3 border-l-2 border-b-2 border-destructive/40" />
           <span className="absolute right-0 bottom-0 h-3 w-3 border-r-2 border-b-2 border-destructive/40" />
-          <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/70">
+          <div className="type-meta text-destructive/70">
             No directive issued
           </div>
           <p className="text-sm text-foreground/80 leading-relaxed">
@@ -300,14 +301,14 @@ export function CampMission() {
             then builds 5-7 actions for the week. Every item is anchored to a real recorded signal.
             No padding, no streaks, no invented work.
           </p>
-          <p className="text-sm text-muted-foreground/70 leading-relaxed">
+          <p className="text-sm text-foreground/75 leading-relaxed">
             Generate when you're ready.
           </p>
           <button
             type="button"
             onClick={() => void requestGenerate()}
             disabled={regen.isPending}
-            className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40"
+            className="type-label font-medium border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300 disabled:opacity-40"
           >
             Generate this week's mission
           </button>
@@ -329,7 +330,7 @@ export function CampMission() {
               <div className="px-4 pt-3 pb-4">
                 <div className="flex items-center gap-2.5 mb-3">
                   <span className="h-[5px] w-[5px] rounded-full bg-destructive animate-pulse" />
-                  <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-destructive/80">
+                  <div className="type-meta text-destructive/80">
                     Mission directive
                   </div>
                 </div>
@@ -353,7 +354,7 @@ export function CampMission() {
                 />
               </div>
               <div
-                className="flex-none font-mono text-[9px] uppercase tracking-widest"
+                className="flex-none type-meta"
                 style={{
                   color: completions.size === plan.items.length
                     ? "hsl(39,49%,36%)"
@@ -381,7 +382,7 @@ export function CampMission() {
                   <div className="mb-4">
                     <div className="flex items-center gap-3">
                       <span
-                        className="font-mono text-[9px] tracking-widest px-2 py-0.5"
+                        className="type-meta px-2 py-0.5"
                         style={{
                           color: col.label,
                           borderLeft: `2px solid ${col.bar}`,
@@ -392,7 +393,7 @@ export function CampMission() {
                       </span>
                       <div>
                         <div
-                          className="font-mono text-[12px] uppercase tracking-[0.35em]"
+                          className="type-caption"
                           style={{ color: col.label }}
                         >
                           {CATEGORY_LABEL[cat]}
@@ -400,7 +401,7 @@ export function CampMission() {
                       </div>
                       <div className="flex-1 ml-2" style={{ height: 1, background: `linear-gradient(90deg, ${col.bar} 0%, transparent 100%)`, opacity: 0.4 }} />
                     </div>
-                    <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/45 mt-1.5 pl-10">
+                    <div className="type-meta text-foreground/75 mt-1.5 pl-10">
                       {CATEGORY_HINT[cat]}
                     </div>
                   </div>
@@ -429,7 +430,7 @@ export function CampMission() {
 
           {/* Footer metadata */}
           <div className="flex items-center justify-between pt-4 border-t border-white/5">
-            <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/40">
+            <div className="type-meta text-foreground/75">
               Issued {new Date(plan.createdAt).toLocaleString(undefined, {
                 month: "short",
                 day: "numeric",
@@ -437,8 +438,8 @@ export function CampMission() {
                 minute: "2-digit",
               })}
             </div>
-            <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/30">
-              {plan.aiProvider}
+            <div className="type-meta text-foreground/75">
+              {plan.aiProvider === "openai" ? "OpenAI" : capitalise(plan.aiProvider)}
             </div>
           </div>
         </>
@@ -495,10 +496,10 @@ function PlanItemCard({
         <div className="flex items-start gap-3.5 px-5 py-4">
           <Lock className="flex-none mt-0.5 w-[18px] h-[18px] text-muted-foreground/40" strokeWidth={1.5} />
           <div className="flex-1 min-w-0">
-            <div className="text-[0.95rem] leading-snug font-light text-foreground/45 mb-1.5">
+            <div className="text-[0.95rem] leading-snug font-light text-foreground/80 mb-1.5">
               {item.title}
             </div>
-            <span className="font-mono text-[9px] uppercase tracking-widest text-primary/60 border border-primary/25 px-1.5 py-0.5">
+            <span className="type-meta text-primary/60 border border-primary/25 px-1.5 py-0.5">
               FRAME+ unlocks this
             </span>
           </div>
@@ -523,7 +524,7 @@ function PlanItemCard({
     >
       {/* Background index watermark */}
       <div
-        className="absolute right-4 top-1/2 -translate-y-1/2 font-mono font-bold select-none pointer-events-none"
+        className="absolute right-4 top-1/2 -translate-y-1/2 font-sans font-bold select-none pointer-events-none"
         style={{ fontSize: "2.8rem", opacity: 0.04, color: done ? "hsl(39,49%,36%)" : col.label }}
         aria-hidden
       >
@@ -645,7 +646,7 @@ function HelpOverlay({ onClose }: { onClose: () => void }) {
         >
           <X className="w-4 h-4" strokeWidth={1.5} />
         </button>
-        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
+        <div className="type-label font-medium text-foreground/75">
           How the mission works
         </div>
         <div className="space-y-3 text-sm text-foreground/85 leading-relaxed">
@@ -664,7 +665,7 @@ function HelpOverlay({ onClose }: { onClose: () => void }) {
             Marking an item done writes a low-confidence pattern into your model so the next plan
             knows what you actually executed. Un-marking reverses it.
           </p>
-          <p className="text-muted-foreground">
+          <p className="text-foreground/75">
             No streaks, no points, no celebration. The plan is a mirror, not a game.
           </p>
         </div>

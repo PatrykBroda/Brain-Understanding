@@ -21,6 +21,7 @@ import { OPEN_CHECKIN_FLAG } from "@/lib/today";
 import { formatDay } from "@/lib/local-day";
 import { heroFileUrl, api, type DailyCheckin } from "@/lib/api";
 import { AuthedImage } from "@/components/authed-image";
+import { sportLabel } from "@/lib/fighter-options";
 import { readinessModifier, applyReadinessModifier } from "@/lib/readiness-modifier";
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -101,7 +102,7 @@ function CheckinForm({
 
   return (
     <div className="mt-5 rounded-2xl border border-white/[0.07] bg-white/[0.015] p-5 space-y-5">
-      <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/50 leading-relaxed">
+      <p className="type-label font-medium text-foreground/80 leading-relaxed">
         Rate how you actually feel. 100 = fully recovered.
       </p>
       {METRIC_LABELS.map(({ key, label, hint }) => (
@@ -109,7 +110,7 @@ function CheckinForm({
           <div className="flex items-baseline justify-between mb-1.5">
             <label
               htmlFor={`checkin-${key}`}
-              className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/70"
+              className="type-label font-medium text-foreground/70"
             >
               {label}
             </label>
@@ -130,7 +131,7 @@ function CheckinForm({
           />
           <div
             id={`checkin-${key}-hint`}
-            className="font-mono text-[9px] uppercase tracking-[0.2em] text-foreground/30 mt-1"
+            className="type-meta text-foreground/80 mt-1"
           >
             {hint}
           </div>
@@ -139,9 +140,9 @@ function CheckinForm({
       <div>
         <label
           htmlFor="checkin-hr"
-          className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/70 block mb-1.5"
+          className="type-label font-medium text-foreground/70 block mb-1.5"
         >
-          Resting HR <span className="text-foreground/35 tracking-[0.2em]">(optional, bpm)</span>
+          Resting HR <span className="text-foreground/80">(optional, bpm)</span>
         </label>
         <input
           id="checkin-hr"
@@ -155,20 +156,20 @@ function CheckinForm({
           className="w-24 bg-[hsl(0,0%,7%)] border border-white/[0.08] rounded-lg px-3 py-2 text-[14px] text-foreground placeholder:text-foreground/25 focus:border-primary/40 focus:outline-none tabular-nums"
         />
       </div>
-      {err && <p className="font-mono text-[10px] text-destructive">{err}</p>}
+      {err && <p className="type-label font-medium text-destructive">{err}</p>}
       <div className="flex items-center gap-4 pt-1">
         <button
           type="button"
           onClick={submit}
           disabled={save.isPending}
-          className="px-5 py-2.5 rounded-xl border border-primary/40 font-mono text-[10px] uppercase tracking-[0.35em] text-primary hover:border-primary/70 transition-colors duration-300 disabled:opacity-40"
+          className="px-5 py-2.5 rounded-xl border border-primary/40 type-label font-medium text-primary hover:border-primary/70 transition-colors duration-300 disabled:opacity-40"
         >
           {save.isPending ? "Saving" : existing ? "Update" : "Log check-in"}
         </button>
         <button
           type="button"
           onClick={onDone}
-          className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40 hover:text-foreground/70 transition-colors"
+          className="type-label font-medium text-foreground/80 hover:text-foreground/70 transition-colors"
         >
           Cancel
         </button>
@@ -188,10 +189,10 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
   if (points.length < 2) {
     return (
       <div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55">
+        <div className="type-label font-medium text-foreground/80">
           Readiness trend
         </div>
-        <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/35 leading-relaxed">
+        <p className="mt-2 type-meta text-foreground/80 leading-relaxed">
           {points.length === 0
             ? "No check-ins in the last 30 days — log one to start the trend."
             : "One check-in logged — the trend starts at two."}
@@ -211,10 +212,10 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-4">
-        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55">
+        <div className="type-label font-medium text-foreground/80">
           Readiness trend
         </div>
-        <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/35">
+        <div className="type-meta text-foreground/80">
           {points.length} days · {delta === 0 ? "level" : delta > 0 ? `+${delta}` : `${delta}`}
         </div>
       </div>
@@ -232,7 +233,7 @@ function ReadinessTrend({ checkins }: { checkins: DailyCheckin[] }) {
           />
         ))}
       </div>
-      <div className="mt-2 flex justify-between font-mono text-[8px] uppercase tracking-[0.25em] text-foreground/30" aria-hidden>
+      <div className="mt-2 flex justify-between type-meta text-foreground/80" aria-hidden>
         <span>{shortDay(first.date)}</span>
         <span>{shortDay(last.date)}</span>
       </div>
@@ -376,9 +377,9 @@ export default function DashboardPage() {
 
   const metaParts = fighter
     ? [
-        fighter.primarySport ? fighter.primarySport.replace(/_/g, " ").toUpperCase() : null,
+        fighter.primarySport ? sportLabel(fighter.primarySport) : null,
         fighter.weightClass || null,
-        fighter.stance ? fighter.stance.toUpperCase() : null,
+        fighter.stance ? fighter.stance.charAt(0).toUpperCase() + fighter.stance.slice(1) : null,
       ].filter((p): p is string => !!p)
     : [];
 
@@ -453,11 +454,11 @@ export default function DashboardPage() {
             {/* Framing controls (adjust mode) */}
             {adjusting && (
               <div className="absolute bottom-0 inset-x-0 px-6 pb-5 space-y-4">
-                <p className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/70">
+                <p className="type-meta text-foreground/70">
                   Drag to reposition
                 </p>
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/60 w-12">
+                  <span className="type-meta text-foreground/80 w-12">
                     Zoom
                   </span>
                   <input
@@ -482,7 +483,7 @@ export default function DashboardPage() {
                     onClick={saveFraming}
                     disabled={updateFighter.isPending}
                     onPointerDown={(e) => e.stopPropagation()}
-                    className="px-5 py-2 rounded-none border border-primary/40 font-mono text-[10px] uppercase tracking-[0.35em] text-primary hover:border-primary/70 transition-colors disabled:opacity-40 bg-black/50"
+                    className="px-5 py-2 rounded-none border border-primary/40 type-label font-medium text-primary hover:border-primary/70 transition-colors disabled:opacity-40 bg-black/50"
                   >
                     {updateFighter.isPending ? "Saving" : "Save framing"}
                   </button>
@@ -491,7 +492,7 @@ export default function DashboardPage() {
                     onClick={() => setAdjusting(false)}
                     disabled={updateFighter.isPending}
                     onPointerDown={(e) => e.stopPropagation()}
-                    className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/50 hover:text-foreground/80 transition-colors"
+                    className="type-label font-medium text-foreground/80 hover:text-foreground/80 transition-colors"
                   >
                     Cancel
                   </button>
@@ -502,14 +503,14 @@ export default function DashboardPage() {
             {/* Identity overlay */}
             {!adjusting && (
               <div className="absolute bottom-0 inset-x-0 px-6 pb-5">
-                <div className="font-mono text-[9px] uppercase tracking-[0.55em] text-foreground/55 mb-2">
+                <div className="type-meta text-foreground/80 mb-2">
                   Athlete
                 </div>
-                <h1 className="font-sans font-extralight uppercase text-[clamp(2.6rem,11vw,4rem)] tracking-[0.12em] leading-none text-foreground/95">
+                <h1 className="font-sans font-extralight text-[clamp(2.6rem,11vw,4rem)] leading-none text-foreground/95">
                   {fighter?.name ?? "—"}
                 </h1>
                 {metaParts.length > 0 && (
-                  <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/60 mt-3">
+                  <div className="type-label font-medium text-foreground/80 mt-3">
                     {metaParts.map((p, i) => (
                       <span key={p}>
                         {i > 0 && <MetaDivider />}
@@ -533,7 +534,7 @@ export default function DashboardPage() {
             className="mx-6 mt-7 flex items-center justify-between gap-4 border border-primary/40 px-5 py-4 hover:border-primary/70 transition-colors"
           >
             <span>
-              <span className="block font-mono text-[9px] uppercase tracking-[0.4em] text-primary/80">Onboarding questions</span>
+              <span className="block type-meta text-primary/80">Onboarding questions</span>
               <span className="mt-1.5 block font-sans font-light text-[14px] leading-snug text-foreground/80">
                 Answer your onboarding questions so FRAME can coach you
               </span>
@@ -560,11 +561,11 @@ export default function DashboardPage() {
         {/* ─── Fight readiness — real composite or an honest prompt ──────── */}
         <section className="px-6 pt-7 pb-2">
           <div className="flex items-center justify-between border-b border-white/[0.07] pb-2">
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/60">
+            <h2 className="type-label font-medium text-foreground/80">
               Fight readiness
             </h2>
             {provenance && (
-              <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/35">
+              <span className="type-meta text-foreground/80">
                 {provenance}
               </span>
             )}
@@ -577,7 +578,7 @@ export default function DashboardPage() {
                   <div className="font-sans font-extralight text-[clamp(4.6rem,20vw,7rem)] leading-[0.9] tabular-nums text-foreground/95">
                     {readiness}
                   </div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.5em] text-primary/90 mt-3">
+                  <div className="type-label font-medium text-primary/90 mt-3">
                     {bandFor(readiness)}
                   </div>
                 </>
@@ -589,7 +590,7 @@ export default function DashboardPage() {
                   {/* With no check-in today the notice under this card says so; the card
                       stays quiet rather than saying it twice. */}
                   {(readinessLoading || readinessError || !showCheckinNotice) && (
-                    <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/45 mt-3 max-w-[180px] leading-relaxed">
+                    <div className="type-label font-medium text-foreground/80 mt-3 max-w-[180px] leading-relaxed">
                       {readinessLoading
                         ? "Reading your day…"
                         : readinessError
@@ -603,7 +604,7 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={() => void todayQuery.refetch()}
-                      className="mt-3 font-mono text-[9px] uppercase tracking-[0.35em] text-primary/80 hover:text-primary transition-colors"
+                      className="mt-3 type-meta text-primary/80 hover:text-primary transition-colors"
                     >
                       Try again
                     </button>
@@ -617,7 +618,7 @@ export default function DashboardPage() {
               <div className="space-y-2.5">
                 {METRIC_LABELS.map(({ key, label }) => (
                   <div key={key} className="flex items-baseline justify-between gap-4">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55">
+                    <span className="type-label font-medium text-foreground/80">
                       {label}
                     </span>
                     <span className="font-sans font-light text-[15px] tabular-nums text-foreground/90">
@@ -630,14 +631,14 @@ export default function DashboardPage() {
                   </div>
                 ))}
                 <div className="flex items-baseline justify-between gap-4">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55">
+                  <span className="type-label font-medium text-foreground/80">
                     Cardio HR
                   </span>
                   <span className="font-sans font-light text-[15px] tabular-nums text-foreground/90">
                     {checkin?.restingHr != null ? (
                       <>
                         {checkin.restingHr}
-                        <span className="font-mono text-[9px] text-foreground/40 ml-1">bpm</span>
+                        <span className="type-meta text-foreground/80 ml-1">bpm</span>
                       </>
                     ) : (
                       <span className="text-foreground/25">—</span>
@@ -650,7 +651,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setEditing(true)}
-                  className="mt-5 inline-flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.35em] text-primary/80 hover:text-primary transition-colors"
+                  className="mt-5 inline-flex items-center gap-2 type-meta text-primary/80 hover:text-primary transition-colors"
                 >
                   {checkin ? (
                     <>
@@ -690,7 +691,7 @@ export default function DashboardPage() {
               <>
                 <ReadinessTrend checkins={historyCheckins} />
                 <div className="mt-6">
-                  <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55">
+                  <div className="mb-2 type-label font-medium text-foreground/80">
                     Check-in history
                   </div>
                   <ReadinessBars
@@ -709,11 +710,11 @@ export default function DashboardPage() {
               >
                 <span className="flex items-center gap-3">
                   <Lock className="w-3.5 h-3.5 text-foreground/35" strokeWidth={1.5} />
-                  <span className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/55 group-hover:text-foreground/80 transition-colors">
+                  <span className="type-label font-medium text-foreground/80 group-hover:text-foreground/80 transition-colors">
                     Readiness trend
                   </span>
                 </span>
-                <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary/70 group-hover:text-primary transition-colors">
+                <span className="type-meta text-primary/70 group-hover:text-primary transition-colors">
                   FRAME+
                 </span>
               </button>
@@ -737,7 +738,7 @@ export default function DashboardPage() {
         {/* ─── Competition context — real camp or a quiet empty state ────── */}
         <section className="px-6 pt-8 pb-10">
           <div className="border-b border-white/[0.07] pb-2">
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/60">
+            <h2 className="type-label font-medium text-foreground/80">
               Competition context
             </h2>
           </div>
@@ -748,10 +749,10 @@ export default function DashboardPage() {
             >
               <div className="flex items-baseline justify-between gap-4">
                 <div>
-                  <div className="font-sans font-light text-[17px] text-foreground/95 tracking-wide">
+                  <div className="font-sans font-light text-[17px] text-foreground/95">
                     {competition.eventName}
                   </div>
-                  <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/45 mt-1.5">
+                  <div className="type-meta text-foreground/80 mt-1.5">
                     {pressure.phase}
                   </div>
                 </div>
@@ -759,7 +760,7 @@ export default function DashboardPage() {
                   <div className="font-sans font-extralight text-[34px] tabular-nums leading-none text-primary/90">
                     {pressure.daysToEvent}
                   </div>
-                  <div className="font-mono text-[8px] uppercase tracking-[0.3em] text-foreground/40 mt-1">
+                  <div className="type-meta text-foreground/80 mt-1">
                     Days out
                   </div>
                 </div>
@@ -767,12 +768,12 @@ export default function DashboardPage() {
             </Link>
           ) : (
             <div className="pt-5 flex items-baseline justify-between gap-4">
-              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/35 leading-relaxed">
+              <p className="type-label font-medium text-foreground/80 leading-relaxed">
                 No active camp.
               </p>
               <Link
                 href="/camp"
-                className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.35em] text-primary/80 hover:text-primary transition-colors"
+                className="inline-flex items-center gap-1.5 type-meta text-primary/80 hover:text-primary transition-colors"
               >
                 Set a camp
                 <ChevronRight className="w-3 h-3" strokeWidth={1.5} />

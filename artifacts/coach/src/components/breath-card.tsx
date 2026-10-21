@@ -63,12 +63,12 @@ export function BreathCard({
   const inner = (
     <>
       {breath.title && (
-        <div className="px-4 pt-4 pb-1 font-mono text-sm text-foreground tracking-wide uppercase">
+        <div className="px-4 pt-4 pb-1 font-sans text-sm text-foreground">
           {breath.title}
         </div>
       )}
       {breath.purpose && (
-        <div className="px-4 pb-1 text-[0.85rem] text-muted-foreground leading-relaxed">
+        <div className="px-4 pb-1 text-[0.85rem] text-foreground/75 leading-relaxed">
           {breath.purpose}
         </div>
       )}
@@ -85,18 +85,18 @@ export function BreathCard({
             }}
           />
           <div className="relative text-center">
-            <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/80">
+            <div className="type-label font-medium text-primary/80">
               {done ? "Done" : running ? current.label : "Ready"}
             </div>
             {!done && (
-              <div className="font-mono text-3xl text-foreground mt-1 tabular-nums">
+              <div className="font-sans text-3xl text-foreground mt-1 tabular-nums">
                 {running ? remaining : current.seconds}
               </div>
             )}
           </div>
         </div>
 
-        <div className="mt-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <div className="mt-4 type-label font-medium text-foreground/75">
           {done ? `${totalRounds} rounds complete` : `Round ${round} / ${totalRounds}`}
         </div>
 
@@ -105,7 +105,7 @@ export function BreathCard({
             <button
               type="button"
               onClick={() => dispatch({ type: "BEGIN" })}
-              className="px-5 py-2 border border-primary/50 font-mono text-[10px] uppercase tracking-[0.25em] text-primary hover:bg-primary/10 transition-colors"
+              className="px-5 py-2 border border-primary/50 type-label font-medium text-primary hover:bg-primary/10 transition-colors"
             >
               Begin
             </button>
@@ -114,7 +114,7 @@ export function BreathCard({
             <button
               type="button"
               onClick={() => dispatch({ type: "PAUSE" })}
-              className="px-5 py-2 border border-border/60 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/80 hover:border-primary/40 transition-colors"
+              className="px-5 py-2 border border-border/60 type-label font-medium text-foreground/80 hover:border-primary/40 transition-colors"
             >
               Pause
             </button>
@@ -123,7 +123,7 @@ export function BreathCard({
             <button
               type="button"
               onClick={() => dispatch({ type: "RESET" })}
-              className="px-5 py-2 border border-border/60 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/80 hover:border-primary/40 transition-colors"
+              className="px-5 py-2 border border-border/60 type-label font-medium text-foreground/80 hover:border-primary/40 transition-colors"
             >
               Reset
             </button>
@@ -132,7 +132,7 @@ export function BreathCard({
             <button
               type="button"
               onClick={() => dispatch({ type: "BEGIN" })}
-              className="px-5 py-2 border border-primary/50 font-mono text-[10px] uppercase tracking-[0.25em] text-primary hover:bg-primary/10 transition-colors"
+              className="px-5 py-2 border border-primary/50 type-label font-medium text-primary hover:bg-primary/10 transition-colors"
             >
               Resume
             </button>
@@ -143,8 +143,8 @@ export function BreathCard({
           {phases.map((p, i) => (
             <span
               key={p.key + i}
-              className={`font-mono text-[9px] uppercase tracking-widest ${
-                running && i === phaseIdx ? "text-primary" : "text-muted-foreground/70"
+              className={`type-meta ${
+                running && i === phaseIdx ? "text-primary" : "text-foreground/75"
               }`}
             >
               {p.label} {p.seconds}s
@@ -154,7 +154,7 @@ export function BreathCard({
       </div>
 
       {breath.note && (
-        <div className="px-4 pb-4 text-[0.8rem] text-muted-foreground/90 leading-relaxed border-t border-primary/15 pt-3">
+        <div className="px-4 pb-4 text-[0.8rem] text-foreground/75 leading-relaxed border-t border-primary/15 pt-3">
           {breath.note}
         </div>
       )}
@@ -166,10 +166,10 @@ export function BreathCard({
   return (
     <div className="my-4 border border-primary/30 bg-primary/5">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-primary/20 bg-primary/10">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-primary/80">
+        <div className="type-label font-medium text-primary/80">
           Regulate
         </div>
-        <div className="font-mono text-[10px] text-primary/60">BREATH</div>
+        <div className="type-label font-medium text-primary/60">Breath</div>
       </div>
       {inner}
     </div>

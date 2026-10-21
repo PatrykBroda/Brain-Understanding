@@ -52,7 +52,7 @@ export function FirstUsePointers({
   return (
     <section className="px-6 pt-7" aria-label="Getting started">
       <div className="border-b border-white/[0.07] pb-2">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.5em] text-foreground/60">Getting started</h2>
+        <h2 className="type-label font-medium text-foreground/80">Getting started</h2>
       </div>
       {shown.map((p) => (
         <div key={p.id} className="flex items-start border-b border-white/[0.05]">
@@ -61,9 +61,9 @@ export function FirstUsePointers({
             onClick={() => onAction(p.id)}
             className="flex-1 py-4 text-left outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
           >
-            <span className="block font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/80">{p.title}</span>
-            <span className="mt-1.5 block font-sans font-light text-[13px] leading-relaxed text-foreground/55">{p.body}</span>
-            <span className="mt-2 block font-mono text-[9px] uppercase tracking-[0.35em] text-primary/80">{p.action}</span>
+            <span className="block type-label font-medium text-foreground/80">{p.title}</span>
+            <span className="mt-1.5 block font-sans font-light text-[13px] leading-relaxed text-foreground/80">{p.body}</span>
+            <span className="mt-2 block type-meta text-primary/80">{p.action}</span>
           </button>
           <button
             type="button"

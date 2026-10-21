@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Crosshair, Shield, AlertTriangle, Target, ScanLine } from "lucide-react";
 import { useAnalysis } from "@/hooks/use-analysis";
 import { AthleteVsOpponent } from "@/components/pose-comparison";
+import { capitalise } from "@/lib/utils";
 import type {
   VideoAnalysis,
   Fighter,
@@ -49,7 +50,7 @@ export function SavedOpponentReport({
           className="w-14 h-14 object-contain frame-logo-pulse"
           draggable={false}
         />
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+        <div className="type-label font-medium text-foreground/75">
           Loading scout
         </div>
       </div>
@@ -59,13 +60,13 @@ export function SavedOpponentReport({
     return (
       <div className="space-y-4">
         <div role="alert" className="border border-destructive/40 bg-destructive/10 px-3 py-2 space-y-2">
-          <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
-            could not load this scout
+          <div className="type-label font-medium text-destructive/90">
+            Could not load this scout
           </div>
           <button
             type="button"
             onClick={() => void refetch()}
-            className="font-mono text-[10px] uppercase tracking-widest border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
+            className="type-label font-medium border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
           >
             Try again
           </button>
@@ -73,7 +74,7 @@ export function SavedOpponentReport({
         <button
           type="button"
           onClick={onClose}
-          className="w-full font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 py-3 text-foreground/80"
+          className="w-full type-label font-medium border border-border/60 py-3 text-foreground/80"
         >
           Back
         </button>
@@ -104,7 +105,7 @@ export function OpponentReport({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div
-            className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.4em] px-2 py-1 mb-2"
+            className="inline-flex items-center gap-1.5 type-meta px-2 py-1 mb-2"
             style={{
               color: `hsla(${SCOUT},0.95)`,
               border: `1px solid hsla(${SCOUT},0.35)`,
@@ -114,15 +115,15 @@ export function OpponentReport({
             <ScanLine className="w-3 h-3" strokeWidth={1.5} />
             Opponent scout
           </div>
-          <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
-            {analysis.kind} · {analysis.durationSec.toFixed(0)}s read
+          <div className="type-meta text-foreground/75">
+            {capitalise(analysis.kind)} · {analysis.durationSec.toFixed(0)}s read
           </div>
         </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close scout"
-          className="text-muted-foreground hover:text-foreground transition-colors flex-none"
+          className="text-foreground/75 hover:text-foreground transition-colors flex-none"
         >
           <X className="w-5 h-5" strokeWidth={1.5} />
         </button>
@@ -143,7 +144,7 @@ export function OpponentReport({
           </span>
         </div>
         {analysis.styleProfile && (
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] mt-1.5" style={{ color: `hsla(${SCOUT},0.75)` }}>
+          <div className="type-label font-medium mt-1.5" style={{ color: `hsla(${SCOUT},0.75)` }}>
             {analysis.styleProfile}
           </div>
         )}
@@ -162,7 +163,7 @@ export function OpponentReport({
       {/* opponent tendencies (= the athlete's openings) */}
       {analysis.findings.length > 0 && (
         <section className="space-y-3">
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+          <div className="type-label font-medium text-foreground/75 border-b border-border/40 pb-1.5">
             Tendencies to exploit
           </div>
           <div className="space-y-2.5">
@@ -176,13 +177,13 @@ export function OpponentReport({
       {/* keyframes — categorical, no scores, no notes editor (this is someone else) */}
       {analysis.keyframes.length > 0 && (
         <section className="space-y-3">
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+          <div className="type-label font-medium text-foreground/75 border-b border-border/40 pb-1.5">
             Detected moments
           </div>
           {kf && (
             <figure className="space-y-2">
               <img src={kf.imageBase64} alt={kf.caption} className="w-full rounded border border-border/50" />
-              <figcaption className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/85">
+              <figcaption className="type-meta text-foreground/75">
                 {kf.timestamp.toFixed(1)}s · {kf.caption}
               </figcaption>
             </figure>
@@ -197,7 +198,7 @@ export function OpponentReport({
                 style={{ borderColor: i === activeKf ? `hsla(${SCOUT},0.7)` : "hsla(0,0%,100%,0.12)" }}
               >
                 <img src={k.imageBase64} alt={k.caption} className="w-full" />
-                <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/80 px-1 py-1 truncate">
+                <div className="type-meta text-foreground/75 px-1 py-1 truncate">
                   {k.caption}
                 </div>
               </button>
@@ -222,7 +223,7 @@ export function OpponentReport({
       <button
         type="button"
         onClick={onClose}
-        className="w-full font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 py-3 text-foreground/80 transition-colors"
+        className="w-full type-label font-medium border border-border/60 hover:border-primary/50 py-3 text-foreground/80 transition-colors"
       >
         Close scout
       </button>
@@ -240,11 +241,11 @@ function MatchupPanel({ matchup }: { matchup: Matchup }) {
         className="px-5 py-4 space-y-2"
         style={{ border: `1px solid hsla(${SCOUT},0.2)`, background: `hsla(${SCOUT},0.03)` }}
       >
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em]" style={{ color: `hsla(${SCOUT},0.8)` }}>
+        <div className="flex items-center gap-2 type-label font-medium" style={{ color: `hsla(${SCOUT},0.8)` }}>
           <Target className="w-3.5 h-3.5" strokeWidth={1.5} />
           Matchup
         </div>
-        <p className="text-[0.85rem] text-foreground/60 leading-relaxed">
+        <p className="text-[0.85rem] text-foreground/80 leading-relaxed">
           Not enough grounded evidence to call this matchup honestly yet — either your
           own recorded model is still thin, or this clip didn't show enough tracked
           movement. The scout above still stands on its own. Log more of your own reads
@@ -255,7 +256,7 @@ function MatchupPanel({ matchup }: { matchup: Matchup }) {
   }
   return (
     <section className="space-y-3">
-      <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em]" style={{ color: `hsla(${SCOUT},0.85)` }}>
+      <div className="flex items-center gap-2 type-label font-medium" style={{ color: `hsla(${SCOUT},0.85)` }}>
         <Target className="w-3.5 h-3.5" strokeWidth={1.5} />
         Matchup
       </div>
@@ -299,12 +300,12 @@ function MatchupEdgeCard({
       className="px-4 py-3.5 space-y-1.5"
       style={{ borderLeft: `2px solid hsla(${accent},0.7)`, background: `hsla(${accent},0.05)` }}
     >
-      <div className="flex items-center gap-1.5 font-mono text-[8px] uppercase tracking-[0.35em]" style={{ color: `hsla(${accent},0.9)` }}>
+      <div className="flex items-center gap-1.5 type-meta" style={{ color: `hsla(${accent},0.9)` }}>
         {isAdvantage ? <Shield className="w-3 h-3" strokeWidth={1.5} /> : <AlertTriangle className="w-3 h-3" strokeWidth={1.5} />}
         {isAdvantage ? "Your biggest advantage" : "Biggest risk"}
       </div>
       <div className="text-[0.9rem] text-foreground/90 leading-snug">{title}</div>
-      <p className="text-[0.8rem] text-foreground/65 leading-relaxed">{note}</p>
+      <p className="text-[0.8rem] text-foreground/80 leading-relaxed">{note}</p>
     </div>
   );
 }
@@ -316,13 +317,13 @@ function TendencyCard({ finding }: { finding: AnalysisFinding }) {
     <div className="px-4 py-3 space-y-1.5" style={{ borderLeft: `2px solid hsla(${SCOUT},0.4)`, background: "hsla(0,0%,100%,0.015)" }}>
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-[0.9rem] text-foreground/90 leading-snug">{finding.title}</span>
-        <span className="font-mono text-[8px] uppercase tracking-widest flex-none" style={{ color: `hsla(${SCOUT},0.75)` }}>
+        <span className="type-meta flex-none" style={{ color: `hsla(${SCOUT},0.75)` }}>
           {SEVERITY_LABEL[finding.severity]}
         </span>
       </div>
-      <p className="text-[0.8rem] text-foreground/65 leading-relaxed">{finding.observation}</p>
+      <p className="text-[0.8rem] text-foreground/80 leading-relaxed">{finding.observation}</p>
       {finding.nervousSystemFraming && (
-        <p className="text-[0.78rem] text-foreground/50 leading-relaxed italic">{finding.nervousSystemFraming}</p>
+        <p className="text-[0.78rem] text-foreground/80 leading-relaxed italic">{finding.nervousSystemFraming}</p>
       )}
     </div>
   );
@@ -331,16 +332,16 @@ function TendencyCard({ finding }: { finding: AnalysisFinding }) {
 function StyleParallels({ parallels }: { parallels: StyleParallel[] }) {
   return (
     <section className="space-y-3">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+      <div className="type-label font-medium text-foreground/75 border-b border-border/40 pb-1.5">
         Reads like
       </div>
       <div className="space-y-2">
         {parallels.map((p, i) => (
           <div key={i} className="space-y-0.5">
-            <div className="font-mono text-[10px] uppercase tracking-widest" style={{ color: `hsla(${SCOUT},0.8)` }}>
+            <div className="type-label font-medium" style={{ color: `hsla(${SCOUT},0.8)` }}>
               {p.name}
             </div>
-            <p className="text-[0.8rem] text-foreground/65 leading-relaxed">{p.note}</p>
+            <p className="text-[0.8rem] text-foreground/80 leading-relaxed">{p.note}</p>
           </div>
         ))}
       </div>
@@ -351,17 +352,17 @@ function StyleParallels({ parallels }: { parallels: StyleParallel[] }) {
 function SignalTable({ signals }: { signals: AnalysisSignal[] }) {
   return (
     <section className="space-y-3">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+      <div className="type-label font-medium text-foreground/75 border-b border-border/40 pb-1.5">
         Movement signals
       </div>
       <div className="space-y-1.5">
         {signals.map((s, i) => (
           <div key={i} className="flex items-baseline justify-between gap-4 py-1 border-b border-border/15">
             <div className="min-w-0">
-              <div className="font-mono text-[9px] uppercase tracking-widest text-foreground/75">{s.label}</div>
-              <div className="text-[0.76rem] text-foreground/50 leading-snug">{s.detail}</div>
+              <div className="type-meta text-foreground/75">{s.label}</div>
+              <div className="text-[0.76rem] text-foreground/80 leading-snug">{s.detail}</div>
             </div>
-            <div className="font-mono text-[10px] flex-none" style={{ color: `hsla(${SCOUT},0.85)` }}>
+            <div className="type-label font-medium flex-none" style={{ color: `hsla(${SCOUT},0.85)` }}>
               {s.value}
             </div>
           </div>

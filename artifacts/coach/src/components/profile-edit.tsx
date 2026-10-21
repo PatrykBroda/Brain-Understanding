@@ -17,7 +17,7 @@ import {
   ageFromDob,
 } from "@/lib/fighter-options";
 
-const FIELD_LABEL = "block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2";
+const FIELD_LABEL = "block type-label font-medium text-foreground/75 mb-2";
 const INPUT_CLASS =
   "w-full bg-transparent border border-border/70 text-foreground text-sm px-3 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 placeholder:text-muted-foreground/60";
 
@@ -129,7 +129,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
 
   return (
     <form onSubmit={submit} className="space-y-5 border border-border/50 p-4">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/85">
+      <div className="type-label font-medium text-primary/85">
         Edit profile
       </div>
 
@@ -145,7 +145,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
           aria-describedby={nameError ? "profile-name-error" : undefined}
         />
         {nameError && (
-          <p id="profile-name-error" role="alert" className="mt-1.5 font-mono text-[10px] uppercase tracking-widest text-destructive">
+          <p id="profile-name-error" role="alert" className="mt-1.5 type-label font-medium text-destructive">
             {nameError}
           </p>
         )}
@@ -162,7 +162,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
             onChange={(e) => set("dateOfBirth", e.target.value)}
           />
           {computedAge != null && (
-            <p className="mt-1.5 font-mono text-[10px] text-muted-foreground">
+            <p className="mt-1.5 type-label font-medium text-foreground/75">
               {computedAge} years old
             </p>
           )}
@@ -398,7 +398,7 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
       </label>
 
       {update.isError && (
-        <div className="text-sm text-destructive font-mono">
+        <div className="text-sm text-destructive font-sans">
           {(update.error as Error).message}
         </div>
       )}
@@ -407,14 +407,14 @@ export function ProfileEdit({ fighter, onClose }: { fighter: Fighter; onClose: (
         <button
           type="button"
           onClick={onClose}
-          className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+          className="type-label font-medium text-foreground/75 hover:text-foreground transition-colors"
         >
           Cancel
         </button>
         <Button
           type="submit"
           disabled={update.isPending || !!nameProblem(form.name)}
-          className="flex-1 h-11 font-mono text-xs uppercase tracking-[0.25em] bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          className="flex-1 h-11 font-sans text-xs bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {update.isPending ? "Saving..." : "Save profile"}
         </Button>

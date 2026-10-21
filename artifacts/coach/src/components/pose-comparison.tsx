@@ -169,7 +169,7 @@ function CompareStage({
         {lanes.map((l) => (
           <span
             key={l.label}
-            className="inline-flex items-center gap-1.5 font-mono text-[8px] uppercase tracking-widest text-muted-foreground/85"
+            className="inline-flex items-center gap-1.5 type-meta text-foreground/75"
           >
             <i className="inline-block w-3.5 h-[3px]" style={{ background: l.swatch }} />
             {l.label}
@@ -203,13 +203,13 @@ function CompareStage({
           type="button"
           onClick={() => setSlow((s) => !s)}
           aria-pressed={slow}
-          className={`flex-none font-mono text-[9px] uppercase tracking-widest border px-2 py-2 ${
-            slow ? "border-primary/60 text-primary/90" : "border-border/50 text-muted-foreground/70"
+          className={`flex-none type-meta border px-2 py-2 ${
+            slow ? "border-primary/60 text-primary/90" : "border-border/50 text-foreground/75"
           }`}
         >
           0.5x
         </button>
-        <span ref={timeRef} className="flex-none font-mono text-[9px] text-muted-foreground/80 tabular-nums flex-none text-right whitespace-nowrap">
+        <span ref={timeRef} className="flex-none type-meta text-foreground/75 tabular-nums flex-none text-right whitespace-nowrap">
           0.0s / {fmtSec(duration)}
         </span>
       </div>
@@ -221,8 +221,8 @@ function Block({ title, note, children }: { title: string; note: string; childre
   return (
     <div className="space-y-2.5 border border-border/40 bg-black/20 p-3">
       <div className="space-y-0.5">
-        <div className="font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/85">{title}</div>
-        <p className="font-mono text-[8px] tracking-wide text-muted-foreground/60 leading-relaxed">{note}</p>
+        <div className="type-meta text-foreground/85">{title}</div>
+        <p className="type-meta text-foreground/75 leading-relaxed">{note}</p>
       </div>
       {children}
     </div>

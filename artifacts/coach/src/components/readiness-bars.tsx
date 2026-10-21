@@ -55,8 +55,8 @@ export function ReadinessBars({
                   )}
                 </span>
                 <span
-                  className={`font-mono text-[8px] tabular-nums tracking-[0.1em] ${
-                    on ? "text-primary" : "text-foreground/30"
+                  className={`type-meta tabular-nums ${
+                    on ? "text-primary" : "text-foreground/80"
                   }`}
                 >
                   {Number(date.slice(8))}
@@ -72,11 +72,11 @@ export function ReadinessBars({
           role="region"
           aria-label={`Check-in for ${formatDay(open.checkinDate)}`}
         >
-          <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/70">
+          <p className="type-label font-medium text-foreground/70">
             {formatDay(open.checkinDate)}
             {open.checkinDate === today ? " · today" : ""}
           </p>
-          <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/35 leading-relaxed">
+          <p className="mt-1 type-meta text-foreground/80 leading-relaxed">
             {open.checkinDate === today ? "Logged today." : "A past check-in. It is not today's state."}
           </p>
           <dl className="mt-4 grid grid-cols-3 gap-y-3">
@@ -96,10 +96,10 @@ export function ReadinessBars({
 function Metric({ label, value, unit, strong }: { label: string; value: number; unit?: string; strong?: boolean }) {
   return (
     <div>
-      <dt className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/45">{label}</dt>
+      <dt className="type-meta text-foreground/80">{label}</dt>
       <dd className={`font-sans font-light text-[15px] tabular-nums ${strong ? "text-primary/90" : "text-foreground/90"}`}>
         {value}
-        {unit && <span className="ml-1 font-mono text-[9px] text-foreground/40">{unit}</span>}
+        {unit && <span className="ml-1 type-meta text-foreground/80">{unit}</span>}
       </dd>
     </div>
   );

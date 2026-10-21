@@ -92,7 +92,7 @@ function FramePlusModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
-          <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary">
+          <div className="type-label font-medium text-primary">
             FRAME+
           </div>
           <button
@@ -106,13 +106,13 @@ function FramePlusModal({
         </div>
 
         {reason !== "" && (
-          <p className="mt-6 text-xs tracking-wide text-muted-foreground">
+          <p className="mt-6 text-xs text-foreground/75">
             {reason}
           </p>
         )}
 
         <h2
-          className={`${reason !== "" ? "mt-3" : "mt-8"} max-w-[15ch] text-2xl font-light leading-snug tracking-wide text-foreground/95`}
+          className={`${reason !== "" ? "mt-3" : "mt-8"} max-w-[15ch] text-2xl font-light leading-snug text-foreground/95`}
         >
           {IDENTITY}
         </h2>
@@ -121,7 +121,7 @@ function FramePlusModal({
           {IDENTITY_LINES.map((line) => (
             <li
               key={line}
-              className="flex items-center gap-3 text-[15px] font-light tracking-wide text-foreground/85"
+              className="flex items-center gap-3 text-[15px] font-light text-foreground/85"
             >
               <span
                 aria-hidden
@@ -133,12 +133,12 @@ function FramePlusModal({
         </ul>
 
         {isFramePlus ? (
-          <div className="mt-9 border-t border-white/[0.06] pt-5 font-mono text-[11px] uppercase tracking-[0.25em] text-primary">
+          <div className="mt-9 border-t border-white/[0.06] pt-5 type-caption text-primary">
             FRAME+ active — you're covered
           </div>
         ) : (
           <div className="mt-9">
-            <p className="text-sm font-light leading-relaxed tracking-wide text-foreground/70">
+            <p className="text-sm font-light leading-relaxed text-foreground/70">
               FRAME+ is unlocked in the FRAME iOS app. Open the app on your
               iPhone and subscribe — your FRAME+ access then carries across to
               the web automatically.
@@ -146,7 +146,7 @@ function FramePlusModal({
             <button
               type="button"
               onClick={onClose}
-              className="mt-6 w-full py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-foreground/80"
+              className="mt-6 w-full py-2 type-label font-medium text-foreground/75 transition-colors hover:text-foreground/80"
             >
               Got it
             </button>
@@ -167,7 +167,7 @@ export function FramePlusPill() {
   if (isLoading || !isFramePlus) return null;
 
   return (
-    <span className="border border-primary/40 bg-primary/10 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.25em] text-primary">
+    <span className="border border-primary/40 bg-primary/10 px-2.5 py-1 type-meta text-primary">
       FRAME+ active
     </span>
   );
@@ -181,7 +181,7 @@ export function FreeAnalysesPill() {
   return (
     <span
       data-testid="free-analyses-left"
-      className="border border-primary/30 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.2em] text-primary/90 whitespace-nowrap"
+      className="border border-primary/30 px-2.5 py-1 type-meta text-primary/90 whitespace-nowrap"
     >
       {`${left} free ${left === 1 ? "analysis" : "analyses"} left`}
     </span>

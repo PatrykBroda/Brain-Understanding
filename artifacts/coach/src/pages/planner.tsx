@@ -70,7 +70,7 @@ export default function CampPage() {
         <Link
           href="/home"
           aria-label="Back to home"
-          className="text-foreground/50 hover:text-foreground/90 transition-colors"
+          className="text-foreground/80 hover:text-foreground/90 transition-colors"
         >
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
         </Link>
@@ -85,11 +85,11 @@ export default function CampPage() {
             className="h-[22px] w-[22px] object-contain opacity-80"
           />
           <div>
-            <div className="font-sans font-extralight text-[13px] tracking-[0.45em] text-foreground/95 leading-none">
-              CAMP
+            <div className="font-sans font-extralight text-[13px] text-foreground/95 leading-none">
+              Camp
             </div>
-            <div className="font-mono text-[9px] tracking-[0.45em] text-foreground/50 mt-1.5">
-              FIGHT CAMP
+            <div className="type-meta text-foreground/80 mt-1.5">
+              Fight camp
             </div>
           </div>
         </div>
@@ -101,19 +101,19 @@ export default function CampPage() {
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-md mx-auto px-5 py-6 space-y-6 pb-10">
           {isLoading ? (
-            <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+            <div className="type-label font-medium text-foreground/75">
               Loading
             </div>
           ) : isError && !data ? (
             <div role="alert" className="border-l-2 border-destructive/70 bg-destructive/8 px-4 py-3 space-y-3">
-              <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+              <div className="type-label font-medium text-destructive/90">
                 Could not load your camp
               </div>
               <p className="text-sm text-foreground/80 leading-relaxed">Check your connection and try again.</p>
               <button
                 type="button"
                 onClick={() => void refetch()}
-                className="font-mono text-[10px] uppercase tracking-widest border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300"
+                className="type-label font-medium border border-border/50 px-3 py-2 text-foreground/70 hover:text-foreground hover:border-destructive/50 transition-all duration-300"
               >
                 Try again
               </button>
@@ -195,7 +195,7 @@ function ViewTab({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="py-2.5 font-mono text-[10px] uppercase tracking-[0.3em] border transition-colors"
+      className="py-2.5 type-label font-medium border transition-colors"
       style={{
         borderColor: active ? "hsla(39,49%,36%,0.5)" : "hsla(0,0%,100%,0.08)",
         color: active ? "hsl(var(--primary))" : "hsla(0,0%,100%,0.5)",
@@ -218,7 +218,7 @@ function EndCamp({ id }: { id: number }) {
         }
       }}
       disabled={cancel.isPending}
-      className="w-full border border-white/[0.1] py-3 font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/60 hover:text-[hsl(var(--red-accent))] hover:border-[hsl(var(--red-accent))]/50 transition-colors disabled:opacity-50"
+      className="w-full border border-white/[0.1] py-3 type-label font-medium text-foreground/80 hover:text-[hsl(var(--red-accent))] hover:border-[hsl(var(--red-accent))]/50 transition-colors disabled:opacity-50"
     >
       {cancel.isPending ? "Ending" : "End camp"}
     </button>
@@ -253,14 +253,14 @@ function CampDashboard({
     <section>
       <div className="border px-5 py-6 text-center" style={{ borderColor: `${fg}55` }}>
         <div className="flex items-center justify-between">
-          <div className="font-mono text-[9px] uppercase tracking-[0.45em]" style={{ color: fg }}>
+          <div className="type-meta" style={{ color: fg }}>
             {pressure ? pressure.phase : "Camp"}
           </div>
           <button
             type="button"
             onClick={onEdit}
             aria-label="Edit camp"
-            className="flex items-center gap-1.5 text-foreground/45 hover:text-foreground/85 transition-colors font-mono text-[9px] uppercase tracking-[0.3em]"
+            className="flex items-center gap-1.5 text-foreground/80 hover:text-foreground/85 transition-colors type-meta"
           >
             <Pencil className="w-3 h-3" strokeWidth={1.5} />
             Edit
@@ -275,21 +275,21 @@ function CampDashboard({
             >
               {pressure.daysToEvent}
             </div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/55 mt-2">
+            <div className="type-label font-medium text-foreground/80 mt-2">
               {pressure.daysToEvent === 1 ? "day until" : "days until"} {c.eventName}
             </div>
-            <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/40 mt-2">
+            <div className="type-meta text-foreground/80 mt-2">
               {pressure.tierLabel}
             </div>
             {pressure.daysToWeighIn !== null && (
-              <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/45 mt-3">
+              <div className="type-label font-medium text-foreground/80 mt-3">
                 Weigh-in: {pressure.daysToWeighIn}{" "}
                 {pressure.daysToWeighIn === 1 ? "day" : "days"}
               </div>
             )}
           </>
         ) : (
-          <div className="font-sans text-[15px] tracking-[0.1em] text-foreground/80 mt-4">
+          <div className="font-sans text-[15px] text-foreground/80 mt-4">
             {c.eventName}
           </div>
         )}
@@ -325,17 +325,17 @@ function CampReviewSection({ review }: { review: CampReview }) {
   return (
     <section className="border border-white/[0.08]">
       <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-foreground/70">
+        <div className="type-meta text-foreground/70">
           Camp review
         </div>
-        <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/40">
+        <div className="type-meta text-foreground/80">
           {totalAnalyses === 1 ? "1 analysis" : `${totalAnalyses} analyses`}
         </div>
       </div>
 
       {totalAnalyses === 0 ? (
         <div className="px-4 py-6">
-          <p className="text-[12px] leading-relaxed text-foreground/50">
+          <p className="text-[12px] leading-relaxed text-foreground/80">
             No footage analysed in this camp yet. Upload a round on{" "}
             <Link href="/analyse" className="text-primary hover:underline">
               Analyse
@@ -352,7 +352,7 @@ function CampReviewSection({ review }: { review: CampReview }) {
                 <span className="font-sans font-extralight tabular-nums text-[15px] text-foreground/90">
                   {c.count}
                 </span>
-                <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/45">
+                <span className="type-meta text-foreground/80">
                   {c.label}
                 </span>
               </div>
@@ -361,13 +361,13 @@ function CampReviewSection({ review }: { review: CampReview }) {
 
           {/* Biggest real improvement — two recorded endpoint values + dates */}
           <div className="px-4 py-4">
-            <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/45">
+            <div className="type-meta text-foreground/80">
               Biggest improvement
             </div>
             {biggestImprovement ? (
               <div className="mt-2.5">
                 <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/85">
+                  <span className="type-caption text-foreground/85">
                     {biggestImprovement.label}
                   </span>
                   <span
@@ -377,15 +377,15 @@ function CampReviewSection({ review }: { review: CampReview }) {
                     +{biggestImprovement.delta}
                   </span>
                 </div>
-                <div className="mt-1 font-mono text-[10px] tabular-nums text-foreground/55">
+                <div className="mt-1 type-label font-medium tabular-nums text-foreground/80">
                   {biggestImprovement.from} → {biggestImprovement.to}
                 </div>
-                <div className="mt-1 text-[10px] text-foreground/40">
+                <div className="mt-1 text-[13px] text-foreground/80">
                   {formatDay(biggestImprovement.fromAt)} → {formatDay(biggestImprovement.toAt)}
                 </div>
               </div>
             ) : (
-              <p className="mt-2 text-[11px] leading-relaxed text-foreground/45">
+              <p className="mt-2 text-[13px] leading-relaxed text-foreground/80">
                 {totalAnalyses < 2
                   ? "One session in — log a second analysis and the trend appears here."
                   : "No attribute rose between your first and latest session this camp. Held or dipped — no gain to claim yet."}
@@ -395,7 +395,7 @@ function CampReviewSection({ review }: { review: CampReview }) {
 
           {/* Most persistent real leak — a real recurrence count */}
           <div className="px-4 py-4">
-            <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/45">
+            <div className="type-meta text-foreground/80">
               Most persistent leak
             </div>
             {mostPersistentLeak ? (
@@ -403,12 +403,12 @@ function CampReviewSection({ review }: { review: CampReview }) {
                 <div className="font-sans text-[13px] leading-snug text-foreground/85">
                   {mostPersistentLeak.label}
                 </div>
-                <div className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/50">
+                <div className="mt-1.5 type-label font-medium text-foreground/80">
                   Flagged in {mostPersistentLeak.sessions} of {mostPersistentLeak.total} sessions
                 </div>
               </div>
             ) : (
-              <p className="mt-2 text-[11px] leading-relaxed text-foreground/45">
+              <p className="mt-2 text-[13px] leading-relaxed text-foreground/80">
                 {totalAnalyses < 2
                   ? "A leak has to recur across sessions to count. One session in, nothing to call persistent."
                   : "No single leak has recurred across your sessions this camp."}
@@ -427,13 +427,13 @@ function CampReviewLocked() {
   return (
     <section className="border border-white/[0.08]">
       <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-foreground/70">
+        <div className="type-meta text-foreground/70">
           Camp review
         </div>
         <FramePlusPill />
       </div>
       <div className="px-4 py-6">
-        <p className="text-[12px] leading-relaxed text-foreground/50">
+        <p className="text-[12px] leading-relaxed text-foreground/80">
           Camp review reads across every analysis in this camp to surface your biggest real gain
           and the leak that keeps recurring — grounded in your recorded sessions, never invented.
           Part of FRAME+.
@@ -456,10 +456,10 @@ function NoCampState({
   return (
     <section>
       <div className="border border-white/[0.08] px-5 py-8 text-center">
-        <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/55">
+        <div className="type-label font-medium text-foreground/80">
           No camp scheduled
         </div>
-        <p className="mt-3 text-[12px] leading-relaxed text-foreground/50">
+        <p className="mt-3 text-[12px] leading-relaxed text-foreground/80">
           Create a camp to enter the tunnel. A persistent countdown appears, the interface
           tightens toward the date, the coach shifts into camp register, and you can build a
           session-by-session schedule through to fight day.
@@ -468,7 +468,7 @@ function NoCampState({
       <button
         type="button"
         onClick={onOpen}
-        className="mt-5 w-full border border-primary/40 py-3 font-mono text-[11px] uppercase tracking-[0.35em] text-primary hover:bg-primary/5 transition-colors"
+        className="mt-5 w-full border border-primary/40 py-3 type-caption text-primary hover:bg-primary/5 transition-colors"
       >
         Create your camp
       </button>
@@ -551,7 +551,7 @@ function CampForm({
 
   return (
     <section className="space-y-4">
-      <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/70">
+      <div className="type-label font-medium text-foreground/70">
         {isEdit ? "Edit camp" : "Create camp"}
       </div>
 
@@ -670,7 +670,7 @@ function CampForm({
       </Field>
 
       {isError && (
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[hsl(var(--red-accent))]">
+        <div className="type-label font-medium text-[hsl(var(--red-accent))]">
           Could not save — check the dates
         </div>
       )}
@@ -679,7 +679,7 @@ function CampForm({
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.1] py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/55 hover:text-foreground/85 transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.1] py-3 type-label font-medium text-foreground/80 hover:text-foreground/85 transition-colors"
         >
           <X className="w-3 h-3" strokeWidth={1.5} />
           Cancel
@@ -688,7 +688,7 @@ function CampForm({
           type="button"
           onClick={submit}
           disabled={!canSubmit || pending}
-          className="flex-1 border border-primary/40 py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-primary hover:bg-primary/5 transition-colors disabled:opacity-40"
+          className="flex-1 border border-primary/40 py-3 type-label font-medium text-primary hover:bg-primary/5 transition-colors disabled:opacity-40"
         >
           {pending ? "Saving" : isEdit ? "Save camp" : "Create camp"}
         </button>
@@ -700,7 +700,7 @@ function CampForm({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-white/[0.05] pb-2.5">
-      <dt className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/45 pt-0.5">
+      <dt className="type-meta text-foreground/80 pt-0.5">
         {label}
       </dt>
       <dd className="text-[13px] text-foreground/85 text-right max-w-[60%]">{value}</dd>
@@ -711,7 +711,7 @@ function Row({ label, value }: { label: string; value: string }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/55 block mb-1.5">
+      <span className="type-meta text-foreground/80 block mb-1.5">
         {label}
       </span>
       {children}

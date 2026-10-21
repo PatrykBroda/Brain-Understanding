@@ -46,12 +46,12 @@ function LineItem({
 }) {
   return (
     <div className="px-4 py-3.5 flex items-baseline justify-between gap-4">
-      <div className="flex-none font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground/65 w-20">
+      <div className="flex-none type-meta text-foreground/75 w-20">
         {label}
       </div>
       <div className="min-w-0 text-right">
         <div
-          className="font-mono text-[12px] uppercase tracking-[0.12em] text-foreground/95 truncate"
+          className="type-caption text-foreground/95 truncate"
           title={sub}
         >
           {value}
@@ -151,10 +151,10 @@ export default function ProfilePage() {
           <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
         </Link>
         <div className="text-center">
-          <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
+          <div className="type-meta text-foreground/75">
             Athlete
           </div>
-          <div className="font-mono text-sm uppercase tracking-[0.3em] text-foreground/95 mt-0.5">
+          <div className="font-sans text-sm text-foreground/95 mt-0.5">
             Passport
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="text-muted-foreground hover:text-primary transition-colors"
+              className="text-foreground/75 hover:text-primary transition-colors"
               aria-label="Edit profile"
             >
               <Pencil className="w-4 h-4" strokeWidth={1.5} />
@@ -253,15 +253,15 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="relative z-[1] flex flex-col justify-end h-full min-h-[190px] px-4 pt-8 pb-4">
-                  <div className="font-mono text-[8px] uppercase tracking-[0.55em] text-muted-foreground/60 mb-1.5">
+                  <div className="type-meta text-foreground/75 mb-1.5">
                     Identity
                   </div>
-                  <div className="font-mono text-3xl uppercase tracking-[0.1em] text-foreground leading-none truncate">
+                  <div className="font-sans text-3xl text-foreground leading-none truncate">
                     {fighter.name}
                   </div>
                   {(arch || fighter.spiritAnimal) && (
                     <div
-                      className="font-mono text-[10px] uppercase tracking-[0.4em] mt-2"
+                      className="type-label font-medium mt-2"
                       style={{ color: "hsl(39,49%,36%)" }}
                     >
                       {arch ? arch.name : fighter.spiritAnimal}
@@ -272,7 +272,7 @@ export default function ProfilePage() {
               </div>
 
               {uploadError && (
-                <div className="border-x border-b border-white/[0.08] px-4 py-2 font-mono text-[10px] text-destructive tracking-wide">
+                <div className="border-x border-b border-white/[0.08] px-4 py-2 type-label font-medium text-destructive">
                   {uploadError}
                 </div>
               )}
@@ -299,10 +299,10 @@ export default function ProfilePage() {
                   href="/chat"
                   className="flex items-center justify-between px-4 py-3.5 hover:bg-white/[0.02] transition-colors group"
                 >
-                  <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-primary/70 group-hover:text-primary transition-colors">
-                    Continue Calibration
+                  <span className="type-label font-medium text-primary/70 group-hover:text-primary transition-colors">
+                    Continue calibration
                   </span>
-                  <span className="font-mono text-[11px] text-foreground/40 group-hover:text-primary transition-colors">
+                  <span className="type-caption text-foreground/80 group-hover:text-primary transition-colors">
                     →
                   </span>
                 </Link>
@@ -315,8 +315,8 @@ export default function ProfilePage() {
 
               {/* ─── ATHLETE MODEL — what FRAME knows ──────────────── */}
               <div className="pt-6">
-                <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-muted-foreground/65 mb-3">
-                  Athlete Model
+                <div className="type-meta text-foreground/75 mb-3">
+                  Athlete model
                 </div>
                 <AthleteModel variant="mobile" />
               </div>
@@ -327,11 +327,11 @@ export default function ProfilePage() {
                   <div className="border border-primary/25 bg-primary/[0.04]">
                     <div className="flex items-center justify-between px-4 py-3.5">
                       <div>
-                        <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary">
+                        <div className="type-label font-medium text-primary">
                           FRAME+ active
                         </div>
                         {sub.status?.currentPeriodEnd && (
-                          <div className="font-mono text-[9px] tracking-wide text-muted-foreground/70 mt-1">
+                          <div className="type-meta text-foreground/75 mt-1">
                             {sub.status.cancelAtPeriodEnd ? "Ends" : "Renews"}{" "}
                             {new Date(sub.status.currentPeriodEnd).toLocaleDateString(undefined, {
                               month: "short",
@@ -340,7 +340,7 @@ export default function ProfilePage() {
                             })}
                           </div>
                         )}
-                        <div className="font-mono text-[9px] tracking-wide text-muted-foreground/70 mt-1">
+                        <div className="type-meta text-foreground/75 mt-1">
                           Manage or cancel in the iOS app
                         </div>
                       </div>
@@ -353,15 +353,15 @@ export default function ProfilePage() {
                     className="w-full flex items-center justify-between border border-border/60 hover:border-primary/40 transition-colors px-4 py-3.5 text-left group"
                   >
                     <div>
-                      <div className="font-mono text-[10px] uppercase tracking-[0.35em] text-foreground/85 group-hover:text-primary transition-colors">
+                      <div className="type-label font-medium text-foreground/85 group-hover:text-primary transition-colors">
                         FRAME+
                       </div>
-                      <div className="font-mono text-[9px] tracking-wide text-muted-foreground/70 mt-1">
+                      <div className="type-meta text-foreground/75 mt-1">
                         Unlimited coaching · full history · full mission ·
                         subscribe in the iOS app
                       </div>
                     </div>
-                    <span className="font-mono text-[11px] text-foreground/40 group-hover:text-primary transition-colors">
+                    <span className="type-caption text-foreground/80 group-hover:text-primary transition-colors">
                       →
                     </span>
                   </button>
@@ -370,14 +370,14 @@ export default function ProfilePage() {
 
               {/* ─── ACCOUNT ───────────────────────────────────────── */}
               <div className="space-y-2.5 pt-6 pb-2">
-                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 font-mono text-[9px] uppercase tracking-wider">
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 type-meta">
                   {externalLinks().map((l) => (
                     <a key={l.key} href={l.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
                       {l.label}
                     </a>
                   ))}
                 </div>
-                <div className="flex justify-center gap-4 font-mono text-[9px] uppercase tracking-wider">
+                <div className="flex justify-center gap-4 type-meta">
                   <a href={`${basePath}/api/privacy`} target="_blank" rel="noreferrer" className="text-primary hover:underline">
                     Privacy & AI permissions
                   </a>
@@ -386,14 +386,14 @@ export default function ProfilePage() {
                   </a>
                 </div>
                 {email && (
-                  <div className="font-mono text-[10px] text-muted-foreground/60 tracking-wide text-center">
+                  <div className="type-label font-medium text-foreground/75 text-center">
                     {email}
                   </div>
                 )}
                 <button
                   type="button"
                   onClick={() => { signOut(); setLocation(`${basePath}/sign-in`); }}
-                  className="w-full flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 hover:text-primary text-foreground/75 transition-colors py-2.5 font-mono text-[10px] uppercase tracking-[0.3em]"
+                  className="w-full flex items-center justify-center gap-2 border border-border/60 hover:border-primary/40 hover:text-primary text-foreground/75 transition-colors py-2.5 type-label font-medium"
                 >
                   <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
                   Sign out
@@ -401,24 +401,24 @@ export default function ProfilePage() {
               </div>
             </>
           ) : fighterLoading ? (
-            <div role="status" className="py-16 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <div role="status" className="py-16 text-center type-label font-medium text-foreground/75">
               Loading profile…
             </div>
           ) : fighterError ? (
             <div role="alert" className="border border-destructive/40 bg-destructive/10 p-5 text-center space-y-3">
-              <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+              <div className="type-label font-medium text-destructive/90">
                 Could not load your profile
               </div>
               <button
                 type="button"
                 onClick={() => void refetchFighter()}
-                className="px-3 py-1.5 border border-destructive/50 text-destructive/90 hover:bg-destructive/15 font-mono text-[10px] uppercase tracking-widest transition-colors"
+                className="px-3 py-1.5 border border-destructive/50 text-destructive/90 hover:bg-destructive/15 type-label font-medium transition-colors"
               >
                 Try again
               </button>
             </div>
           ) : (
-            <div className="text-sm text-muted-foreground py-10 text-center">
+            <div className="text-sm text-foreground/75 py-10 text-center">
               No athlete profile yet.
             </div>
           )}

@@ -50,12 +50,12 @@ export function AiConsentModal({
         }
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-primary">
+        <div className="type-meta text-primary">
           Your data · your choice
         </div>
         <h2
           id="ai-consent-title"
-          className="mt-2 text-2xl font-light uppercase tracking-[0.12em] text-foreground"
+          className="mt-2 text-2xl font-light text-foreground"
         >
           AI coaching permission
         </h2>
@@ -65,7 +65,7 @@ export function AiConsentModal({
           Nothing is sent to these providers before you agree.
         </p>
 
-        <h3 className="mt-7 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+        <h3 className="mt-7 type-label font-medium text-foreground/75">
           What may be sent
         </h3>
         <ul className="mt-3 space-y-2">
@@ -77,7 +77,7 @@ export function AiConsentModal({
           ))}
         </ul>
 
-        <h3 className="mt-7 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+        <h3 className="mt-7 type-label font-medium text-foreground/75">
           What is not sent
         </h3>
         <ul className="mt-3 space-y-2">
@@ -90,20 +90,20 @@ export function AiConsentModal({
         </ul>
 
         {disclosure.purpose ? (
-          <p className="mt-5 text-xs leading-relaxed text-foreground/60">{disclosure.purpose}</p>
+          <p className="mt-5 text-xs leading-relaxed text-foreground/80">{disclosure.purpose}</p>
         ) : null}
 
         {mandatory ? (
-          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+          <p className="mt-4 text-xs leading-relaxed text-foreground/75">
             FRAME is an AI-powered system. You must grant permission to continue.
             If you do not agree, you can sign out or permanently delete your account.
           </p>
         ) : signup ? (
-          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+          <p className="mt-4 text-xs leading-relaxed text-foreground/75">
             FRAME is an AI-powered system. Your account is not created unless you agree.
           </p>
         ) : (
-          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+          <p className="mt-4 text-xs leading-relaxed text-foreground/75">
             FRAME is an AI-powered system. You must grant permission to use this feature.
           </p>
         )}
@@ -113,7 +113,7 @@ export function AiConsentModal({
             href="/api/privacy"
             target="_blank"
             rel="noreferrer"
-            className="inline-block font-mono text-[10px] uppercase tracking-[0.2em] text-primary hover:underline"
+            className="inline-block type-label font-medium text-primary hover:underline"
           >
             Read the privacy policy
           </a>
@@ -121,7 +121,7 @@ export function AiConsentModal({
             href="/api/terms"
             target="_blank"
             rel="noreferrer"
-            className="inline-block font-mono text-[10px] uppercase tracking-[0.2em] text-primary hover:underline"
+            className="inline-block type-label font-medium text-primary hover:underline"
           >
             Read the terms of service
           </a>
@@ -147,9 +147,9 @@ export function AiConsentModal({
             type="button"
             onClick={onAccept}
             disabled={busy || !checked}
-            className="mt-4 w-full border border-primary bg-primary/90 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-primary-foreground transition-colors hover:bg-primary disabled:cursor-wait disabled:opacity-50"
+            className="mt-4 w-full border border-primary bg-primary/90 px-4 py-3 type-label font-medium text-primary-foreground transition-colors hover:bg-primary disabled:cursor-wait disabled:opacity-50"
           >
-            {busy ? "Saving permission…" : "Agree & Continue"}
+            {busy ? "Saving permission…" : "Agree & continue"}
           </button>
         </div>
 
@@ -160,7 +160,7 @@ export function AiConsentModal({
                 type="button"
                 onClick={onSignOut}
                 disabled={busy}
-                className="w-full px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                className="w-full px-4 py-3 type-label font-medium text-foreground/75 transition-colors hover:text-foreground disabled:opacity-50"
               >
                 Sign out
               </button>
@@ -168,14 +168,14 @@ export function AiConsentModal({
             {onDeleteAccount && (
               confirmDelete ? (
                 <div className="mt-4 flex flex-col gap-2 border border-destructive/40 bg-destructive/5 p-4">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-destructive mb-2 text-center">
+                  <p className="type-label font-medium text-destructive mb-2 text-center">
                     Permanently delete account?
                   </p>
                   <button
                     type="button"
                     onClick={onDeleteAccount}
                     disabled={busy}
-                    className="w-full bg-destructive px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:cursor-wait disabled:opacity-50"
+                    className="w-full bg-destructive px-4 py-3 type-label font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:cursor-wait disabled:opacity-50"
                   >
                     {busy ? "Deleting…" : "Yes, delete"}
                   </button>
@@ -183,7 +183,7 @@ export function AiConsentModal({
                     type="button"
                     onClick={() => setConfirmDelete(false)}
                     disabled={busy}
-                    className="w-full px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                    className="w-full px-4 py-3 type-label font-medium text-foreground/75 transition-colors hover:text-foreground disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -193,7 +193,7 @@ export function AiConsentModal({
                   type="button"
                   onClick={() => setConfirmDelete(true)}
                   disabled={busy}
-                  className="w-full px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-destructive/70 transition-colors hover:text-destructive disabled:opacity-50"
+                  className="w-full px-4 py-3 type-label font-medium text-destructive/70 transition-colors hover:text-destructive disabled:opacity-50"
                 >
                   Delete account
                 </button>
@@ -206,7 +206,7 @@ export function AiConsentModal({
               type="button"
               onClick={onDecline}
               disabled={busy}
-              className="mt-2 w-full px-4 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+              className="mt-2 w-full px-4 py-3 type-label font-medium text-foreground/75 transition-colors hover:text-foreground disabled:opacity-50"
             >
               {signup ? "Go back" : "Not now"}
             </button>

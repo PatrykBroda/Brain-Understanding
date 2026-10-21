@@ -21,13 +21,13 @@ export function DrillCard({ drill }: { drill: Drill }) {
   return (
     <div className="my-4 border border-primary/30 bg-primary/5">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-primary/20 bg-primary/10">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-primary/80">
+        <div className="type-label font-medium text-primary/80">
           Prescription
         </div>
-        <div className="font-mono text-[10px] text-primary/60">DRILL</div>
+        <div className="type-label font-medium text-primary/60">Drill</div>
       </div>
       {drill.title && (
-        <div className="px-4 pt-4 pb-2 font-mono text-sm text-foreground tracking-wide uppercase">
+        <div className="px-4 pt-4 pb-2 font-sans text-sm text-foreground">
           {drill.title}
         </div>
       )}
@@ -35,7 +35,7 @@ export function DrillCard({ drill }: { drill: Drill }) {
         {FIELDS.map(({ key, label }) =>
           drill[key] ? (
             <div key={key} className="contents">
-              <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground pt-0.5">
+              <div className="type-label font-medium text-foreground/75 pt-0.5">
                 {label}
               </div>
               <div className="text-foreground/90 leading-relaxed">{drill[key]}</div>

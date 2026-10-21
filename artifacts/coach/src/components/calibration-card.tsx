@@ -17,7 +17,7 @@ export function CalibrationCard({
   return (
     <div className="border border-primary/30 backdrop-blur">
       <div className="flex items-center justify-between px-4 py-2 border-b border-primary/20">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-primary/80">
+        <div className="type-label font-medium text-primary/80">
           Calibration
         </div>
         <button
@@ -39,10 +39,10 @@ export function CalibrationCard({
                 setSelected(opt);
                 onAnswer(opt);
               }}
-              className={`text-[0.78rem] font-mono px-3 py-1.5 border transition-colors ${
+              className={`text-[0.78rem] font-sans px-3 py-1.5 border transition-colors ${
                 selected === opt
                   ? "border-primary bg-primary/20 text-primary"
-                  : "border-border/70 bg-background/40 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                  : "border-border/70 bg-background/40 text-foreground/75 hover:border-primary/50 hover:text-foreground"
               } disabled:opacity-50`}
             >
               {opt}

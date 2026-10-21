@@ -71,10 +71,10 @@ function ConsentGate({ children }: { children: React.ReactNode }) {
     if (isAuth) {
       return (
         <div className="flex h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive">
+          <div className="type-label font-medium text-destructive">
             Session not verified
           </div>
-          <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+          <p className="max-w-xs text-xs leading-relaxed text-foreground/75">
             The backend answered, but your sign-in couldn't be confirmed. Sign in
             again to continue.
           </p>
@@ -84,7 +84,7 @@ function ConsentGate({ children }: { children: React.ReactNode }) {
               signOut();
               setLocation(`${basePath}/sign-in`);
             }}
-            className="border-y border-foreground/40 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/90 transition-colors hover:border-foreground/80"
+            className="border-y border-foreground/40 px-6 py-2 type-label font-medium text-foreground/90 transition-colors hover:border-foreground/80"
           >
             Sign in
           </button>
@@ -93,17 +93,17 @@ function ConsentGate({ children }: { children: React.ReactNode }) {
     }
     return (
       <div className="flex h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive">
+        <div className="type-label font-medium text-destructive">
           Connection lost
         </div>
-        <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+        <p className="max-w-xs text-xs leading-relaxed text-foreground/75">
           The system couldn't reach the backend to check permissions.
         </p>
         <button
           type="button"
           onClick={() => refetch()}
           disabled={isFetching}
-          className="border-y border-foreground/40 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/90 transition-colors hover:border-foreground/80 disabled:opacity-50"
+          className="border-y border-foreground/40 px-6 py-2 type-label font-medium text-foreground/90 transition-colors hover:border-foreground/80 disabled:opacity-50"
         >
           {isFetching ? "Reconnecting" : "Retry"}
         </button>
@@ -151,7 +151,7 @@ function ConsentGate({ children }: { children: React.ReactNode }) {
           }}
         />
         {(deleteError || acceptError) && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] bg-destructive/90 text-destructive-foreground px-4 py-2 text-xs font-mono tracking-wide rounded-md shadow-lg">
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] bg-destructive/90 text-destructive-foreground px-4 py-2 text-xs font-sans rounded-md shadow-lg">
             {deleteError || acceptError}
           </div>
         )}
@@ -197,10 +197,10 @@ function Gate({ children }: { children: React.ReactNode }) {
     if (isAuth) {
       return (
         <div className="flex h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive">
+          <div className="type-label font-medium text-destructive">
             Session not verified
           </div>
-          <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+          <p className="max-w-xs text-xs leading-relaxed text-foreground/75">
             The backend answered, but your sign-in couldn't be confirmed. Sign in
             again to continue.
           </p>
@@ -210,7 +210,7 @@ function Gate({ children }: { children: React.ReactNode }) {
               signOut();
               setLocation(`${basePath}/sign-in`);
             }}
-            className="border-y border-foreground/40 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/90 transition-colors hover:border-foreground/80"
+            className="border-y border-foreground/40 px-6 py-2 type-label font-medium text-foreground/90 transition-colors hover:border-foreground/80"
           >
             Sign in
           </button>
@@ -218,7 +218,7 @@ function Gate({ children }: { children: React.ReactNode }) {
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/70 transition-colors hover:text-foreground/80 disabled:opacity-50"
+            className="type-meta text-foreground/75 transition-colors hover:text-foreground/80 disabled:opacity-50"
           >
             {isFetching ? "Retrying" : "Retry"}
           </button>
@@ -227,17 +227,17 @@ function Gate({ children }: { children: React.ReactNode }) {
     }
     return (
       <div className="flex h-[100dvh] flex-col items-center justify-center gap-5 bg-background px-6 text-center">
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-destructive">
+        <div className="type-label font-medium text-destructive">
           Connection lost
         </div>
-        <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+        <p className="max-w-xs text-xs leading-relaxed text-foreground/75">
           The system couldn't reach the backend. It may still be coming online — try again in a moment.
         </p>
         <button
           type="button"
           onClick={() => refetch()}
           disabled={isFetching}
-          className="border-y border-foreground/40 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/90 transition-colors hover:border-foreground/80 disabled:opacity-50"
+          className="border-y border-foreground/40 px-6 py-2 type-label font-medium text-foreground/90 transition-colors hover:border-foreground/80 disabled:opacity-50"
         >
           {isFetching ? "Reconnecting" : "Retry"}
         </button>

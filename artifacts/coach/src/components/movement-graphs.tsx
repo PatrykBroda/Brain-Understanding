@@ -54,13 +54,13 @@ function SeriesChart({
   return (
     <div className="space-y-1" data-testid={`graph-${def.key}`}>
       <div className="flex items-baseline justify-between gap-3">
-        <div className="font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/80">{def.title}</div>
+        <div className="type-meta text-foreground/80">{def.title}</div>
         <div className="flex items-center gap-3">
           {def.lines.length > 1 &&
             def.lines.map((l) => (
               <span
                 key={l.key}
-                className="inline-flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-muted-foreground/80"
+                className="inline-flex items-center gap-1 type-meta text-foreground/75"
               >
                 <i className="inline-block w-3 h-[2px]" style={{ background: l.color }} />
                 {l.label}
@@ -137,7 +137,7 @@ function SeriesChart({
           />
         </div>
       </div>
-      <div className="font-mono text-[8px] tracking-wide text-muted-foreground/60 leading-snug">
+      <div className="type-meta text-foreground/75 leading-snug">
         {def.axis} · {def.hint}
       </div>
     </div>
@@ -162,18 +162,18 @@ export function MovementGraphs({
 
   return (
     <section className="space-y-4" data-testid="movement-graphs">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+      <div className="type-label font-medium text-foreground/75 border-b border-border/40 pb-1.5">
         Movement over time
       </div>
       {series.map((s) => (
         <SeriesChart key={s.def.key} series={s} events={events} duration={duration} playback={playback} />
       ))}
-      <div className="flex items-center justify-between font-mono text-[8px] uppercase tracking-widest text-muted-foreground/55">
+      <div className="flex items-center justify-between type-meta text-foreground/75">
         <span>0s</span>
         <span>{duration.toFixed(0)}s</span>
       </div>
-      <p className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/55 leading-relaxed">
-        every line is measured from the tracked pose, same definitions as the scores
+      <p className="type-meta text-foreground/75 leading-relaxed">
+        Every line is measured from the tracked pose, same definitions as the scores
         {hasEvents ? " · shaded bands are detected events" : ""} · breaks in a line = pose lock lost, nothing is
         filled in · tap or drag to jump
       </p>

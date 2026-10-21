@@ -22,12 +22,12 @@ function Stat({ label, value }: { label: string; value: string }) {
   const set = value.trim() !== "";
   return (
     <div className="px-3 py-2.5">
-      <div className="font-mono text-[8px] uppercase tracking-[0.4em] text-muted-foreground/45 mb-1">
+      <div className="type-meta text-foreground/75 mb-1">
         {label}
       </div>
       <div
-        className={`font-mono text-[13px] tracking-wide ${
-          set ? "text-foreground/90" : "text-muted-foreground/30"
+        className={`font-sans text-[13px] ${
+          set ? "text-foreground/90" : "text-foreground/75"
         }`}
       >
         {set ? value : "—"}
@@ -42,10 +42,10 @@ function AttrBar({ label, value }: { label: string; value: number }) {
   return (
     <div>
       <div className="flex items-baseline justify-between mb-1">
-        <span className="font-mono text-[8px] uppercase tracking-[0.3em] text-muted-foreground/55 truncate">
+        <span className="type-meta text-foreground/75 truncate">
           {label}
         </span>
-        <span className="font-mono text-[10px] tabular-nums text-foreground/75">{pct}</span>
+        <span className="type-label font-medium tabular-nums text-foreground/75">{pct}</span>
       </div>
       <div className="h-[3px] bg-white/[0.07]">
         <div
@@ -60,7 +60,7 @@ function AttrBar({ label, value }: { label: string; value: number }) {
 // ─── Section header ──────────────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-primary/75">
+    <div className="type-meta text-primary/75">
       {children}
     </div>
   );
@@ -188,28 +188,28 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
 
         {/* Overlaid identity */}
         <div className="relative z-[1] flex flex-col justify-end h-full min-h-[176px] px-4 pt-8 pb-4">
-          <div className="font-mono text-[8px] uppercase tracking-[0.55em] text-muted-foreground/60 mb-1.5">
+          <div className="type-meta text-foreground/75 mb-1.5">
             Athlete
           </div>
-          <div className="font-mono text-3xl uppercase tracking-[0.1em] text-foreground leading-none truncate">
+          <div className="font-sans text-3xl text-foreground leading-none truncate">
             {fighter.name}
           </div>
           {fighter.spiritAnimal && (
             <div
-              className="font-mono text-[10px] uppercase tracking-[0.4em] mt-2"
+              className="type-label font-medium mt-2"
               style={{ color: "hsl(39,49%,36%)" }}
             >
               {fighter.spiritAnimal}
             </div>
           )}
-          <div className="font-mono text-[11px] text-muted-foreground/70 mt-2">
+          <div className="type-caption text-foreground/75 mt-2">
             hello, {firstName.toLowerCase()}
           </div>
         </div>
       </div>
 
       {uploadError && (
-        <div className="px-4 py-2 font-mono text-[10px] text-destructive border-t border-white/[0.06]">
+        <div className="px-4 py-2 type-label font-medium text-destructive border-t border-white/[0.06]">
           {uploadError}
         </div>
       )}
@@ -218,7 +218,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
       <div className="px-4 py-4 border-t border-white/[0.06]">
         <div className="flex items-center justify-between mb-3">
           <SectionLabel>Fight readiness</SectionLabel>
-          <span className="font-mono text-[8px] uppercase tracking-[0.3em] text-muted-foreground/45">
+          <span className="type-meta text-foreground/75">
             {latest ? "Last session" : "Locked"}
           </span>
         </div>
@@ -226,15 +226,15 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
         {latest ? (
           <>
             <div className="flex items-end gap-4 mb-4">
-              <div className="font-mono text-5xl tabular-nums text-foreground leading-none">
+              <div className="font-sans text-5xl tabular-nums text-foreground leading-none">
                 {Math.round(latest.sessionScore ?? 0)}
-                <span className="text-lg text-muted-foreground/50">/100</span>
+                <span className="text-lg text-foreground/75">/100</span>
               </div>
               <div className="pb-1 min-w-0">
-                <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/80 truncate">
+                <div className="type-label font-medium text-primary/80 truncate">
                   {latest.styleProfile}
                 </div>
-                <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/45 mt-1">
+                <div className="type-meta text-foreground/75 mt-1">
                   {new Date(latest.createdAt).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
@@ -249,7 +249,7 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
                 ))}
               </div>
             )}
-            <p className="font-mono text-[9px] text-muted-foreground/45 leading-relaxed mt-3">
+            <p className="type-meta text-foreground/75 leading-relaxed mt-3">
               Measured from your most recent analysed session. Analyse another to update it.
             </p>
           </>
@@ -259,10 +259,10 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
             className="flex items-center justify-between border border-white/[0.1] hover:border-primary/40 px-4 py-4 group transition-colors"
           >
             <div>
-              <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/80 group-hover:text-primary transition-colors">
+              <div className="type-caption text-foreground/80 group-hover:text-primary transition-colors">
                 Analyse a session to unlock
               </div>
-              <p className="font-mono text-[9px] text-muted-foreground/50 leading-relaxed mt-1.5 max-w-[15rem]">
+              <p className="type-meta text-foreground/75 leading-relaxed mt-1.5 max-w-[15rem]">
                 FRAME reads readiness from real footage — no session, no number. Nothing is estimated.
               </p>
             </div>
@@ -308,18 +308,18 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
           <SectionLabel>Camp</SectionLabel>
           <div className="grid grid-cols-2 gap-4 mt-2.5">
             <div>
-              <div className="font-mono text-[8px] uppercase tracking-[0.4em] text-muted-foreground/45 mb-1">
+              <div className="type-meta text-foreground/75 mb-1">
                 Team
               </div>
-              <div className="font-mono text-[12px] text-foreground/90">
+              <div className="type-caption text-foreground/90">
                 {fighter.gym.trim() || "—"}
               </div>
             </div>
             <div>
-              <div className="font-mono text-[8px] uppercase tracking-[0.4em] text-muted-foreground/45 mb-1">
+              <div className="type-meta text-foreground/75 mb-1">
                 Head coach
               </div>
-              <div className="font-mono text-[12px] text-foreground/90">
+              <div className="type-caption text-foreground/90">
                 {fighter.headCoach.trim() || "—"}
               </div>
             </div>
@@ -338,20 +338,20 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
           }}
         >
           <div className="flex items-center justify-between mb-2.5">
-            <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-red-400/85">
+            <div className="type-meta text-red-400/85">
               Competition context
             </div>
-            <span className="font-mono text-[8px] uppercase tracking-[0.25em] text-red-400/60">
+            <span className="type-meta text-red-400/60">
               {pressure.tierLabel}
             </span>
           </div>
           <div className="flex items-end justify-between gap-3">
             <div className="min-w-0">
-              <div className="font-mono text-[13px] text-foreground/90 truncate">
+              <div className="font-sans text-[13px] text-foreground/90 truncate">
                 {pressure.competition.eventName}
               </div>
               {pressure.competition.targetWeight.trim() !== "" && (
-                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50 mt-1">
+                <div className="type-meta text-foreground/75 mt-1">
                   Target {pressure.competition.targetWeight}
                   {pressure.competition.currentWeight.trim() !== ""
                     ? ` · now ${pressure.competition.currentWeight}`
@@ -360,10 +360,10 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
               )}
             </div>
             <div className="text-right flex-none">
-              <div className="font-mono text-2xl tabular-nums text-red-400/90 leading-none">
+              <div className="font-sans text-2xl tabular-nums text-red-400/90 leading-none">
                 {Math.max(0, pressure.daysToEvent)}
               </div>
-              <div className="font-mono text-[8px] uppercase tracking-[0.3em] text-muted-foreground/50 mt-1">
+              <div className="type-meta text-foreground/75 mt-1">
                 days out
               </div>
             </div>
@@ -385,15 +385,15 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
         </div>
         {plan && plan.items.length > 0 ? (
           <>
-            <div className="font-mono text-[12px] text-foreground/85 leading-snug">
+            <div className="type-caption text-foreground/85 leading-snug">
               {plan.items[0].title}
             </div>
-            <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45 mt-1.5">
+            <div className="type-meta text-foreground/75 mt-1.5">
               {completions.length}/{plan.items.length} complete
             </div>
           </>
         ) : (
-          <div className="font-mono text-[11px] text-muted-foreground/55 leading-relaxed">
+          <div className="type-caption text-foreground/75 leading-relaxed">
             No active mission yet. Open the planner to generate this week's focus.
           </div>
         )}
@@ -406,21 +406,21 @@ export function FighterCard({ fighter }: { fighter: Fighter }) {
           className="flex flex-col items-center gap-1.5 py-3.5 border-r border-white/[0.05] text-muted-foreground/70 hover:text-primary hover:bg-white/[0.02] transition-colors"
         >
           <Target className="w-4 h-4" strokeWidth={1.5} />
-          <span className="font-mono text-[8px] uppercase tracking-[0.25em]">Calibrate</span>
+          <span className="type-meta">Calibrate</span>
         </Link>
         <Link
           href="/analyse"
           className="flex flex-col items-center gap-1.5 py-3.5 border-r border-white/[0.05] text-muted-foreground/70 hover:text-primary hover:bg-white/[0.02] transition-colors"
         >
           <ClipboardList className="w-4 h-4" strokeWidth={1.5} />
-          <span className="font-mono text-[8px] uppercase tracking-[0.25em]">Log session</span>
+          <span className="type-meta">Log session</span>
         </Link>
         <Link
           href="/chat"
           className="flex flex-col items-center gap-1.5 py-3.5 text-muted-foreground/70 hover:text-primary hover:bg-white/[0.02] transition-colors"
         >
           <MessageSquare className="w-4 h-4" strokeWidth={1.5} />
-          <span className="font-mono text-[8px] uppercase tracking-[0.25em]">Talk to FRAME</span>
+          <span className="type-meta">Talk to FRAME</span>
         </Link>
       </div>
     </div>

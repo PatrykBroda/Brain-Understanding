@@ -160,7 +160,7 @@ function BeltLadder({ currentIndex }: { currentIndex: number }) {
               title={`${rung.label} belt`}
             />
             <span
-              className="font-mono text-[7px] uppercase tracking-[0.15em]"
+              className="type-meta"
               style={{ color: isCurrent ? "hsl(var(--primary))" : earned ? "hsl(var(--foreground)/0.6)" : "hsl(var(--muted-foreground)/0.5)" }}
             >
               {rung.label.slice(0, 3)}
@@ -182,7 +182,7 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
     return (
       <div>
         <div className="h-[68px] w-full border border-border/50 flex items-center justify-center">
-          <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
+          <span className="type-meta text-foreground/75">
             Unranked / other
           </span>
         </div>
@@ -198,15 +198,15 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
       <RealisticBelt cloth={rung.cloth} ink={rung.ink} label={rung.label} />
 
       <div className="flex items-baseline justify-between">
-        <div className="font-mono text-[11px] uppercase tracking-[0.35em] text-foreground/95">
+        <div className="type-caption text-foreground/95">
           {rung.label} belt
         </div>
         {next ? (
-          <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-muted-foreground/70">
+          <div className="type-meta text-foreground/75">
             Next · {next.label}
           </div>
         ) : (
-          <div className="font-mono text-[8px] uppercase tracking-[0.25em] text-primary/70">
+          <div className="type-meta text-primary/70">
             Apex
           </div>
         )}
@@ -216,10 +216,10 @@ export function Belt({ level, showMeaning = true }: { level: string; showMeaning
 
       {showMeaning && meaning && (
         <div className="border-l border-primary/40 pl-3 pt-0.5">
-          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/90">
+          <div className="type-label font-medium text-primary/90">
             {meaning.state}
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed mt-1">{meaning.meaning}</p>
+          <p className="text-xs text-foreground/75 leading-relaxed mt-1">{meaning.meaning}</p>
         </div>
       )}
 

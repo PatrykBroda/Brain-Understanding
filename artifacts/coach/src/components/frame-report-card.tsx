@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { beltKey } from "@/components/belt";
+import { capitalise } from "@/lib/utils";
 import type { BeltKey } from "@workspace/archetypes";
 import type { Fighter, VideoAnalysis, NervousSystemLoad } from "@/lib/api";
 import { isBjjSport } from "@/lib/fighter-options";
@@ -52,7 +53,7 @@ export const FrameReportCard = forwardRef<
         width: 380,
         background: "radial-gradient(120% 80% at 50% 0%, #161311 0%, #0a0908 60%, #060504 100%)",
         color: "#ece7df",
-        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        fontFamily: "'Outfit', system-ui, -apple-system, sans-serif",
         padding: "26px 24px 22px",
         border: "1px solid rgba(255,255,255,0.08)",
         position: "relative",
@@ -94,18 +95,18 @@ export const FrameReportCard = forwardRef<
       {/* header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <div style={{ fontSize: 9, letterSpacing: "0.4em", textTransform: "uppercase", color: "#8c857a" }}>
+          <div style={{ fontSize: 11, color: "#b0a99e" }}>
             FRAME Report
           </div>
-          <div style={{ fontSize: 15, letterSpacing: "0.18em", textTransform: "uppercase", marginTop: 4, color: "#f3efe7" }}>
+          <div style={{ fontSize: 15, marginTop: 4, color: "#f3efe7" }}>
             {fighter?.name ?? "Athlete"}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 8, letterSpacing: "0.3em", textTransform: "uppercase", color: "#8c857a" }}>
-            {analysis.kind}
+          <div style={{ fontSize: 11, color: "#b0a99e" }}>
+            {capitalise(analysis.kind)}
           </div>
-          <div style={{ fontSize: 8, letterSpacing: "0.2em", color: "#6f685e", marginTop: 3 }}>
+          <div style={{ fontSize: 11, color: "#968f84", marginTop: 3 }}>
             {analysis.durationSec.toFixed(0)}s read
           </div>
         </div>
@@ -116,13 +117,13 @@ export const FrameReportCard = forwardRef<
         <div style={{ fontSize: 52, lineHeight: 1, fontWeight: 600, color: scoreColor(analysis.sessionScore) }}>
           {analysis.sessionScore}
         </div>
-        <div style={{ fontSize: 14, color: "#6f685e" }}>/100</div>
+        <div style={{ fontSize: 14, color: "#968f84" }}>/100</div>
         <div style={{ marginLeft: "auto", textAlign: "right" }}>
-          <div style={{ fontSize: 8, letterSpacing: "0.3em", textTransform: "uppercase", color: "#8c857a" }}>
+          <div style={{ fontSize: 11, color: "#b0a99e" }}>
             Session score
           </div>
           {analysis.styleProfile && (
-            <div style={{ fontSize: 12, letterSpacing: "0.08em", color: accent, marginTop: 3 }}>
+            <div style={{ fontSize: 12, color: accent, marginTop: 3 }}>
               {analysis.styleProfile}
             </div>
           )}
@@ -133,7 +134,7 @@ export const FrameReportCard = forwardRef<
       <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 11 }}>
         {analysis.scores.map((s) => (
           <div key={s.key}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
               <span style={{ color: "#aaa298" }}>{s.label}</span>
               <span style={{ color: scoreColor(s.value) }}>{s.value}</span>
             </div>
@@ -153,14 +154,12 @@ export const FrameReportCard = forwardRef<
 
       {/* fragmentation risk */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 18 }}>
-        <div style={{ fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: "#8c857a" }}>
+        <div style={{ fontSize: 11, color: "#b0a99e" }}>
           Fragmentation risk
         </div>
         <div
           style={{
-            fontSize: 10,
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
+            fontSize: 12,
             color: RISK_COLOR[analysis.fragmentationRisk],
             border: `1px solid ${RISK_COLOR[analysis.fragmentationRisk]}55`,
             padding: "3px 10px",
@@ -190,14 +189,14 @@ export const FrameReportCard = forwardRef<
       {/* style parallels */}
       {analysis.styleParallels.length > 0 && (
         <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 8, letterSpacing: "0.3em", textTransform: "uppercase", color: "#8c857a" }}>
+          <div style={{ fontSize: 11, color: "#b0a99e" }}>
             Resembles
           </div>
           {analysis.styleParallels.map((p, i) => (
             <div key={i} style={{ marginTop: 6 }}>
-              <span style={{ fontSize: 11, letterSpacing: "0.05em", color: "#e6e0d6" }}>{p.name}</span>
+              <span style={{ fontSize: 11, color: "#e6e0d6" }}>{p.name}</span>
               {p.note && (
-                <div style={{ fontSize: 10, lineHeight: 1.45, color: "#8c857a", marginTop: 2 }}>{p.note}</div>
+                <div style={{ fontSize: 12, lineHeight: 1.45, color: "#b0a99e", marginTop: 2 }}>{p.note}</div>
               )}
             </div>
           ))}
@@ -212,10 +211,8 @@ export const FrameReportCard = forwardRef<
           borderTop: "1px solid rgba(255,255,255,0.07)",
           display: "flex",
           justifyContent: "space-between",
-          fontSize: 8,
-          letterSpacing: "0.25em",
-          textTransform: "uppercase",
-          color: "#6f685e",
+          fontSize: 11,
+          color: "#968f84",
         }}
       >
         <span>FRAME · Calibration System</span>

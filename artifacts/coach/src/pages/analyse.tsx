@@ -48,6 +48,7 @@ import type { DecodedTrack } from "@/lib/pose-track";
 import { useFramePlus, FramePlusPill, FreeAnalysesPill } from "@/components/frame-plus-modal";
 import { useSubscription } from "@/hooks/use-subscription";
 import { api, ApiError, fetchRemoteVideo } from "@/lib/api";
+import { capitalise } from "@/lib/utils";
 import type {
   AnalysisKind,
   AnalysisKeyframe,
@@ -603,7 +604,7 @@ export default function AnalysePage() {
           </Link>
         </div>
         <div className="text-center flex flex-col items-center gap-1.5">
-          <div className="font-mono text-[11px] uppercase tracking-[0.4em] text-foreground/90">
+          <div className="type-caption text-foreground/90">
             Analyse
           </div>
         </div>
@@ -677,7 +678,7 @@ export default function AnalysePage() {
               <button
                 type="button"
                 onClick={() => setWeeklyReportOpen(true)}
-                className="w-full inline-flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/40 hover:border-primary/70 px-4 py-3 text-foreground/90 transition-colors"
+                className="w-full inline-flex items-center justify-center gap-2 type-label font-medium border border-primary/40 hover:border-primary/70 px-4 py-3 text-foreground/90 transition-colors"
               >
                 <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
                 Weekly intelligence report
@@ -758,17 +759,17 @@ export default function AnalysePage() {
                   }}
                 >
                   <div
-                    className="font-mono text-[9px] uppercase tracking-[0.45em] mb-1.5"
+                    className="type-meta mb-1.5"
                     style={{ color: subject === "opponent" ? "hsla(199,84%,56%,0.85)" : "hsla(0,68%,46%,0.7)" }}
                   >
-                    {subject === "opponent" ? "Opponent scout" : "Analyst Workstation"}
+                    {subject === "opponent" ? "Opponent scout" : "Analyst workstation"}
                   </div>
                   <p className="text-sm text-foreground/75 leading-relaxed">
                     {subject === "opponent"
                       ? "Upload footage of your opponent. The system reads their movement — guard, base, output rhythm — builds a categorical scouting model, and contrasts it against your own recorded model for the matchup."
                       : "Upload a clip. The system reads your movement directly — guard, base, shoulders, output rhythm — scores it against itself, and tells you what your nervous system is doing under load."}
                   </p>
-                  <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45 mt-2">
+                  <p className="type-meta text-foreground/75 mt-2">
                     Processed on device · only the read is kept
                   </p>
                 </div>
@@ -791,11 +792,11 @@ export default function AnalysePage() {
                     <span className="absolute left-0 bottom-0 h-3 w-3 border-l border-b border-destructive/40" />
                     <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-destructive/40" />
                     <Upload className="w-10 h-10" strokeWidth={1} style={{ color: "hsla(0,68%,46%,0.6)" }} />
-                    <div className="font-mono text-[11px] uppercase tracking-[0.45em] text-foreground/80">
+                    <div className="type-caption text-foreground/80">
                       Drop footage
                     </div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45">
-                      mp4 · mov · first 75s processed
+                    <div className="type-meta text-foreground/75">
+                      MP4 · MOV · first 75s processed
                     </div>
                   </button>
                 ) : (
@@ -814,9 +815,9 @@ export default function AnalysePage() {
               <SubjectToggle subject={subject} setSubject={setSubject} disabled={busy} />
               {subject === "opponent" && (
                 <section className="space-y-2">
-                  <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+                  <div className="type-meta text-foreground/75">
                     Opponent name{" "}
-                    <span className="font-sans normal-case tracking-normal text-muted-foreground/40 text-[11px]">optional</span>
+                    <span className="font-normal text-foreground/70">(optional)</span>
                   </div>
                   <input
                     type="text"
@@ -829,7 +830,7 @@ export default function AnalysePage() {
                 </section>
               )}
               <section className="space-y-2">
-                <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+                <div className="type-meta text-foreground/75">
                   Clip type
                 </div>
                 <div className="grid grid-cols-3 gap-[3px]">
@@ -839,7 +840,7 @@ export default function AnalysePage() {
                       type="button"
                       onClick={() => setKind(k.value)}
                       disabled={busy}
-                      className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
+                      className="type-label font-medium py-2.5 transition-all duration-200 disabled:opacity-40"
                       style={{
                         borderLeft: `2px solid ${kind === k.value ? "hsla(0,68%,46%,0.9)" : "hsla(0,0%,100%,0.1)"}`,
                         borderTop: `1px solid ${kind === k.value ? "hsla(0,68%,46%,0.2)" : "hsla(0,0%,100%,0.06)"}`,
@@ -856,9 +857,9 @@ export default function AnalysePage() {
               </section>
 
               <section className="space-y-2">
-                <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                <div className="type-label font-medium text-foreground/75">
                   Anything to focus on{" "}
-                  <span className="text-muted-foreground/50 normal-case tracking-normal">(optional)</span>
+                  <span className="font-normal text-foreground/70">(optional)</span>
                 </div>
                 <input
                   type="text"
@@ -873,7 +874,7 @@ export default function AnalysePage() {
 
               {phase.stage === "error" && (
                 <div data-testid="analyse-error" role="alert" className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+                  <div className="type-label font-medium text-destructive/90">
                     {phase.title}
                   </div>
                   {phase.causes.length > 0 && (
@@ -892,7 +893,7 @@ export default function AnalysePage() {
                     <button
                       type="button"
                       onClick={retry}
-                      className="mt-1 font-mono text-[10px] uppercase tracking-widest border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
+                      className="mt-1 type-label font-medium border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
                     >
                       Retry
                     </button>
@@ -922,7 +923,7 @@ export default function AnalysePage() {
                 <button
                   type="button"
                   onClick={() => setWeeklyReportOpen(true)}
-                  className="w-full inline-flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/40 hover:border-primary/70 px-4 py-3 text-foreground/90 transition-colors"
+                  className="w-full inline-flex items-center justify-center gap-2 type-label font-medium border border-primary/40 hover:border-primary/70 px-4 py-3 text-foreground/90 transition-colors"
                 >
                   <ScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
                   Weekly intelligence report
@@ -999,7 +1000,7 @@ function FocusPresets({
             type="button"
             onClick={() => setFocus(p.value)}
             disabled={disabled}
-            className="font-mono text-[9px] uppercase tracking-widest px-2.5 py-1.5 transition-all duration-200 disabled:opacity-40"
+            className="type-meta px-2.5 py-1.5 transition-all duration-200 disabled:opacity-40"
             style={{
               border: `1px solid ${active ? "hsla(0,68%,46%,0.55)" : "hsla(0,0%,100%,0.09)"}`,
               background: active ? "hsla(0,68%,46%,0.1)" : "transparent",
@@ -1037,7 +1038,7 @@ function SourceToggle({
             type="button"
             onClick={() => setMode(o.value)}
             disabled={disabled}
-            className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
+            className="type-label font-medium py-2.5 transition-all duration-200 disabled:opacity-40"
             style={{
               borderLeft: `2px solid ${active ? "hsla(0,68%,46%,0.9)" : "hsla(0,0%,100%,0.1)"}`,
               borderTop: `1px solid ${active ? "hsla(0,68%,46%,0.2)" : "hsla(0,0%,100%,0.06)"}`,
@@ -1102,7 +1103,7 @@ function LinkInput({
           type="button"
           onClick={onSubmit}
           disabled={disabled || !value.trim()}
-          className="w-full font-mono text-[11px] uppercase tracking-[0.35em] py-3 transition-colors disabled:opacity-40 hover:bg-destructive/10"
+          className="w-full type-caption py-3 transition-colors disabled:opacity-40 hover:bg-destructive/10"
           style={{
             border: "1px solid hsla(0,68%,46%,0.45)",
             color: "hsl(0,55%,68%)",
@@ -1112,7 +1113,7 @@ function LinkInput({
           Fetch and analyse
         </button>
       </div>
-      <p className="font-mono text-[9px] leading-relaxed tracking-wide text-muted-foreground/45">
+      <p className="type-meta leading-relaxed text-foreground/75">
         Direct video links (.mp4 / .mov), Google Drive and Dropbox share links work best. YouTube is
         best-effort — use your own footage; some links won&apos;t pull. The clip is fetched and read on
         this device, nothing else is stored.
@@ -1243,7 +1244,7 @@ function UploadControls({
         }}
       >
         <div
-          className="font-mono text-[9px] uppercase tracking-[0.45em] mb-2"
+          className="type-meta mb-2"
           style={{ color: subject === "opponent" ? "hsla(199,84%,56%,0.85)" : "hsla(0,68%,46%,0.7)" }}
         >
           {subject === "opponent" ? "Opponent scout" : "Movement read"}
@@ -1253,16 +1254,16 @@ function UploadControls({
             ? "Upload footage of your opponent. The system builds a categorical scouting model and contrasts it against your own recorded model for the matchup."
             : "Upload a clip. The system reads your movement directly — guard, base, shoulders, output rhythm — scores it against itself, and tells you what your nervous system is doing under load."}
         </p>
-        <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45 mt-2">
+        <p className="type-meta text-foreground/75 mt-2">
           Processed on device · only the read is kept
         </p>
       </section>
 
       {subject === "opponent" && (
         <section className="space-y-2">
-          <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+          <div className="type-meta text-foreground/75">
             Opponent name{" "}
-            <span className="font-sans normal-case tracking-normal text-muted-foreground/40 text-[11px]">optional</span>
+            <span className="font-normal text-foreground/70">(optional)</span>
           </div>
           <input
             type="text"
@@ -1277,7 +1278,7 @@ function UploadControls({
 
       {/* Clip type selector */}
       <section className="space-y-2">
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+        <div className="type-meta text-foreground/75">
           Clip type
         </div>
         <div className="grid grid-cols-3 gap-[3px]">
@@ -1287,7 +1288,7 @@ function UploadControls({
               type="button"
               onClick={() => setKind(k.value)}
               disabled={busy}
-              className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
+              className="type-label font-medium py-2.5 transition-all duration-200 disabled:opacity-40"
               style={{
                 borderLeft: `2px solid ${kind === k.value ? "hsla(0,68%,46%,0.9)" : "hsla(0,0%,100%,0.1)"}`,
                 borderTop: `1px solid ${kind === k.value ? "hsla(0,68%,46%,0.2)" : "hsla(0,0%,100%,0.06)"}`,
@@ -1305,9 +1306,9 @@ function UploadControls({
 
       {/* Focus input */}
       <section className="space-y-2">
-        <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+        <div className="type-meta text-foreground/75">
           Focus area{" "}
-          <span className="font-sans normal-case tracking-normal text-muted-foreground/40 text-[11px]">optional</span>
+          <span className="font-normal text-foreground/70">(optional)</span>
         </div>
         <input
           type="text"
@@ -1344,11 +1345,11 @@ function UploadControls({
             <span className="absolute right-0 bottom-0 h-3 w-3 border-r border-b border-destructive/40" />
 
             <Upload className="w-8 h-8" strokeWidth={1} style={{ color: "hsla(0,68%,46%,0.6)" }} />
-            <div className="font-mono text-[11px] uppercase tracking-[0.45em] text-foreground/80">
+            <div className="type-caption text-foreground/80">
               Drop footage
             </div>
-            <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/45">
-              mp4 · mov · first 75s processed
+            <div className="type-meta text-foreground/75">
+              MP4 · MOV · first 75s processed
             </div>
           </button>
         ) : (
@@ -1358,7 +1359,7 @@ function UploadControls({
 
       {phase.stage === "error" && (
         <div data-testid="analyse-error" role="alert" className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
-          <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">
+          <div className="type-label font-medium text-destructive/90">
             {phase.title}
           </div>
           {phase.causes.length > 0 && (
@@ -1377,7 +1378,7 @@ function UploadControls({
             <button
               type="button"
               onClick={retry}
-              className="mt-1 font-mono text-[10px] uppercase tracking-widest border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
+              className="mt-1 type-label font-medium border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
             >
               Retry
             </button>
@@ -1446,10 +1447,10 @@ function WorkstationLeft({
     <div className="flex flex-col h-full">
       {/* meta bar */}
       <div className="flex-none flex items-center justify-between px-5 py-3 border-b border-border/30 bg-black/30">
-        <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
-          {analysis.kind} · {analysis.durationSec.toFixed(0)}s read
+        <div className="type-meta text-foreground/75">
+          {capitalise(analysis.kind)} · {analysis.durationSec.toFixed(0)}s read
           {analysis.focus && (
-            <span className="ml-2 normal-case tracking-normal text-muted-foreground/70">
+            <span className="ml-2 text-foreground/75">
               · {analysis.focus}
             </span>
           )}
@@ -1490,17 +1491,17 @@ function WorkstationLeft({
                   alt={kf.caption}
                   className="w-full border border-border/40 object-contain max-h-[50vh]"
                 />
-                <figcaption className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/85 px-1">
+                <figcaption className="type-meta text-foreground/75 px-1">
                   {kf.timestamp.toFixed(1)}s · {kf.caption}
                 </figcaption>
                 {localNotes[activeKf] && (
-                  <div className="font-mono text-[9px] text-primary/85 px-1 leading-snug">
+                  <div className="type-meta text-primary/85 px-1 leading-snug">
                     {localNotes[activeKf]}
                   </div>
                 )}
               </figure>
             ) : (
-              <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
+              <div className="type-label font-medium text-foreground/75">
                 No keyframes
               </div>
             )}
@@ -1511,15 +1512,15 @@ function WorkstationLeft({
       {/* filmstrip — click to seek + annotate */}
       {analysis.keyframes.length > 0 && (
         <div className="flex-none border-t border-border/30 bg-black/60 px-4 py-3 space-y-2">
-          <div className="font-mono text-[8px] uppercase tracking-[0.35em] text-muted-foreground/70">
+          <div className="type-meta text-foreground/75">
             Detected events
             {hasFootage && (
-              <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
+              <span className="ml-2 text-foreground/75">
                 · click to seek · click again to annotate
               </span>
             )}
             {!hasFootage && (
-              <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
+              <span className="ml-2 text-foreground/75">
                 · click to annotate
               </span>
             )}
@@ -1537,14 +1538,14 @@ function WorkstationLeft({
                 title={`${k.timestamp.toFixed(1)}s — ${k.caption}`}
               >
                 <img src={k.imageBase64} alt={k.caption} className="w-full" />
-                <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/80 px-1 py-1 truncate bg-black/60">
+                <div className="type-meta text-foreground/75 px-1 py-1 truncate bg-black/60">
                   {k.timestamp.toFixed(1)}s
                 </div>
-                <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/70 px-1 pb-1 truncate">
+                <div className="type-meta text-foreground/75 px-1 pb-1 truncate">
                   {k.caption}
                 </div>
                 {localNotes[i] && (
-                  <div className="font-mono text-[7px] text-primary/80 px-1 pb-1 truncate leading-tight border-t border-border/20 pt-0.5">
+                  <div className="type-meta text-primary/80 px-1 pb-1 truncate leading-tight border-t border-border/20 pt-0.5">
                     {localNotes[i]}
                   </div>
                 )}
@@ -1553,7 +1554,7 @@ function WorkstationLeft({
           </div>
           {/* inline note editor for the active keyframe */}
           <div className="flex items-center gap-2 pt-1">
-            <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/60 flex-none">
+            <div className="type-meta text-foreground/75 flex-none">
               Note
             </div>
             <input
@@ -1572,7 +1573,7 @@ function WorkstationLeft({
                 if (e.key === "Enter") (e.target as HTMLInputElement).blur();
               }}
               placeholder={`Add a note for frame ${activeKf + 1}…`}
-              className="flex-1 bg-transparent border-b border-border/40 focus:border-primary/50 outline-none font-mono text-[10px] text-foreground/90 placeholder:text-muted-foreground/35 py-0.5 pb-1 transition-colors"
+              className="flex-1 bg-transparent border-b border-border/40 focus:border-primary/50 outline-none type-label font-medium text-foreground/90 placeholder:text-muted-foreground/35 py-0.5 pb-1 transition-colors"
             />
           </div>
         </div>
@@ -1637,7 +1638,7 @@ function WorkstationRight({
           type="button"
           onClick={saveCard}
           disabled={saving}
-          className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 px-4 py-2.5 text-foreground/80 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-2 type-label font-medium border border-border/60 hover:border-primary/50 px-4 py-2.5 text-foreground/80 transition-colors disabled:opacity-50"
         >
           <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
           {saving ? "Rendering…" : "Save card"}
@@ -1699,7 +1700,7 @@ function WorkstationRight({
       <button
         type="button"
         onClick={onClose}
-        className="w-full font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 py-3 text-foreground/80 transition-colors"
+        className="w-full type-label font-medium border border-border/60 hover:border-primary/50 py-3 text-foreground/80 transition-colors"
       >
         Analyse another
       </button>
@@ -1721,7 +1722,7 @@ function SavedWorkstationLeft({
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 py-16">
         <OctagonPulse size={56} />
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+        <div className="type-label font-medium text-foreground/75">
           Loading read
         </div>
       </div>
@@ -1730,10 +1731,10 @@ function SavedWorkstationLeft({
   if (isError || !data?.analysis) {
     return (
       <div className="p-6 space-y-4">
-        <div className="border border-destructive/40 bg-destructive/10 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
-          could not load this read
+        <div className="border border-destructive/40 bg-destructive/10 px-3 py-2 type-label font-medium text-destructive/90">
+          Could not load this read
         </div>
-        <button type="button" onClick={onClose} className="w-full font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 py-3 text-foreground/80">
+        <button type="button" onClick={onClose} className="w-full type-label font-medium border border-border/60 py-3 text-foreground/80">
           Back
         </button>
       </div>
@@ -1779,20 +1780,20 @@ function FindingsTable({
 }) {
   return (
     <section className="space-y-3">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+      <div className="type-label font-medium text-foreground/75 border-b border-border/40 pb-1.5">
         What the body is doing
       </div>
       <div className="w-full border border-border/40 overflow-hidden">
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="border-b border-border/40">
-              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[90px]">
+              <th className="type-meta text-foreground/75 text-left px-3 py-2 w-[90px]">
                 Area
               </th>
-              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2">
+              <th className="type-meta text-foreground/75 text-left px-3 py-2">
                 Finding
               </th>
-              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[72px]">
+              <th className="type-meta text-foreground/75 text-left px-3 py-2 w-[72px]">
                 Signal
               </th>
             </tr>
@@ -1805,12 +1806,12 @@ function FindingsTable({
               >
                 <td className="px-3 py-2.5 align-top">
                   <span
-                    className={`font-mono text-[8px] uppercase tracking-widest px-1.5 py-0.5 border inline-block ${
+                    className={`type-meta px-1.5 py-0.5 border inline-block ${
                       f.severity === "high"
                         ? "text-red-400/90 border-red-400/40"
                         : f.severity === "medium"
                           ? "text-amber-300/90 border-amber-300/40"
-                          : "text-muted-foreground border-border/50"
+                          : "text-foreground/75 border-border/50"
                     }`}
                   >
                     {f.area}
@@ -1830,22 +1831,22 @@ function FindingsTable({
                   )}
                   {f.fix && (
                     <div className="mt-1.5 border-l-2 border-primary/50 bg-primary/[0.06] px-2.5 py-1.5 text-xs text-foreground/90 leading-relaxed">
-                      <span className="block font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 mb-0.5">Next session</span>
+                      <span className="block type-meta text-primary/80 mb-0.5">Next session</span>
                       {f.fix}
                     </div>
                   )}
                 </td>
                 <td className="px-3 py-2.5 align-top">
                   <span
-                    className={`font-mono text-[8px] uppercase tracking-widest ${
+                    className={`type-meta ${
                       f.severity === "high"
                         ? "text-red-400/80"
                         : f.severity === "medium"
                           ? "text-amber-300/80"
-                          : "text-muted-foreground/70"
+                          : "text-foreground/75"
                     }`}
                   >
-                    {f.severity}
+                    {capitalise(f.severity)}
                   </span>
                 </td>
               </tr>
@@ -1921,7 +1922,7 @@ function SignalDeltaBadge({
   // changed but no known ordering
   return (
     <span
-      className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/60"
+      className="type-meta text-foreground/75"
       title={`Changed — was: ${prevValue}`}
     >
       ~
@@ -1984,21 +1985,21 @@ function SignalHistoryTrail({
         return (
           <span key={i} className="flex items-center gap-x-0.5">
             {i > 0 && (
-              <span className={`font-mono text-[8px] leading-none select-none ${arrowColor}`}>›</span>
+              <span className={`type-meta leading-none select-none ${arrowColor}`}>›</span>
             )}
             {tappable ? (
               <button
                 type="button"
                 onClick={() => onSelectSession!(step.id!)}
                 title="View this session's full read"
-                className={`font-mono text-[8px] uppercase tracking-wider leading-none text-muted-foreground/45 underline decoration-dotted underline-offset-2 hover:text-foreground/70 active:text-foreground/90 transition-colors cursor-pointer`}
+                className={`type-meta leading-none text-foreground/75 underline decoration-dotted underline-offset-2 hover:text-foreground/70 active:text-foreground/90 transition-colors cursor-pointer`}
               >
                 {step.value}
               </button>
             ) : (
               <span
-                className={`font-mono text-[8px] uppercase tracking-wider leading-none ${
-                  isCurrent ? "text-foreground/80" : "text-muted-foreground/45"
+                className={`type-meta leading-none ${
+                  isCurrent ? "text-foreground/80" : "text-foreground/75"
                 }`}
               >
                 {step.value}
@@ -2034,11 +2035,11 @@ function RawSignalsTable({
   return (
     <section className="space-y-3">
       <div className="flex items-baseline gap-2 border-b border-border/40 pb-1.5">
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+        <span className="type-label font-medium text-foreground/75">
           Raw signals
         </span>
         {hasPrev && hasCustomCompare && (
-          <span className="font-mono text-[8px] uppercase tracking-widest text-primary/60">
+          <span className="type-meta text-primary/60">
             vs selected baseline
           </span>
         )}
@@ -2047,18 +2048,18 @@ function RawSignalsTable({
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="border-b border-border/40 bg-secondary/20">
-              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[130px]">
+              <th className="type-meta text-foreground/75 text-left px-3 py-2 w-[130px]">
                 Signal
               </th>
-              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[80px]">
+              <th className="type-meta text-foreground/75 text-left px-3 py-2 w-[80px]">
                 Value
               </th>
               {hasPrev && (
-                <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2 w-[28px]" title={hasCustomCompare ? "Change vs selected baseline" : "Change vs previous session"}>
+                <th className="type-meta text-foreground/75 text-left px-3 py-2 w-[28px]" title={hasCustomCompare ? "Change vs selected baseline" : "Change vs previous session"}>
                   vs
                 </th>
               )}
-              <th className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground text-left px-3 py-2">
+              <th className="type-meta text-foreground/75 text-left px-3 py-2">
                 Detail
               </th>
             </tr>
@@ -2077,12 +2078,12 @@ function RawSignalsTable({
                   }`}
                 >
                   <td className="px-3 py-2 align-top">
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-foreground/80">
+                    <span className="type-meta text-foreground/80">
                       {s.label}
                     </span>
                   </td>
                   <td className="px-3 py-2 align-top">
-                    <span className="font-mono text-[11px] text-foreground/90">
+                    <span className="type-caption text-foreground/90">
                       {s.value}
                     </span>
                     {showTrail ? (
@@ -2094,7 +2095,7 @@ function RawSignalsTable({
                       />
                     ) : (
                       prev && dir !== "same" && (
-                        <div className="font-mono text-[9px] text-muted-foreground/50 mt-0.5 leading-snug">
+                        <div className="type-meta text-foreground/75 mt-0.5 leading-snug">
                           was: {prev.value}
                         </div>
                       )
@@ -2105,12 +2106,12 @@ function RawSignalsTable({
                       {dir != null ? (
                         <SignalDeltaBadge dir={dir} prevValue={prev?.value ?? ""} />
                       ) : (
-                        <span className="font-mono text-[8px] text-muted-foreground/30">—</span>
+                        <span className="type-meta text-foreground/75">—</span>
                       )}
                     </td>
                   )}
                   <td className="px-3 py-2 align-top">
-                    <span className="text-xs text-muted-foreground/80 leading-relaxed">
+                    <span className="text-xs text-foreground/75 leading-relaxed">
                       {s.detail}
                     </span>
                   </td>
@@ -2134,11 +2135,11 @@ function ComparisonSection({
   return (
     <section className="space-y-3">
       <div className="flex items-baseline gap-2 border-b border-border/40 pb-1.5">
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+        <span className="type-label font-medium text-foreground/75">
           What changed
         </span>
         {isCustomBaseline && (
-          <span className="font-mono text-[8px] uppercase tracking-widest text-primary/60">
+          <span className="type-meta text-primary/60">
             vs selected baseline
           </span>
         )}
@@ -2149,10 +2150,10 @@ function ComparisonSection({
             key={d.key}
             className="flex items-center justify-between gap-2 border border-border/50 px-3 py-2"
           >
-            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
+            <span className="type-meta text-foreground/75">
               {d.label}
             </span>
-            <span className="flex items-center gap-1 font-mono text-[11px] text-foreground/90">
+            <span className="flex items-center gap-1 type-caption text-foreground/90">
               {deltaIcon(d.delta)}
               {d.delta > 0 ? `+${d.delta}` : d.delta}
             </span>
@@ -2171,20 +2172,20 @@ function ComparisonSection({
 function ScoreProvenance({ analysis }: { analysis: VideoAnalysis }) {
   return (
     <section className="space-y-2 pt-1">
-      <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground/80">
+      <div className="type-meta text-foreground/75">
         How these scores were derived
       </div>
       <div className="space-y-1.5">
         {analysis.scores.map((s) => (
-          <div key={s.key} className="font-mono text-[9px] tracking-wide" title={s.basis}>
-            <span className="uppercase tracking-widest text-foreground/85">
+          <div key={s.key} className="type-meta" title={s.basis}>
+            <span className="text-foreground/85">
               {s.label} {s.value}
             </span>
-            <span className="text-muted-foreground/70"> — {s.basis}</span>
+            <span className="text-foreground/75"> — {s.basis}</span>
           </div>
         ))}
       </div>
-      <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/60 pt-2 leading-relaxed">
+      <div className="type-meta text-foreground/75 pt-2 leading-relaxed">
         {analysis.metrics.poseFrames} of {analysis.metrics.framesAnalysed} frames locked a pose ·
         every number derived from measured movement, never invented
       </div>
@@ -2229,11 +2230,11 @@ function ReplayMomentRow({
       )}
       <div className="flex-1 min-w-0 space-y-1">
         <div
-          className={`inline-block font-mono text-[8px] uppercase tracking-[0.25em] border px-1.5 py-0.5 ${meta.accent}`}
+          className={`inline-block type-meta border px-1.5 py-0.5 ${meta.accent}`}
         >
           {meta.label}
         </div>
-        <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
+        <div className="type-meta text-foreground/75">
           {moment.timestamp.toFixed(1)}s{moment.label ? ` · ${moment.label}` : ""}
         </div>
         <p className="text-[0.85rem] text-foreground/90 leading-snug">{moment.note}</p>
@@ -2270,7 +2271,7 @@ function ReplaySection({
 
   return (
     <section className="space-y-3">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+      <div className="type-label font-medium text-foreground/75 border-b border-border/40 pb-1.5">
         FRAME Replay
       </div>
       <div className="space-y-2">
@@ -2290,8 +2291,8 @@ function ReplaySection({
         })}
       </div>
       {onSeek && (
-        <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/50">
-          tap a moment to jump to that frame
+        <div className="type-meta text-foreground/75">
+          Tap a moment to jump to that frame
         </div>
       )}
     </section>
@@ -2313,7 +2314,7 @@ function FeedbackCard({ analysis }: { analysis: VideoAnalysis }) {
 
   return (
     <section className="space-y-3 border border-primary/30 bg-primary/[0.03] p-4">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/80">
+      <div className="type-label font-medium text-primary/80">
         FRAME asks
       </div>
       <p className="text-[0.95rem] text-foreground/90 leading-relaxed">{question}</p>
@@ -2323,7 +2324,7 @@ function FeedbackCard({ analysis }: { analysis: VideoAnalysis }) {
           <div className="border-l-2 border-primary/60 pl-3 text-[0.9rem] text-foreground/85 leading-relaxed">
             {recorded}
           </div>
-          <div className="font-mono text-[8px] uppercase tracking-widest text-primary/70">
+          <div className="type-meta text-primary/70">
             Recorded — FRAME will hold this
           </div>
         </div>
@@ -2338,21 +2339,21 @@ function FeedbackCard({ analysis }: { analysis: VideoAnalysis }) {
             className="w-full bg-black/30 border border-border/40 focus:border-primary/50 outline-none text-[0.9rem] text-foreground/90 placeholder:text-muted-foreground/35 p-2.5 resize-none transition-colors"
           />
           <div className="flex items-center justify-between gap-3">
-            <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/50">
+            <div className="type-meta text-foreground/75">
               {draft.trim().length}/500
             </div>
             <button
               type="button"
               disabled={!draft.trim() || answerMutation.isPending}
               onClick={() => answerMutation.mutate(draft.trim())}
-              className="font-mono text-[10px] uppercase tracking-[0.3em] border border-primary/50 hover:border-primary px-4 py-2 text-foreground/85 transition-colors disabled:opacity-40"
+              className="type-label font-medium border border-primary/50 hover:border-primary px-4 py-2 text-foreground/85 transition-colors disabled:opacity-40"
             >
               {answerMutation.isPending ? "Recording…" : "Record"}
             </button>
           </div>
           {answerMutation.isError && (
-            <div className="font-mono text-[9px] uppercase tracking-widest text-destructive/80">
-              could not record — try again
+            <div className="type-meta text-destructive/80">
+              Could not record — try again
             </div>
           )}
         </div>
@@ -2432,10 +2433,10 @@ function Report({
   return (
     <div className="space-y-7">
       <div className="flex items-start justify-between gap-4">
-        <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
-          {analysis.kind} · {analysis.durationSec.toFixed(0)}s read
+        <div className="type-meta text-foreground/75">
+          {capitalise(analysis.kind)} · {analysis.durationSec.toFixed(0)}s read
           {analysis.focus && (
-            <span className="block normal-case tracking-normal text-muted-foreground/70 mt-1">
+            <span className="block text-foreground/75 mt-1">
               focus: {analysis.focus}
             </span>
           )}
@@ -2457,7 +2458,7 @@ function Report({
           type="button"
           onClick={saveCard}
           disabled={saving}
-          className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 px-4 py-2.5 text-foreground/80 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-2 type-label font-medium border border-border/60 hover:border-primary/50 px-4 py-2.5 text-foreground/80 transition-colors disabled:opacity-50"
         >
           <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
           {saving ? "Rendering…" : "Save card"}
@@ -2503,7 +2504,7 @@ function Report({
       {/* detected events — clickable keyframes + note annotation */}
       {analysis.keyframes.length > 0 && (
         <section className="space-y-3">
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+          <div className="type-label font-medium text-foreground/75 border-b border-border/40 pb-1.5">
             Detected events
           </div>
           {kf && (
@@ -2513,11 +2514,11 @@ function Report({
                 alt={kf.caption}
                 className="w-full rounded border border-border/50"
               />
-              <figcaption className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/85">
+              <figcaption className="type-meta text-foreground/75">
                 {kf.timestamp.toFixed(1)}s · {kf.caption}
               </figcaption>
               {localNotes[activeKf] && (
-                <div className="font-mono text-[9px] text-primary/85 leading-snug">
+                <div className="type-meta text-primary/85 leading-snug">
                   {localNotes[activeKf]}
                 </div>
               )}
@@ -2534,11 +2535,11 @@ function Report({
                 }`}
               >
                 <img src={k.imageBase64} alt={k.caption} className="w-full" />
-                <div className="font-mono text-[7px] uppercase tracking-widest text-muted-foreground/80 px-1 py-1 truncate">
+                <div className="type-meta text-foreground/75 px-1 py-1 truncate">
                   {k.caption}
                 </div>
                 {localNotes[i] && (
-                  <div className="font-mono text-[7px] text-primary/75 px-1 pb-1 truncate leading-tight border-t border-border/20 pt-0.5">
+                  <div className="type-meta text-primary/75 px-1 pb-1 truncate leading-tight border-t border-border/20 pt-0.5">
                     {localNotes[i]}
                   </div>
                 )}
@@ -2547,7 +2548,7 @@ function Report({
           </div>
           {/* inline note editor for active keyframe */}
           <div className="flex items-center gap-2">
-            <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/60 flex-none">
+            <div className="type-meta text-foreground/75 flex-none">
               Note
             </div>
             <input
@@ -2566,7 +2567,7 @@ function Report({
                 if (e.key === "Enter") (e.target as HTMLInputElement).blur();
               }}
               placeholder={`Add a note for frame ${activeKf + 1}…`}
-              className="flex-1 bg-transparent border-b border-border/40 focus:border-primary/50 outline-none font-mono text-[10px] text-foreground/90 placeholder:text-muted-foreground/35 py-0.5 pb-1 transition-colors"
+              className="flex-1 bg-transparent border-b border-border/40 focus:border-primary/50 outline-none type-label font-medium text-foreground/90 placeholder:text-muted-foreground/35 py-0.5 pb-1 transition-colors"
             />
           </div>
         </section>
@@ -2609,7 +2610,7 @@ function Report({
       <button
         type="button"
         onClick={onClose}
-        className="w-full font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 hover:border-primary/50 py-3 text-foreground/80 transition-colors"
+        className="w-full type-label font-medium border border-border/60 hover:border-primary/50 py-3 text-foreground/80 transition-colors"
       >
         Analyse another
       </button>
@@ -2635,7 +2636,7 @@ function SavedReport({
     return (
       <div className="py-16 flex flex-col items-center gap-4">
         <OctagonPulse size={56} />
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+        <div className="type-label font-medium text-foreground/75">
           Loading read
         </div>
       </div>
@@ -2644,13 +2645,13 @@ function SavedReport({
   if (isError || !data?.analysis) {
     return (
       <div className="space-y-4">
-        <div className="border border-destructive/40 bg-destructive/10 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-destructive/90">
-          could not load this read
+        <div className="border border-destructive/40 bg-destructive/10 px-3 py-2 type-label font-medium text-destructive/90">
+          Could not load this read
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="w-full font-mono text-[10px] uppercase tracking-[0.3em] border border-border/60 py-3 text-foreground/80"
+          className="w-full type-label font-medium border border-border/60 py-3 text-foreground/80"
         >
           Back
         </button>
@@ -2699,9 +2700,9 @@ function TrendSection({
 
   return (
     <section className="space-y-3">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/40 pb-1.5">
+      <div className="type-label font-medium text-foreground/75 border-b border-border/40 pb-1.5">
         Trend
-        <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
+        <span className="ml-2 text-foreground/75">
           · {chartData.length} sessions
         </span>
       </div>
@@ -2712,11 +2713,11 @@ function TrendSection({
           return (
             <div key={key} className="space-y-1.5">
               <div className="flex items-baseline justify-between">
-                <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/80">
+                <span className="type-meta text-foreground/75">
                   {label}
                 </span>
                 {hasData && (
-                  <span className="font-mono text-[9px] text-foreground/60">
+                  <span className="type-meta text-foreground/80">
                     {values[values.length - 1]}
                   </span>
                 )}
@@ -2730,7 +2731,7 @@ function TrendSection({
                         if (!active || !payload?.length) return null;
                         const val = payload[0]?.value as number | undefined;
                         return (
-                          <div className="bg-background/95 border border-border/60 px-2 py-1 font-mono text-[9px] text-foreground/90">
+                          <div className="bg-background/95 border border-border/60 px-2 py-1 type-meta text-foreground/90">
                             {lbl} · {val ?? "—"}
                           </div>
                         );
@@ -2765,7 +2766,7 @@ function TrendSection({
                 </ResponsiveContainer>
               ) : (
                 <div
-                  className="flex items-center justify-center font-mono text-[8px] uppercase tracking-widest text-muted-foreground/40 border border-border/20"
+                  className="flex items-center justify-center type-meta text-foreground/75 border border-border/20"
                   style={{ height: 44 }}
                 >
                   No data
@@ -2829,11 +2830,11 @@ function CinematicOverlay({ phase }: { phase: Phase }) {
       </div>
 
       <div className="mt-10 text-center space-y-2 relative">
-        <div className="font-mono text-base uppercase tracking-[0.3em] text-foreground/95">
+        <div className="font-sans text-base text-foreground/95">
           {PHASE_TITLE[key]}
         </div>
         {pct != null ? (
-          <div className="font-mono text-[11px] tracking-[0.25em] text-foreground/70 h-4">{pct}%</div>
+          <div className="type-caption text-foreground/70 h-4">{pct}%</div>
         ) : null}
       </div>
 
@@ -2872,7 +2873,7 @@ function SubjectToggle({
   ];
   return (
     <section className="space-y-2">
-      <div className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground/70">
+      <div className="type-meta text-foreground/75">
         Mode
       </div>
       <div className="grid grid-cols-2 gap-[3px]">
@@ -2884,7 +2885,7 @@ function SubjectToggle({
               type="button"
               onClick={() => setSubject(o.value)}
               disabled={disabled}
-              className="font-mono text-[10px] uppercase tracking-widest py-2.5 transition-all duration-200 disabled:opacity-40"
+              className="type-label font-medium py-2.5 transition-all duration-200 disabled:opacity-40"
               style={{
                 borderLeft: `2px solid ${active ? `hsla(${o.accent},0.9)` : "hsla(0,0%,100%,0.1)"}`,
                 borderTop: `1px solid ${active ? `hsla(${o.accent},0.2)` : "hsla(0,0%,100%,0.06)"}`,
@@ -2925,7 +2926,7 @@ function OpponentHistory({
           className="h-[5px] w-[5px] rounded-full flex-none"
           style={{ background: `hsla(${SCOUT},0.7)` }}
         />
-        <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-muted-foreground/70">
+        <div className="type-meta text-foreground/75">
           Scouting reads
         </div>
       </div>
@@ -2950,29 +2951,29 @@ function OpponentHistory({
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-3 mb-1">
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/80 truncate">
+                  <span className="type-label font-medium text-foreground/80 truncate">
                     {a.opponentName || "Unnamed"}
-                    <span className="text-muted-foreground/50"> · {a.kind}</span>
+                    <span className="text-foreground/75"> · {a.kind}</span>
                   </span>
                   <span className="flex items-baseline gap-2 flex-none">
                     {a.hasMatchup && (
                       <span
-                        className="font-mono text-[8px] uppercase tracking-widest px-1.5 py-0.5"
+                        className="type-meta px-1.5 py-0.5"
                         style={{ color: `hsla(${SCOUT},0.85)`, border: `1px solid hsla(${SCOUT},0.3)` }}
                       >
-                        matchup
+                        Matchup
                       </span>
                     )}
                     {a.nervousSystemLoad != null && (
                       <span
-                        className={`font-mono text-[9px] uppercase tracking-widest ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}
+                        className={`type-meta ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}
                       >
                         {LOAD_LABEL[a.nervousSystemLoad]}
                       </span>
                     )}
                   </span>
                 </div>
-                <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/35 mt-1.5">
+                <div className="type-meta text-foreground/75 mt-1.5">
                   {new Date(a.createdAt).toLocaleString(undefined, {
                     month: "short",
                     day: "numeric",
@@ -3011,13 +3012,13 @@ function History({
   if (error && items.length === 0) {
     return (
       <section className="space-y-3 pt-2">
-        <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground">Session log</div>
+        <div className="type-label font-medium text-foreground/75">Session log</div>
         <div role="alert" className="border border-destructive/40 bg-destructive/10 px-4 py-3 space-y-2">
-          <div className="font-mono text-[10px] uppercase tracking-widest text-destructive/90">Could not load your sessions</div>
+          <div className="type-label font-medium text-destructive/90">Could not load your sessions</div>
           <button
             type="button"
             onClick={onRetry}
-            className="mt-1 font-mono text-[10px] uppercase tracking-widest border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
+            className="mt-1 type-label font-medium border border-destructive/50 text-destructive/90 hover:bg-destructive/15 transition-colors px-3 py-1.5"
           >
             Try again
           </button>
@@ -3028,10 +3029,10 @@ function History({
   if (items.length === 0) {
     return (
       <section className="space-y-3 pt-2">
-        <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground">Session log</div>
+        <div className="type-label font-medium text-foreground/75">Session log</div>
         <div className="border border-border/40 px-4 py-4">
-          <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/80">No sessions yet</div>
-          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+          <div className="type-label font-medium text-foreground/80">No sessions yet</div>
+          <p className="mt-1.5 text-xs leading-relaxed text-foreground/75">
             Upload your first clip above. Each read you run is saved here with its score.
           </p>
         </div>
@@ -3046,20 +3047,20 @@ function History({
       <div className="flex items-center justify-between gap-3 pb-1.5" style={{ borderBottom: "1px solid hsla(0,0%,100%,0.07)" }}>
         <div className="flex items-center gap-3">
           <span className="h-[5px] w-[5px] rounded-full bg-destructive/60 flex-none" />
-          <div className="font-mono text-[9px] uppercase tracking-[0.45em] text-muted-foreground/70">
+          <div className="type-meta text-foreground/75">
             Session log
           </div>
         </div>
         {baselineItem && (
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[8px] uppercase tracking-widest text-primary/70">
+            <span className="type-meta text-primary/70">
               Baseline: {baselineItem.kind} ·{" "}
               {new Date(baselineItem.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
             </span>
             <button
               type="button"
               onClick={() => onSetCompare(compareId!)}
-              className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/50 hover:text-foreground/70 transition-colors"
+              className="type-meta text-foreground/75 hover:text-foreground/70 transition-colors"
               title="Clear baseline"
             >
               <X className="w-3 h-3" strokeWidth={1.5} />
@@ -3088,14 +3089,14 @@ function History({
                   <Lock className="w-[14px] h-[14px] flex-none text-muted-foreground/40" strokeWidth={1.5} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/45">
-                        {a.kind}
+                      <span className="type-label font-medium text-foreground/80">
+                        {capitalise(a.kind)}
                       </span>
-                      <span className="font-mono text-[8px] uppercase tracking-widest text-primary/60 border border-primary/25 px-1.5 py-0.5">
+                      <span className="type-meta text-primary/60 border border-primary/25 px-1.5 py-0.5">
                         FRAME+
                       </span>
                     </div>
-                    <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/35 mt-1.5">
+                    <div className="type-meta text-foreground/75 mt-1.5">
                       {new Date(a.createdAt).toLocaleString(undefined, {
                         month: "short",
                         day: "numeric",
@@ -3143,30 +3144,30 @@ function History({
                   <Film className="w-[14px] h-[14px] mt-0.5 flex-none" style={{ color: isBaseline ? "hsl(var(--primary))" : "hsla(0,68%,46%,0.55)" }} strokeWidth={1.5} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3 mb-1">
-                      <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/80">
-                        {a.kind}
-                        {a.styleProfile ? <span className="text-muted-foreground/50"> · {a.styleProfile}</span> : null}
+                      <span className="type-label font-medium text-foreground/80">
+                        {capitalise(a.kind)}
+                        {a.styleProfile ? <span className="text-foreground/75"> · {a.styleProfile}</span> : null}
                         {isBaseline && (
-                          <span className="ml-2 font-mono text-[8px] uppercase tracking-widest text-primary/70 border border-primary/30 px-1 py-0.5">
-                            baseline
+                          <span className="ml-2 type-meta text-primary/70 border border-primary/30 px-1 py-0.5">
+                            Baseline
                           </span>
                         )}
                       </span>
                       <span className="flex items-baseline gap-2">
                         {(a.sessionScore ?? 0) > 0 && (
-                          <span className="font-mono text-[12px] font-light text-foreground/90">{a.sessionScore}</span>
+                          <span className="type-caption font-light text-foreground/90">{a.sessionScore}</span>
                         )}
                         {a.nervousSystemLoad != null && (
-                          <span className={`font-mono text-[9px] uppercase tracking-widest ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}>
+                          <span className={`type-meta ${LOAD_COLOR[a.nervousSystemLoad].split(" ")[0]}`}>
                             {LOAD_LABEL[a.nervousSystemLoad]}
                           </span>
                         )}
                       </span>
                     </div>
-                    <p className="text-[0.78rem] text-foreground/55 leading-snug line-clamp-2">
+                    <p className="text-[0.78rem] text-foreground/80 leading-snug line-clamp-2">
                       {a.summary}
                     </p>
-                    <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/35 mt-1.5">
+                    <div className="type-meta text-foreground/75 mt-1.5">
                       {new Date(a.createdAt).toLocaleString(undefined, {
                         month: "short",
                         day: "numeric",
@@ -3183,10 +3184,10 @@ function History({
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onSetCompare(a.id); }}
                 title={isBaseline ? "Clear baseline" : "Set as comparison baseline"}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[8px] uppercase tracking-widest px-1.5 py-1 border transition-all duration-150 ${
+                className={`absolute right-3 top-1/2 -translate-y-1/2 type-meta px-1.5 py-1 border transition-all duration-150 ${
                   isBaseline
                     ? "opacity-100 border-primary/40 text-primary/70 bg-primary/5 hover:bg-primary/10"
-                    : "opacity-0 group-hover:opacity-100 border-border/40 text-muted-foreground/60 hover:border-primary/40 hover:text-primary/70"
+                    : "opacity-0 group-hover:opacity-100 border-border/40 text-foreground/75 hover:border-primary/40 hover:text-primary/70"
                 }`}
               >
                 vs

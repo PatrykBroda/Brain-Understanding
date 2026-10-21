@@ -54,7 +54,7 @@ export function useDecodedOpponent(wire: PoseTrackWire | null | undefined): Deco
 export function PeopleLegend() {
   return (
     <span
-      className="inline-flex items-center gap-3 font-mono text-[8px] uppercase tracking-widest text-muted-foreground/85"
+      className="inline-flex items-center gap-3 type-meta text-foreground/75"
       data-testid="people-legend"
     >
       <span className="inline-flex items-center gap-1.5">
@@ -252,8 +252,8 @@ export function SkeletonToggle({ on, onChange }: { on: boolean; onChange: (v: bo
       type="button"
       onClick={() => onChange(!on)}
       aria-pressed={on}
-      className={`inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.25em] border px-2.5 py-1.5 transition-colors ${
-        on ? "border-primary/60 text-primary/90" : "border-border/50 text-muted-foreground/70"
+      className={`inline-flex items-center gap-1.5 type-meta border px-2.5 py-1.5 transition-colors ${
+        on ? "border-primary/60 text-primary/90" : "border-border/50 text-foreground/75"
       }`}
     >
       <ScanLine className="w-3 h-3" strokeWidth={1.5} />
@@ -331,9 +331,9 @@ export function GhostPlayer({
       const youDrawn = paint(track, pts, opponent ? YOU_COLOR : SKELETON_GOLD);
       if (!youDrawn && !oppDrawn) {
         ctx.fillStyle = "rgba(255,255,255,0.35)";
-        ctx.font = "10px ui-monospace, monospace";
+        ctx.font = "12px Outfit, sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("NO POSE LOCK HERE", fit.w / 2, fit.h / 2);
+        ctx.fillText("No pose lock here", fit.w / 2, fit.h / 2);
       }
     };
 
@@ -385,7 +385,7 @@ export function GhostPlayer({
     <div className="w-full space-y-2" data-testid="ghost-player">
       <div className="relative w-full border border-border/40 bg-black" style={{ aspectRatio: String(aspect) }}>
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" data-testid="ghost-canvas" />
-        <div className="absolute left-2 top-2 font-mono text-[8px] uppercase tracking-[0.3em] text-muted-foreground/70">
+        <div className="absolute left-2 top-2 type-meta text-foreground/75">
           Movement replay · footage not stored
         </div>
         {opponent && (
@@ -417,7 +417,7 @@ export function GhostPlayer({
           aria-label="Scrub movement replay"
           className="flex-1 min-w-0 accent-[#d6a05a] h-6"
         />
-        <span ref={timeRef} className="flex-none font-mono text-[9px] text-muted-foreground/80 tabular-nums flex-none text-right whitespace-nowrap">
+        <span ref={timeRef} className="flex-none type-meta text-foreground/75 tabular-nums flex-none text-right whitespace-nowrap">
           {fmtTime(0)} / {fmtTime(endSec)}
         </span>
       </div>
@@ -534,7 +534,7 @@ export function FootageTimeline({
           style={{ left: 0, boxShadow: "0 0 4px rgba(255,255,255,0.7)" }}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[8px] uppercase tracking-widest text-muted-foreground/70">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 type-meta text-foreground/75">
         <span className="inline-flex items-center gap-1">
           <i className="inline-block w-[3px] h-2.5" style={{ background: SEVERITY_COLOR.high }} /> high
         </span>
@@ -549,7 +549,7 @@ export function FootageTimeline({
             <i className="inline-block w-2 h-2 rotate-45" style={{ background: ROLE_COLOR.best_decision }} /> replay moment
           </span>
         )}
-        <span className="text-muted-foreground/45">· tap to jump</span>
+        <span className="text-foreground/75">· tap to jump</span>
       </div>
     </div>
   );
@@ -611,7 +611,7 @@ export function FootageBlock({
       ) : null}
       {videoUrl && !track && trackNote && (
         <p
-          className="font-mono text-[9px] leading-relaxed tracking-wide text-amber-300/90 border border-amber-300/30 bg-amber-300/5 px-3 py-2"
+          className="type-meta leading-relaxed text-amber-300/90 border border-amber-300/30 bg-amber-300/5 px-3 py-2"
           data-testid="track-note"
         >
           {trackNote}
@@ -623,8 +623,8 @@ export function FootageBlock({
           {opponent ? (
             <PeopleLegend />
           ) : (
-            <span className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground/55 text-right">
-              measured pose · drawn live
+            <span className="type-meta text-foreground/75 text-right">
+              Measured pose · drawn live
             </span>
           )}
         </div>

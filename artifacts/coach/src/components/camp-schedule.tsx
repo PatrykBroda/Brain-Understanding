@@ -81,7 +81,7 @@ export function CampSchedule({
   return (
     <section className="space-y-5">
       <div className="flex items-center justify-between">
-        <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/70">
+        <div className="type-label font-medium text-foreground/70">
           Session schedule
         </div>
         {!adding && (
@@ -91,7 +91,7 @@ export function CampSchedule({
               setEditingId(null);
               setAdding(true);
             }}
-            className="flex items-center gap-1.5 border border-primary/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-primary hover:bg-primary/5 transition-colors"
+            className="flex items-center gap-1.5 border border-primary/40 px-3 py-2 type-label font-medium text-primary hover:bg-primary/5 transition-colors"
           >
             <Plus className="w-3 h-3" strokeWidth={1.5} />
             Add
@@ -116,10 +116,10 @@ export function CampSchedule({
 
       {sessions.length === 0 && !adding ? (
         <div className="border border-white/[0.08] px-5 py-8 text-center">
-          <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/55">
+          <div className="type-label font-medium text-foreground/80">
             No sessions scheduled
           </div>
-          <p className="mt-3 text-[12px] leading-relaxed text-foreground/50">
+          <p className="mt-3 text-[12px] leading-relaxed text-foreground/80">
             Build the camp timeline session by session through to fight day. Every entry is a
             real block you plan to train — nothing is invented.
           </p>
@@ -128,7 +128,7 @@ export function CampSchedule({
         <div className="space-y-6">
           {groups.map((group) => (
             <div key={group.date} className="space-y-2.5">
-              <div className="font-mono text-[9px] uppercase tracking-[0.35em] text-foreground/45 border-b border-white/[0.05] pb-1.5">
+              <div className="type-meta text-foreground/80 border-b border-white/[0.05] pb-1.5">
                 {formatDay(group.date)}
               </div>
               {group.items.map((s) =>
@@ -234,7 +234,7 @@ function SessionRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span
-            className="font-mono text-[11px] uppercase tracking-[0.2em]"
+            className="type-caption"
             style={{
               color: s.completed ? "hsla(0,0%,100%,0.4)" : "hsla(0,0%,100%,0.9)",
               textDecoration: s.completed ? "line-through" : "none",
@@ -243,13 +243,13 @@ function SessionRow({
             {SESSION_TYPE_LABEL[s.sessionType]}
           </span>
           {imported && (
-            <span className="font-mono text-[8px] uppercase tracking-[0.25em] text-foreground/45 border border-white/[0.12] px-1.5 py-0.5">
+            <span className="type-meta text-foreground/80 border border-white/[0.12] px-1.5 py-0.5">
               Imported
             </span>
           )}
         </div>
         {meta && (
-          <div className="font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/45 mt-1">
+          <div className="type-meta text-foreground/80 mt-1">
             {meta}
           </div>
         )}
@@ -315,7 +315,7 @@ function SessionForm({
                 key={t}
                 type="button"
                 onClick={() => setForm({ ...form, sessionType: t })}
-                className="border py-2 font-mono text-[9px] uppercase tracking-[0.2em] transition-colors"
+                className="border py-2 type-meta transition-colors"
                 style={{
                   borderColor: active ? "hsl(var(--primary))" : "hsla(0,0%,100%,0.1)",
                   color: active ? "hsl(var(--primary))" : "hsla(0,0%,100%,0.55)",
@@ -380,7 +380,7 @@ function SessionForm({
       </Field>
 
       {error && (
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[hsl(var(--red-accent))]">
+        <div className="type-label font-medium text-[hsl(var(--red-accent))]">
           Could not save — check the date
         </div>
       )}
@@ -389,7 +389,7 @@ function SessionForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.1] py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/55 hover:text-foreground/85 transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 border border-white/[0.1] py-3 type-label font-medium text-foreground/80 hover:text-foreground/85 transition-colors"
         >
           <X className="w-3 h-3" strokeWidth={1.5} />
           Cancel
@@ -398,7 +398,7 @@ function SessionForm({
           type="button"
           onClick={() => canSubmit && onSubmit(form)}
           disabled={!canSubmit || pending}
-          className="flex-1 border border-primary/40 py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-primary hover:bg-primary/5 transition-colors disabled:opacity-40"
+          className="flex-1 border border-primary/40 py-3 type-label font-medium text-primary hover:bg-primary/5 transition-colors disabled:opacity-40"
         >
           {pending ? "Saving" : submitLabel}
         </button>
@@ -410,7 +410,7 @@ function SessionForm({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/55 block mb-1.5">
+      <span className="type-meta text-foreground/80 block mb-1.5">
         {label}
       </span>
       {children}
