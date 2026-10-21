@@ -10,8 +10,9 @@ function uniqueEmail(label: string): string {
 
 async function completeSignupForm(page: Page, email: string): Promise<void> {
   await page.goto(SIGN_UP);
-  await page.getByPlaceholder("Email").fill(email);
-  await page.getByPlaceholder("Password (min 8 characters)").fill(PASSWORD);
+  await page.getByRole("textbox", { name: "Name" }).fill("Smoke Tester");
+  await page.getByRole("textbox", { name: "Email" }).fill(email);
+  await page.getByRole("textbox", { name: "Password" }).fill(PASSWORD);
   await page
     .getByRole("checkbox", {
       name: "Accept the Terms of Use (EULA) and Privacy Policy",
@@ -72,7 +73,7 @@ test("signup requires explicit AI acknowledgement and sends current version once
       acceptedAiConsent: true,
       aiConsentVersion: AI_CONSENT_VERSION,
     });
-    await expect(page).toHaveURL(/\/mobile\/onboarding/);
+    await expect(page).toHaveURL(/\/mobile\/home/);
   } finally {
     if (createdToken) {
       const cleanup = await page.request.delete("/api/account", {
