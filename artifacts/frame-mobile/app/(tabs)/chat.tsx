@@ -32,7 +32,6 @@ import {
   uploadAttachment,
   type AttachmentDto,
 } from "@/lib/api";
-import { reportLayout } from "@/lib/crashReporter";
 import {
   REPLY_INTERRUPTED_LABEL,
   STILL_WORKING_AFTER_MS,
@@ -465,7 +464,6 @@ export default function ChatScreen() {
   }, [prefill, prefillNonce]);
   // One-shot guards so on-device layout probes report once per mount,
   // not on every re-layout.
-  const layoutProbes = useRef({ row: false, chip: false, text: false });
 
   useEffect(() => {
     if (isSignedIn) return;
@@ -1038,55 +1036,18 @@ export default function ChatScreen() {
           active conversation (matches the website's suggested-question chips,
           which stay available while chatting instead of disappearing). */}
       {!isLoadingHistory && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.quickRow}
-          contentContainerStyle={styles.quickContent}
-          onLayout={(e) => {
-            if (layoutProbes.current.row) return;
-            layoutProbes.current.row = true;
-            const { width, height } = e.nativeEvent.layout;
-            reportLayout(`quickRow w=${Math.round(width)} h=${Math.round(height)}`);
-          }}
-        >
-          {QUICK_ACTIONS.map((a, i) => (
+        <View style={styles.quickRow}>
+          {QUICK_ACTIONS.map((a) => (
             <Pressable
               key={a.label}
               style={({ pressed }) => [styles.quickChip, pressed && styles.quickChipPressed]}
               onPress={() => sendQuick(a.prompt)}
               disabled={isStreaming}
-              onLayout={
-                i === 0
-                  ? (e) => {
-                      if (layoutProbes.current.chip) return;
-                      layoutProbes.current.chip = true;
-                      const { width, height } = e.nativeEvent.layout;
-                      reportLayout(`quickChip[0] w=${Math.round(width)} h=${Math.round(height)}`);
-                    }
-                  : undefined
-              }
             >
-              <Text
-                style={styles.quickText}
-                onTextLayout={
-                  i === 0
-                    ? (e) => {
-                        if (layoutProbes.current.text) return;
-                        layoutProbes.current.text = true;
-                        const lines = e.nativeEvent.lines;
-                        reportLayout(
-                          `quickText[0] lines=${lines.length} h=${Math.round(lines[0]?.height ?? 0)} w=${Math.round(lines[0]?.width ?? 0)}`,
-                        );
-                      }
-                    : undefined
-                }
-              >
-                {a.label}
-              </Text>
+              <Text style={styles.quickText}>{a.label}</Text>
             </Pressable>
           ))}
-        </ScrollView>
+        </View>
       )}
 
       {/* Draft attachments awaiting send */}
@@ -1282,23 +1243,20 @@ const styles = StyleSheet.create({
   quickRow: {
     borderTopWidth: 1,
     borderTopColor: "#2a2a2a",
-    height: 46,
-    // Never let the KeyboardAvoidingView flex math compress this row —
-    // vertical squash clips the chip text into flat empty strips.
-    flexGrow: 0,
-    flexShrink: 0,
-  },
-  quickContent: {
+    // Chips wrap onto a second line instead of running off the right edge.
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    gap: 8,
+    flexGrow: 0,
+    flexShrink: 0,
   },
   quickChip: {
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.20)",
     paddingHorizontal: 14,
     paddingVertical: 6,
-    alignSelf: "center",
     justifyContent: "center",
   },
   quickChipPressed: {
