@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import { BootLoader } from "@/components/BootLoader";
 import { Alert, Linking, View, ActivityIndicator, StyleSheet, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
@@ -6,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPatch, apiDelete, apiUrl } from "@/lib/api";
 import { AiConsentStatus } from "@/lib/aiConsent";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
-import { FONT, TEXT_SECONDARY, label } from "@/constants/typography";
+import { TEXT_SECONDARY, label } from "@/constants/typography";
 
 export function AiConsentGate({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, signOut } = useAuth();
@@ -95,10 +96,7 @@ export function AiConsentGate({ children }: { children: React.ReactNode }) {
   // 1. Loading
   if (isLoading || !isLoaded) {
     return (
-      <View style={s.fullscreen}>
-        <Text style={s.wordmark}>FRAME</Text>
-        <ActivityIndicator size="small" color="#8A6A2F" style={{ marginTop: 28 }} />
-      </View>
+      <BootLoader label="Checking permissions" />
     );
   }
 
@@ -168,12 +166,6 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
-  },
-  wordmark: {
-    fontFamily: FONT.medium,
-    fontSize: 18,
-    color: "#e0e0e0",
-    letterSpacing: 0,
   },
   errorTitle: {
     fontFamily: "Outfit_600SemiBold",

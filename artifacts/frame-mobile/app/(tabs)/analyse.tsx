@@ -1,7 +1,8 @@
+import { BootLoader } from "@/components/BootLoader";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -55,7 +56,7 @@ export default function AnalyseScreen() {
 
   const loading = isPending || (hasAccess && !tokenChecked);
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator color="#8A6A2F" /></View>;
+    return <BootLoader label="Loading" />;
   }
   if (isError || !entitlement || !url || (hasAccess && !token)) {
     return (
