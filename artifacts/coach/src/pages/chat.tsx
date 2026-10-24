@@ -39,7 +39,7 @@ function PendingReply() {
   return (
     <div className="flex items-center gap-3 py-2" role="status" aria-live="polite">
       <FrameOctagon size={30} spin spinSeconds={4} glow={false} color="#EDEDED" />
-      <span className="text-sm text-foreground/55">{slow ? "Still working on thisâ€¦" : "Thinkingâ€¦"}</span>
+      <span className="text-sm text-foreground/55">{slow ? "Still working on this…" : "Thinking…"}</span>
     </div>
   );
 }
@@ -131,12 +131,12 @@ export default function ChatPage() {
 
   // EntrySequence is a first-ever-entry experience: show once, never repeat.
   // Backed by localStorage so it survives same-day reopens and re-navigation.
-  // Must NOT reset on navigation â€” that is the root of the repeat-loading bug.
+  // Must NOT reset on navigation — that is the root of the repeat-loading bug.
   const [entryActive, setEntryActive] = useState<boolean>(() => {
     try {
       return !localStorage.getItem("frame:chat-entry-seen");
     } catch {
-      return false; // storage blocked â€” skip
+      return false; // storage blocked — skip
     }
   });
 
@@ -161,7 +161,7 @@ export default function ChatPage() {
   const sendInFlightRef = useRef(false);
   const queryClient = useQueryClient();
 
-  // Only reset drafts when the fighter changes â€” do NOT reset entryActive.
+  // Only reset drafts when the fighter changes — do NOT reset entryActive.
   useEffect(() => {
     setDrafts([]);
   }, [fighter?.id]);
@@ -307,7 +307,7 @@ export default function ChatPage() {
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
             {isLoading ? (
               <div className="flex justify-center pt-20 text-foreground/75 font-sans text-xs">
-                Loading stateâ€¦
+                Loading state…
               </div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[55vh] gap-10 animate-in fade-in duration-700">
@@ -326,7 +326,7 @@ export default function ChatPage() {
                       onClick={() => void requestSend(prompt)}
                       className="group text-left p-4 bg-background hover:bg-white/[0.02] transition-colors type-caption text-foreground/80 hover:text-foreground"
                     >
-                      <span className="text-primary/50 group-hover:text-primary mr-2 transition-colors">â€”</span>
+                      <span className="text-primary/50 group-hover:text-primary mr-2 transition-colors">—</span>
                       {prompt}
                     </button>
                   ))}
@@ -425,7 +425,7 @@ export default function ChatPage() {
                     key={qa.label}
                     onClick={() => {
                       // Ignore taps while a reply streams instead of disabling
-                      // the button â€” `disabled:opacity-40` faded the low-contrast
+                      // the button — `disabled:opacity-40` faded the low-contrast
                       // label to near-invisible, so the chips looked empty.
                       if (!isStreaming) void requestSend(qa.prompt);
                     }}
