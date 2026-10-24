@@ -12,6 +12,7 @@ import { sportLabel } from "@/lib/fighter-options";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
 import { ARCHETYPE_UNLOCK_UNDERSTANDING, computeModelMaturity, ontologyDomainOf } from "@workspace/ontology";
 import { api, type FactCategory } from "@/lib/api";
+import { sentenceCase } from "@/lib/sentence-case";
 
 const CATEGORY_LABELS: Record<FactCategory, string> = {
   weakness: "Weaknesses",
@@ -750,21 +751,21 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
             {computed.topStrength && (
               <IdentityRow
                 label="Observed strength"
-                value={computed.topStrength.topic || computed.topStrength.content}
+                value={sentenceCase(computed.topStrength.topic || computed.topStrength.content)}
                 sub={`conf ${computed.topStrength.confidence}/5`}
               />
             )}
             {computed.topWeakness && (
               <IdentityRow
                 label="Observed blind spot"
-                value={computed.topWeakness.topic || computed.topWeakness.content}
+                value={sentenceCase(computed.topWeakness.topic || computed.topWeakness.content)}
                 sub={`conf ${computed.topWeakness.confidence}/5`}
               />
             )}
             {computed.topPattern && (
               <IdentityRow
                 label="Decision pattern"
-                value={computed.topPattern.topic || computed.topPattern.content}
+                value={sentenceCase(computed.topPattern.topic || computed.topPattern.content)}
                 sub={`conf ${computed.topPattern.confidence}/5`}
               />
             )}
@@ -902,16 +903,16 @@ export function AthleteModel({ variant = "desktop" }: { variant?: "mobile" | "de
                       <Link
                         key={f.id}
                         href={`/chat?prefill=${encodeURIComponent(observationPrompt(f, CATEGORY_LABELS[c]))}&n=${f.id}`}
-                        aria-label={`${f.topic || f.content}. Discuss this with your coach`}
+                        aria-label={`${sentenceCase(f.topic || f.content)}. Discuss this with your coach`}
                         className="group block pl-4 py-1 outline-none hover:bg-white/[0.02] focus-visible:ring-1 focus-visible:ring-primary/50 transition-colors"
                         style={{ borderLeft: "1px solid hsla(39,49%,36%,0.25)" }}
                       >
                         <div className="flex items-baseline justify-between gap-3">
                           <div
                             className="min-w-0 type-label font-medium text-foreground/75 truncate"
-                            title={f.topic || undefined}
+                            title={f.topic ? sentenceCase(f.topic) : undefined}
                           >
-                            {f.topic || f.content}
+                            {sentenceCase(f.topic || f.content)}
                           </div>
                           <div className="flex items-baseline gap-2.5 flex-none">
                             {(f.evidenceCount ?? 1) > 1 && (

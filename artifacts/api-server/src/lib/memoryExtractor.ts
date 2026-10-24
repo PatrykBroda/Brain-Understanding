@@ -47,8 +47,8 @@ const tools: Anthropic.Tool[] = [
       type: "object",
       properties: {
         category: { type: "string", enum: [...FACT_CATEGORIES] },
-        topic: { type: "string", description: "Short tag, e.g. 'half-guard pass', 'competition anxiety', 'left knee'." },
-        content: { type: "string", description: "One sentence stating the observation." },
+        topic: { type: "string", description: "Short tag in sentence case: only the first letter capitalised, e.g. 'Half-guard pass', 'Competition anxiety', 'Left knee'. Keep acronyms (BJJ, AFG) and dates as written; never Title Case." },
+        content: { type: "string", description: "One sentence stating the observation, in sentence case (only the first letter and proper nouns/acronyms capitalised; never Title Case)." },
         athlete_stated: {
           type: "boolean",
           description: "true ONLY if the athlete asserted this about themselves in their own words.",

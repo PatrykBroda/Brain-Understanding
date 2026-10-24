@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
 import type { AthleteFact, FactCategory } from "@/lib/api";
+import { sentenceCase } from "@/lib/sentence-case";
 
 const CATEGORY_LABELS: Record<FactCategory, string> = {
   weakness: "Weaknesses",
@@ -106,7 +107,7 @@ export function MemorySheet({
                       >
                         <div className="flex items-baseline justify-between gap-3 mb-0.5">
                           <div className="type-label font-medium text-foreground/80 truncate">
-                            {f.topic}
+                            {sentenceCase(f.topic)}
                           </div>
                           <div className="flex-none type-meta text-foreground/75">
                             Confidence {f.confidence}/5 · {f.source}

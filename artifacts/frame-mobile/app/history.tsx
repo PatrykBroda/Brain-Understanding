@@ -21,6 +21,7 @@ import { bucketByDay, observationPrompt } from "@/lib/factHistory";
 import { refreshModel } from "@/lib/modelRefresh";
 import { FactConfidence } from "@/components/FactConfidence";
 import { TEXT_SECONDARY, caption, meta, sectionTitle, sentence } from "@/constants/typography";
+import { sentenceCase } from "@/lib/sentenceCase";
 
 const ACCENT = "#8A6A2F";
 
@@ -137,7 +138,7 @@ export default function HistoryScreen() {
                         })
                       }
                       accessibilityRole="button"
-                      accessibilityLabel={`${CATEGORY_LABELS[f.category] ?? f.category}: ${f.topic || f.content}, ${factSeenLabel(f)}. Discuss this with your coach`}
+                      accessibilityLabel={`${CATEGORY_LABELS[f.category] ?? f.category}: ${sentenceCase(f.topic || f.content)}, ${factSeenLabel(f)}. Discuss this with your coach`}
                       style={({ pressed }) => [s.factItem, pressed && { opacity: 0.7 }]}
                     >
                       <View style={{ flex: 1 }}>
@@ -145,7 +146,7 @@ export default function HistoryScreen() {
                           {CATEGORY_LABELS[f.category] ?? f.category}
                         </Text>
                         <Text style={s.factText} numberOfLines={3}>
-                          {f.topic || f.content}
+                          {sentenceCase(f.topic || f.content)}
                         </Text>
                         <Text style={s.factSeen}>{sentence(factSeenLabel(f))}</Text>
                       </View>

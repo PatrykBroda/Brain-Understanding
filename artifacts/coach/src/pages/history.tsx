@@ -8,6 +8,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useFramePlus } from "@/components/frame-plus-modal";
 import { factLastSeen, observationPrompt } from "@/lib/fact-seen";
 import type { AthleteFact, FactCategory, AnalysisListItem } from "@/lib/api";
+import { sentenceCase } from "@/lib/sentence-case";
 
 // Local, self-owned label map — human-readable names for each fact category.
 const CATEGORY_LABELS: Record<FactCategory, string> = {
@@ -367,7 +368,7 @@ export default function HistoryPage() {
                                 <Link
                                   key={`f-${f.id}`}
                                   href={`/chat?prefill=${encodeURIComponent(observationPrompt(f, CATEGORY_LABELS[f.category]))}&n=${f.id}`}
-                                  aria-label={`${CATEGORY_LABELS[f.category]}: ${f.content}. Discuss this with your coach`}
+                                  aria-label={`${CATEGORY_LABELS[f.category]}: ${sentenceCase(f.content)}. Discuss this with your coach`}
                                   className="group block border-l border-white/[0.08] hover:border-primary/50 pl-3.5 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 transition-colors"
                                 >
                                   <div className="flex items-baseline justify-between gap-3 mb-1">
@@ -378,7 +379,7 @@ export default function HistoryPage() {
                                   </div>
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="text-[0.95rem] leading-relaxed text-foreground/90">
-                                      {f.content}
+                                      {sentenceCase(f.content)}
                                     </div>
                                     <ChevronRight
                                       className="mt-1 h-3.5 w-3.5 flex-none text-foreground/30 group-hover:text-primary/80 transition-colors"

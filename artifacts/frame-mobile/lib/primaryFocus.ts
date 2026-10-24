@@ -1,4 +1,5 @@
 import type { Fighter } from "@/context/FighterContext";
+import { sentenceCase } from "@/lib/sentenceCase";
 
 // Facts come back from /memory. topic/createdAt are optional on mobile — the
 // server includes them when known; the helpers below tolerate their absence.
@@ -28,7 +29,7 @@ export function primaryFocus(
   if (weaknesses.length > 0) {
     const top = weaknesses[0];
     return {
-      label: top.topic || top.content,
+      label: sentenceCase(top.topic || top.content),
       source: "highest-confidence recorded weakness",
     };
   }
@@ -54,7 +55,7 @@ export function primaryStrength(
   if (strengths.length > 0) {
     const top = strengths[0];
     return {
-      label: top.topic || top.content,
+      label: sentenceCase(top.topic || top.content),
       source: "highest-confidence recorded strength",
     };
   }

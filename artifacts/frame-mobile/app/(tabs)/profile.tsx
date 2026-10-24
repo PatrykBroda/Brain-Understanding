@@ -54,6 +54,7 @@ import {
   type ModelFact,
 } from "@/lib/athleteModel";
 import { FONT, TEXT_PRIMARY, TEXT_SECONDARY, caption, label, meta, sectionTitle, sentence } from "@/constants/typography";
+import { sentenceCase } from "@/lib/sentenceCase";
 
 const ACCENT = "#8A6A2F";
 
@@ -731,7 +732,7 @@ export default function ProfileScreen() {
               {model.topWeakness && (
                 <DataRow
                   label="Observed blind spot"
-                  value={model.topWeakness.topic || model.topWeakness.content}
+                  value={sentenceCase(model.topWeakness.topic || model.topWeakness.content)}
                   sub={`conf ${model.topWeakness.confidence}/5`}
                 />
               )}
@@ -819,12 +820,12 @@ export default function ProfileScreen() {
                           })
                         }
                         accessibilityRole="button"
-                        accessibilityLabel={`${f.topic || f.content}, ${factSeenLabel(f)}. Discuss this with your coach`}
+                        accessibilityLabel={`${sentenceCase(f.topic || f.content)}, ${factSeenLabel(f)}. Discuss this with your coach`}
                         style={({ pressed }) => [s.factItem, pressed && s.pressed]}
                       >
                         <View style={{ flex: 1 }}>
                           <Text style={s.factText} numberOfLines={2}>
-                            {f.topic || f.content}
+                            {sentenceCase(f.topic || f.content)}
                           </Text>
                           <Text style={s.factSeen}>{sentence(factSeenLabel(f))}</Text>
                         </View>

@@ -1,6 +1,7 @@
 import { Brain, TrendingUp, Plus } from "lucide-react";
 import { ontologyLabels } from "@workspace/ontology";
 import type { AnalysisModelUpdate } from "@/lib/api";
+import { sentenceCase } from "@/lib/sentence-case";
 
 // "Athlete Model Updated" — shown once, directly under a freshly created
 // FRAME REPORT. Every number here is read back from the DB after real writes
@@ -66,7 +67,7 @@ export function ModelUpdateCard({ update }: { update: AnalysisModelUpdate }) {
               >
                 <div className="min-w-0">
                   <div className="type-label font-medium text-foreground/80 truncate">
-                    {c.topic || c.content}
+                    {sentenceCase(c.topic || c.content)}
                   </div>
                   <div
                     className="type-meta text-foreground/80 tabular-nums"
@@ -106,7 +107,7 @@ export function ModelUpdateCard({ update }: { update: AnalysisModelUpdate }) {
                     <div className="flex items-center gap-1.5 min-w-0">
                       <Plus className="w-2.5 h-2.5 flex-none text-foreground/40" strokeWidth={2} />
                       <span className="type-label font-medium text-foreground/80 truncate">
-                        {o.topic || o.content}
+                        {sentenceCase(o.topic || o.content)}
                       </span>
                     </div>
                     <div className="type-meta text-foreground/80 pl-4">
