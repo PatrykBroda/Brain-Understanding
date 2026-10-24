@@ -1,5 +1,5 @@
 import type { Fighter, AthleteFact } from "@/lib/api";
-import { sentenceCase } from "@/lib/sentence-case";
+import { sentenceCase } from "./sentence-case";
 
 // The single highest-value insight — the one line the app leads with.
 // Derived from REAL data only (recorded facts, else the athlete's own
