@@ -1,4 +1,5 @@
 import type { Fighter, AthleteFact } from "@/lib/api";
+import { sentenceCase } from "@/lib/sentence-case";
 
 // The single highest-value insight — the one line the app leads with.
 // Derived from REAL data only (recorded facts, else the athlete's own
@@ -13,7 +14,7 @@ export function primaryFocus(
     .sort((a, b) => b.confidence - a.confidence || (a.createdAt < b.createdAt ? 1 : -1));
   if (weaknesses.length > 0) {
     const top = weaknesses[0];
-    return { label: top.topic || top.content, source: "highest-confidence recorded weakness" };
+    return { label: sentenceCase(top.topic || top.content), source: "highest-confidence recorded weakness" };
   }
   const stated = (fighter.weaknesses || "").split(/[,.;\n]/).map((s) => s.trim()).filter(Boolean)[0];
   if (stated) return { label: stated, source: "from your onboarding" };
@@ -28,7 +29,7 @@ export function primaryStrength(
     .sort((a, b) => b.confidence - a.confidence || (a.createdAt < b.createdAt ? 1 : -1));
   if (strengths.length > 0) {
     const top = strengths[0];
-    return { label: top.topic || top.content, source: "highest-confidence recorded strength" };
+    return { label: sentenceCase(top.topic || top.content), source: "highest-confidence recorded strength" };
   }
   return null;
 }
