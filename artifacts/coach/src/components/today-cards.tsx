@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 import { formatDay } from "@/lib/local-day";
-import type { FocusView, TodayView } from "@/lib/today";
+import { focusBecause, type FocusView, type TodayView } from "@/lib/today";
 
 /**
  * Said when FRAME holds nothing new today (or no check-in): what it knows, from which day,
@@ -47,6 +47,7 @@ export function FocusSection({
   askHref?: (prompt: string) => string;
 }) {
   const stale = focus != null && !focus.current;
+  const because = focus ? focusBecause(focus) : [];
   return (
     <section className="px-6 pt-7" aria-label="Today's focus">
       <div className="flex items-center justify-between gap-3 border-b border-white/[0.07] pb-2">
@@ -69,21 +70,16 @@ export function FocusSection({
             {focus.title}
           </p>
           <p className="mt-2 font-sans font-light text-[14px] leading-relaxed text-foreground/80">{focus.detail}</p>
-          {focus.because.length > 0 && (
+          {because.length > 0 && (
             <ul className="mt-3 space-y-1 border-t border-white/[0.05] pt-3">
-              {focus.because.map((b) => (
+              {because.map((b) => (
                 <li key={b} className="type-meta text-foreground/80 leading-relaxed">
                   {b}
                 </li>
               ))}
             </ul>
           )}
-          {stale ? (
-            <p className="mt-3 type-meta text-primary/80 leading-relaxed">
-              Not set for today. Check in or tell your coach how training went and FRAME will set today's.
-            </p>
-          ) : (
-            askHref && (
+          {!stale && askHref && (
               <Link
                 href={askHref(`My focus today is "${focus.title}". Walk me through how to work on it in my next session.`)}
                 className="mt-4 inline-flex items-center gap-2 type-meta text-primary/80 hover:text-primary transition-colors"
@@ -91,8 +87,7 @@ export function FocusSection({
                 Talk it through with your coach
                 <ChevronRight className="w-3 h-3" strokeWidth={1.5} />
               </Link>
-            )
-          )}
+            )}
         </div>
       ) : (
         <p className="pt-4 type-label font-medium text-foreground/80 leading-relaxed">

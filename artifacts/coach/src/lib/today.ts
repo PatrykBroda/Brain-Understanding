@@ -35,6 +35,11 @@ export interface FocusView {
   carriedOver: boolean;
 }
 
+/** Reasons shown under the focus. Drops the old "Your check-in today: ..." line that earlier server reads stored. */
+export function focusBecause(focus: Pick<FocusView, "because">): string[] {
+  return focus.because.filter((b) => !/^Your check-in today:/i.test(b));
+}
+
 export type DisclosureCode = "none" | "no_checkin_today" | "no_info_today" | "no_info_ever";
 
 export interface TodayView {

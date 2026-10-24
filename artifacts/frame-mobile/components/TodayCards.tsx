@@ -4,7 +4,7 @@ import { Feather } from "@expo/vector-icons";
 
 import { GOLD } from "@/constants/colors";
 import { formatDay } from "@/lib/localDay";
-import type { FocusView, TodayView } from "@/lib/today";
+import { focusBecause, type FocusView, type TodayView } from "@/lib/today";
 import { TEXT_SECONDARY, caption, meta, sectionTitle } from "@/constants/typography";
 
 /**
@@ -49,6 +49,7 @@ export function FocusCard({
   onAskCoach?: (prompt: string) => void;
 }) {
   const stale = focus != null && !focus.current;
+  const because = focus ? focusBecause(focus) : [];
   const dateTag = focus?.forDate
     ? stale
       ? `From ${formatDay(focus.forDate)}`
@@ -83,19 +84,14 @@ export function FocusCard({
             {!stale && onAskCoach ? <Feather name="chevron-right" size={16} color="#555" /> : null}
           </Pressable>
           <Text style={s.detail}>{focus.detail}</Text>
-          {focus.because.length > 0 ? (
+          {because.length > 0 ? (
             <View style={s.because}>
-              {focus.because.map((b) => (
+              {because.map((b) => (
                 <Text key={b} style={s.becauseLine}>
                   {b}
                 </Text>
               ))}
             </View>
-          ) : null}
-          {stale ? (
-            <Text style={s.staleNote}>
-              Not set for today. Check in or tell your coach how training went and FRAME will set today's.
-            </Text>
           ) : null}
         </>
       ) : (

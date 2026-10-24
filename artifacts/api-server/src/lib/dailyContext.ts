@@ -193,7 +193,6 @@ export function deriveFocus(sig: FocusSignals): DailyFocusPayload {
   const c = sig.checkin;
 
   if (c && readinessScore(c) < 45) {
-    because.push(`Your check-in today: ${describeCheckin(c)}.`);
     const weakest = (
       [
         ["sleep", c.sleep],
@@ -235,14 +234,12 @@ export function deriveFocus(sig: FocusSignals): DailyFocusPayload {
   if (sig.camp) {
     const base = CAMP_FOCUS[sig.camp.phase] ?? CAMP_FOCUS["Build"]!;
     because.push(`Camp phase: ${sig.camp.phase}, ${sig.camp.daysToEvent} day${sig.camp.daysToEvent === 1 ? "" : "s"} to the event.`);
-    if (c) because.push(`Your check-in today: ${describeCheckin(c)}.`);
     return { kind: "camp", title: base.title, detail: base.detail, because };
   }
 
   const weak = sig.notesToday.find((n) => n.category === "weakness" || n.category === "pattern");
   if (weak) {
     because.push(`You told your coach today: ${clip(weak.content, 140)}`);
-    if (c) because.push(`Your check-in today: ${describeCheckin(c)}.`);
     return {
       kind: "weakness",
       title: clip(weak.topic || weak.content, 60),
@@ -256,7 +253,6 @@ export function deriveFocus(sig: FocusSignals): DailyFocusPayload {
     because.push(
       `Recorded weakness, seen ${top.evidenceCount} time${top.evidenceCount === 1 ? "" : "s"}, last on ${formatLocalDate(top.lastSeen)}.`,
     );
-    if (c) because.push(`Your check-in today: ${describeCheckin(c)}.`);
     return {
       kind: "weakness",
       title: clip(top.topic || top.content, 60),
