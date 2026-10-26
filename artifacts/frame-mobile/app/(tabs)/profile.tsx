@@ -23,6 +23,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter, type Fighter } from "@/context/FighterContext";
+import { heroImageSource } from "@/lib/heroImage";
 import { apiDelete, apiGet, apiPatch, apiUrl, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 import { primaryFocus } from "@/lib/primaryFocus";
@@ -227,7 +228,7 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
 
   const busy = upload.isPending || remove.isPending;
   const hasHero = (fighter.heroImageUrl ?? "").trim() !== "";
-  const heroSrc = hasHero ? heroFileUrl(fighter.updatedAt) : null;
+  const heroSource = heroImageSource(hasHero ? heroFileUrl(fighter.updatedAt) : null, heroToken);
   const zoom = (fighter.heroZoom ?? 100) / 100;
 
   async function pickHero() {
@@ -266,12 +267,9 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
   return (
     <View>
       <View style={s.band}>
-        {heroSrc ? (
+        {heroSource ? (
           <Image
-            source={{
-              uri: heroSrc,
-              ...(heroToken ? { headers: { Authorization: `Bearer ${heroToken}` } } : {}),
-            }}
+            source={heroSource}
             style={[StyleSheet.absoluteFill, { opacity: 0.42, transform: [{ scale: zoom }] }]}
             resizeMode="cover"
           />

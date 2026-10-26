@@ -35,6 +35,7 @@ import { FirstUsePointers } from "@/components/FirstUsePointers";
 import { ReadinessBars } from "@/components/ReadinessBars";
 import { dismissProps } from "@/components/FormScroll";
 import { KEYBOARD_DONE_ID } from "@/components/KeyboardDoneBar";
+import { heroImageSource } from "@/lib/heroImage";
 import { apiGet, getAuthToken, heroFileUrl } from "@/lib/api";
 import { formatDay } from "@/lib/localDay";
 import { sportDisplayName } from "@/lib/onboarding";
@@ -392,7 +393,6 @@ export default function HomeScreen() {
   const showCheckinNotice = !checkin && today?.disclosure.code === "no_checkin_today";
 
   const hasHero = !!fighter && (fighter.heroImageUrl ?? "").trim() !== "";
-  const heroSrc = hasHero ? heroFileUrl(fighter!.updatedAt) : null;
   const zoom = (fighter?.heroZoom ?? 100) / 100;
 
   // Auth token for the hero image request — Image doesn't send Bearer headers
@@ -401,6 +401,7 @@ export default function HomeScreen() {
   useEffect(() => {
     if (hasHero) getAuthToken().then(setHeroToken);
   }, [hasHero, fighter?.updatedAt]);
+  const heroSource = heroImageSource(hasHero ? heroFileUrl(fighter!.updatedAt) : null, heroToken);
 
   const metaParts = fighter
     ? [
@@ -424,12 +425,9 @@ export default function HomeScreen() {
     >
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
       <View style={styles.hero}>
-        {heroSrc ? (
+        {heroSource ? (
           <Image
-            source={{
-              uri: heroSrc,
-              ...(heroToken ? { headers: { Authorization: `Bearer ${heroToken}` } } : {}),
-            }}
+            source={heroSource}
             style={[
               StyleSheet.absoluteFill,
               { opacity: 0.45, transform: [{ scale: zoom }] },
