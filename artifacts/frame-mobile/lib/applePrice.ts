@@ -1,4 +1,5 @@
 import { apiGet } from "./api";
+import type { TrialOffer } from "./introOffer";
 import type { FreshPurchasesPackage } from "./storeProductRefresh";
 
 export type VerifiedPackage = FreshPurchasesPackage & {
@@ -10,6 +11,9 @@ export type VerifiedPackage = FreshPurchasesPackage & {
     /** Absent from servers older than the price audit. */
     amount?: number;
   };
+  /** Free trial StoreKit says this user is eligible for; null = none. The
+   * applePrice above is always the post-trial (renewal) price. */
+  trial: TrialOffer | null;
 };
 
 export type ShownPriceReport = {
@@ -22,6 +26,8 @@ export type ShownPriceReport = {
   displayedAmount: number | null;
   storePriceString: string;
   storeCurrencyCode: string;
+  /** Trial promised on the card, e.g. "2 months"; null = plain price card. */
+  trialOffer: string | null;
 };
 
 /** What the card renders for this package, next to StoreKit's own view, so
@@ -40,12 +46,16 @@ export function toShownPriceReport(
     displayedAmount: typeof pkg.applePrice.amount === "number" ? pkg.applePrice.amount : null,
     storePriceString: pkg.product.priceString,
     storeCurrencyCode: pkg.product.currencyCode,
+    trialOffer: pkg.trial?.periodLabel ?? null,
   };
 }
 
 /** Apple Connect's scheduled new-subscriber price, not StoreKit's potentially
  * USD TestFlight product metadata. Never fall back to a StoreKit amount. */
-export async function verifyApplePrice(pkg: FreshPurchasesPackage): Promise<VerifiedPackage> {
+export async function verifyApplePrice(
+  pkg: FreshPurchasesPackage,
+  trial: TrialOffer | null = null,
+): Promise<VerifiedPackage> {
   const countryCode = pkg.storeContext.storefrontCountryCode;
   // StoreKit returns ISO 3166-1 alpha-3 (e.g. GBR, USA). Older SDKs may
   // supply alpha-2; the API validates both against Apple's territory list.
@@ -62,7 +72,7 @@ export async function verifyApplePrice(pkg: FreshPurchasesPackage): Promise<Veri
       !price.localizedPrice.trim()) {
     throw new Error("Apple's subscription price could not be verified.");
   }
-  return { ...pkg, applePrice: price };
+  return { ...pkg, applePrice: price, trial };
 }
 
 export function didVerifiedPriceChange(before: VerifiedPackage, after: VerifiedPackage): boolean {
@@ -70,5 +80,6 @@ export function didVerifiedPriceChange(before: VerifiedPackage, after: VerifiedP
     before.product.subscriptionPeriod !== after.product.subscriptionPeriod ||
     before.storeContext.storefrontCountryCode !== after.storeContext.storefrontCountryCode ||
     before.applePrice.localizedPrice !== after.applePrice.localizedPrice ||
-    before.applePrice.currencyCode !== after.applePrice.currencyCode;
+    before.applePrice.currencyCode !== after.applePrice.currencyCode ||
+    (before.trial?.periodLabel ?? null) !== (after.trial?.periodLabel ?? null);
 }

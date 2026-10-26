@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import {
   getFramePlusPackages,
+  getTrialOffer,
   purchasePackage,
   preparePackageForPurchase,
   restorePurchases,
@@ -30,6 +31,7 @@ import { useSyncBilling } from "@/hooks/useEntitlement";
 import { apiUrl } from "@/lib/api";
 import { didVerifiedPriceChange, toShownPriceReport, verifyApplePrice, type VerifiedPackage } from "@/lib/applePrice";
 import { formatSubscriptionRenewal } from "@/lib/subscriptionDisclosure";
+import { formatTrialDisclosure, formatTrialHeadline } from "@/lib/introOffer";
 import { reportCrash, reportPriceShown } from "@/lib/crashReporter";
 import { TEXT_SECONDARY, body, caption, label, sectionTitle } from "@/constants/typography";
 
@@ -63,7 +65,7 @@ export default function PaywallScreen() {
       setLoading(true);
       setLoadError(null);
       void getFramePlusPackages()
-        .then((pkgs) => Promise.all(pkgs.map(verifyApplePrice)))
+        .then((pkgs) => Promise.all(pkgs.map(async (pkg) => verifyApplePrice(pkg, await getTrialOffer(pkg.product)))))
         .then((pkgs) => {
           if (alive && generation === loadGeneration) {
             for (const shown of pkgs) reportPriceShown(toShownPriceReport("shown", shown));
@@ -117,7 +119,10 @@ export default function PaywallScreen() {
       const preparation = await preparePackageForPurchase(pkg);
       // Query Apple again before opening the native purchase sheet. A failed
       // check blocks purchase rather than silently using TestFlight's USD.
-      const checked = await verifyApplePrice(preparation.pkg);
+      const checked = await verifyApplePrice(
+        preparation.pkg,
+        await getTrialOffer(preparation.pkg.product),
+      );
       reportPriceShown(toShownPriceReport("prepurchase", checked));
       // StoreKit's priceString/currencyCode can change from one wrong
       // TestFlight value to another. Only a changed product/period/storefront
@@ -243,12 +248,25 @@ export default function PaywallScreen() {
                   <Text style={s.planTitle}>
                     {getSubscriptionPlanLabel(pkg.product.title)}
                   </Text>
-                   <Text style={s.planPrice}>
-                     {formatSubscriptionRenewal(pkg.applePrice.localizedPrice, period)}
-                   </Text>
-                  <Text style={s.planIncludes}>
-                     Nothing is charged until you confirm with Apple.
-                  </Text>
+                  {pkg.trial ? (
+                    <>
+                      <Text style={s.planTrial}>
+                        {formatTrialHeadline(pkg.trial, pkg.applePrice.localizedPrice, period)}
+                      </Text>
+                      <Text style={s.planIncludes}>
+                        {formatTrialDisclosure(pkg.trial, pkg.applePrice.localizedPrice, period)}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={s.planPrice}>
+                        {formatSubscriptionRenewal(pkg.applePrice.localizedPrice, period)}
+                      </Text>
+                      <Text style={s.planIncludes}>
+                        Nothing is charged until you confirm with Apple.
+                      </Text>
+                    </>
+                  )}
                 </View>
                 {busy ? (
                   <View style={s.planAction}>
@@ -378,6 +396,14 @@ const s = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     color: "#3a2a12",
+    marginTop: 2,
+    flexShrink: 1,
+  },
+  planTrial: {
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: 14,
+    lineHeight: 19,
+    color: "#050505",
     marginTop: 2,
     flexShrink: 1,
   },

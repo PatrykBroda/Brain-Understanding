@@ -89,3 +89,22 @@ describe("paywall Apple price verification", () => {
     })).toBe(true);
   });
 });
+describe("trial on the verified package", () => {
+  const trial = { paymentMode: "FREE_TRIAL" as const, periodLabel: "2 months" };
+
+  it("keeps the post-trial Apple price and attaches the trial", async () => {
+    mocks.apiGet.mockResolvedValue(applePrice);
+    const verified = await verifyApplePrice(pkg, trial);
+    expect(verified.trial).toEqual(trial);
+    expect(verified.applePrice.localizedPrice).toBe("24,99 zł");
+    expect((await verifyApplePrice(pkg)).trial).toBeNull();
+  });
+
+  it("asks the user to reconfirm when the trial appears or disappears", async () => {
+    mocks.apiGet.mockResolvedValue(applePrice);
+    const withTrial = await verifyApplePrice(pkg, trial);
+    const plain = await verifyApplePrice(pkg);
+    expect(didVerifiedPriceChange(withTrial, plain)).toBe(true);
+    expect(didVerifiedPriceChange(withTrial, { ...withTrial })).toBe(false);
+  });
+});

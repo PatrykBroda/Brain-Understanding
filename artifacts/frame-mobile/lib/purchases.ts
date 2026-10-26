@@ -18,6 +18,7 @@ import Purchases, {
   type PurchasesStoreProduct,
 } from "react-native-purchases";
 import { getSubscriptionPeriodLabel } from "./subscriptionDisclosure";
+import { describeTrialOffer, type TrialOffer } from "./introOffer";
 import {
   assertPurchasedProductMatches,
   attachFreshStoreProducts,
@@ -115,6 +116,30 @@ export async function getFramePlusPackages(): Promise<FreshPurchasesPackage[]> {
     reportPackageDiagnostic("load", pkg);
   }
   return freshPackages;
+}
+
+/**
+ * The free trial this user can actually get on `product`, or null. Only an
+ * ELIGIBLE answer from StoreKit (via RevenueCat) plus a free introductory
+ * offer on the product yields a trial; errors, unknown or ineligible all fall
+ * back to the plain price, so we never promise a trial StoreKit won't grant.
+ */
+export async function getTrialOffer(
+  product: PurchasesStoreProduct,
+): Promise<TrialOffer | null> {
+  if (!configured || !product.introPrice) return null;
+  try {
+    const result = await Purchases.checkTrialOrIntroductoryPriceEligibility([
+      product.identifier,
+    ]);
+    return describeTrialOffer(
+      product.introPrice,
+      result[product.identifier]?.status,
+    );
+  } catch (error) {
+    console.warn("Trial eligibility check failed; showing the plain price.", error);
+    return null;
+  }
 }
 
 export function hasFramePlus(info: CustomerInfo | null | undefined): boolean {
