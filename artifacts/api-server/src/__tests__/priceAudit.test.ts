@@ -91,3 +91,53 @@ describe("paywall price audit", () => {
     expect(shouldNotify("k", 16 * 60_000)).toBe(true);
   });
 });
+
+describe("paywall price audit with a free trial", () => {
+  const charge = (over = {}) => ({
+    type: "INITIAL_PURCHASE",
+    productId: "com.frame.mobile.frameplus.monthly",
+    currency: "GBP",
+    amount: 0,
+    countryCode: "GB",
+    environment: "SANDBOX",
+    periodType: "TRIAL",
+    ...over,
+  });
+
+  it("shows trial state in the shown verdict and still compares the post-trial currency", () => {
+    const v = judgeShown(shown({ trialOffer: "2 months" }));
+    expect(v.ok).toBe(true);
+    expect(v.text).toContain("trial: 2 months free, then £4.99");
+    expect(judgeShown(shown({ trialOffer: null })).text).toContain("no trial offered");
+    expect(judgeShown(shown()).text).not.toContain("trial");
+    expect(judgeShown(shown({ trialOffer: "2 months", storeCurrencyCode: "USD" })).ok).toBe(false);
+  });
+
+  it("treats a $0 trial start as correct when the card promised a trial", () => {
+    const v = judgeCharged(charge(), shown({ trialOffer: "2 months" }));
+    expect(v.ok).toBe(true);
+    expect(v.text).toContain("TRIAL STARTED");
+  });
+
+  it("flags a trial Apple started that the card did not show", () => {
+    const v = judgeCharged(charge(), shown({ trialOffer: null }));
+    expect(v.ok).toBe(false);
+    expect(v.text).toContain("UNEXPECTED TRIAL");
+  });
+
+  it("flags a promised trial that Apple billed in full", () => {
+    const v = judgeCharged(
+      charge({ amount: 4.99, periodType: "NORMAL" }),
+      shown({ trialOffer: "2 months" }),
+    );
+    expect(v.ok).toBe(false);
+    expect(v.text).toContain("TRIAL NOT APPLIED");
+  });
+
+  it("judges plain purchases and post-trial renewals as before", () => {
+    expect(judgeCharged(charge({ amount: 4.99, periodType: "NORMAL" }), shown()).ok).toBe(true);
+    expect(
+      judgeCharged(charge({ amount: 4.99, periodType: "NORMAL" }), shown({ trialOffer: null })).ok,
+    ).toBe(true);
+  });
+});

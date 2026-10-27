@@ -39,6 +39,7 @@ const CrashPayload = z
         displayedAmount: z.number().nullable(),
         storePriceString: z.string().max(40),
         storeCurrencyCode: z.string().max(3),
+        trialOffer: z.string().max(40).nullable().optional(),
       })
       .optional(),
   })

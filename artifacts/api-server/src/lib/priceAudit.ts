@@ -25,6 +25,12 @@ export type ShownPrice = {
   displayedAmount: number | null;
   storePriceString: string;
   storeCurrencyCode: string;
+  /**
+   * Free trial the card promised (e.g. "2 months"); null = the card showed the
+   * plain price. Absent from clients older than the trial. displayedPrice is
+   * always the post-trial price, so the currency check is unaffected.
+   */
+  trialOffer?: string | null;
 };
 
 export type ChargedPrice = {
@@ -34,6 +40,8 @@ export type ChargedPrice = {
   amount: number;
   countryCode: string | null;
   environment: string | null;
+  /** RevenueCat period_type: TRIAL, INTRO, NORMAL, PROMOTIONAL. */
+  periodType?: string | null;
 };
 
 export type Verdict = { ok: boolean; text: string };
@@ -51,8 +59,14 @@ function build(meta: ShownMeta): string {
   return ` · build ${meta.appVersion}${meta.buildVersion ? ` (${meta.buildVersion})` : ""}`;
 }
 
+function trialNote(p: ShownPrice): string {
+  if (p.trialOffer) return ` · trial: ${p.trialOffer} free, then ${p.displayedPrice}`;
+  if (p.trialOffer === null) return " · no trial offered";
+  return "";
+}
+
 export function judgeShown(p: ShownPrice, meta: ShownMeta = {}): Verdict {
-  const head = `card shows **${p.displayedPrice}** (${p.displayedCurrencyCode}, looked up for ${p.displayedTerritory}) · device storefront ${p.storefrontCountryCode ?? "unknown"} · StoreKit says ${p.storePriceString} (${p.storeCurrencyCode})${build(meta)}`;
+  const head = `card shows **${p.displayedPrice}** (${p.displayedCurrencyCode}, looked up for ${p.displayedTerritory}) · device storefront ${p.storefrontCountryCode ?? "unknown"} · StoreKit says ${p.storePriceString} (${p.storeCurrencyCode})${trialNote(p)}${build(meta)}`;
   const label = p.stage === "prepurchase" ? "before purchase sheet" : "paywall";
   if (p.displayedCurrencyCode === p.storeCurrencyCode) {
     return { ok: true, text: `✅ FRAME+ ${label}: MATCH — ${head}` };
@@ -69,6 +83,24 @@ export function judgeCharged(c: ChargedPrice, shown: ShownPrice | null): Verdict
     return {
       ok: false,
       text: `❔ FRAME+ ${c.type}: Apple charged **${charged}** for ${c.productId}; no paywall price was reported in the last 30 min to compare against.`,
+    };
+  }
+  if (c.periodType === "TRIAL") {
+    if (shown.trialOffer) {
+      return {
+        ok: true,
+        text: `✅ FRAME+ ${c.type}: TRIAL STARTED — card promised ${shown.trialOffer} free then ${shown.displayedPrice}; Apple started the trial (${charged}). The first real charge is the renewal after the trial, so the post-trial price is checked then.`,
+      };
+    }
+    return {
+      ok: false,
+      text: `❌ FRAME+ ${c.type}: UNEXPECTED TRIAL — Apple started a free trial (${charged}) but the card showed ${shown.displayedPrice} with no trial.`,
+    };
+  }
+  if (shown.trialOffer && c.amount > 0) {
+    return {
+      ok: false,
+      text: `❌ FRAME+ ${c.type}: TRIAL NOT APPLIED — card promised ${shown.trialOffer} free but Apple charged **${charged}**. StoreKit eligibility and Apple's billing disagree for this user.`,
     };
   }
   const sameCurrency = shown.displayedCurrencyCode === c.currency;

@@ -84,6 +84,7 @@ app.post("/api/revenuecat/webhook", async (req, res) => {
         amount: event.price_in_purchased_currency,
         countryCode: event.country_code ?? null,
         environment: event.environment ?? null,
+        periodType: event.period_type ?? null,
       });
     }
     res.status(200).json({ received: true });

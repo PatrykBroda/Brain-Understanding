@@ -19,6 +19,8 @@ export interface RevenueCatEvent {
   price_in_purchased_currency?: number | null;
   country_code?: string | null;
   environment?: string | null;
+  // TRIAL for a free-trial start (charged amount is 0), NORMAL once paying.
+  period_type?: string | null;
 }
 
 /**
