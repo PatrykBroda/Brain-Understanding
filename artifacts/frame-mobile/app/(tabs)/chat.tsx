@@ -1036,7 +1036,13 @@ export default function ChatScreen() {
           active conversation (matches the website's suggested-question chips,
           which stay available while chatting instead of disappearing). */}
       {!isLoadingHistory && (
-        <View style={styles.quickRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.quickScroll}
+          contentContainerStyle={styles.quickRow}
+          keyboardShouldPersistTaps="handled"
+        >
           {QUICK_ACTIONS.map((a) => (
             <Pressable
               key={a.label}
@@ -1047,7 +1053,7 @@ export default function ChatScreen() {
               <Text style={styles.quickText}>{a.label}</Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
       )}
 
       {/* Draft attachments awaiting send */}
@@ -1240,17 +1246,18 @@ const styles = StyleSheet.create({
     color: TEXT_PRIMARY,
     flexShrink: 1,
   },
-  quickRow: {
+  quickScroll: {
     borderTopWidth: 1,
     borderTopColor: "#2a2a2a",
-    // Chips wrap onto a second line instead of running off the right edge.
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  // One single row; swipe sideways for the rest.
+  quickRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    flexGrow: 0,
-    flexShrink: 0,
   },
   quickChip: {
     borderWidth: 1,
@@ -1258,6 +1265,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     justifyContent: "center",
+    flexShrink: 0,
   },
   quickChipPressed: {
     borderColor: "#8A6A2F",
