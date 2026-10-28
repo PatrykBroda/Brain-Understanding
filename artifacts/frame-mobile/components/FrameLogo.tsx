@@ -13,12 +13,13 @@ export const FRAME_LOGO_BOX = { x: 30, y: 20, w: 1545, h: 185 };
 
 const STROKES = [
   "M47 195V59H210M47 111H170", // F
-  "M347 195V59H470A38 38 0 0 1 470 135H347M472 137L527 195", // R
+  "M347 195V59H470A38 38 0 0 1 470 135H347", // R
   "M1347 195V59H1510M1347 127H1470M1347 184H1510", // E
 ];
 const FILLS = [
-  "658,195 752,47 788,47 876,195 842,195 770,85 694,195", // A (open chevron)
-  "995,195 995,47 1032,47 1097,140 1162,47 1200,47 1200,195 1176,195 1176,96 1108,176 1086,176 1019,96 1019,195", // M
+  "658,195 752,48 782,48 876,195 850,195 767,64 684,195", // A (open chevron), legs 22 thick like the strokes
+  "435,130 465,130 527,195 497,195", // R leg, flat on the baseline
+  "995,195 995,48 1024,48 1097.5,129 1171,48 1200,48 1200,195 1178,195 1178,68 1097.5,158 1017,68 1017,195", // M, stems and diagonals the same weight as F/R/E
 ];
 
 /** Glyphs only, in FRAME_LOGO_BOX coordinates, for composing inside another <Svg>. */
