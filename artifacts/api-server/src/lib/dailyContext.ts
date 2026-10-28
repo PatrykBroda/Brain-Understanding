@@ -183,6 +183,12 @@ function clip(s: string, n: number): string {
   return t.length <= n ? t : `${t.slice(0, n - 1).trimEnd()}…`;
 }
 
+/** True when the athlete said it themselves (chat or confirmed), not only video analysis inferred it. */
+export function toldInChat(f: Pick<AthleteFact, "source" | "sources">): boolean {
+  const types = f.sources?.length ? f.sources.map((s) => s.type) : [String(f.source).split(":")[0] ?? ""];
+  return types.some((t) => t === "chat" || t === "athlete_confirmed");
+}
+
 function describeCheckin(c: CheckinLike): string {
   return `sleep ${c.sleep}, energy ${c.energy}, soreness ${100 - c.soreness}/100, stress ${100 - c.stress}/100`;
 }
@@ -256,7 +262,7 @@ export function deriveFocus(sig: FocusSignals): DailyFocusPayload {
     return {
       kind: "weakness",
       title: clip(top.topic || top.content, 60),
-      detail: clip(top.content, 200),
+      detail: clip(top.content, 90),
       because,
     };
   }
@@ -506,7 +512,7 @@ export async function getDailyView(
         activeNoteCount: raw.facts.length,
       });
       const weaknesses = raw.facts
-        .filter((f) => f.category === "weakness")
+        .filter((f) => f.category === "weakness" && toldInChat(f))
         .sort((a, b) => b.confidence - a.confidence || lastSeenAt(b).getTime() - lastSeenAt(a).getTime())
         .map((f) => ({
           topic: f.topic,
