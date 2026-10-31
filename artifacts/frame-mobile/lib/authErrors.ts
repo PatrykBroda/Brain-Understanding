@@ -1,6 +1,6 @@
 import { AuthSessionError } from "./authSession";
 
-type AuthAction = "sign-in" | "sign-up";
+type AuthAction = "sign-in" | "sign-up" | "forgot-password" | "reset-password";
 
 type ApiErrorLike = {
   status: number;
@@ -34,7 +34,12 @@ export function getAuthErrorMessage(
 
   if (isApiError(error)) {
     if (error.status === 429) {
-      const actionLabel = action === "sign-up" ? "creating an account" : "signing in";
+      const actionLabel =
+        action === "sign-up"
+          ? "creating an account"
+          : action === "forgot-password" || action === "reset-password"
+            ? "resetting your password"
+            : "signing in";
       const waitMinutes = error.retryAfterSeconds
         ? Math.max(1, Math.ceil(error.retryAfterSeconds / 60))
         : null;
@@ -49,6 +54,15 @@ export function getAuthErrorMessage(
 
     if (error.status === 409 && action === "sign-up") {
       return "An account with that email already exists. Try signing in instead.";
+    }
+
+    if (error.status === 400 && action === "reset-password") {
+      if (/invalid or has expired/i.test(error.message)) {
+        return "That code is invalid or has expired. Check it and try again, or request a new one.";
+      }
+      if (/at least 8 characters/i.test(error.message)) {
+        return "Your password must be at least 8 characters.";
+      }
     }
 
     if (error.status === 400) {
@@ -74,6 +88,8 @@ export function getAuthErrorMessage(
     return "We couldn't start your session. Please try again.";
   }
 
+  if (action === "forgot-password") return "We couldn't send a code right now. Please try again.";
+  if (action === "reset-password") return "We couldn't reset your password right now. Please try again.";
   return action === "sign-up"
     ? "We couldn't create your account right now. Please try again."
     : "We couldn't sign you in right now. Please try again.";

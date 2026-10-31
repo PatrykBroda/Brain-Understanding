@@ -22,6 +22,8 @@ export const usersTable = pgTable("users", {
   aiAnalysisConsentAt: timestamp("ai_analysis_consent_at", { withTimezone: true }),
   legalConsentVersion: text("legal_consent_version"),
   legalConsentAt: timestamp("legal_consent_at", { withTimezone: true }),
+  // Set when the password is reset. Sessions (JWTs) issued before this are rejected.
+  passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
 });
 
 export type User = typeof usersTable.$inferSelect;

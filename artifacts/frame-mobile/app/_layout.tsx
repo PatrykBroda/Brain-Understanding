@@ -301,6 +301,8 @@ function RootLayoutNav() {
             <Stack.Screen name="splash" options={{ animation: "fade" }} />
             <Stack.Screen name="sign-in" options={{ animation: "fade" }} />
             <Stack.Screen name="sign-up" options={{ animation: "fade" }} />
+            <Stack.Screen name="forgot-password" options={{ animation: "fade" }} />
+            <Stack.Screen name="reset-password" options={{ animation: "fade" }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen
               name="paywall"

@@ -141,6 +141,14 @@ export default function SignInScreen() {
                   />
                 </View>
               </AuthPanel>
+              <Button
+                title="Forgot password?"
+                variant="ghost"
+                onPress={() =>
+                  router.push({ pathname: "/forgot-password", params: email.trim() ? { email: email.trim() } : {} })
+                }
+                style={{ marginTop: space.sm }}
+              />
               <View style={styles.formLinks}>
                 <Button title="Back" variant="ghost" onPress={() => setShowForm(false)} />
                 <Button title="Create account" variant="ghost" onPress={() => router.push("/sign-up")} />

@@ -19,3 +19,4 @@ export * from "./hero_images";
 export * from "./account_deletion_files";
 
 export * from "./onboarding_events";
+export * from "./password_reset_tokens";

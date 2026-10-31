@@ -13,8 +13,9 @@
  *                      tests can isolate windows without spawning a process.
  *   Token TTL        : 90 days, sliding — every launch swaps the token via
  *                      POST /api/auth/refresh, so this is the longest an athlete
- *                      can go without opening FRAME. Tokens are not revocable at
- *                      this point; force-reissue on password change is next step.
+ *                      can go without opening FRAME. Tokens are not individually
+ *                      revocable, but a password reset stamps users.password_changed_at
+ *                      and any token issued before it is rejected (see isSessionRevoked).
  *   Generic errors   : login always returns "Incorrect email or password"
  *                      whether the account exists or not.
  */
@@ -145,30 +146,41 @@ export async function signToken(userId: string, email: string): Promise<string> 
 
 export async function verifyToken(
   token: string,
-): Promise<{ userId: string; email: string } | null> {
+): Promise<{ userId: string; email: string; iat: number | null } | null> {
   try {
     const { payload } = await jwtVerify(token, jwtSecret());
     const userId = payload.sub;
     const email = payload.email;
     if (typeof userId !== "string" || typeof email !== "string") return null;
-    return { userId, email };
+    return { userId, email, iat: typeof payload.iat === "number" ? payload.iat : null };
   } catch {
     return null;
   }
 }
 
-/** Verify both JWT integrity and that its account still exists. */
+/**
+ * True when a session token predates the account's last password change. JWT `iat` is whole
+ * seconds, so the change time is floored to the second; a token with no `iat` is treated as stale.
+ */
+export function isSessionRevoked(iat: number | null, passwordChangedAt: Date | null): boolean {
+  if (!passwordChangedAt) return false;
+  if (iat === null) return true;
+  return iat < Math.floor(passwordChangedAt.getTime() / 1000);
+}
+
+/** Verify JWT integrity, that its account still exists, and that no password reset has revoked it. */
 export async function verifyLiveUserToken(
   token: string,
 ): Promise<{ userId: string; email: string } | null> {
   const payload = await verifyToken(token);
   if (!payload) return null;
   const [user] = await db
-    .select({ id: usersTable.id })
+    .select({ id: usersTable.id, passwordChangedAt: usersTable.passwordChangedAt })
     .from(usersTable)
     .where(eq(usersTable.id, payload.userId))
     .limit(1);
-  return user ? payload : null;
+  if (!user || isSessionRevoked(payload.iat, user.passwordChangedAt)) return null;
+  return { userId: payload.userId, email: payload.email };
 }
 
 // ─── Password policy ──────────────────────────────────────────────────────────

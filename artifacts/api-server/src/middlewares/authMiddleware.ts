@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db, fightersTable, usersTable, type Fighter } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { verifyToken } from "../routes/auth";
+import { verifyToken, isSessionRevoked } from "../routes/auth";
 import { ensureFighter } from "../lib/ensureFighter";
 
 declare global {
@@ -32,12 +32,18 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
       // account must not grant access — this is the global revocation check
       // since JWTs are otherwise not revocable.
       const [user] = await db
-        .select({ id: usersTable.id })
+        .select({ id: usersTable.id, passwordChangedAt: usersTable.passwordChangedAt })
         .from(usersTable)
         .where(eq(usersTable.id, payload.userId))
         .limit(1);
       if (!user) {
         req.log.warn({ url: req.url, userId: payload.userId }, "requireAuth: user not found");
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      // A password reset revokes every session issued before it.
+      if (isSessionRevoked(payload.iat, user.passwordChangedAt)) {
+        req.log.warn({ url: req.url, userId: payload.userId }, "requireAuth: session predates password change");
         res.status(401).json({ error: "Unauthorized" });
         return;
       }

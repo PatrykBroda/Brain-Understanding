@@ -17,6 +17,7 @@ import billingRouter from "./billing";
 import accountRouter from "./account";
 import { googlePublicRouter, googleRouter } from "./google";
 import authRouter from "./auth";
+import passwordResetRouter from "./passwordReset";
 import privacyRouter from "./privacy";
 import aiConsentRouter from "./aiConsent";
 import onboardingRouter from "./onboarding";
@@ -32,6 +33,7 @@ router.use(healthRouter);
 router.use(crashlogRouter);
 // Custom auth routes — register, login, logout, me
 router.use(authRouter);
+router.use(passwordResetRouter);
 router.use(privacyRouter);
 // Google OAuth callback — Google arrives with no session; identity is
 // recovered from the signed `state`, so this MUST stay public.
