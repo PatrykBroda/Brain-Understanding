@@ -22,6 +22,8 @@ import { refreshModel } from "@/lib/modelRefresh";
 import { FactConfidence } from "@/components/FactConfidence";
 import { TEXT_SECONDARY, caption, meta, sectionTitle, sentence } from "@/constants/typography";
 import { sentenceCase } from "@/lib/sentenceCase";
+import { useCompetitionList } from "@/hooks/useCompetition";
+import { finishedCamps } from "@/lib/campHistory";
 
 const ACCENT = "#8A6A2F";
 
@@ -70,6 +72,8 @@ export default function HistoryScreen() {
     [rawFacts],
   );
   const buckets = useMemo(() => bucketByDay(activeFacts), [activeFacts]);
+  const { data: campData } = useCompetitionList();
+  const camps = useMemo(() => finishedCamps(campData?.competitions ?? []), [campData]);
 
   return (
     <View style={[s.root, { paddingTop: topPad }]}>
@@ -88,6 +92,39 @@ export default function HistoryScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: bottomPad, paddingTop: 8 }}
         showsVerticalScrollIndicator={false}
       >
+        {camps.length > 0 && (
+          <View style={{ marginBottom: 28 }}>
+            <View style={s.dayHeadRow}>
+              <Text style={s.dayHeadLabel}>Past camps</Text>
+              <View style={s.dayHeadLine} />
+              <Text style={s.dayHeadCount}>{camps.length}</Text>
+            </View>
+            <View style={{ gap: 6 }}>
+              {camps.map((c) => (
+                <View key={c.id} style={s.factItem}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.factCat}>
+                      {new Date(c.eventDate).toLocaleDateString(undefined, {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </Text>
+                    <Text style={s.factText} numberOfLines={2}>
+                      {c.eventName}
+                      {c.opponent ? ` vs ${c.opponent}` : ""}
+                    </Text>
+                    {(c.discipline || c.weightClass) && (
+                      <Text style={s.factSeen}>
+                        {[c.discipline, c.weightClass].filter(Boolean).join(" · ")}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
         {!isFramePlus ? (
           <Pressable style={s.panel} onPress={() => router.push("/paywall")}>
             <View style={s.panelPad}>
