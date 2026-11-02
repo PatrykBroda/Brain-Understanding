@@ -163,3 +163,19 @@ export const GLOSSARY_KEYS = Object.keys(GLOSSARY).sort(
 export function isBrandMention(matched: string): boolean {
   return matched.toLowerCase() === "frame" && matched !== "frame";
 }
+
+/**
+ * Resolve a gold [[node]] title to a glossary entry. Tries the whole title, then
+ * each side of a "PREFIX - Name" title. Returns undefined when we have no real
+ * explanation — callers must then show the text plain, never highlighted.
+ */
+export function lookupConcept(title: string): { key: string; entry: GlossEntry } | undefined {
+  const t = title.trim().toLowerCase();
+  const parts = t.split(/\s+[-–—]\s+/);
+  for (const cand of [t, ...parts]) {
+    const c = cand.trim();
+    const entry = Object.prototype.hasOwnProperty.call(GLOSSARY, c) ? GLOSSARY[c] : undefined;
+    if (entry) return { key: c, entry };
+  }
+  return undefined;
+}

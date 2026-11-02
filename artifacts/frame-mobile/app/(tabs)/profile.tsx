@@ -56,6 +56,8 @@ import {
 } from "@/lib/athleteModel";
 import { FONT, TEXT_PRIMARY, TEXT_SECONDARY, caption, label, meta, sectionTitle, sentence } from "@/constants/typography";
 import { sentenceCase } from "@/lib/sentenceCase";
+import { GLOSSARY } from "@/lib/glossary";
+import { loadMetTerms, type MetTerm } from "@/lib/termsLibrary";
 
 const ACCENT = "#8A6A2F";
 
@@ -327,7 +329,13 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
 }
 
 export default function ProfileScreen() {
-  const { signOut, isSignedIn, email } = useAuth();
+  const { signOut, isSignedIn, email, userId } = useAuth();
+  const [metTerms, setMetTerms] = useState<MetTerm[]>([]);
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) void loadMetTerms(userId).then(setMetTerms);
+    }, [userId]),
+  );
   const { fighter, isLoading: fighterLoading, refetch } = useFighter();
   const router = useRouter();
   const qc = useQueryClient();
@@ -765,6 +773,34 @@ export default function ProfileScreen() {
                 under fragmentation, not a fitness score.
               </Text>
             </View>
+          </View>
+
+          {/* ─── Terms library — concepts the athlete has opened in chat ─── */}
+          <View style={s.sectionHeaderRow}>
+            <View>
+              <Text style={s.sectionOverline}>Terms library</Text>
+              <Text style={s.sectionTitle}>
+                {metTerms.length} term{metTerms.length === 1 ? "" : "s"} discovered
+              </Text>
+            </View>
+          </View>
+          <View style={[s.panel, s.panelPad]}>
+            {metTerms.length === 0 ? (
+              <Text style={s.bodyCopy}>
+                Tap a highlighted term in a coach reply to see what it means. Terms you've opened are kept here.
+              </Text>
+            ) : (
+              <View style={{ gap: 12 }}>
+                {[...metTerms]
+                  .sort((a, b) => a.term.localeCompare(b.term))
+                  .map((t) => (
+                    <View key={t.key}>
+                      <Text style={s.factText}>{sentenceCase(t.term)}</Text>
+                      <Text style={s.factSeen}>{GLOSSARY[t.key]?.quick ?? ""}</Text>
+                    </View>
+                  ))}
+              </View>
+            )}
           </View>
 
           {/* ─── 5. FULL MODEL — N OBSERVATIONS ──────────────────── */}

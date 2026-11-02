@@ -3,7 +3,9 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { DrillCard, type Drill } from "@/components/DrillCard";
 import { BreathCard, type Breath } from "@/components/BreathCard";
 import { RegulateSequence, type RegulateSequenceData } from "@/components/RegulateSequence";
-import { GLOSSARY, GLOSSARY_KEYS, isBrandMention, type GlossEntry } from "@/lib/glossary";
+import { GLOSSARY, GLOSSARY_KEYS, isBrandMention, lookupConcept, type GlossEntry } from "@/lib/glossary";
+import { recordMetTerm } from "@/lib/termsLibrary";
+import { useAuth } from "@/context/AuthContext";
 import { FONT, TEXT_SECONDARY, label, meta } from "@/constants/typography";
 
 // ─── Block parsing ──────────────────────────────────────────────────────────
@@ -55,7 +57,7 @@ const STRUCT_RE = /\[\[([^\]]+)\]\]|\*\*([^*]+)\*\*/g;
 
 type Token =
   | { t: "plain"; v: string }
-  | { t: "concept"; v: string }
+  | { t: "concept"; v: string; key: string; entry: GlossEntry }
   | { t: "bold"; v: string }
   | { t: "gloss"; v: string; entry: GlossEntry };
 
@@ -82,7 +84,12 @@ function tokenize(text: string): Token[] {
   STRUCT_RE.lastIndex = 0;
   while ((m = STRUCT_RE.exec(text)) !== null) {
     if (m.index > last) out.push(...glossSplit(text.slice(last, m.index)));
-    if (m[1] != null) out.push({ t: "concept", v: m[1] });
+    if (m[1] != null) {
+      // Only highlight a [[node]] we can actually explain; otherwise show it plain.
+      const hit = lookupConcept(m[1]);
+      if (hit) out.push({ t: "concept", v: m[1], key: hit.key, entry: hit.entry });
+      else out.push({ t: "plain", v: m[1] });
+    }
     else if (m[2] != null) out.push({ t: "bold", v: m[2] });
     last = m.index + m[0].length;
   }
@@ -98,18 +105,25 @@ export function MessageContent({
   content: string;
   onTrain?: (prompt: string) => void;
 }) {
+  const { userId } = useAuth();
   const [active, setActive] = useState<{ term: string; entry: GlossEntry } | null>(null);
   const [showWhy, setShowWhy] = useState(false);
 
-  function openGloss(term: string, entry: GlossEntry) {
+  function openGloss(term: string, entry: GlossEntry, key?: string) {
     setShowWhy(false);
     setActive({ term, entry });
+    if (userId) void recordMetTerm(userId, key ?? term, term);
   }
 
   function renderInline(text: string, keyBase: string) {
     return tokenize(text).map((tok, i) => {
       const k = `${keyBase}-${i}`;
-      if (tok.t === "concept") return <Text key={k} style={s.concept}>{tok.v}</Text>;
+      if (tok.t === "concept")
+        return (
+          <Text key={k} style={s.concept} onPress={() => openGloss(tok.v, tok.entry, tok.key)}>
+            {tok.v}
+          </Text>
+        );
       if (tok.t === "bold") return <Text key={k} style={s.bold}>{tok.v}</Text>;
       if (tok.t === "gloss")
         return (
@@ -231,7 +245,10 @@ const s = StyleSheet.create({
     fontWeight: "600",
   },
   concept: {
-    color: "#8A6A2F",
+    color: "#B8903F",
+    textDecorationLine: "underline",
+    textDecorationStyle: "dotted",
+    textDecorationColor: "rgba(138,106,47,0.55)",
   },
   gloss: {
     color: "#d9b27a",
