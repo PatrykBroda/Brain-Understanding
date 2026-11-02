@@ -34,19 +34,6 @@ type OrbState =
   | "Composed"
   | "Overextended";
 
-// One coaching cue per interpretive state. Deterministic — keyed to the same
-// honestly-derived state as the orb label, never generated, never a metric.
-const STATE_CUE: Record<OrbState, string> = {
-  Dormant: "Step in. The frame reads what you feed it.",
-  Stable: "Narrow the decision tree.",
-  Loaded: "Trade speed for position.",
-  Recovering: "Protect the rebuild.",
-  Tight: "Commit earlier than comfort wants.",
-  Volatile: "Anchor the breath before the exchange.",
-  Composed: "Hold the standard. Add pressure, not pace.",
-  Overextended: "Cut volume. Keep structure.",
-};
-
 // Short tips shown when the athlete taps the orb, one per tap, rotating.
 // DRAFT COPY: needs Harry's sign-off before release (FRAME update 21 Oct, §5).
 const STATE_TIPS: Record<OrbState, string[]> = {
@@ -92,14 +79,6 @@ const STATE_TIPS: Record<OrbState, string[]> = {
   ],
 };
 
-/** "today's check-in (readiness 62/100)" → "today's check-in": no readiness wording on State. */
-function stateWhy(source: string): string {
-  const clean = source.replace(/\s*\([^)]*readiness[^)]*\)/gi, "").trim();
-  if (!clean) return "";
-  if (/^not enough/i.test(clean)) return `${clean.charAt(0).toUpperCase()}${clean.slice(1)}.`;
-  return `Read from ${clean}.`;
-}
-
 const TIP_MS = 3500;
 
 export default function StateScreen() {
@@ -118,17 +97,9 @@ export default function StateScreen() {
   const failed = todayQuery.isError && !todayQuery.data;
 
 
-  // Why this state is showing, then what to do next.
-  const why = loading
-    ? ""
-    : current && stateInfo
-      ? stateWhy(stateInfo.source)
-      : "FRAME holds no read for today, so the orb is resting.";
-  const next = loading
-    ? ""
-    : current
-      ? STATE_CUE[state]
-      : "Check in or tell your coach how training went.";
+  // With a read, the orb and its label speak for themselves; only explain when there is none.
+  const why = !loading && !current ? "FRAME holds no read for today, so the orb is resting." : "";
+  const next = !loading && !current ? "Check in or tell your coach how training went." : "";
 
   // Size the orb to the space it has: the centre area minus the caption, name and the two
   // explanation lines under it. It fills the width on most phones.
