@@ -53,6 +53,7 @@ import {
   weightCutFor,
 } from "../lib/competitionService";
 import { getUpcomingSessions } from "../lib/trainingSessionService";
+import { createBracketStripper, type BracketStripper } from "../lib/bracketStrip";
 import { computeVocabulary, vocabularyPromptBlock } from "../lib/vocabulary";
 import { getEntitlementForUserId } from "../lib/subscriptionService";
 import { countUserMessagesToday, FREE_DAILY_COACHING_LIMIT } from "../lib/featureGates";
@@ -562,15 +563,27 @@ router.post("/coach/chat", async (req, res) => {
     channel = openSse(res);
 
     let assembled = "";
+    // Tier 0 athletes get plain English: [[node]] notation is stripped from the stream.
+    let bracketStripper: BracketStripper | null = null;
     const emit = (delta: string) => {
-      assembled += delta;
-      turn.content(delta);
+      const out = bracketStripper ? bracketStripper.push(delta) : delta;
+      if (!out) return;
+      assembled += out;
+      turn.content(out);
+    };
+    // Release text the stripper was holding back (an unclosed "[[" at the very end).
+    const flushEmit = () => {
+      const rest = bracketStripper?.flush();
+      if (!rest) return;
+      assembled += rest;
+      turn.content(rest);
     };
 
 
     const compBlock = await buildCompBlock(fighter.id);
 
     const vocab = computeVocabulary(facts);
+    if (vocab.tier === 0) bracketStripper = createBracketStripper();
     // Persist the high-water mark so the profile can show real growth and the tier
     // never regresses once earned.
     if (vocab.tier > fighter.vocabularyLevel) {
@@ -825,6 +838,7 @@ router.post("/coach/chat", async (req, res) => {
       } else {
         req.log.error({ err }, "Coach stream failed");
       }
+      flushEmit();
       // Keep whatever did arrive so history isn't missing it. It is saved WITHOUT the
       // client message id, which marks it as not-complete: a retry of this send
       // generates again and the new reply replaces it.
@@ -845,6 +859,7 @@ router.post("/coach/chat", async (req, res) => {
       return;
     }
 
+    flushEmit();
     // The reply is complete: tell the app first, then save. A slow or failed insert
     // must never turn a reply the athlete already has into an error.
     turn.finish({ done: true, provider: usedProvider, fallback: usedProvider !== primary });
