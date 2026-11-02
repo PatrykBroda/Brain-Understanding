@@ -100,3 +100,40 @@ export type StoredChatMessage = { role: string; clientMessageId?: string | null 
 export function hasCompleteReply(messages: StoredChatMessage[], clientMessageId: string): boolean {
   return messages.some((m) => m.role === "assistant" && m.clientMessageId === clientMessageId);
 }
+
+// ── Automatic retry ─────────────────────────────────────────────────────────
+
+/** Waits before the 1st and 2nd automatic retry of a send that produced nothing. */
+export const AUTO_RETRY_DELAYS_MS = [1_500, 4_000] as const;
+
+// The server already retried the provider before reporting these, but a cold
+// prompt cache or a brief overload usually clears by the time the athlete taps
+// Retry — so do that for them.
+const RETRYABLE_STREAM_CODES = new Set(["AI_TIMEOUT", "AI_BUSY", "AI_UNAVAILABLE"]);
+
+/**
+ * How long to wait before silently re-sending the same message (same client
+ * message id, so the server attaches to or replaces the turn), or null to show
+ * the error instead. Only ever retries a send that produced no reply text.
+ */
+export function autoRetryDelayMs(f: {
+  /** 0 for the first failure, 1 for the failure of the first retry, … */
+  attempt: number;
+  receivedContent: boolean;
+  /** Error code from an in-stream server error event, if one arrived. */
+  streamCode?: string;
+  /** The request threw (HTTP error, network drop, or the watchdog abort). */
+  error?: unknown;
+  timedOut?: boolean;
+}): number | null {
+  if (f.receivedContent || f.attempt >= AUTO_RETRY_DELAYS_MS.length) return null;
+  const delay = AUTO_RETRY_DELAYS_MS[f.attempt];
+  if (f.streamCode) return RETRYABLE_STREAM_CODES.has(f.streamCode) ? delay : null;
+  if (f.error === undefined) return delay; // stream closed with no reply and no error
+  if (f.timedOut) return delay;
+  if (isApiError(f.error)) {
+    const s = f.error.status;
+    return s === 408 || s === 429 || s >= 500 ? delay : null;
+  }
+  return delay; // network drop
+}

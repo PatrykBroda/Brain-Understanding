@@ -37,6 +37,7 @@ import {
   STILL_WORKING_AFTER_MS,
   STILL_WORKING_LABEL,
   THINKING_LABEL,
+  autoRetryDelayMs,
   hasCompleteReply,
   newClientMessageId,
   sendErrorMessage,
@@ -688,7 +689,7 @@ export default function ChatScreen() {
 
     // Watchdog: abort a turn that never produces a first byte, or that stalls
     // mid-stream. Without this a hung request sits forever behind the spinner.
-    const ctrl = new AbortController();
+    let ctrl = new AbortController();
     let timedOut = false;
     let watchdog: ReturnType<typeof setTimeout> | undefined;
     const armWatchdog = (ms: number) => {
@@ -698,9 +699,25 @@ export default function ChatScreen() {
         ctrl.abort();
       }, ms);
     };
-    armWatchdog(FIRST_TOKEN_TIMEOUT_MS);
+    // A send that produced no reply text is re-sent (same client message id, so
+    // the server attaches to or replaces the turn) before an error is shown.
+    let attempt = 0;
+    const waitToRetry = async (delay: number) => {
+      attempt += 1;
+      if (watchdog) clearTimeout(watchdog);
+      setShowTyping(true);
+      await new Promise((r) => setTimeout(r, delay));
+    };
 
     try {
+      for (;;) {
+        serverError = false;
+        serverErrorCode = undefined;
+        sawDone = false;
+        timedOut = false;
+        ctrl = new AbortController();
+        armWatchdog(FIRST_TOKEN_TIMEOUT_MS);
+        try {
       await apiStream(
         "/coach/chat",
         { content: trimmed, attachmentIds: attachments.map((a) => a.id), clientMessageId: cmid },
@@ -737,6 +754,20 @@ export default function ChatScreen() {
         },
         ctrl.signal,
       );
+        } catch (err) {
+          const delay = autoRetryDelayMs({ attempt, receivedContent, error: err, timedOut });
+          if (delay === null) throw err;
+          await waitToRetry(delay);
+          continue;
+        }
+        // Closed with no reply: a server error event, or the stream just ended.
+        const delay =
+          sawDone && !serverError
+            ? null
+            : autoRetryDelayMs({ attempt, receivedContent, streamCode: serverError ? (serverErrorCode ?? "AI_ERROR") : undefined });
+        if (delay === null) break;
+        await waitToRetry(delay);
+      }
 
       // Stream closed cleanly. If nothing streamed, say why rather than leaving
       // a silent, stuck spinner.

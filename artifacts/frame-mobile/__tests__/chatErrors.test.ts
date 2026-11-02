@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sendErrorMessage, streamErrorMessage, uploadErrorMessage } from "../lib/chatErrors";
+import { autoRetryDelayMs, sendErrorMessage, streamErrorMessage, uploadErrorMessage } from "../lib/chatErrors";
 
 const apiError = (status: number, message = "x") => Object.assign(new Error(message), { status });
 
@@ -57,5 +57,27 @@ describe("send reliability helpers", () => {
     expect(hasCompleteReply(thread, "m_1")).toBe(false);
     expect(hasCompleteReply([...thread, { role: "assistant", clientMessageId: "m_1" }], "m_1")).toBe(true);
     expect(hasCompleteReply([{ role: "user", clientMessageId: "m_2" }], "m_2")).toBe(false);
+  });
+});
+
+describe("autoRetryDelayMs", () => {
+  const base = { attempt: 0, receivedContent: false };
+  it("retries timeouts, overload and dropped connections with growing backoff", () => {
+    expect(autoRetryDelayMs({ ...base, streamCode: "AI_TIMEOUT" })).toBe(1500);
+    expect(autoRetryDelayMs({ ...base, attempt: 1, streamCode: "AI_BUSY" })).toBe(4000);
+    expect(autoRetryDelayMs({ ...base, error: new Error("Network request failed") })).toBe(1500);
+    expect(autoRetryDelayMs({ ...base, error: new Error("Aborted"), timedOut: true })).toBe(1500);
+    expect(autoRetryDelayMs({ ...base, error: apiError(503) })).toBe(1500);
+    expect(autoRetryDelayMs(base)).toBe(1500);
+  });
+  it("gives up after two retries", () => {
+    expect(autoRetryDelayMs({ ...base, attempt: 2, streamCode: "AI_TIMEOUT" })).toBeNull();
+  });
+  it("never retries what a retry can't fix, or a reply that already started", () => {
+    expect(autoRetryDelayMs({ ...base, streamCode: "AI_CONSENT_REQUIRED" })).toBeNull();
+    expect(autoRetryDelayMs({ ...base, streamCode: "IMAGE_REJECTED" })).toBeNull();
+    expect(autoRetryDelayMs({ ...base, error: apiError(401) })).toBeNull();
+    expect(autoRetryDelayMs({ ...base, error: apiError(413) })).toBeNull();
+    expect(autoRetryDelayMs({ ...base, receivedContent: true, streamCode: "AI_TIMEOUT" })).toBeNull();
   });
 });
