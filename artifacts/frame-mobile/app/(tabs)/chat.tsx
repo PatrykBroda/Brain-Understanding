@@ -204,7 +204,7 @@ function MessageBubble({
           )}
           {isUser ? (
             msg.content ? (
-              <Text style={[mb.text, mb.userText]}>{msg.content}</Text>
+              <Text style={[mb.text, mb.userText]} selectable>{msg.content}</Text>
             ) : null
           ) : msg.interrupted ? (
             <>
@@ -217,7 +217,7 @@ function MessageBubble({
           ) : msg.retry != null ? (
             <View style={mb.errorBox} accessibilityRole="alert">
               <Text style={mb.errorTitle}>Message not delivered</Text>
-              <Text style={[mb.text, mb.assistantText]}>{msg.content}</Text>
+              <Text style={[mb.text, mb.assistantText]} selectable>{msg.content}</Text>
               <RetryButton onPress={() => onRetry(msg)} disabled={retryDisabled} />
             </View>
           ) : (

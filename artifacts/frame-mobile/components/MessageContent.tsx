@@ -146,7 +146,7 @@ export function MessageContent({
             {lines.map((l, li) => (
               <View key={li} style={s.listItem}>
                 <Text style={s.bullet}>•</Text>
-                <Text style={s.paragraph}>
+                <Text style={s.paragraph} selectable>
                   {renderInline(l.replace(/^\s*[-*]\s+/, ""), `${keyBase}-p${pi}-${li}`)}
                 </Text>
               </View>
@@ -155,7 +155,7 @@ export function MessageContent({
         );
       }
       return (
-        <Text key={`${keyBase}-p${pi}`} style={[s.paragraph, pi > 0 && s.paragraphGap]}>
+        <Text key={`${keyBase}-p${pi}`} style={[s.paragraph, pi > 0 && s.paragraphGap]} selectable>
           {renderInline(para.replace(/\n/g, " "), `${keyBase}-p${pi}`)}
         </Text>
       );
@@ -170,7 +170,7 @@ export function MessageContent({
         if (seg.kind === "text") return <View key={i}>{renderText(seg.text, `t${i}`)}</View>;
         if (seg.kind === "raw")
           return (
-            <Text key={i} style={s.paragraph}>
+            <Text key={i} style={s.paragraph} selectable>
               {seg.text}
             </Text>
           );
