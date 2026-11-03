@@ -445,10 +445,10 @@ async function loadRaw(fighter: Fighter, today: string, tz: string, now: Date): 
 
   const facts = await getActiveFacts(fighter.id, now < end ? now : end);
 
-  const comp = await getActiveCompetition(fighter.id);
+  const comp = await getActiveCompetition(fighter.id, today);
   let camp: DailyRaw["camp"] = null;
   if (comp) {
-    const p = pressureFor(comp, now);
+    const p = pressureFor(comp, now, tz);
     camp = { phase: p.phase, daysToEvent: p.daysToEvent };
   }
 

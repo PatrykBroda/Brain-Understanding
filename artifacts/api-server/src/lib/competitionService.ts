@@ -1,7 +1,7 @@
 import { db, competitionsTable, type Competition, type TrainingSession } from "@workspace/db";
 import { and, asc, eq, gte } from "drizzle-orm";
+import { daysBetween, localDate } from "./localTime";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type PressureTier =
   | "base"
@@ -29,8 +29,14 @@ export function phaseFor(tier: PressureTier): CampPhase {
 
 export type CompetitionPressure = {
   competition: Competition;
+  /** Whole calendar days from the athlete's local today to the event day. THE countdown. */
   daysToEvent: number;
   daysToWeighIn: number | null;
+  /** The athlete's local date this was computed for ("YYYY-MM-DD"). */
+  today: string;
+  /** The event's calendar day ("YYYY-MM-DD"). */
+  eventDay: string;
+  weighInDay: string | null;
   tier: PressureTier;
   tierLabel: string;
   phase: CampPhase;
@@ -102,8 +108,12 @@ export function weightCutFor(competition: Competition): WeightCut {
   };
 }
 
-function ceilDays(target: Date, now: Date): number {
-  return Math.ceil((target.getTime() - now.getTime()) / DAY_MS);
+// Event and weigh-in dates are calendar days the athlete typed in, stored as UTC
+// midnight. Read them back as that same calendar day (never shift them through a
+// timezone), and count against the athlete's own local "today". This is the only
+// place a countdown is computed; every surface and the coach prompt use its result.
+function calendarDay(d: Date | string): string {
+  return new Date(d).toISOString().slice(0, 10);
 }
 
 export function tierFor(daysToEvent: number): { tier: PressureTier; label: string } {
@@ -116,9 +126,12 @@ export function tierFor(daysToEvent: number): { tier: PressureTier; label: strin
 
 // The soonest active, not-yet-passed competition for a fighter. Past events are
 // left in the table (history) but no longer drive Competition Mode.
-export async function getActiveCompetition(fighterId: number): Promise<Competition | null> {
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+export async function getActiveCompetition(
+  fighterId: number,
+  today: string = localDate(new Date(), "UTC"),
+): Promise<Competition | null> {
+  // `today` is the athlete's local date; event days are stored as UTC midnight.
+  const startOfToday = new Date(`${today}T00:00:00Z`);
   const [row] = await db
     .select()
     .from(competitionsTable)
@@ -134,16 +147,20 @@ export async function getActiveCompetition(fighterId: number): Promise<Competiti
   return row ?? null;
 }
 
-export function pressureFor(competition: Competition, now = new Date()): CompetitionPressure {
-  const daysToEvent = Math.max(0, ceilDays(new Date(competition.eventDate), now));
-  const daysToWeighIn = competition.weighInDate
-    ? Math.max(0, ceilDays(new Date(competition.weighInDate), now))
-    : null;
+export function pressureFor(competition: Competition, now = new Date(), tz = "UTC"): CompetitionPressure {
+  const today = localDate(now, tz);
+  const eventDay = calendarDay(competition.eventDate);
+  const weighInDay = competition.weighInDate ? calendarDay(competition.weighInDate) : null;
+  const daysToEvent = Math.max(0, daysBetween(today, eventDay));
+  const daysToWeighIn = weighInDay ? Math.max(0, daysBetween(today, weighInDay)) : null;
   const { tier, label } = tierFor(daysToEvent);
   return {
     competition,
     daysToEvent,
     daysToWeighIn,
+    today,
+    eventDay,
+    weighInDay,
     tier,
     tierLabel: label,
     phase: phaseFor(tier),
@@ -159,7 +176,7 @@ export function competitionPromptBlock(
   const c = p.competition;
   const weighIn =
     p.daysToWeighIn !== null
-      ? `Weigh-in: ${p.daysToWeighIn} day(s) out${c.targetWeight ? ` at ${c.targetWeight}` : ""}.`
+      ? `Weigh-in: ${p.weighInDay}, ${p.daysToWeighIn} day(s) out${c.targetWeight ? ` at ${c.targetWeight}` : ""}.`
       : c.targetWeight
         ? `Target weight: ${c.targetWeight}.`
         : "";
@@ -206,7 +223,8 @@ export function competitionPromptBlock(
   return `# COMPETITION MODE — ACTIVE CAMP (this overrides default warmth toward elite-performance demand)
 
 Event: ${c.eventName}${c.discipline ? ` (${c.discipline})` : ""}
-${fightLine ? `${fightLine}\n` : ""}Time out: ${p.daysToEvent} day(s) until competition. Phase: ${p.phase} (${p.tierLabel}).
+${fightLine ? `${fightLine}\n` : ""}Event day: ${p.eventDay}. Today (athlete's local date): ${p.today}.
+COUNTDOWN: ${p.daysToEvent} day(s) until competition. This number is computed by FRAME and is the only correct one. Phase: ${p.phase} (${p.tierLabel}).
 ${weighIn}
 ${weight}
 ${c.notes ? `Athlete notes: ${c.notes}` : ""}${sessionsBlock}
@@ -215,6 +233,7 @@ Register shift for this camp: ${toneByTier[p.tier]}
 
 Rules under Competition Mode:
 - You become stricter, more demanding, more urgency-focused and accountability-driven as the date nears. NOT abusive — elite-performance focused, like a head coach in fight camp.
+- State the countdown only as ${p.daysToEvent} day(s) (weigh-in ${p.daysToWeighIn ?? "n/a"}). Never work out, estimate or change it yourself from dates, session lists, memory or earlier messages, and if an earlier message gave a different number, that number was wrong: say ${p.daysToEvent}.
 - Reference the countdown when it sharpens the point ("eleven days — this is not the week to add a new guard").
 - Tie advice to the real target: the weaknesses on record, weight, recovery, the specific event.
 - Hold Layer 1 underneath: still regulated, still accurate, still no fake biometrics. Pressure is in the standard you hold them to, not in volume or hype.

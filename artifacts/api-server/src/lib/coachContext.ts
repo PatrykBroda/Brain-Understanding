@@ -53,6 +53,38 @@ export async function loadCoachDayContext(
   return { now: opts.now, tz: opts.tz, today: opts.today, view, recentCheckins };
 }
 
+const TODAY_AUTHORITY_RULE =
+  "Authority: this block is read from the database for THIS message and outranks anything said earlier in the conversation, including your own earlier replies. If an earlier reply said there was no check-in and one is logged above, the earlier reply was wrong: use the logged numbers. If the athlete says they have checked in but none is logged above, do not tell them they did nothing: say it has not reached FRAME yet and ask them to open the check-in on Home and save it again.";
+
+/**
+ * Fallback "# Today" block used when the full day context cannot be built (a State/Focus
+ * failure must not leave the coach blind to a check-in). Reads only today's check-in.
+ */
+export async function loadCheckinOnlyBlock(fighterId: number, today: string, tz: string, now: Date): Promise<string> {
+  const [row] = await db
+    .select()
+    .from(dailyCheckinsTable)
+    .where(and(eq(dailyCheckinsTable.fighterId, fighterId), eq(dailyCheckinsTable.checkinDate, today)))
+    .limit(1);
+  return buildCheckinOnlyBlock(row ?? null, today, tz, now);
+}
+
+export function buildCheckinOnlyBlock(
+  checkin: Pick<DailyCheckin, "sleep" | "energy" | "soreness" | "stress"> | null,
+  today: string,
+  tz: string,
+  now: Date,
+): string {
+  const lines = [`# Today — ${clockLabel(now, tz)} (${tz})`, ""];
+  if (checkin) {
+    lines.push(`Readiness check-in logged TODAY (${today}) by the athlete: ${describeCheckin(checkin)}. Let it shape any training advice.`);
+  } else {
+    lines.push(`No readiness check-in has been logged today (${today}).`);
+  }
+  lines.push(TODAY_AUTHORITY_RULE);
+  return lines.join("\n");
+}
+
 /** The "# Today" block for the coach's dynamic context. Pure; unit-tested. */
 export function buildTodayBlock(ctx: CoachDayContext): string {
   const { view, today } = ctx;

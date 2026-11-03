@@ -1,3 +1,4 @@
+import { effectiveTimeZone, todayFor } from "../middlewares/timezone";
 import { Router, type IRouter } from "express";
 import {
   db,
@@ -34,7 +35,7 @@ router.get("/competition/active", async (req, res) => {
     res.json({ competition: null, pressure: null, weightCut: null, sessions: [], review: null });
     return;
   }
-  const competition = await getActiveCompetition(fighter.id);
+  const competition = await getActiveCompetition(fighter.id, todayFor(req, fighter.timezone));
   const sessions = competition
     ? await listSessions(competition.id, fighter.id)
     : [];
@@ -74,7 +75,7 @@ router.get("/competition/active", async (req, res) => {
 
   res.json({
     competition,
-    pressure: competition ? pressureFor(competition) : null,
+    pressure: competition ? pressureFor(competition, req.frameNow ?? new Date(), effectiveTimeZone(req, fighter.timezone)) : null,
     weightCut: competition ? weightCutFor(competition) : null,
     sessions,
     review,

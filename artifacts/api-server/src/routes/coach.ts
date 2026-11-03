@@ -42,9 +42,9 @@ import {
   type SseChannel,
   type TurnEvent,
 } from "../lib/coachChatStream";
-import { buildFirstReplyBlock, buildTodayBlock, loadCoachDayContext } from "../lib/coachContext";
+import { buildFirstReplyBlock, buildTodayBlock, loadCheckinOnlyBlock, loadCoachDayContext } from "../lib/coachContext";
 import { effectiveTimeZone, rememberTimezone, todayFor } from "../middlewares/timezone";
-import { localDayBounds } from "../lib/localTime";
+import { localDate, localDayBounds } from "../lib/localTime";
 import { openai, OPENAI_COACH_MODEL } from "../lib/openaiClient";
 import {
   getActiveCompetition,
@@ -65,11 +65,11 @@ import {
 
 // Build the active-camp coach directive: pressure + phase + honest weight-cut +
 // upcoming scheduled sessions. Null when no camp is live.
-async function buildCompBlock(fighterId: number): Promise<string | null> {
-  const activeComp = await getActiveCompetition(fighterId);
+async function buildCompBlock(fighterId: number, now: Date, tz: string): Promise<string | null> {
+  const activeComp = await getActiveCompetition(fighterId, localDate(now, tz));
   if (!activeComp) return null;
   const sessions = await getUpcomingSessions(activeComp.id, fighterId);
-  return competitionPromptBlock(pressureFor(activeComp), {
+  return competitionPromptBlock(pressureFor(activeComp, now, tz), {
     sessions,
     weightCut: weightCutFor(activeComp),
   });
@@ -580,7 +580,7 @@ router.post("/coach/chat", async (req, res) => {
     };
 
 
-    const compBlock = await buildCompBlock(fighter.id);
+    const compBlock = await buildCompBlock(fighter.id, req.frameNow ?? new Date(), effectiveTimeZone(req, fighter.timezone));
 
     const vocab = computeVocabulary(facts);
     if (vocab.tier === 0) bracketStripper = createBracketStripper();
@@ -609,7 +609,14 @@ router.post("/coach/chat", async (req, res) => {
         ct ? `sleep ${ct.checkin.sleep}, energy ${ct.checkin.energy}, soreness ${100 - ct.checkin.soreness}/100 sore, stress ${100 - ct.checkin.stress}/100 stressed` : "none logged"
       }.`;
     } catch (err) {
-      req.log.error({ err }, "coach day context failed; replying without it");
+      req.log.error({ err }, "coach day context failed; falling back to the check-in alone");
+      try {
+        const tz = effectiveTimeZone(req, fighter.timezone);
+        const now = req.frameNow ?? new Date();
+        todayBlock = await loadCheckinOnlyBlock(fighter.id, todayFor(req, fighter.timezone), tz, now);
+      } catch (err2) {
+        req.log.error({ err: err2 }, "coach check-in fallback failed; replying without it");
+      }
     }
     const userTurns = fullHistory.filter((m) => m.role === "user").length;
     const firstReplyBlock = userTurns === 1 ? buildFirstReplyBlock(fighter) : null;
