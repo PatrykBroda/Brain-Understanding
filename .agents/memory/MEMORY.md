@@ -3,6 +3,7 @@
 - [Analyse feature](analyse-feature.md) — footage→nervous-system read: pose runs on-device, server narrates + enforces the FRAME REPORT honesty contract.
 - [Clerk dev 401 / all-null getAuth](clerk-dev-cookie-pollution.md) — not a server bug: parent-domain stale cookies shadow fresh ones + dev FAPI is third-party (incognito invalid). Fix = clear replit.dev cookies / fresh browser.
 - [api-server boot reliability](api-server-boot-reliability.md) — no tests on the build/boot path; listen() retries EADDRINUSE; parallel runners need their own API_SERVER_DIST (shared dist/ → truncated bundle).
+- [Global auth schema readiness](global-auth-schema-readiness.md) — auth middleware DB columns must be present in production before publish; a missing column turns every signed-in API route into a 500.
 - [Mobile smoke testing](mobile-smoke-testing.md) — frame-mobile is a static export: rebuild dist before smoke, and trust test-results/.last-run.json (nohup logs swallow output).
 - [Mobile pose frame extraction](mobile-pose-extraction.md) — iOS needs play-through + rVFC sampling, not detached currentTime-seek (hangs at ~1%); start play() inside the user gesture.
 - [SSRF IP-literal bypass](ssrf-ip-literal-bypass.md) — Node skips the request `lookup` option for IP-literal hosts, so DNS-based SSRF guards must ALSO check IP literals explicitly on every redirect hop.
