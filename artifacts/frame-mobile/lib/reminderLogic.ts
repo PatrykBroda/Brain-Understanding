@@ -2,7 +2,7 @@
 // is unit-testable; lib/dailyReminder.ts wires it to AsyncStorage and expo-notifications.
 
 export const REMINDER_ID = "frame-daily-checkin";
-export const DEFAULT_HOUR = 18;
+export const DEFAULT_HOUR = 10;
 export const DEFAULT_MINUTE = 0;
 
 export interface ReminderState {
