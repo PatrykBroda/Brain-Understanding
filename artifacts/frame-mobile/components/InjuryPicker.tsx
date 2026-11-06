@@ -62,8 +62,8 @@ const s = StyleSheet.create({
   label: { fontFamily: FONT.medium, fontSize: 14, color: TEXT_PRIMARY },
   hint: { fontFamily: FONT.regular, fontSize: 12, color: TEXT_SECONDARY },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { borderColor: "#222", borderWidth: 1, paddingVertical: 8, paddingHorizontal: 12 },
+  chip: { borderColor: "#222", borderWidth: 1, paddingVertical: 8, paddingHorizontal: 12, minHeight: 44, justifyContent: "center" },
   chipText: { fontFamily: FONT.regular, fontSize: 13, color: TEXT_SECONDARY },
   err: { fontFamily: FONT.regular, fontSize: 12, color: "#b5523b" },
-  link: { fontFamily: FONT.regular, fontSize: 13, color: "#d9bc84" },
+  link: { fontFamily: FONT.regular, fontSize: 13, color: "#d9bc84", paddingVertical: 14 },
 });

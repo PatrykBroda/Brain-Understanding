@@ -277,7 +277,7 @@ function CheckinForm({
             {save.isPending ? "Saving" : existing ? "Update" : "Log check-in"}
           </Text>
         </Pressable>
-        <Pressable onPress={onDone} hitSlop={8}>
+        <Pressable onPress={onDone} hitSlop={8} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 8 }}>
           <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
       </View>
@@ -953,6 +953,8 @@ const styles = StyleSheet.create({
   saveBtn: {
     paddingHorizontal: 20,
     paddingVertical: 11,
+    minHeight: 44,
+    justifyContent: "center",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: GOLD,

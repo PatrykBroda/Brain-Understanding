@@ -1084,6 +1084,7 @@ export default function ChatScreen() {
               style={({ pressed }) => [styles.quickChip, pressed && styles.quickChipPressed]}
               onPress={() => sendQuick(a.prompt)}
               disabled={isStreaming}
+              hitSlop={{ top: 7, bottom: 7 }}
             >
               <Text style={styles.quickText}>{a.label}</Text>
             </Pressable>

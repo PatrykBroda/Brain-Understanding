@@ -24,7 +24,7 @@ export default function InjuriesScreen() {
       style={s.root}
       contentContainerStyle={{ paddingTop: top + 12, paddingBottom: insets.bottom + 40, paddingHorizontal: 20, gap: 16 }}
     >
-      <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button" accessibilityLabel="Back">
+      <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button" accessibilityLabel="Back" style={{ minHeight: 44, minWidth: 44, justifyContent: "center" }}>
         <Feather name="chevron-left" size={22} color={TEXT_PRIMARY} />
       </Pressable>
       <Text style={s.title}>Injury log</Text>
@@ -53,6 +53,7 @@ export default function InjuriesScreen() {
                 <Pressable
                   onPress={() => remove.mutate(r.id)}
                   hitSlop={10}
+                  style={{ minHeight: 44, minWidth: 44, alignItems: "center", justifyContent: "center" }}
                   accessibilityRole="button"
                   accessibilityLabel={`Remove ${areaLabel(r.area)} entry`}
                 >
