@@ -137,9 +137,26 @@ export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function apiDelete<T>(path: string): Promise<T> {
+export async function apiPut<T>(path: string, body?: unknown): Promise<T> {
   const headers = await authHeaders();
-  const res = await fetch(`${_base}${path}`, { method: "DELETE", headers });
+  const res = await fetch(`${_base}${path}`, {
+    method: "PUT",
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    throw await responseError(res);
+  }
+  return res.json() as Promise<T>;
+}
+
+export async function apiDelete<T>(path: string, body?: unknown): Promise<T> {
+  const headers = await authHeaders();
+  const res = await fetch(`${_base}${path}`, {
+    method: "DELETE",
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
   if (!res.ok) {
     throw await responseError(res);
   }

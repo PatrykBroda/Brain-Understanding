@@ -21,6 +21,7 @@ import passwordResetRouter from "./passwordReset";
 import privacyRouter from "./privacy";
 import aiConsentRouter from "./aiConsent";
 import onboardingRouter from "./onboarding";
+import pushRouter from "./push";
 import { requireAuth } from "../middlewares/authMiddleware";
 import { attachTimezone } from "../middlewares/timezone";
 import { requireCurrentAiConsent } from "../lib/aiConsent";
@@ -51,6 +52,8 @@ router.use(accountRouter);
 // Funnel tracking + admin funnel read: also reachable before consent so sign-up
 // problems around the consent step are measurable.
 router.use(onboardingRouter);
+// Push registration/preferences stay reachable without AI consent so opting out always works.
+router.use(pushRouter);
 
 // All other authenticated FRAME use requires the current disclosure. Keep the
 // immediate provider-boundary checks in the individual AI services as well.

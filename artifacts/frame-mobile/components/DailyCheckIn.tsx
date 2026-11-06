@@ -32,6 +32,8 @@ import {
   syncWeeklyRecap,
 } from "@/lib/weeklyRecap";
 import type { RecapPrefs } from "@/lib/recapLogic";
+import { fetchPushPrefs, registerPushToken, savePushPrefs } from "@/lib/pushRegistration";
+import { formatMinutes, parsePushTarget, shiftMinutes, type PushPrefs } from "@/lib/pushClientLogic";
 import { FONT, TEXT_SECONDARY, label } from "@/constants/typography";
 
 const ACCENT = "#8A6A2F";
@@ -91,12 +93,22 @@ export function DailyCheckInGate() {
     if (userId && isSignedIn) void syncWeeklyRecap(userId).catch(() => null);
   }, [userId, isSignedIn]);
 
+  // Already-granted permission: keep this device's push token registered (best-effort).
+  useEffect(() => {
+    if (native && userId && isSignedIn) void registerPushToken();
+  }, [userId, isSignedIn]);
+
   // Notification tap (warm or cold start) -> chat with the check-in prefilled, or Home with the recap.
   useEffect(() => {
     if (!native || !isSignedIn) return;
     const handle = (r: Notifications.NotificationResponse | null) => {
       const data = r?.notification.request.content.data;
-      if (r && isCheckinTap(data)) openCheckIn();
+      const target = r ? parsePushTarget(data) : null;
+      if (target?.kind === "analysis") {
+        router.push({ pathname: "/(tabs)/analyse", params: { analysisId: target.analysisId } });
+      } else if (target?.kind === "camp") {
+        router.push("/(tabs)/planner");
+      } else if (r && (isCheckinTap(data) || target?.kind === "checkin")) openCheckIn();
       else if (r && isRecapTap(data)) router.push({ pathname: "/(tabs)/home", params: { recap: "1", n: String(Date.now()) } });
     };
     const sub = Notifications.addNotificationResponseReceivedListener(handle);
@@ -118,6 +130,7 @@ export function DailyCheckInGate() {
       const st = stateRef.current;
       if (st && (await ensureNotificationPermission())) {
         await scheduleDailyReminder(st.hour, st.minute);
+        void registerPushToken();
         await update({ enabled: true });
       } else {
         await update({ declinedOffer: true });
@@ -190,6 +203,7 @@ export function DailyReminderSettings() {
       return;
     }
     await scheduleDailyReminder(state.hour, state.minute);
+    void registerPushToken();
     await persist({ ...state, enabled: true, declinedOffer: false });
   };
 
@@ -270,6 +284,89 @@ export function WeeklyRecapSettings() {
           accessibilityLabel="Weekly recap"
         />
       </View>
+    </View>
+  );
+}
+
+/** Settings: server push (missed check-ins, finished analyses, fight dates) opt-out + quiet hours. */
+export function PushSettings() {
+  const { userId, isSignedIn } = useAuth();
+  const [prefs, setPrefs] = useState<PushPrefs | null>(null);
+
+  useEffect(() => {
+    if (!userId || !isSignedIn || !native) return;
+    void fetchPushPrefs().then(setPrefs).catch(() => null);
+  }, [userId, isSignedIn]);
+
+  if (!native || !prefs) return null;
+
+  const save = async (patch: Partial<PushPrefs>) => {
+    const prev = prefs;
+    setPrefs({ ...prefs, ...patch });
+    try {
+      setPrefs(await savePushPrefs(patch));
+    } catch {
+      setPrefs(prev);
+    }
+  };
+
+  const toggle = async (on: boolean) => {
+    if (on && !(await ensureNotificationPermission())) {
+      Alert.alert(
+        "Notifications are off",
+        "Allow notifications for FRAME in Settings to get nudges.",
+        [{ text: "Cancel", style: "cancel" }, { text: "Open Settings", onPress: () => void Linking.openSettings() }],
+      );
+      return;
+    }
+    if (on) void registerPushToken();
+    await save({ enabled: on });
+  };
+
+  return (
+    <View style={s.settings}>
+      <View style={s.row}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.settingsTitle}>Smart nudges</Text>
+          <Text style={s.settingsSub}>
+            A nudge if you miss a few check-ins, when an analysis is ready, and as fight day nears.
+          </Text>
+        </View>
+        <Switch
+          value={prefs.enabled}
+          onValueChange={(v) => void toggle(v)}
+          trackColor={{ true: ACCENT, false: "#222" }}
+          accessibilityLabel="Smart nudges"
+        />
+      </View>
+      {prefs.enabled ? (
+        <>
+          <View style={s.row}>
+            <Text style={s.settingsSub}>Quiet from</Text>
+            <View style={s.stepper}>
+              <Pressable onPress={() => void save({ quietStartMin: shiftMinutes(prefs.quietStartMin, -30) })} hitSlop={10} accessibilityLabel="Quiet hours start earlier">
+                <Feather name="minus" size={16} color={ACCENT} />
+              </Pressable>
+              <Text style={s.time}>{formatMinutes(prefs.quietStartMin)}</Text>
+              <Pressable onPress={() => void save({ quietStartMin: shiftMinutes(prefs.quietStartMin, 30) })} hitSlop={10} accessibilityLabel="Quiet hours start later">
+                <Feather name="plus" size={16} color={ACCENT} />
+              </Pressable>
+            </View>
+          </View>
+          <View style={s.row}>
+            <Text style={s.settingsSub}>Quiet until</Text>
+            <View style={s.stepper}>
+              <Pressable onPress={() => void save({ quietEndMin: shiftMinutes(prefs.quietEndMin, -30) })} hitSlop={10} accessibilityLabel="Quiet hours end earlier">
+                <Feather name="minus" size={16} color={ACCENT} />
+              </Pressable>
+              <Text style={s.time}>{formatMinutes(prefs.quietEndMin)}</Text>
+              <Pressable onPress={() => void save({ quietEndMin: shiftMinutes(prefs.quietEndMin, 30) })} hitSlop={10} accessibilityLabel="Quiet hours end later">
+                <Feather name="plus" size={16} color={ACCENT} />
+              </Pressable>
+            </View>
+          </View>
+        </>
+      ) : null}
     </View>
   );
 }
