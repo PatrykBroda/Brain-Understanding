@@ -29,6 +29,7 @@ import {
 } from "@/hooks/useCheckin";
 import { useToday } from "@/hooks/useToday";
 import { useLocalDay } from "@/hooks/useLocalDay";
+import { publishWidgetData } from "@/lib/widgetBridge";
 import { DisclosureNotice, FocusCard } from "@/components/TodayCards";
 import { GOLD } from "@/constants/colors";
 import { StreakLine, WeeklyRecapCard } from "@/components/WeeklyRecapCard";
@@ -335,6 +336,19 @@ export default function HomeScreen() {
   const activeComp = useActiveCompetition();
   const competition = activeComp.data?.competition ?? null;
   const pressure = activeComp.data?.pressure ?? null;
+
+  // Keep the home-screen widget in step with what Home shows (no-op off iOS / without the native module).
+  const widgetFocus = today?.focus ?? null;
+  const widgetDays = pressure?.daysToEvent ?? null;
+  const widgetCamp = competition?.eventName ?? null;
+  useEffect(() => {
+    publishWidgetData({
+      date: localDay,
+      signedIn: !!isSignedIn,
+      focus: widgetFocus,
+      camp: widgetCamp !== null && widgetDays !== null ? { eventName: widgetCamp, daysToEvent: widgetDays } : null,
+    });
+  }, [localDay, isSignedIn, widgetFocus, widgetDays, widgetCamp]);
 
   const [editing, setEditing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
