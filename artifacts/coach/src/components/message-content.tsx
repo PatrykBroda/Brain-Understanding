@@ -2,7 +2,7 @@ import { createContext, useContext, useState } from "react";
 import { DrillCard, type Drill } from "./drill-card";
 import { BreathCard, type Breath } from "./breath-card";
 import { RegulateSequence, type RegulateSequenceData } from "./regulate-sequence";
-import { GLOSSARY, GLOSSARY_KEYS, isBrandMention, type GlossEntry } from "@/lib/glossary";
+import { GLOSSARY, GLOSSARY_KEYS, isBrandMention, lookupConcept, parseConceptRef, stripDanglingRef, type GlossEntry } from "@/lib/glossary";
 
 type Segment =
   | { kind: "text"; text: string }
@@ -146,15 +146,15 @@ function withGlossary(text: string, baseKey: string) {
 
 function renderInline(text: string, baseKey: string) {
   // [[concept]] and **bold**
+  text = stripDanglingRef(text);
   const parts = text.split(/(\[\[[^\]]+\]\]|\*\*[^*]+\*\*)/g);
   return parts.map((p, i) => {
     const key = `${baseKey}-${i}`;
     if (p.startsWith("[[") && p.endsWith("]]")) {
-      return (
-        <span key={key} className="synochi-concept">
-          {p.slice(2, -2)}
-        </span>
-      );
+      const ref = parseConceptRef(p.slice(2, -2));
+      const hit = lookupConcept(p.slice(2, -2));
+      if (hit) return <Glossable key={key} term={ref.display} entry={hit.entry} />;
+      return <span key={key}>{ref.display}</span>;
     }
     if (p.startsWith("**") && p.endsWith("**")) {
       return (

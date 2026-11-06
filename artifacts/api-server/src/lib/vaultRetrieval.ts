@@ -130,7 +130,7 @@ export function selectRelevantNodes(queryText: string, k = 8): RetrievedNode[] {
   WIKI_LINK.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = WIKI_LINK.exec(queryText)) !== null) {
-    explicit.add(m[1]!.trim().toLowerCase());
+    explicit.add(m[1]!.split("|")[0]!.replace(/#.*$/, "").trim().toLowerCase());
   }
 
   const queryTokens = tokenize(queryText);
