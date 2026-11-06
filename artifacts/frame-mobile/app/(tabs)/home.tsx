@@ -31,6 +31,7 @@ import { useToday } from "@/hooks/useToday";
 import { useLocalDay } from "@/hooks/useLocalDay";
 import { DisclosureNotice, FocusCard } from "@/components/TodayCards";
 import { GOLD } from "@/constants/colors";
+import { StreakLine, WeeklyRecapCard } from "@/components/WeeklyRecapCard";
 import { FirstUsePointers } from "@/components/FirstUsePointers";
 import { ReadinessBars } from "@/components/ReadinessBars";
 import { dismissProps } from "@/components/FormScroll";
@@ -339,8 +340,9 @@ export default function HomeScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const formY = useRef(0);
   // A deep link with ?checkin=1 lands here with the form open (the in-page "Check in now" sets it directly).
-  const { checkin: checkinParam, n: checkinNonce } = useLocalSearchParams<{
+  const { checkin: checkinParam, n: checkinNonce, recap: recapParam } = useLocalSearchParams<{
     checkin?: string;
+    recap?: string;
     n?: string;
   }>();
   useEffect(() => {
@@ -598,6 +600,12 @@ export default function HomeScreen() {
             <CheckinForm existing={checkin} onDone={() => setEditing(false)} />
           </View>
         )}
+      </View>
+
+      {/* Streak + Sunday recap */}
+      <View style={styles.section}>
+        <StreakLine />
+        <WeeklyRecapCard focus={today?.focus?.title ?? null} forced={recapParam === "1"} />
       </View>
 
       {/* No check-in today: say so once, under the readiness card, with the way to fix it */}

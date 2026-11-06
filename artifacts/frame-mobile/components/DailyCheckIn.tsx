@@ -23,6 +23,15 @@ import {
   type PopupKind,
   type ReminderState,
 } from "@/lib/reminderLogic";
+import { isRecapTap } from "@/lib/recapLogic";
+import {
+  cancelWeeklyRecap,
+  loadRecapPrefs,
+  saveRecapPrefs,
+  scheduleWeeklyRecap,
+  syncWeeklyRecap,
+} from "@/lib/weeklyRecap";
+import type { RecapPrefs } from "@/lib/recapLogic";
 import { FONT, TEXT_SECONDARY, label } from "@/constants/typography";
 
 const ACCENT = "#8A6A2F";
@@ -46,6 +55,7 @@ function useOpenCheckIn() {
 export function DailyCheckInGate() {
   const { userId, isSignedIn } = useAuth();
   const openCheckIn = useOpenCheckIn();
+  const router = useRouter();
   const [kind, setKind] = useState<PopupKind | null>(null);
   const stateRef = useRef<ReminderState | null>(null);
 
@@ -76,18 +86,25 @@ export function DailyCheckInGate() {
     };
   }, [userId, isSignedIn]);
 
-  // Notification tap (warm or cold start) -> chat with the check-in prefilled.
+  // Keep the Sunday recap notification in line with the Profile opt-out.
+  useEffect(() => {
+    if (userId && isSignedIn) void syncWeeklyRecap(userId).catch(() => null);
+  }, [userId, isSignedIn]);
+
+  // Notification tap (warm or cold start) -> chat with the check-in prefilled, or Home with the recap.
   useEffect(() => {
     if (!native || !isSignedIn) return;
     const handle = (r: Notifications.NotificationResponse | null) => {
-      if (r && isCheckinTap(r.notification.request.content.data)) openCheckIn();
+      const data = r?.notification.request.content.data;
+      if (r && isCheckinTap(data)) openCheckIn();
+      else if (r && isRecapTap(data)) router.push({ pathname: "/(tabs)/home", params: { recap: "1", n: String(Date.now()) } });
     };
     const sub = Notifications.addNotificationResponseReceivedListener(handle);
     void Notifications.getLastNotificationResponseAsync().then((r) => {
       if (r && r.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) handle(r);
     });
     return () => sub.remove();
-  }, [isSignedIn, openCheckIn]);
+  }, [isSignedIn, openCheckIn, router]);
 
   const update = async (patch: Partial<ReminderState>) => {
     if (!userId || !stateRef.current) return;
@@ -211,6 +228,48 @@ export function DailyReminderSettings() {
           </View>
         </View>
       ) : null}
+    </View>
+  );
+}
+
+/** Settings row: Sunday weekly recap opt-out. On by default; switching on asks for permission. */
+export function WeeklyRecapSettings() {
+  const { userId } = useAuth();
+  const [prefs, setPrefs] = useState<RecapPrefs | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    void loadRecapPrefs(userId).then(setPrefs);
+  }, [userId]);
+
+  if (!native || !userId || !prefs) return null;
+
+  const toggle = async (on: boolean) => {
+    if (!on) {
+      await cancelWeeklyRecap();
+    } else if (await ensureNotificationPermission()) {
+      await scheduleWeeklyRecap();
+    }
+    // The in-app card follows the preference even if notifications are blocked.
+    const next = { ...prefs, enabled: on };
+    setPrefs(next);
+    await saveRecapPrefs(userId, next);
+  };
+
+  return (
+    <View style={s.settings}>
+      <View style={s.row}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.settingsTitle}>Weekly recap</Text>
+          <Text style={s.settingsSub}>Sunday evening: sessions, how your state moved, one focus.</Text>
+        </View>
+        <Switch
+          value={prefs.enabled}
+          onValueChange={(v) => void toggle(v)}
+          trackColor={{ true: ACCENT, false: "#222" }}
+          accessibilityLabel="Weekly recap"
+        />
+      </View>
     </View>
   );
 }
