@@ -30,6 +30,8 @@ import {
 import { useToday } from "@/hooks/useToday";
 import { useLocalDay } from "@/hooks/useLocalDay";
 import { publishWidgetData } from "@/lib/widgetBridge";
+import { campPhaseInfo } from "@/lib/campPhases";
+import { syncReminderWithCamp } from "@/lib/dailyReminder";
 import { DisclosureNotice, FocusCard } from "@/components/TodayCards";
 import { GOLD } from "@/constants/colors";
 import { StreakLine, WeeklyRecapCard } from "@/components/WeeklyRecapCard";
@@ -349,6 +351,17 @@ export default function HomeScreen() {
       camp: widgetCamp !== null && widgetDays !== null ? { eventName: widgetCamp, daysToEvent: widgetDays } : null,
     });
   }, [localDay, isSignedIn, widgetFocus, widgetDays, widgetCamp]);
+
+  // Camp phase drives the Home line and the wording of the daily reminder.
+  const campDaysToWeighIn = pressure?.daysToWeighIn ?? null;
+  const campPhase = widgetDays !== null ? campPhaseInfo({ daysToEvent: widgetDays, daysToWeighIn: campDaysToWeighIn }) : null;
+  useEffect(() => {
+    if (!userId) return;
+    void syncReminderWithCamp(
+      userId,
+      widgetDays !== null ? { daysToEvent: widgetDays, daysToWeighIn: campDaysToWeighIn } : null,
+    ).catch(() => null);
+  }, [userId, widgetDays, campDaysToWeighIn]);
 
   const [editing, setEditing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -680,7 +693,8 @@ export default function HomeScreen() {
           >
             <View style={{ flex: 1 }}>
               <Text style={styles.compEvent}>{competition.eventName}</Text>
-              <Text style={styles.compPhase}>{pressure.phase}</Text>
+              <Text style={styles.compPhase}>{campPhase ? campPhase.label : pressure.phase}</Text>
+              {campPhase ? <Text style={styles.compLine}>{campPhase.homeLine}</Text> : null}
             </View>
             <View style={styles.compRight}>
               <Text style={styles.compDays}>{pressure.daysToEvent}</Text>
@@ -1000,6 +1014,7 @@ const styles = StyleSheet.create({
     color: "#f0f0f0",
     letterSpacing: 0.5,
   },
+  compLine: { fontFamily: "Outfit", fontSize: 12, lineHeight: 17, color: "#9a9a9a", marginTop: 4 },
   compPhase: {
     ...sectionTitle,
     marginTop: 6,
