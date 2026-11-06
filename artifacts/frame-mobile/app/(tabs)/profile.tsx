@@ -34,6 +34,7 @@ import { refreshModel } from "@/lib/modelRefresh";
 import { sportLabelFor } from "@workspace/onboarding";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
+import { VoiceSettings } from "@/components/SpeakButton";
 import { DailyReminderSettings, PushSettings, WeeklyRecapSettings } from "@/components/DailyCheckIn";
 import { ProfileEditModal } from "@/components/ProfileEditModal";
 import { AnswersSection } from "@/components/AnswersSection";
@@ -915,6 +916,7 @@ export default function ProfileScreen() {
           <View style={s.section}>
             <DailyReminderSettings />
             <WeeklyRecapSettings />
+            <VoiceSettings />
             <PushSettings />
             <Text style={s.privacyHeading}>AI coaching & privacy</Text>
             <Text style={s.privacyCopy}>
