@@ -6,6 +6,7 @@ import { AppState, Image, Platform, StyleSheet } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DailyCheckInGate } from "@/components/DailyCheckIn";
 import { refreshModel } from "@/lib/modelRefresh";
 import { meta } from "@/constants/typography";
 
@@ -27,6 +28,8 @@ export default function TabLayout() {
   const isWeb = Platform.OS === "web";
 
   return (
+    <>
+    <DailyCheckInGate />
     <Tabs
       screenListeners={{
         focus: () => refreshModel(qc),
@@ -112,5 +115,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </>
   );
 }
