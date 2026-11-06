@@ -48,6 +48,7 @@ import { ANALYSE_SESSION_PROMPT, REGULATE_PROMPT } from "@/lib/chat-prompts";
 import { useFighter } from "@/context/FighterContext";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { MessageContent } from "@/components/MessageContent";
+import { SpeakButton } from "@/components/SpeakButton";
 import { CompetitionBanner } from "@/components/CompetitionBanner";
 import { OctagonSpinner } from "@/components/OctagonSpinner";
 import { FrameLogo } from "@/components/FrameLogo";
@@ -221,7 +222,10 @@ function MessageBubble({
               <RetryButton onPress={() => onRetry(msg)} disabled={retryDisabled} />
             </View>
           ) : (
-            <MessageContent content={msg.content} onTrain={onTrain} />
+            <>
+              <MessageContent content={msg.content} onTrain={onTrain} />
+              <SpeakButton content={msg.content} />
+            </>
           )}
         </View>
       </View>
@@ -1080,6 +1084,7 @@ export default function ChatScreen() {
               style={({ pressed }) => [styles.quickChip, pressed && styles.quickChipPressed]}
               onPress={() => sendQuick(a.prompt)}
               disabled={isStreaming}
+              hitSlop={{ top: 7, bottom: 7 }}
             >
               <Text style={styles.quickText}>{a.label}</Text>
             </Pressable>

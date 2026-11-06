@@ -165,17 +165,49 @@ export function isBrandMention(matched: string): boolean {
 }
 
 /**
+ * Split the inside of a coach `[[...]]` reference. The coach (and the vault's own
+ * Obsidian-style notation) may write `[[Title]]`, `[[Title|shown text]]` or
+ * `[[Title#Section]]`. `title` is what we look up; `display` is what the athlete
+ * reads (never the raw pipe/hash syntax).
+ */
+export function parseConceptRef(inner: string): { title: string; display: string } {
+  const raw = inner.replace(/\s+/g, " ").trim();
+  const bar = raw.indexOf("|");
+  const target = (bar >= 0 ? raw.slice(0, bar) : raw).replace(/#.*$/, "").trim();
+  const alias = bar >= 0 ? raw.slice(bar + 1).trim() : "";
+  return { title: target, display: alias || target || raw };
+}
+
+/** Drop a half-streamed `[[Partial` at the end of text so raw brackets never flash. */
+export function stripDanglingRef(text: string): string {
+  const i = text.lastIndexOf("[[");
+  return i >= 0 && text.indexOf("]]", i) < 0 ? text.slice(0, i) : text;
+}
+
+/** Vault node titles that are variants of a term we do define. */
+const CONCEPT_ALIASES: Record<string, string> = {
+  "aftershock phase": "aftershock",
+  "autonomic nervous system": "nervous system",
+  "autonomic regulation": "autonomic",
+  "axis control under load": "axis control",
+  "baseline arousal": "sympathetic",
+  "anticipatory activation": "sympathetic",
+  "guard retention under pressure": "guard retention",
+};
+
+/**
  * Resolve a gold [[node]] title to a glossary entry. Tries the whole title, then
  * each side of a "PREFIX - Name" title. Returns undefined when we have no real
  * explanation — callers must then show the text plain, never highlighted.
  */
 export function lookupConcept(title: string): { key: string; entry: GlossEntry } | undefined {
-  const t = title.trim().toLowerCase();
+  const t = parseConceptRef(title).title.toLowerCase();
   const parts = t.split(/\s+[-–—]\s+/);
   for (const cand of [t, ...parts]) {
     const c = cand.trim();
-    const entry = Object.prototype.hasOwnProperty.call(GLOSSARY, c) ? GLOSSARY[c] : undefined;
-    if (entry) return { key: c, entry };
+    const key = Object.prototype.hasOwnProperty.call(CONCEPT_ALIASES, c) ? CONCEPT_ALIASES[c]! : c;
+    const entry = Object.prototype.hasOwnProperty.call(GLOSSARY, key) ? GLOSSARY[key] : undefined;
+    if (entry) return { key, entry };
   }
   return undefined;
 }

@@ -1,0 +1,404 @@
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Linking, Modal, Platform, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import * as Notifications from "expo-notifications";
+import { useRouter } from "expo-router";
+import { Feather } from "@expo/vector-icons";
+import { useAuth } from "@/context/AuthContext";
+import { localDateString } from "@/lib/localDay";
+import {
+  cancelDailyReminder,
+  configureNotificationHandler,
+  ensureNotificationPermission,
+  loadReminderState,
+  saveReminderState,
+  scheduleDailyReminder,
+} from "@/lib/dailyReminder";
+import {
+  DAILY_CHECKIN_PROMPT,
+  formatTime,
+  isCheckinTap,
+  popupToShow,
+  shiftTime,
+  withFirstSeen,
+  type PopupKind,
+  type ReminderState,
+} from "@/lib/reminderLogic";
+import { isRecapTap } from "@/lib/recapLogic";
+import {
+  cancelWeeklyRecap,
+  loadRecapPrefs,
+  saveRecapPrefs,
+  scheduleWeeklyRecap,
+  syncWeeklyRecap,
+} from "@/lib/weeklyRecap";
+import type { RecapPrefs } from "@/lib/recapLogic";
+import { fetchPushPrefs, registerPushToken, savePushPrefs } from "@/lib/pushRegistration";
+import { formatMinutes, parsePushTarget, shiftMinutes, type PushPrefs } from "@/lib/pushClientLogic";
+import { FONT, TEXT_SECONDARY, label } from "@/constants/typography";
+
+const ACCENT = "#8A6A2F";
+const native = Platform.OS === "ios" || Platform.OS === "android";
+
+/** Open the chat tab with the check-in prompt pre-filled (nonce forces re-apply on repeat taps). */
+function useOpenCheckIn() {
+  const router = useRouter();
+  return useCallback(() => {
+    router.push({
+      pathname: "/(tabs)/chat",
+      params: { prefill: DAILY_CHECKIN_PROMPT, n: String(Date.now()) },
+    });
+  }, [router]);
+}
+
+/**
+ * Mounted inside the signed-in tab layout (so it never shows over auth, onboarding or the
+ * paywall). Shows the once-a-day check-in pop-up and routes notification taps to chat.
+ */
+export function DailyCheckInGate() {
+  const { userId, isSignedIn } = useAuth();
+  const openCheckIn = useOpenCheckIn();
+  const router = useRouter();
+  const [kind, setKind] = useState<PopupKind | null>(null);
+  const stateRef = useRef<ReminderState | null>(null);
+
+  useEffect(() => {
+    configureNotificationHandler();
+  }, []);
+
+  // Decide on the pop-up once per signed-in session open.
+  useEffect(() => {
+    if (!userId || !isSignedIn) return;
+    let live = true;
+    (async () => {
+      const today = localDateString();
+      const state = withFirstSeen(await loadReminderState(userId), today);
+      stateRef.current = state;
+      const k = popupToShow(state, today, true);
+      if (k && live) {
+        const next = { ...state, lastPopup: today };
+        stateRef.current = next;
+        setKind(k);
+        await saveReminderState(userId, next);
+      } else {
+        await saveReminderState(userId, state);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [userId, isSignedIn]);
+
+  // Keep the Sunday recap notification in line with the Profile opt-out.
+  useEffect(() => {
+    if (userId && isSignedIn) void syncWeeklyRecap(userId).catch(() => null);
+  }, [userId, isSignedIn]);
+
+  // Already-granted permission: keep this device's push token registered (best-effort).
+  useEffect(() => {
+    if (native && userId && isSignedIn) void registerPushToken();
+  }, [userId, isSignedIn]);
+
+  // Notification tap (warm or cold start) -> chat with the check-in prefilled, or Home with the recap.
+  useEffect(() => {
+    if (!native || !isSignedIn) return;
+    const handle = (r: Notifications.NotificationResponse | null) => {
+      const data = r?.notification.request.content.data;
+      const target = r ? parsePushTarget(data) : null;
+      if (target?.kind === "analysis") {
+        router.push({ pathname: "/(tabs)/analyse", params: { analysisId: target.analysisId } });
+      } else if (target?.kind === "camp") {
+        router.push("/(tabs)/planner");
+      } else if (r && (isCheckinTap(data) || target?.kind === "checkin")) openCheckIn();
+      else if (r && isRecapTap(data)) router.push({ pathname: "/(tabs)/home", params: { recap: "1", n: String(Date.now()) } });
+    };
+    const sub = Notifications.addNotificationResponseReceivedListener(handle);
+    void Notifications.getLastNotificationResponseAsync().then((r) => {
+      if (r && r.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) handle(r);
+    });
+    return () => sub.remove();
+  }, [isSignedIn, openCheckIn, router]);
+
+  const update = async (patch: Partial<ReminderState>) => {
+    if (!userId || !stateRef.current) return;
+    stateRef.current = { ...stateRef.current, ...patch };
+    await saveReminderState(userId, stateRef.current);
+  };
+
+  const checkIn = async (remind: boolean) => {
+    setKind(null);
+    if (remind && native) {
+      const st = stateRef.current;
+      if (st && (await ensureNotificationPermission())) {
+        await scheduleDailyReminder(st.hour, st.minute);
+        void registerPushToken();
+        await update({ enabled: true });
+      } else {
+        await update({ declinedOffer: true });
+      }
+    }
+    openCheckIn();
+  };
+
+  const dismiss = async () => {
+    setKind(null);
+    if (kind === "checkin-with-offer") await update({ declinedOffer: true });
+  };
+
+  if (!kind) return null;
+  const offer = kind === "checkin-with-offer" && native;
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={() => void dismiss()}>
+      <View style={s.backdrop}>
+        <View style={s.sheet}>
+          <Text style={s.title}>Daily check-in</Text>
+          <Text style={s.body}>
+            How are you showing up today? A quick check-in keeps your athlete model current.
+          </Text>
+          <Pressable style={s.primary} onPress={() => void checkIn(false)} accessibilityRole="button">
+            <Text style={s.primaryText}>Check in now</Text>
+          </Pressable>
+          {offer ? (
+            <Pressable style={s.secondary} onPress={() => void checkIn(true)} accessibilityRole="button">
+              <Text style={s.secondaryText}>Check in and remind me daily</Text>
+            </Pressable>
+          ) : null}
+          <Pressable style={s.dismiss} onPress={() => void dismiss()} accessibilityRole="button">
+            <Text style={s.dismissText}>Not now</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/** Settings row: reminder switch + time stepper. Permission is requested when switched on. */
+export function DailyReminderSettings() {
+  const { userId } = useAuth();
+  const [state, setState] = useState<ReminderState | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    void loadReminderState(userId).then(setState);
+  }, [userId]);
+
+  if (!native || !userId || !state) return null;
+
+  const persist = async (next: ReminderState) => {
+    setState(next);
+    await saveReminderState(userId, next);
+  };
+
+  const toggle = async (on: boolean) => {
+    if (!on) {
+      await cancelDailyReminder();
+      await persist({ ...state, enabled: false });
+      return;
+    }
+    if (!(await ensureNotificationPermission())) {
+      Alert.alert(
+        "Notifications are off",
+        "Allow notifications for FRAME in Settings to get a daily check-in reminder.",
+        [{ text: "Cancel", style: "cancel" }, { text: "Open Settings", onPress: () => void Linking.openSettings() }],
+      );
+      return;
+    }
+    await scheduleDailyReminder(state.hour, state.minute);
+    void registerPushToken();
+    await persist({ ...state, enabled: true, declinedOffer: false });
+  };
+
+  const step = async (delta: number) => {
+    const t = shiftTime(state.hour, state.minute, delta);
+    const next = { ...state, ...t };
+    if (state.enabled) await scheduleDailyReminder(t.hour, t.minute);
+    await persist(next);
+  };
+
+  return (
+    <View style={s.settings}>
+      <View style={s.row}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.settingsTitle}>Daily check-in reminder</Text>
+          <Text style={s.settingsSub}>A notification asking how today went.</Text>
+        </View>
+        <Switch
+          value={state.enabled}
+          onValueChange={(v) => void toggle(v)}
+          trackColor={{ true: ACCENT, false: "#222" }}
+          accessibilityLabel="Daily check-in reminder"
+        />
+      </View>
+      {state.enabled ? (
+        <View style={s.row}>
+          <Text style={s.settingsSub}>Remind me at</Text>
+          <View style={s.stepper}>
+            <Pressable onPress={() => void step(-15)} hitSlop={10} accessibilityLabel="Earlier by 15 minutes">
+              <Feather name="minus" size={16} color={ACCENT} />
+            </Pressable>
+            <Text style={s.time}>{formatTime(state.hour, state.minute)}</Text>
+            <Pressable onPress={() => void step(15)} hitSlop={10} accessibilityLabel="Later by 15 minutes">
+              <Feather name="plus" size={16} color={ACCENT} />
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** Settings row: Sunday weekly recap opt-out. On by default; switching on asks for permission. */
+export function WeeklyRecapSettings() {
+  const { userId } = useAuth();
+  const [prefs, setPrefs] = useState<RecapPrefs | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    void loadRecapPrefs(userId).then(setPrefs);
+  }, [userId]);
+
+  if (!native || !userId || !prefs) return null;
+
+  const toggle = async (on: boolean) => {
+    if (!on) {
+      await cancelWeeklyRecap();
+    } else if (await ensureNotificationPermission()) {
+      await scheduleWeeklyRecap();
+    }
+    // The in-app card follows the preference even if notifications are blocked.
+    const next = { ...prefs, enabled: on };
+    setPrefs(next);
+    await saveRecapPrefs(userId, next);
+  };
+
+  return (
+    <View style={s.settings}>
+      <View style={s.row}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.settingsTitle}>Weekly recap</Text>
+          <Text style={s.settingsSub}>Sunday evening: sessions, how your state moved, one focus.</Text>
+        </View>
+        <Switch
+          value={prefs.enabled}
+          onValueChange={(v) => void toggle(v)}
+          trackColor={{ true: ACCENT, false: "#222" }}
+          accessibilityLabel="Weekly recap"
+        />
+      </View>
+    </View>
+  );
+}
+
+/** Settings: server push (missed check-ins, finished analyses, fight dates) opt-out + quiet hours. */
+export function PushSettings() {
+  const { userId, isSignedIn } = useAuth();
+  const [prefs, setPrefs] = useState<PushPrefs | null>(null);
+
+  useEffect(() => {
+    if (!userId || !isSignedIn || !native) return;
+    void fetchPushPrefs().then(setPrefs).catch(() => null);
+  }, [userId, isSignedIn]);
+
+  if (!native || !prefs) return null;
+
+  const save = async (patch: Partial<PushPrefs>) => {
+    const prev = prefs;
+    setPrefs({ ...prefs, ...patch });
+    try {
+      setPrefs(await savePushPrefs(patch));
+    } catch {
+      setPrefs(prev);
+    }
+  };
+
+  const toggle = async (on: boolean) => {
+    if (on && !(await ensureNotificationPermission())) {
+      Alert.alert(
+        "Notifications are off",
+        "Allow notifications for FRAME in Settings to get nudges.",
+        [{ text: "Cancel", style: "cancel" }, { text: "Open Settings", onPress: () => void Linking.openSettings() }],
+      );
+      return;
+    }
+    if (on) void registerPushToken();
+    await save({ enabled: on });
+  };
+
+  return (
+    <View style={s.settings}>
+      <View style={s.row}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.settingsTitle}>Smart nudges</Text>
+          <Text style={s.settingsSub}>
+            A nudge if you miss a few check-ins, when an analysis is ready, and as fight day nears.
+          </Text>
+        </View>
+        <Switch
+          value={prefs.enabled}
+          onValueChange={(v) => void toggle(v)}
+          trackColor={{ true: ACCENT, false: "#222" }}
+          accessibilityLabel="Smart nudges"
+        />
+      </View>
+      {prefs.enabled ? (
+        <>
+          <View style={s.row}>
+            <Text style={s.settingsSub}>Quiet from</Text>
+            <View style={s.stepper}>
+              <Pressable onPress={() => void save({ quietStartMin: shiftMinutes(prefs.quietStartMin, -30) })} hitSlop={10} accessibilityLabel="Quiet hours start earlier">
+                <Feather name="minus" size={16} color={ACCENT} />
+              </Pressable>
+              <Text style={s.time}>{formatMinutes(prefs.quietStartMin)}</Text>
+              <Pressable onPress={() => void save({ quietStartMin: shiftMinutes(prefs.quietStartMin, 30) })} hitSlop={10} accessibilityLabel="Quiet hours start later">
+                <Feather name="plus" size={16} color={ACCENT} />
+              </Pressable>
+            </View>
+          </View>
+          <View style={s.row}>
+            <Text style={s.settingsSub}>Quiet until</Text>
+            <View style={s.stepper}>
+              <Pressable onPress={() => void save({ quietEndMin: shiftMinutes(prefs.quietEndMin, -30) })} hitSlop={10} accessibilityLabel="Quiet hours end earlier">
+                <Feather name="minus" size={16} color={ACCENT} />
+              </Pressable>
+              <Text style={s.time}>{formatMinutes(prefs.quietEndMin)}</Text>
+              <Pressable onPress={() => void save({ quietEndMin: shiftMinutes(prefs.quietEndMin, 30) })} hitSlop={10} accessibilityLabel="Quiet hours end later">
+                <Feather name="plus" size={16} color={ACCENT} />
+              </Pressable>
+            </View>
+          </View>
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+  },
+  sheet: {
+    width: "100%",
+    maxWidth: 420,
+    backgroundColor: "#0c0c0c",
+    borderWidth: 1,
+    borderColor: "rgba(138,106,47,0.35)",
+    padding: 20,
+  },
+  title: { fontFamily: FONT.regular, fontSize: 16, color: "#e8e8e8", marginBottom: 8 },
+  body: { fontFamily: "Outfit", fontSize: 15, lineHeight: 22, color: "#c0c0c0", marginBottom: 18 },
+  primary: { borderWidth: 1, borderColor: ACCENT, paddingVertical: 12, alignItems: "center" },
+  primaryText: { ...label, color: ACCENT },
+  secondary: { marginTop: 10, paddingVertical: 10, alignItems: "center" },
+  secondaryText: { ...label, color: "#B8903F" },
+  dismiss: { marginTop: 6, paddingVertical: 8, alignItems: "center" },
+  dismissText: { ...label, color: TEXT_SECONDARY },
+  settings: { marginTop: 4, marginBottom: 18, gap: 12 },
+  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  settingsTitle: { fontFamily: "Outfit", fontSize: 15, color: "#e0e0e0" },
+  settingsSub: { fontFamily: "Outfit", fontSize: 13, color: TEXT_SECONDARY },
+  stepper: { flexDirection: "row", alignItems: "center", gap: 14 },
+  time: { fontFamily: FONT.regular, fontSize: 15, color: "#e0e0e0", minWidth: 48, textAlign: "center" },
+});

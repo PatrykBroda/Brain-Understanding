@@ -38,6 +38,7 @@ import { WeeklyMission } from "@/components/WeeklyMission";
 import { FormScroll } from "@/components/FormScroll";
 import { KEYBOARD_DONE_ID } from "@/components/KeyboardDoneBar";
 import { useIsFramePlus } from "@/hooks/useEntitlement";
+import { campPhaseInfo, campTimeline } from "@/lib/campPhases";
 import { FREE_TEXT, LABEL_TEXT, NAME_TEXT, RAW_TEXT } from "@/lib/textInputProps";
 import { TEXT_SECONDARY, caption, label, meta, sectionTitle } from "@/constants/typography";
 
@@ -770,6 +771,27 @@ function groupSessions(sessions: TrainingSession[]): { date: string; items: Trai
   return groups;
 }
 
+function CampTimeline({ days, daysToWeighIn, accent }: { days: number | null; daysToWeighIn: number | null; accent: string }) {
+  if (days == null) return null;
+  const steps = campTimeline({ daysToEvent: days, daysToWeighIn });
+  const info = campPhaseInfo({ daysToEvent: days, daysToWeighIn });
+  return (
+    <View style={{ marginBottom: 12, gap: 6 }}>
+      <View style={{ flexDirection: "row", gap: 4 }}>
+        {steps.map((s) => (
+          <View key={s.key} style={{ flex: 1, gap: 4 }}>
+            <View style={{ height: 3, backgroundColor: s.current ? accent : "rgba(255,255,255,0.12)" }} />
+            <Text style={{ fontFamily: "Outfit", fontSize: 9, color: s.current ? accent : "#777" }} numberOfLines={1}>
+              {s.label}
+            </Text>
+          </View>
+        ))}
+      </View>
+      <Text style={{ fontFamily: "Outfit", fontSize: 12, lineHeight: 17, color: "#aaa" }}>{info.homeLine}</Text>
+    </View>
+  );
+}
+
 function Dashboard({
   competition,
   days,
@@ -815,6 +837,7 @@ function Dashboard({
 
   return (
     <View>
+      <CampTimeline days={days} daysToWeighIn={daysToWeighIn} accent={accent} />
       {/* Centered countdown card, mirroring the web CampDashboard */}
       <View style={[camp.dashCard, { borderColor: `${accent}55` }]}>
         <View style={camp.dashCardTop}>

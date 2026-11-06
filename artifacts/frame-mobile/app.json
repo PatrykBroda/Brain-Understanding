@@ -29,6 +29,12 @@
       "expo-web-browser",
       "expo-secure-store",
       [
+        "expo-notifications",
+        {
+          "color": "#8A6A2F"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Allow FRAME to select photos and videos for chat attachments and your profile image."

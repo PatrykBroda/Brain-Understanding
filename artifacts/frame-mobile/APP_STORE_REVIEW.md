@@ -159,6 +159,15 @@ new build appears in App Store Connect.
 - Have the product owner or legal reviewer approve final policy wording and
   provider retention/processing statements before submission.
 
+## Notifications
+
+FRAME schedules one optional, **local** daily check-in notification (expo-notifications; no
+server push, no APNs token, no data leaves the device). It is off by default. The system
+permission prompt appears only after the athlete opts in, either via Profile > Daily check-in
+reminder or the "remind me daily" option on the once-a-day check-in pop-up (never on first
+launch or day one). Tapping it opens Chat with a check-in prompt pre-filled. The reminder can be
+turned off any time in Profile.
+
 ## App Privacy answer worksheet
 
 Reconcile these rows against the exact App Store Connect questionnaire shown
@@ -285,7 +294,7 @@ TestFlight build:
 - [ ] Privacy, Terms/EULA, and Support URLs load publicly without authentication
 - [ ] Support email link opens a new message to `harrystephenrob@gmail.com`
 - [ ] App Privacy answers match the worksheet and `AI_DATA_FLOW.md`
-- [ ] Photo-library, microphone, and speech-recognition prompts appear only when invoked and match their shipped purpose strings
+- [ ] Photo-library, microphone, speech-recognition, and notification prompts appear only when invoked and match their shipped purpose strings
 - [ ] Sign-up, onboarding, consent withdrawal/reacceptance, sign-out, and permanent deletion complete on the submitted build
 - [ ] App description and screenshots do not claim raw-footage analysis; the mobile Analyse tab remains hidden until that separately tracked feature is shipped
 - [ ] iPhone and iPad-compatibility presentation are readable on the exact recorded devices

@@ -1,5 +1,8 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { now } from "./lib/clock";
+import { ExpoPushSender, runPushJob } from "./lib/pushService";
+import { drizzlePushStore } from "./lib/pushStore";
 
 const rawPort = process.env["PORT"];
 
@@ -48,3 +51,22 @@ function startListening(attempt = 1): void {
 }
 
 startListening();
+
+// Behaviour-triggered push (missed check-ins, finished analyses, fight dates).
+// Off unless PUSH_JOB_ENABLED=true so only one instance runs it; sends are
+// claim-first, so an accidental overlap still cannot double-send.
+if (process.env["PUSH_JOB_ENABLED"] === "true") {
+  const intervalMs = Number(process.env["PUSH_JOB_INTERVAL_MS"]) || 15 * 60_000;
+  const sender = new ExpoPushSender();
+  let running = false;
+  setInterval(() => {
+    if (running) return;
+    running = true;
+    runPushJob({ store: drizzlePushStore, sender, now: now() })
+      .then((r) => logger.info(r, "push job finished"))
+      .catch((err) => logger.error({ err }, "push job failed"))
+      .finally(() => {
+        running = false;
+      });
+  }, intervalMs).unref();
+}

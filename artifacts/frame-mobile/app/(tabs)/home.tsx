@@ -29,10 +29,15 @@ import {
 } from "@/hooks/useCheckin";
 import { useToday } from "@/hooks/useToday";
 import { useLocalDay } from "@/hooks/useLocalDay";
+import { publishWidgetData } from "@/lib/widgetBridge";
+import { campPhaseInfo } from "@/lib/campPhases";
+import { syncReminderWithCamp } from "@/lib/dailyReminder";
 import { DisclosureNotice, FocusCard } from "@/components/TodayCards";
 import { GOLD } from "@/constants/colors";
+import { StreakLine, WeeklyRecapCard } from "@/components/WeeklyRecapCard";
 import { FirstUsePointers } from "@/components/FirstUsePointers";
 import { ReadinessBars } from "@/components/ReadinessBars";
+import { InjuryPicker } from "@/components/InjuryPicker";
 import { dismissProps } from "@/components/FormScroll";
 import { KEYBOARD_DONE_ID } from "@/components/KeyboardDoneBar";
 import { heroImageSource } from "@/lib/heroImage";
@@ -260,6 +265,7 @@ function CheckinForm({
           style={styles.hrInput}
         />
       </View>
+      <InjuryPicker />
       {err && <Text style={styles.formErr}>{err}</Text>}
       <View style={styles.formActions}>
         <Pressable
@@ -271,7 +277,7 @@ function CheckinForm({
             {save.isPending ? "Saving" : existing ? "Update" : "Log check-in"}
           </Text>
         </Pressable>
-        <Pressable onPress={onDone} hitSlop={8}>
+        <Pressable onPress={onDone} hitSlop={8} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 8 }}>
           <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
       </View>
@@ -335,12 +341,37 @@ export default function HomeScreen() {
   const competition = activeComp.data?.competition ?? null;
   const pressure = activeComp.data?.pressure ?? null;
 
+  // Keep the home-screen widget in step with what Home shows (no-op off iOS / without the native module).
+  const widgetFocus = today?.focus ?? null;
+  const widgetDays = pressure?.daysToEvent ?? null;
+  const widgetCamp = competition?.eventName ?? null;
+  useEffect(() => {
+    publishWidgetData({
+      date: localDay,
+      signedIn: !!isSignedIn,
+      focus: widgetFocus,
+      camp: widgetCamp !== null && widgetDays !== null ? { eventName: widgetCamp, daysToEvent: widgetDays } : null,
+    });
+  }, [localDay, isSignedIn, widgetFocus, widgetDays, widgetCamp]);
+
+  // Camp phase drives the Home line and the wording of the daily reminder.
+  const campDaysToWeighIn = pressure?.daysToWeighIn ?? null;
+  const campPhase = widgetDays !== null ? campPhaseInfo({ daysToEvent: widgetDays, daysToWeighIn: campDaysToWeighIn }) : null;
+  useEffect(() => {
+    if (!userId) return;
+    void syncReminderWithCamp(
+      userId,
+      widgetDays !== null ? { daysToEvent: widgetDays, daysToWeighIn: campDaysToWeighIn } : null,
+    ).catch(() => null);
+  }, [userId, widgetDays, campDaysToWeighIn]);
+
   const [editing, setEditing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const formY = useRef(0);
   // A deep link with ?checkin=1 lands here with the form open (the in-page "Check in now" sets it directly).
-  const { checkin: checkinParam, n: checkinNonce } = useLocalSearchParams<{
+  const { checkin: checkinParam, n: checkinNonce, recap: recapParam } = useLocalSearchParams<{
     checkin?: string;
+    recap?: string;
     n?: string;
   }>();
   useEffect(() => {
@@ -600,6 +631,12 @@ export default function HomeScreen() {
         )}
       </View>
 
+      {/* Streak + Sunday recap */}
+      <View style={styles.section}>
+        <StreakLine />
+        <WeeklyRecapCard focus={today?.focus?.title ?? null} forced={recapParam === "1"} />
+      </View>
+
       {/* No check-in today: say so once, under the readiness card, with the way to fix it */}
       {showCheckinNotice && today && !editing ? (
         <View style={styles.section}>
@@ -658,7 +695,8 @@ export default function HomeScreen() {
           >
             <View style={{ flex: 1 }}>
               <Text style={styles.compEvent}>{competition.eventName}</Text>
-              <Text style={styles.compPhase}>{pressure.phase}</Text>
+              <Text style={styles.compPhase}>{campPhase ? campPhase.label : pressure.phase}</Text>
+              {campPhase ? <Text style={styles.compLine}>{campPhase.homeLine}</Text> : null}
             </View>
             <View style={styles.compRight}>
               <Text style={styles.compDays}>{pressure.daysToEvent}</Text>
@@ -915,6 +953,8 @@ const styles = StyleSheet.create({
   saveBtn: {
     paddingHorizontal: 20,
     paddingVertical: 11,
+    minHeight: 44,
+    justifyContent: "center",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: GOLD,
@@ -978,6 +1018,7 @@ const styles = StyleSheet.create({
     color: "#f0f0f0",
     letterSpacing: 0.5,
   },
+  compLine: { fontFamily: "Outfit", fontSize: 12, lineHeight: 17, color: "#9a9a9a", marginTop: 4 },
   compPhase: {
     ...sectionTitle,
     marginTop: 6,

@@ -34,6 +34,8 @@ import { refreshModel } from "@/lib/modelRefresh";
 import { sportLabelFor } from "@workspace/onboarding";
 import { useActiveCompetition } from "@/hooks/useCompetition";
 import { Belt } from "@/components/Belt";
+import { VoiceSettings } from "@/components/SpeakButton";
+import { DailyReminderSettings, PushSettings, WeeklyRecapSettings } from "@/components/DailyCheckIn";
 import { ProfileEditModal } from "@/components/ProfileEditModal";
 import { AnswersSection } from "@/components/AnswersSection";
 import { FactConfidence } from "@/components/FactConfidence";
@@ -815,6 +817,12 @@ export default function ProfileScreen() {
               <Text style={s.viewHistory}>View history →</Text>
             </Pressable>
           </View>
+          <Pressable onPress={() => router.push("/compare")} hitSlop={8} accessibilityRole="button">
+            <Text style={s.viewHistory}>Compare two analyses →</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push("/injuries")} hitSlop={8} accessibilityRole="button">
+            <Text style={s.viewHistory}>Injury log →</Text>
+          </Pressable>
 
           {!isFramePlus ? (
             <View style={s.panel}>
@@ -909,6 +917,10 @@ export default function ProfileScreen() {
 
           {/* ACCOUNT */}
           <View style={s.section}>
+            <DailyReminderSettings />
+            <WeeklyRecapSettings />
+            <VoiceSettings />
+            <PushSettings />
             <Text style={s.privacyHeading}>AI coaching & privacy</Text>
             <Text style={s.privacyCopy}>
               FRAME uses AI coaching services. Depending on the feature, FRAME may share the exact categories shown in the permission disclosure with Anthropic (Claude) or OpenAI. FRAME provides performance coaching, not medical advice or diagnosis.
