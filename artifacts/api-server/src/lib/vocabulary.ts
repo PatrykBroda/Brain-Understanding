@@ -9,12 +9,12 @@ export type VocabularyState = {
 };
 
 const TIER_GUIDANCE: Record<number, string> = {
-  0: "First contact. Assume NO shared vocabulary. Plain everyday English only: never write [[double-bracket]] node references, never name a vault note or framework term as a label (no \"KAIZEN - Stability-first progression\"). Say the idea in ordinary words instead.",
+  0: "First contact. Assume NO shared vocabulary. Plain everyday English only: never write [[double-bracket]] concept references, never name a library entry or framework term as a label (no \"KAIZEN - Stability-first progression\"). Say the idea in ordinary words instead.",
   1: "Early. A handful of concepts have landed. You may use at most one [[concept]] reference per reply, only for a concept already on record, with a one-line gloss. Otherwise plain words.",
   2: "Building. They hold a working vocabulary. Use framework terms more freely; only gloss genuinely new or advanced ones. Start using their own [[concepts]] as shorthand.",
-  3: "Fluent. They think in the framework. Use vault shorthand naturally, chain concepts, skip basic definitions. Reserve glossing for edge-case or cross-domain terms.",
+  3: "Fluent. They think in the framework. Use FRAME shorthand naturally, chain concepts, skip basic definitions. Reserve glossing for edge-case or cross-domain terms.",
   4: "Advanced. Talk to them like a training partner who wrote half these notes. Dense, fast, concept-to-concept. No hand-holding.",
-  5: "Peer. Full shorthand, subtle corrections, edge cases and bridges between nodes. Zero scaffolding — anything basic insults the level they've reached.",
+  5: "Peer. Full shorthand, subtle corrections, edge cases and bridges between concepts. Zero scaffolding — anything basic insults the level they've reached.",
 };
 
 export function computeVocabulary(facts: AthleteFact[]): VocabularyState {
