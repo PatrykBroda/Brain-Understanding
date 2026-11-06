@@ -816,6 +816,9 @@ export default function ProfileScreen() {
               <Text style={s.viewHistory}>View history →</Text>
             </Pressable>
           </View>
+          <Pressable onPress={() => router.push("/compare")} hitSlop={8} accessibilityRole="button">
+            <Text style={s.viewHistory}>Compare two analyses →</Text>
+          </Pressable>
 
           {!isFramePlus ? (
             <View style={s.panel}>
