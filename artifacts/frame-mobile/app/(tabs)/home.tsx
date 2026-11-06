@@ -37,6 +37,7 @@ import { GOLD } from "@/constants/colors";
 import { StreakLine, WeeklyRecapCard } from "@/components/WeeklyRecapCard";
 import { FirstUsePointers } from "@/components/FirstUsePointers";
 import { ReadinessBars } from "@/components/ReadinessBars";
+import { InjuryPicker } from "@/components/InjuryPicker";
 import { dismissProps } from "@/components/FormScroll";
 import { KEYBOARD_DONE_ID } from "@/components/KeyboardDoneBar";
 import { heroImageSource } from "@/lib/heroImage";
@@ -264,6 +265,7 @@ function CheckinForm({
           style={styles.hrInput}
         />
       </View>
+      <InjuryPicker />
       {err && <Text style={styles.formErr}>{err}</Text>}
       <View style={styles.formActions}>
         <Pressable

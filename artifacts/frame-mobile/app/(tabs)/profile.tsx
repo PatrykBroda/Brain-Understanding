@@ -820,6 +820,9 @@ export default function ProfileScreen() {
           <Pressable onPress={() => router.push("/compare")} hitSlop={8} accessibilityRole="button">
             <Text style={s.viewHistory}>Compare two analyses →</Text>
           </Pressable>
+          <Pressable onPress={() => router.push("/injuries")} hitSlop={8} accessibilityRole="button">
+            <Text style={s.viewHistory}>Injury log →</Text>
+          </Pressable>
 
           {!isFramePlus ? (
             <View style={s.panel}>

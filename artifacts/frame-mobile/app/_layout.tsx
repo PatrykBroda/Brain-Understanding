@@ -320,6 +320,7 @@ function RootLayoutNav() {
             />
             <Stack.Screen name="history" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="compare" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="injuries" options={{ animation: "slide_from_right" }} />
           </Stack>
         </AiConsentGate>
         <SessionPersistenceNotice />
