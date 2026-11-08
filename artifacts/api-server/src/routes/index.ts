@@ -12,6 +12,7 @@ import analysisRouter from "./analysis";
 import reportRouter from "./report";
 import competitionRouter from "./competition";
 import checkinRouter from "./checkin";
+import injuryRouter from "./injury";
 import todayRouter from "./today";
 import billingRouter from "./billing";
 import accountRouter from "./account";
@@ -21,6 +22,7 @@ import passwordResetRouter from "./passwordReset";
 import privacyRouter from "./privacy";
 import aiConsentRouter from "./aiConsent";
 import onboardingRouter from "./onboarding";
+import pushRouter from "./push";
 import { requireAuth } from "../middlewares/authMiddleware";
 import { attachTimezone } from "../middlewares/timezone";
 import { requireCurrentAiConsent } from "../lib/aiConsent";
@@ -51,6 +53,8 @@ router.use(accountRouter);
 // Funnel tracking + admin funnel read: also reachable before consent so sign-up
 // problems around the consent step are measurable.
 router.use(onboardingRouter);
+// Push registration/preferences stay reachable without AI consent so opting out always works.
+router.use(pushRouter);
 
 // All other authenticated FRAME use requires the current disclosure. Keep the
 // immediate provider-boundary checks in the individual AI services as well.
@@ -66,6 +70,7 @@ router.use(analysisRouter);
 router.use(reportRouter);
 router.use(competitionRouter);
 router.use(checkinRouter);
+router.use(injuryRouter);
 router.use(todayRouter);
 router.use(billingRouter);
 router.use(googleRouter);

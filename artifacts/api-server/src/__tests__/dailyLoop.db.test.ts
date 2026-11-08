@@ -118,7 +118,7 @@ describe("daily loop, athlete in Asia/Bangkok", () => {
     expect(r.json.state).toMatchObject({ name: "Recovering", asOf: "2026-10-20", current: true });
     expect(r.json.state.source).toMatch(/check-in/);
     expect(r.json.focus).toMatchObject({ kind: "recovery", forDate: "2026-10-20", current: true, carriedOver: false });
-    expect(r.json.focus.because.join(" ")).toMatch(/sleep 30/);
+    expect(r.json.focus.because.join(" ")).not.toMatch(/sleep 30/); // check-in line dropped on purpose (cdffdf2)
     expect(r.json.readiness.today.score).toBe(38);
     expect(r.json.disclosure.code).toBe("none");
     // The athlete's timezone is remembered on the profile.

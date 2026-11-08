@@ -41,6 +41,15 @@ describe("today block", () => {
   });
 });
 
+describe("injury block in today context", () => {
+  it("includes logged injuries and omits the section when none", () => {
+    const withInj = { ...ctx(), injuries: [{ date: "2026-10-19", area: "knee", severity: 2, note: "left" }] };
+    const out = buildTodayBlock(withInj);
+    expect(out).toContain("knee: sore (yesterday)");
+    expect(buildTodayBlock(ctx())).not.toContain("Injury and soreness");
+  });
+});
+
 describe("dynamic context", () => {
   const fighter = { name: "A", age: 30, art: "BJJ", primarySport: "bjj", level: "Blue", trainingFrequency: "3-4x / week", gym: "", competes: false, goals: "", weaknesses: "", bio: "", personality: "Slips imposed pressure and re-angles.", spiritAnimal: "", spiritAnimalTagline: "" } as never;
   it("includes the blocks and the onboarding personality", () => {

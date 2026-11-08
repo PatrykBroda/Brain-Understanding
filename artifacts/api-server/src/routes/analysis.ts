@@ -12,7 +12,7 @@ import {
   type DetectedEvent,
   type NervousSystemLoad,
 } from "@workspace/db";
-import { and, desc, eq, isNotNull, lt, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, lt, ne } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { getActiveFacts, addFact, confirmFact, findActiveFactByTopic } from "../lib/factsService";
 import { getEntitlementForUserId } from "../lib/subscriptionService";
@@ -34,6 +34,8 @@ import {
   recomputeSessionScore,
   ContentValidationError,
 } from "../lib/analysisService";
+import { compareAnalyses, type CompareSide } from "../lib/analysisCompare";
+import { compareUpgradeRequired, parseComparePair } from "../lib/analysisAccess";
 import { requireAiConsent, minimiseAnalysisContext } from "../lib/aiConsent";
 import {
   classifySource,
@@ -760,6 +762,53 @@ router.get("/analysis", async (req, res) => {
     return;
   }
   res.json({ analyses: rows.map((r) => ({ ...r, locked: false })) });
+});
+
+// Side-by-side comparison of two of the athlete's own self reads ("vs 4 weeks ago").
+// FRAME+ only, matching /compare-track (same "analysis_history" feature). Must be
+// registered before /analysis/:id so "compare" is not parsed as an id.
+router.get("/analysis/compare", async (req, res) => {
+  const fighter = await getUserFighter(req);
+  if (!fighter) {
+    res.status(400).json({ error: "no fighter" });
+    return;
+  }
+  const pair = parseComparePair(req.query["a"], req.query["b"]);
+  if (!pair) {
+    res.status(400).json({ error: "Pick two different analyses to compare." });
+    return;
+  }
+  const entitlement = await getEntitlementForUserId(req.userId as string);
+  const gate = compareUpgradeRequired(entitlement.plan);
+  if (gate) {
+    res.status(402).json(gate);
+    return;
+  }
+  if (!(await requireAiConsent(req, res))) return;
+  const rows = await db
+    .select()
+    .from(videoAnalysesTable)
+    .where(
+      and(
+        eq(videoAnalysesTable.fighterId, fighter.id),
+        eq(videoAnalysesTable.subject, "self"),
+        inArray(videoAnalysesTable.id, [pair[0], pair[1]]),
+      ),
+    );
+  if (rows.length !== 2) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  const sides: CompareSide[] = rows.map((r) => ({
+    id: r.id,
+    createdAt: r.createdAt,
+    kind: r.kind,
+    sessionScore: r.sessionScore,
+    scores: r.scores,
+    findings: r.findings,
+    summary: r.summary,
+  }));
+  res.json(await compareAnalyses(sides[0]!, sides[1]!));
 });
 
 router.get("/analysis/:id", async (req, res) => {

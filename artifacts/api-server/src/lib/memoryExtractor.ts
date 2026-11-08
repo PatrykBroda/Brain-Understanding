@@ -21,7 +21,7 @@ if (!baseURL || !apiKey) {
 }
 const client = new Anthropic({ baseURL, apiKey, maxRetries: AI_PROVIDER_MAX_RETRIES });
 
-const SYSTEM = `You are the memory writer for a personal BJJ + nervous-system coaching system called Synochi. Your only job is to read the latest exchange between the athlete and the coach and update the athlete's long-term model.
+const SYSTEM = `You are the memory writer for a personal BJJ + nervous-system coaching app called FRAME. Your only job is to read the latest exchange between the athlete and the coach and update the athlete's long-term model.
 
 Rules:
 - Only record DURABLE observations — patterns, knowledge level, named weaknesses/strengths, stated preferences, events, goals, life context that affects training. Do NOT record one-off moods or single-session noise unless the athlete states it as a recurring thing.

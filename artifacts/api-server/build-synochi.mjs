@@ -46,8 +46,18 @@ function listMd(dir) {
   }
 }
 
+// The authored notes still say "Synochi" in prose. The coach must never say it to the athlete
+// (the app only shows FRAME), so it is rewritten to FRAME in the bundled text. [[Title]] links
+// are left alone: titles are the retrieval keys and must keep matching the file names.
+function scrub(text) {
+  return text
+    .split(/(\[\[[^\]]*\]\])/)
+    .map((part) => (part.startsWith("[[") ? part : part.replace(/synochi/gi, "FRAME")))
+    .join("");
+}
+
 function clean(file) {
-  return readFileSync(file, "utf8").replace(/\r\n/g, "\n").trim();
+  return scrub(readFileSync(file, "utf8").replace(/\r\n/g, "\n").trim());
 }
 
 function fullSection(folder) {
@@ -74,7 +84,7 @@ function indexSection(folder) {
   const parts = [
     `## ${folder} — concept index (titles + first lines)`,
     "",
-    "These are nodes you can reason about by name. Use the framework principles to expand them; never contradict the SPINE. When you reference one, write it as [[Title]] — the retrieval layer will surface its full text into your context on the NEXT turn so you can quote it precisely.",
+    "These are concepts you can reason about by name. Use the framework principles to expand them; never contradict the SPINE. When you reference one, write it as [[Title]] — the retrieval layer will surface its full text into your context on the NEXT turn so you can quote it precisely.",
     "",
   ];
   for (const f of listMd(dir)) {
@@ -107,9 +117,9 @@ if (!statSync(VAULT_ROOT, { throwIfNoEntry: false })?.isDirectory()) {
 }
 
 const sections = [
-  "# SYNOCHI — Personal Operating System (full reference)",
+  "# FRAME — Personal Operating System (full reference)",
   "",
-  "SPINE laws are non-negotiable. IDENTITY describes how the self forms and holds. PROTOCOLS are actionable interventions. MECHANISMS and MODELS are indexed below by title with short blurbs — when one becomes relevant to the conversation, the system surfaces its FULL TEXT into the dynamic context block under '# Deep vault context pulled in for this turn'. Always prefer the deep-block wording over your own paraphrase when available.",
+  "SPINE laws are non-negotiable. IDENTITY describes how the self forms and holds. PROTOCOLS are actionable interventions. MECHANISMS and MODELS are indexed below by title with short blurbs — when one becomes relevant to the conversation, the system surfaces its FULL TEXT into the dynamic context block under '# Deeper FRAME library context for this turn'. Never name these labels to the athlete. Always prefer the deeper-block wording over your own paraphrase when available.",
   "",
 ];
 for (const f of FULL) sections.push(fullSection(f));

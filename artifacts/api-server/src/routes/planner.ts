@@ -25,6 +25,7 @@ import { getUserFighter } from "../middlewares/authMiddleware";
 import { hasAiConsentForUser, requireAiConsent } from "../lib/aiConsent";
 import { describeProviderError, isRetryableProviderError } from "../lib/aiRetry";
 import { rememberTimezone, todayFor } from "../middlewares/timezone";
+import { loadInjuryBlock } from "../lib/injuryStore";
 
 // Free tier sees a mission preview: the first item in full, the rest as
 // title+category stubs. Shape stays PlanItem-compatible so clients don't break.
@@ -116,6 +117,7 @@ async function generate(fighterId: number, req: Request, fresh: boolean, weekSta
 
   const conversation = await getOrCreateActiveConversation(fighter.id);
   const recentChat = await recentChatSummary(conversation.id);
+  const injuryBlock = await loadInjuryBlock(fighter.id, todayFor(req, fighter.timezone));
   const chosen = conversation.aiProvider === "openai" ? "openai" : "claude";
 
   const attempt = (provider: "claude" | "openai") =>
@@ -126,6 +128,7 @@ async function generate(fighterId: number, req: Request, fresh: boolean, weekSta
       calibrations,
       provider,
       recentChat,
+      injuryBlock,
     });
 
   try {

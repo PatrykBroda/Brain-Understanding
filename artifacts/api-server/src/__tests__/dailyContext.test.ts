@@ -102,7 +102,8 @@ describe("focus", () => {
   it("a low check-in turns the focus to recovery and cites the numbers", () => {
     const f = deriveFocus({ ...sig, checkin: { sleep: 30, energy: 35, soreness: 40, stress: 45 } });
     expect(f.kind).toBe("recovery");
-    expect(f.because.join(" ")).toMatch(/sleep 30/);
+    // The check-in numbers are deliberately not echoed as a reason (cdffdf2).
+    expect(f.because.join(" ")).not.toMatch(/sleep 30/);
   });
   it("something said today beats the standing weakness", () => {
     const f = deriveFocus({

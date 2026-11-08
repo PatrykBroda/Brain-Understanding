@@ -250,6 +250,8 @@ export async function generateWeeklyPlan(args: {
   calibrations: Calibration[];
   provider: "claude" | "openai";
   recentChat: string;
+  /** Self-reported injury / soreness block (may be empty). */
+  injuryBlock?: string;
   /** Per-call timeout; defaults to PLANNER_CALL_TIMEOUT_MS. */
   timeoutMs?: number;
 }): Promise<{ items: PlanItem[]; rationale: string }> {
@@ -263,6 +265,12 @@ export async function generateWeeklyPlan(args: {
     (profileKeys.length
       ? `\n\n# Citable onboarding answers\n\nIf an item rests on something the athlete told you at onboarding rather than a recorded fact, cite it in sourceCalibrationKeys using one of: ${profileKeys.join(", ")}. Prefer recorded facts and calibrations whenever they exist.`
       : "") +
+    (args.injuryBlock ? `
+
+# Injury and soreness
+
+${args.injuryBlock}
+Shape this week around it: no items that load a logged area; offer a mobility or alternative item instead.` : "") +
     (recentChat
       ? `\n\n# Recent chat signal (most recent first, truncated)\n\n${recentChat.slice(0, 4000)}`
       : "");

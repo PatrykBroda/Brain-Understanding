@@ -1,12 +1,33 @@
 import { Router, type IRouter } from "express";
-import { db, dailyCheckinsTable, insertDailyCheckinSchema } from "@workspace/db";
-import { and, asc, eq, gte } from "drizzle-orm";
+import {
+  db,
+  dailyCheckinsTable,
+  insertDailyCheckinSchema,
+  trainingSessionsTable,
+} from "@workspace/db";
+import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { getEntitlementForUserId } from "../lib/subscriptionService";
 import { rememberTimezone, todayFor } from "../middlewares/timezone";
 import { addDays } from "../lib/localTime";
+import { buildWeeklyRecap, computeStreak } from "../lib/streak";
 
 const router: IRouter = Router();
+
+const STREAK_LOOKBACK_DAYS = 400;
+
+async function streakFor(fighterId: number, today: string) {
+  const rows = await db
+    .select({ d: dailyCheckinsTable.checkinDate })
+    .from(dailyCheckinsTable)
+    .where(
+      and(
+        eq(dailyCheckinsTable.fighterId, fighterId),
+        gte(dailyCheckinsTable.checkinDate, addDays(today, -STREAK_LOOKBACK_DAYS)),
+      ),
+    );
+  return computeStreak(rows.map((r) => r.d), today);
+}
 
 // The calendar day is derived on the server in the athlete's own timezone (the
 // X-Timezone the app sends, else the one we stored, else UTC), so a client can
@@ -17,7 +38,7 @@ router.get("/checkin/today", async (req, res) => {
   const fighter = await getUserFighter(req);
   const date = todayFor(req, fighter?.timezone);
   if (!fighter) {
-    res.json({ checkin: null, date });
+    res.json({ checkin: null, date, streak: computeStreak([], date) });
     return;
   }
   await rememberTimezone(req, fighter);
@@ -31,7 +52,49 @@ router.get("/checkin/today", async (req, res) => {
       ),
     )
     .limit(1);
-  res.json({ checkin: checkin ?? null, date });
+  res.json({ checkin: checkin ?? null, date, streak: await streakFor(fighter.id, date) });
+});
+
+// Weekly recap: the 7 local days ending today (sessions, state trend vs the week before).
+// Free for everyone: it summarises what the athlete logged themselves.
+router.get("/checkin/recap", async (req, res) => {
+  const fighter = await getUserFighter(req);
+  const today = todayFor(req, fighter?.timezone);
+  if (!fighter) {
+    res.json({ recap: buildWeeklyRecap(today, [], []) });
+    return;
+  }
+  await rememberTimezone(req, fighter);
+  const since = addDays(today, -13);
+  const [rows, sessions] = await Promise.all([
+    db
+      .select()
+      .from(dailyCheckinsTable)
+      .where(
+        and(
+          eq(dailyCheckinsTable.fighterId, fighter.id),
+          gte(dailyCheckinsTable.checkinDate, since),
+          lte(dailyCheckinsTable.checkinDate, today),
+        ),
+      ),
+    db
+      .select()
+      .from(trainingSessionsTable)
+      .where(
+        and(
+          eq(trainingSessionsTable.fighterId, fighter.id),
+          gte(trainingSessionsTable.sessionDate, since),
+          lte(trainingSessionsTable.sessionDate, today),
+        ),
+      ),
+  ]);
+  const recap = buildWeeklyRecap(
+    today,
+    rows.map((r) => ({ date: r.checkinDate, sleep: r.sleep, energy: r.energy, soreness: r.soreness, stress: r.stress })),
+    sessions.map((s) => ({ date: s.sessionDate, completed: s.completed })),
+  );
+  res.set("Cache-Control", "no-store");
+  res.json({ recap });
 });
 
 // Readiness trend — the last 30 days of self-reported check-ins, oldest first.
@@ -94,7 +157,7 @@ router.post("/checkin", async (req, res) => {
       },
     })
     .returning();
-  res.json({ checkin, date });
+  res.json({ checkin, date, streak: await streakFor(fighter.id, date) });
 });
 
 export default router;

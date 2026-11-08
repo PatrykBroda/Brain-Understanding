@@ -29,3 +29,22 @@ export function analysisUpgradeRequired(
     feature: subject === "opponent" ? "opponent_analysis" : "video_analysis",
   };
 }
+
+/** Comparing two saved reads is session-over-session history, so it is FRAME+ only (same feature key as /compare-track). */
+export function compareUpgradeRequired(plan: "free" | "frame_plus") {
+  if (plan !== "free") return null;
+  return {
+    error: "Session comparison is a FRAME+ feature.",
+    code: "FRAME_PLUS_REQUIRED",
+    feature: "analysis_history",
+  };
+}
+
+/** Two distinct positive integer ids from the query string, or null. */
+export function parseComparePair(a: unknown, b: unknown): [number, number] | null {
+  const toId = (v: unknown) => (typeof v === "string" && /^\d{1,9}$/.test(v) ? Number(v) : NaN);
+  const x = toId(a);
+  const y = toId(b);
+  if (!(x > 0) || !(y > 0) || x === y) return null;
+  return [x, y];
+}

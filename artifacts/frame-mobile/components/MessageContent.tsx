@@ -3,7 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { DrillCard, type Drill } from "@/components/DrillCard";
 import { BreathCard, type Breath } from "@/components/BreathCard";
 import { RegulateSequence, type RegulateSequenceData } from "@/components/RegulateSequence";
-import { GLOSSARY, GLOSSARY_KEYS, isBrandMention, lookupConcept, type GlossEntry } from "@/lib/glossary";
+import { GLOSSARY, GLOSSARY_KEYS, isBrandMention, lookupConcept, parseConceptRef, stripDanglingRef, type GlossEntry } from "@/lib/glossary";
 import { recordMetTerm } from "@/lib/termsLibrary";
 import { useAuth } from "@/context/AuthContext";
 import { FONT, TEXT_SECONDARY, label, meta } from "@/constants/typography";
@@ -81,14 +81,17 @@ function tokenize(text: string): Token[] {
   const out: Token[] = [];
   let last = 0;
   let m: RegExpExecArray | null;
+  text = stripDanglingRef(text);
   STRUCT_RE.lastIndex = 0;
   while ((m = STRUCT_RE.exec(text)) !== null) {
     if (m.index > last) out.push(...glossSplit(text.slice(last, m.index)));
     if (m[1] != null) {
       // Only highlight a [[node]] we can actually explain; otherwise show it plain.
+      // Show the alias/title only, never the raw `Title|alias` / `Title#Section` syntax.
+      const ref = parseConceptRef(m[1]);
       const hit = lookupConcept(m[1]);
-      if (hit) out.push({ t: "concept", v: m[1], key: hit.key, entry: hit.entry });
-      else out.push({ t: "plain", v: m[1] });
+      if (hit) out.push({ t: "concept", v: ref.display, key: hit.key, entry: hit.entry });
+      else out.push({ t: "plain", v: ref.display });
     }
     else if (m[2] != null) out.push({ t: "bold", v: m[2] });
     last = m.index + m[0].length;

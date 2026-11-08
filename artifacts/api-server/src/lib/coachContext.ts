@@ -7,6 +7,8 @@ import { and, desc, eq } from "drizzle-orm";
 import { db, dailyCheckinsTable, type DailyCheckin, type Fighter } from "@workspace/db";
 import { getDailyView, readinessBand, readinessGuidance, readinessScore, type DailyView } from "./dailyContext";
 import { questionnaireAnswered } from "@workspace/onboarding";
+import { buildInjuryBlock, type InjuryEntry } from "./injuryLog";
+import { loadInjuryEntries } from "./injuryStore";
 import { daysBetween, formatLocalDate } from "./localTime";
 
 export interface CoachDayContext {
@@ -16,6 +18,8 @@ export interface CoachDayContext {
   view: DailyView;
   /** Newest first, at most 5, each dated. */
   recentCheckins: DailyCheckin[];
+  /** Self-reported injury / soreness entries, last 14 days. Optional so older callers still compile. */
+  injuries?: InjuryEntry[];
 }
 
 function describeCheckin(c: Pick<DailyCheckin, "sleep" | "energy" | "soreness" | "stress">): string {
@@ -50,7 +54,8 @@ export async function loadCoachDayContext(
     .where(and(eq(dailyCheckinsTable.fighterId, fighter.id)))
     .orderBy(desc(dailyCheckinsTable.checkinDate))
     .limit(5);
-  return { now: opts.now, tz: opts.tz, today: opts.today, view, recentCheckins };
+  const injuries = await loadInjuryEntries(fighter.id, opts.today).catch(() => [] as InjuryEntry[]);
+  return { now: opts.now, tz: opts.tz, today: opts.today, view, recentCheckins, injuries };
 }
 
 const TODAY_AUTHORITY_RULE =
@@ -118,6 +123,9 @@ export function buildTodayBlock(ctx: CoachDayContext): string {
       lines.push(`- ${when}: ${readinessScore(c)}/100 (${readinessBand(readinessScore(c))}) — ${describeCheckin(c)}`);
     }
   }
+
+  const injuryBlock = buildInjuryBlock(ctx.injuries ?? [], today);
+  if (injuryBlock) lines.push("", injuryBlock);
 
   lines.push("");
   if (view.state.name && view.state.current) {
