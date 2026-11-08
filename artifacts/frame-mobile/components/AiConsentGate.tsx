@@ -8,6 +8,7 @@ import { apiGet, apiPatch, apiDelete, apiUrl } from "@/lib/api";
 import { AiConsentStatus } from "@/lib/aiConsent";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import { TEXT_SECONDARY, label } from "@/constants/typography";
+import { aiConsentLoadErrorCopy } from "@/lib/aiConsentError";
 
 export function AiConsentGate({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, signOut } = useAuth();
@@ -17,6 +18,7 @@ export function AiConsentGate({ children }: { children: React.ReactNode }) {
 
   const {
     data: status,
+    error,
     isLoading,
     isError,
     refetch,
@@ -102,13 +104,25 @@ export function AiConsentGate({ children }: { children: React.ReactNode }) {
 
   // 2. Errored
   if (isError) {
+    const errorCopy = aiConsentLoadErrorCopy(error);
     return (
       <View style={s.fullscreen}>
-        <Text style={s.errorTitle}>Connection error</Text>
-        <Text style={s.errorBody}>Could not load your permissions. Please check your connection and try again.</Text>
+        <Text style={s.errorTitle}>{errorCopy.title}</Text>
+        <Text style={s.errorBody}>{errorCopy.message}</Text>
 
-        <Pressable style={s.btnPrimary} onPress={() => refetch()}>
-          <Text style={s.btnPrimaryText}>Retry</Text>
+        <Pressable
+          style={s.btnPrimary}
+          onPress={() => {
+            if (errorCopy.action === "sign-in") {
+              void handleSignOut();
+              return;
+            }
+            void refetch();
+          }}
+        >
+          <Text style={s.btnPrimaryText}>
+            {errorCopy.action === "sign-in" ? "Sign in again" : "Retry"}
+          </Text>
         </Pressable>
 
         <View style={s.linksRow}>
