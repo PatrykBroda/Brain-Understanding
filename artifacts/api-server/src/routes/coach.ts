@@ -45,6 +45,7 @@ import {
 import { buildFirstReplyBlock, buildTodayBlock, loadCheckinOnlyBlock, loadCoachDayContext } from "../lib/coachContext";
 import { effectiveTimeZone, rememberTimezone, todayFor } from "../middlewares/timezone";
 import { localDate, localDayBounds } from "../lib/localTime";
+import { stampHistoryMessage } from "../lib/dateContext";
 import { openai, OPENAI_COACH_MODEL } from "../lib/openaiClient";
 import {
   getActiveCompetition,
@@ -618,11 +619,22 @@ router.post("/coach/chat", async (req, res) => {
         req.log.error({ err: err2 }, "coach check-in fallback failed; replying without it");
       }
     }
+    // Replayed messages carry the day they were sent so an old "11pm, get some rest" or
+    // "18 days out" cannot read as the present. The stored content is never changed.
+    const promptNow = req.frameNow ?? new Date();
+    const promptTz = effectiveTimeZone(req, fighter.timezone);
+    const datedContent = (m: { content: string; createdAt: Date }) =>
+      stampHistoryMessage(m.content, m.createdAt, promptNow, promptTz);
     const userTurns = fullHistory.filter((m) => m.role === "user").length;
     const firstReplyBlock = userTurns === 1 ? buildFirstReplyBlock(fighter) : null;
 
     const dynamicText =
-      buildDynamicContext(fighter, facts, calibrations, deepNodes, compBlock, { todayBlock, firstReplyBlock }) +
+      buildDynamicContext(fighter, facts, calibrations, deepNodes, compBlock, {
+        todayBlock,
+        firstReplyBlock,
+        now: promptNow,
+        tz: promptTz,
+      }) +
       "\n\n" +
       vocabularyPromptBlock(vocab);
 
@@ -661,11 +673,11 @@ router.post("/coach/chat", async (req, res) => {
         const role = m.role as "user" | "assistant";
         const atts = byMsg.get(m.id) ?? [];
         if (role === "assistant") {
-          openaiMessages.push({ role: "assistant", content: m.content });
+          openaiMessages.push({ role: "assistant", content: datedContent(m) });
           continue;
         }
         const includeImageBytes = m.id === lastUserMsgId;
-        const content = await buildOpenAIUserContent(m.content, atts, includeImageBytes);
+        const content = await buildOpenAIUserContent(datedContent(m), atts, includeImageBytes);
         openaiMessages.push({ role: "user", content } as ChatCompletionMessageParam);
       }
       const stream = await openai.chat.completions.create(
@@ -692,11 +704,11 @@ router.post("/coach/chat", async (req, res) => {
         const role = m.role as "user" | "assistant";
         const atts = byMsg.get(m.id) ?? [];
         if (role === "assistant") {
-          claudeMessages.push({ role, content: m.content });
+          claudeMessages.push({ role, content: datedContent(m) });
           continue;
         }
         const includeImageBytes = m.id === lastUserMsgId;
-        const content = await buildUserMessageContent(m.content, atts, includeImageBytes);
+        const content = await buildUserMessageContent(datedContent(m), atts, includeImageBytes);
         claudeMessages.push({ role, content });
       }
       const stream = client.messages.stream(

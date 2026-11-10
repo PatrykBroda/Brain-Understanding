@@ -1,5 +1,7 @@
 import { SYNOCHI_VAULT } from "./synochi.generated";
 import type { RetrievedNode } from "./vaultRetrieval";
+import { DATED_CONTEXT_RULES, NO_ACTIVE_CAMP_BLOCK, pinRelative, stampLabel } from "./dateContext";
+import { safeTimeZone } from "./localTime";
 import type { Fighter, Calibration, AthleteFact } from "@workspace/db";
 import { getArchetype, computeCoachingMode } from "@workspace/archetypes";
 import { missingAnswers } from "@workspace/onboarding";
@@ -397,8 +399,16 @@ export function buildDynamicContext(
   calibrations: Calibration[],
   deepNodes: RetrievedNode[] = [],
   competitionBlock: string | null = null,
-  extras: { todayBlock?: string | null; firstReplyBlock?: string | null } = {},
+  extras: { todayBlock?: string | null; firstReplyBlock?: string | null; now?: Date; tz?: string } = {},
 ): string {
+  // With a clock, past material is dated and the model is told what "now" is. Callers
+  // without one (video analysis) keep the plain rendering.
+  const clk = extras.now ? { now: extras.now, tz: safeTimeZone(extras.tz) } : null;
+  const dateFact = (f: AthleteFact) => {
+    if (!clk) return `(id ${f.id}, conf ${f.confidence}) ${f.topic}: ${f.content}`;
+    const seen = f.createdAt;
+    return `(id ${f.id}, conf ${f.confidence}, noted ${stampLabel(seen, clk.now, clk.tz)}) ${f.topic}: ${pinRelative(f.content, seen, clk.now, clk.tz, { pinDays: true })}`;
+  };
   const profile = [
     fighter.name ? `Name: ${fighter.name}` : null,
     fighter.age > 0 ? `Age: ${fighter.age}` : null,
@@ -469,7 +479,7 @@ export function buildDynamicContext(
       : CATEGORY_ORDER.filter((c) => grouped[c]?.length)
           .map((c) => {
             const lines = grouped[c]!.map(
-              (f) => `- (id ${f.id}, conf ${f.confidence}) ${f.topic}: ${f.content}`,
+              (f) => `- ${dateFact(f)}`,
             ).join("\n");
             return `### ${CATEGORY_LABELS[c]}\n${lines}`;
           })
@@ -480,7 +490,12 @@ export function buildDynamicContext(
       ? "No calibration data yet."
       : calibrations
           .slice(0, 10)
-          .map((c) => `- Q: ${c.promptText}\n  A: ${c.answer}`)
+          .map((c) => {
+            const ans = clk
+              ? `(answered ${stampLabel(c.createdAt, clk.now, clk.tz)}) ${pinRelative(c.answer, c.createdAt, clk.now, clk.tz, { pinDays: true })}`
+              : c.answer;
+            return `- Q: ${c.promptText}\n  A: ${ans}`;
+          })
           .join("\n");
 
   const deepBlock =
@@ -496,8 +511,8 @@ export function buildDynamicContext(
   return `# Athlete profile (baseline)
 
 ${profile}${sportBlock}${coachingModeBlock}${maturityBlock}${styleBlock}
-${competitionBlock ? `\n${competitionBlock}\n` : ""}${extras.todayBlock ? `\n${extras.todayBlock}\n` : ""}${extras.firstReplyBlock ? `\n${extras.firstReplyBlock}\n` : ""}
-# Accumulated athlete model (working memory — treat as evidence, supersede when wrong)
+${competitionBlock ? `\n${competitionBlock}\n` : clk ? `\n${NO_ACTIVE_CAMP_BLOCK}\n` : ""}${extras.todayBlock ? `\n${extras.todayBlock}\n` : ""}${extras.firstReplyBlock ? `\n${extras.firstReplyBlock}\n` : ""}
+${clk ? `${DATED_CONTEXT_RULES}\n\n` : ""}# Accumulated athlete model (working memory — treat as evidence, supersede when wrong)
 
 ${factsBlock}
 
