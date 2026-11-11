@@ -11,6 +11,7 @@ import type { Server } from "node:http";
 import { asc, eq, sql } from "drizzle-orm";
 import { db, usersTable, fightersTable, conversationsTable, messagesTable } from "@workspace/db";
 import { AI_CONSENT_VERSION } from "@workspace/ai-consent";
+import { countUserMessagesToday } from "../lib/featureGates";
 import { signToken } from "../routes/auth";
 import { startMockProviders, type MockProviders } from "./helpers/mockProviders";
 
@@ -244,5 +245,39 @@ describe("client disconnect", () => {
       ["user", "cm_drop_1"],
       ["assistant", "cm_drop_1"],
     ]);
+  });
+
+  // The Stop button: the app aborts its fetch, which the server sees as a hang-up.
+  it("a Stop before any text arrives aborts the provider call, saves no reply, and counts the message once", async () => {
+    mock.anthropic = { mode: "ok", reply: "never seen" };
+    mock.firstByteDelayMs = 2_000;
+    const ctl = new AbortController();
+    const pending = fetch(`${base}/coach/chat`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ content: "stop me early", clientMessageId: "cm_stop_1" }),
+      signal: ctl.signal,
+    }).then((r) => r.text());
+    pending.catch(() => {});
+    await waitFor(() => coachCalls().length === 1);
+    ctl.abort();
+    await expect(pending).rejects.toThrow();
+
+    await waitFor(() => coachCalls()[0]?.abortedEarly === true);
+    await new Promise((r) => setTimeout(r, 150));
+    const stored = await rows();
+    expect(stored.map((m) => [m.role, m.clientMessageId])).toEqual([["user", "cm_stop_1"]]);
+    expect(await countUserMessagesToday(fighterId)).toBe(1);
+
+    // Retry after Stop (same id): still ONE counted message, and a normal full reply.
+    mock.firstByteDelayMs = 0;
+    const retry = await chat("stop me early", "cm_stop_1");
+    expect(retry.text.trim()).toBe("never seen");
+    expect(await countUserMessagesToday(fighterId)).toBe(1);
+
+    // Rapid stop -> send something new: the new message is a new (counted) message.
+    const next = await chat("a different question", "cm_stop_2");
+    expect(next.done).toBeDefined();
+    expect(await countUserMessagesToday(fighterId)).toBe(2);
   });
 });
