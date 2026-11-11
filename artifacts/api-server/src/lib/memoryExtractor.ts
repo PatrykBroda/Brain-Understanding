@@ -34,6 +34,7 @@ Rules:
 - For technical_knowledge facts: topic = the position/concept (e.g. "half-guard pass", "deep half"). Content describes WHAT the athlete knows and at what level (foundational / working / advanced).
 - Be terse. One sentence per fact. No padding.
 - Time matters. Today's date is given below. Observations are dated by when they are recorded: when the athlete reports something that changes an older observation (an injury healing, a weakness improving, a camp moving, a new problem), SUPERSEDE or RESOLVE the old one rather than leaving it standing, and record time-bound updates (an injury, a camp, a life change) as event / context facts with the day in the sentence ("Tweaked left knee on 20 Oct").
+- Never store a countdown or relative time. Write absolute dates ("Fight on 28 Nov", "Knee tweaked on 20 Oct"), never "18 days out", "in 2 weeks", "tonight" or "tomorrow": those are false the next day. If the athlete says a camp or fight is off or cancelled, RESOLVE every observation that mentions its date or countdown.
 - A logged readiness check-in is a number the athlete entered, not an observation: do not turn a single day's scores into a durable fact. A repeated pattern across days (several poor-sleep days) is a fact once the athlete says so.
 - If nothing durable happened this turn, call no tools.
 

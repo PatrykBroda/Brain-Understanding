@@ -44,6 +44,8 @@ import {
   streamErrorMessage,
   uploadErrorMessage,
 } from "@/lib/chatErrors";
+import { STOPPED_LABEL, createCancelGate, type CancelGate } from "@/lib/chatCancel";
+import { stopSpeaking } from "@/lib/voiceReplies";
 import { ANALYSE_SESSION_PROMPT, REGULATE_PROMPT } from "@/lib/chat-prompts";
 import { useFighter } from "@/context/FighterContext";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
@@ -81,6 +83,8 @@ interface Message {
   retryAttachments?: AttachmentDto[];
   /** The stream stopped before the reply finished: `content` is what arrived. */
   interrupted?: boolean;
+  /** The athlete tapped Stop: content is whatever had streamed (may be empty). */
+  stopped?: boolean;
 }
 
 let _counter = 0;
@@ -207,6 +211,14 @@ function MessageBubble({
             msg.content ? (
               <Text style={[mb.text, mb.userText]} selectable>{msg.content}</Text>
             ) : null
+          ) : msg.stopped ? (
+            <>
+              {msg.content ? <MessageContent content={msg.content} onTrain={onTrain} /> : null}
+              <View style={[mb.errorBox, mb.interruptedBox]} accessibilityRole="alert">
+                <Text style={[mb.text, mb.assistantText]}>{STOPPED_LABEL}</Text>
+                {msg.retry != null && <RetryButton onPress={() => onRetry(msg)} disabled={retryDisabled} />}
+              </View>
+            </>
           ) : msg.interrupted ? (
             <>
               <MessageContent content={msg.content} onTrain={onTrain} />
@@ -454,6 +466,7 @@ export default function ChatScreen() {
   // enough to close the window between a tap and the consent lookup resolving.
   // It stays set while the consent sheet is open so acceptance can resume the
   // original turn without allowing a second tap to queue another one.
+  const cancelGateRef = useRef<CancelGate | null>(null);
   const sendInFlightRef = useRef(false);
   const consentAcceptingRef = useRef(false);
   const inputRef = useRef<TextInput>(null);
@@ -667,6 +680,9 @@ export default function ChatScreen() {
     let serverErrorCode: string | undefined;
     let streamSucceeded = false;
     let recovered = false;
+    // Stop button: one gate per send (see lib/chatCancel).
+    const gate = createCancelGate();
+    cancelGateRef.current = gate;
 
     // A transport failure: the reply may have been saved anyway. Show it if so,
     // otherwise the given error.
@@ -691,9 +707,23 @@ export default function ChatScreen() {
       );
     };
 
+    // The athlete stopped the reply. Keep what streamed (marked stopped) or, if
+    // nothing had, add a "Stopped." note; either way offer Retry (same key, so
+    // the server replaces the partial rather than adding a second reply).
+    const markStopped = () => {
+      pendingRecoveryRef.current = null;
+      const stoppedFields = { stopped: true, retry: trimmed, retryAttachments: attachments, clientMessageId: cmid };
+      if (added) {
+        const latest = fullContent;
+        setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: latest, ...stoppedFields } : m)));
+      } else {
+        setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "", ...stoppedFields }]);
+      }
+    };
+
     // Watchdog: abort a turn that never produces a first byte, or that stalls
     // mid-stream. Without this a hung request sits forever behind the spinner.
-    let ctrl = new AbortController();
+    let ctrl = gate.newRequest();
     let timedOut = false;
     let watchdog: ReturnType<typeof setTimeout> | undefined;
     const armWatchdog = (ms: number) => {
@@ -710,22 +740,24 @@ export default function ChatScreen() {
       attempt += 1;
       if (watchdog) clearTimeout(watchdog);
       setShowTyping(true);
-      await new Promise((r) => setTimeout(r, delay));
+      await gate.race(new Promise((r) => setTimeout(r, delay)));
     };
 
     try {
       for (;;) {
         serverError = false;
         serverErrorCode = undefined;
+        if (gate.cancelled) break;
         sawDone = false;
         timedOut = false;
-        ctrl = new AbortController();
+        ctrl = gate.newRequest();
         armWatchdog(FIRST_TOKEN_TIMEOUT_MS);
         try {
-      await apiStream(
+      await gate.race(apiStream(
         "/coach/chat",
         { content: trimmed, attachmentIds: attachments.map((a) => a.id), clientMessageId: cmid },
         (chunk) => {
+          if (gate.cancelled && !sawDone) return;
           if (chunk.error) {
             serverError = true;
             serverErrorCode = chunk.code;
@@ -757,8 +789,9 @@ export default function ChatScreen() {
           }
         },
         ctrl.signal,
-      );
+      ));
         } catch (err) {
+          if (gate.cancelled) break;
           const delay = autoRetryDelayMs({ attempt, receivedContent, error: err, timedOut });
           if (delay === null) throw err;
           await waitToRetry(delay);
@@ -769,9 +802,17 @@ export default function ChatScreen() {
           sawDone && !serverError
             ? null
             : autoRetryDelayMs({ attempt, receivedContent, streamCode: serverError ? (serverErrorCode ?? "AI_ERROR") : undefined });
-        if (delay === null) break;
+        if (delay === null || gate.cancelled) break;
         await waitToRetry(delay);
       }
+
+      // Stop pressed (and the reply hadn't already completed): settle at once, no
+      // recovery round-trip, no error. A cancel that lost the race to "done" is a normal reply.
+      if (gate.cancelled && !(sawDone && !serverError)) {
+        setShowTyping(false);
+        markStopped();
+        streamSucceeded = true;
+      } else {
 
       // Stream closed cleanly. If nothing streamed, say why rather than leaving
       // a silent, stuck spinner.
@@ -788,8 +829,14 @@ export default function ChatScreen() {
         await markInterrupted();
       }
       streamSucceeded = (sawDone && !serverError && !timedOut) || recovered;
+      }
     } catch (err) {
       setShowTyping(false);
+      if (gate.cancelled && !sawDone) {
+        markStopped();
+        streamSucceeded = true;
+        return true;
+      }
       if (err instanceof ApiError && err.code === "AI_CONSENT_REQUIRED") {
         consentOkRef.current = false;
         qc.setQueryData(["ai-consent"], { accepted: false });
@@ -817,12 +864,23 @@ export default function ChatScreen() {
       setIsStreaming(false);
       setShowTyping(false);
       sendInFlightRef.current = false;
+      if (cancelGateRef.current === gate) cancelGateRef.current = null;
     }
 
     if (streamSucceeded && pendingRecoveryRef.current === cmid) pendingRecoveryRef.current = null;
     inputRef.current?.focus();
     if (!streamSucceeded && trimmed) setInput(trimmed);
     return streamSucceeded;
+  }
+
+  // Stop button: abort the in-flight request (the server sees the disconnect and
+  // aborts the provider call), silence any audio, and let handleSend settle.
+  function cancelReply() {
+    const gate = cancelGateRef.current;
+    if (!gate) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    stopSpeaking();
+    gate.cancel();
   }
 
   async function acceptConsentAndSend() {
@@ -1164,6 +1222,19 @@ export default function ChatScreen() {
             <Feather name="mic" size={18} color={listening ? "#d2553f" : "#888"} />
           </Pressable>
         )}
+        {isStreaming ? (
+          <Pressable
+            style={({ pressed }) => [styles.sendBtn, styles.stopBtn, pressed && styles.sendBtnPressed]}
+            onPress={cancelReply}
+            hitSlop={4}
+            accessibilityRole="button"
+            accessibilityLabel="Stop reply"
+            testID="chat-stop"
+          >
+            <Feather name="square" size={14} color="#EDEDED" />
+            <Text style={styles.stopText}>STOP</Text>
+          </Pressable>
+        ) : (
         <Pressable
           style={({ pressed }) => [
             styles.sendBtn,
@@ -1172,13 +1243,12 @@ export default function ChatScreen() {
           ]}
           onPress={doSend}
           disabled={!canSend}
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
         >
-          {isStreaming ? (
-            <OctagonSpinner size={20} color="#666" />
-          ) : (
-            <Feather name="arrow-up" size={18} color={canSend ? "#050505" : "#444"} />
-          )}
+          <Feather name="arrow-up" size={18} color={canSend ? "#050505" : "#444"} />
         </Pressable>
+        )}
       </View>
     </KeyboardAvoidingView>
     </>
@@ -1392,6 +1462,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#8A6A2F",
     alignItems: "center",
     justifyContent: "center",
+  },
+  stopBtn: {
+    width: 56,
+    backgroundColor: "#050505",
+    borderWidth: 1,
+    borderColor: "#8A6A2F",
+    gap: 2,
+  },
+  stopText: {
+    fontFamily: "Outfit",
+    fontSize: 9,
+    letterSpacing: 1.6,
+    textTransform: "uppercase",
+    color: "#EDEDED",
   },
   sendBtnDisabled: {
     backgroundColor: "#1a1a1a",

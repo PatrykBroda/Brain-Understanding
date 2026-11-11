@@ -134,6 +134,10 @@ export async function startMockProviders(): Promise<MockProviders> {
       }
       if (behaviour.mode === "ok") reply = behaviour.reply ?? reply;
 
+      // Registered before any delay so a hang-up before the first byte is seen too.
+      res.on("close", () => {
+        if (!res.writableFinished) rec.abortedEarly = true;
+      });
       if (state.firstByteDelayMs > 0) await new Promise((r) => setTimeout(r, state.firstByteDelayMs));
 
       // Non-streaming Anthropic call (memory writer, planner): canned JSON.
@@ -171,9 +175,6 @@ export async function startMockProviders(): Promise<MockProviders> {
       }
 
       res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
-      res.on("close", () => {
-        if (!res.writableFinished) rec.abortedEarly = true;
-      });
       const pause = () => (state.wordDelayMs > 0 ? new Promise((r) => setTimeout(r, state.wordDelayMs)) : null);
       const words = reply.split(" ");
       if (isOpenAI) {
