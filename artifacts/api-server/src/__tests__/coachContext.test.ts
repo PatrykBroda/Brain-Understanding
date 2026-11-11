@@ -43,9 +43,9 @@ describe("today block", () => {
 
 describe("injury block in today context", () => {
   it("includes logged injuries and omits the section when none", () => {
-    const withInj = { ...ctx(), injuries: [{ date: "2026-10-19", area: "knee", severity: 2, note: "left" }] };
+    const withInj = { ...ctx(), injuries: [{ date: "2026-10-19", area: "knee", severity: 2, note: "left", kind: "strain", status: "active", resolvedAt: null }] };
     const out = buildTodayBlock(withInj);
-    expect(out).toContain("knee: sore (yesterday)");
+    expect(out).toContain("knee: sore, strain (logged Mon 19 Oct, yesterday)");
     expect(buildTodayBlock(ctx())).not.toContain("Injury and soreness");
   });
 });

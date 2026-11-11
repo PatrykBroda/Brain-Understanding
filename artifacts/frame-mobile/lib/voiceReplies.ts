@@ -20,6 +20,23 @@ function speech(): SpeechModule | null {
   }
 }
 
+// iOS mutes speech while the ringer switch is off unless the audio session is "playback". expo-speech does not set
+// one, so claim it through the already-installed speech-recognition module (no new native dependency). Best effort.
+export function ensurePlaybackSession(): void {
+  if (Platform.OS !== "ios") return;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const rec = require("expo-speech-recognition").ExpoSpeechRecognitionModule as {
+      setCategoryIOS?: (o: { category: string; categoryOptions: string[]; mode?: string }) => void;
+      setAudioSessionActiveIOS?: (v: boolean, o?: { notifyOthersOnDeactivation: boolean }) => void;
+    };
+    rec.setCategoryIOS?.({ category: "playback", categoryOptions: ["duckOthers"], mode: "spokenAudio" });
+    rec.setAudioSessionActiveIOS?.(true, { notifyOthersOnDeactivation: false });
+  } catch {
+    /* module absent in this build: speech still works with the ringer on */
+  }
+}
+
 export const voiceAvailable = (): boolean => Platform.OS !== "web" && speech() != null;
 
 export async function loadVoicePrefs(userId: string): Promise<VoicePrefs> {
@@ -51,8 +68,11 @@ export function stopSpeaking(): void {
   }
 }
 
-/** Speak a reply; any earlier reply stops first. `onEnd` fires when finished or stopped. Returns false if nothing could be spoken. */
-export function speakReply(content: string, onEnd: () => void): boolean {
+/**
+ * Speak a reply; any earlier reply stops first. `onEnd` fires when finished or stopped. `onError` fires (before onEnd)
+ * when the speech engine reports a failure, so the UI can say so. Returns false if nothing could be spoken.
+ */
+export function speakReply(content: string, onEnd: () => void, onError?: () => void): boolean {
   const mod = speech();
   const chunks = speechChunks(speechText(content));
   if (!mod || chunks.length === 0) return false;
@@ -67,10 +87,19 @@ export function speakReply(content: string, onEnd: () => void): boolean {
   };
   const cancel = () => finish();
   current = cancel;
+  const fail = () => {
+    if (live) onError?.();
+    finish();
+  };
+  ensurePlaybackSession();
   const next = () => {
     if (!live) return;
     if (i >= chunks.length) return finish();
-    mod.speak(chunks[i++]!, { onDone: next, onStopped: finish, onError: finish });
+    try {
+      mod.speak(chunks[i++]!, { onDone: next, onStopped: finish, onError: fail });
+    } catch {
+      fail();
+    }
   };
   next();
   return true;

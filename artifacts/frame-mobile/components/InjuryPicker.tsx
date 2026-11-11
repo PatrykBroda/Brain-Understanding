@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useInjuries, useLogInjury, useRemoveInjury } from "@/hooks/useInjuries";
+import { injuryErrorMessage, useInjuries, useLogInjury, useRemoveInjury } from "@/hooks/useInjuries";
 import { INJURY_AREAS, nextSeverity, severityLabel, todayByArea } from "@/lib/injuryLogic";
 import { FONT, TEXT_PRIMARY, TEXT_SECONDARY } from "@/constants/typography";
 
@@ -49,7 +49,9 @@ export function InjuryPicker() {
           );
         })}
       </View>
-      {log.isError || remove.isError ? <Text style={s.err}>Couldn't save that. Try again.</Text> : null}
+      {log.isError || remove.isError ? (
+        <Text style={s.err}>{injuryErrorMessage(log.error ?? remove.error)}</Text>
+      ) : null}
       <Pressable onPress={() => router.push("/injuries")} hitSlop={8} accessibilityRole="button">
         <Text style={s.link}>View injury history →</Text>
       </Pressable>
