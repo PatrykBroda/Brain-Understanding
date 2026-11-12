@@ -15,6 +15,11 @@ export const injuryLogsTable = pgTable(
     // 1 = niggle, 2 = sore, 3 = injured
     severity: integer("severity").notNull(),
     note: text("note").notNull().default(""),
+    // strain | sprain | bruise | soreness | other (validated in the api-server)
+    kind: text("kind").notNull().default("other"),
+    // active | recovered. Recovered rows stay in the history; resolvedAt is the day it was marked recovered.
+    status: text("status").notNull().default("active"),
+    resolvedAt: date("resolved_at", { mode: "string" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

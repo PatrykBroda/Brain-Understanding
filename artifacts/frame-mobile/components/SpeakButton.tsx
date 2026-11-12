@@ -13,6 +13,7 @@ export function SpeakButton({ content }: { content: string }) {
   const { userId } = useAuth();
   const [prefs, setPrefs] = useState<VoicePrefs | null>(null);
   const [speaking, setSpeaking] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -29,7 +30,10 @@ export function SpeakButton({ content }: { content: string }) {
       setSpeaking(false);
       return;
     }
-    setSpeaking(speakReply(content, () => setSpeaking(false)));
+    setFailed(false);
+    const started = speakReply(content, () => setSpeaking(false), () => setFailed(true));
+    setSpeaking(started);
+    if (!started) setFailed(true);
   };
 
   return (
@@ -38,10 +42,12 @@ export function SpeakButton({ content }: { content: string }) {
       hitSlop={10}
       style={s.btn}
       accessibilityRole="button"
-      accessibilityLabel={speaking ? "Stop reading aloud" : "Read this reply aloud"}
+      accessibilityLabel={speaking ? "Stop reading aloud" : failed ? "Couldn't read aloud. Try again" : "Read this reply aloud"}
     >
       <Feather name={speaking ? "square" : "volume-2"} size={14} color={speaking ? ACCENT : TEXT_SECONDARY} />
-      <Text style={s.label}>{speaking ? "Stop" : "Listen"}</Text>
+      <Text style={[s.label, failed && !speaking && { color: "#b5523b" }]}>
+        {speaking ? "Stop" : failed ? "Couldn't play. Tap to retry" : "Listen"}
+      </Text>
     </Pressable>
   );
 }
