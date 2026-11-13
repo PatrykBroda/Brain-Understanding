@@ -132,3 +132,18 @@ describe("listen back (voiceReplies)", () => {
     expect(speakReply("Keep your hands up.", () => {})).toBe(false);
   });
 });
+
+describe("voice replies switch is live", () => {
+  it("notifies subscribers when the setting is saved, and stops speech when turned off", async () => {
+    const { subscribeVoicePrefs } = await import("../lib/voiceReplies");
+    const seen: [string, boolean][] = [];
+    const off = subscribeVoicePrefs((id, p) => seen.push([id, p.enabled]));
+    speakReply("Keep your hands up.", () => {});
+    await saveVoicePrefs("u1", { enabled: false });
+    expect(seen).toEqual([["u1", false]]);
+    expect(speechMock.stop).toHaveBeenCalled();
+    off();
+    await saveVoicePrefs("u1", { enabled: true });
+    expect(seen).toHaveLength(1);
+  });
+});

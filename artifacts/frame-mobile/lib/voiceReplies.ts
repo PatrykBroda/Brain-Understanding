@@ -47,7 +47,22 @@ export async function loadVoicePrefs(userId: string): Promise<VoicePrefs> {
   }
 }
 
+// Live update: the Profile switch and every mounted Listen button (Chat stays mounted behind the tabs) share this
+// channel, so turning voice replies off hides the buttons at once, no restart or remount needed.
+type PrefsListener = (userId: string, prefs: VoicePrefs) => void;
+const listeners = new Set<PrefsListener>();
+
+export function subscribeVoicePrefs(cb: (userId: string, prefs: VoicePrefs) => void): () => void {
+  listeners.add(cb);
+  return () => {
+    listeners.delete(cb);
+  };
+}
+
 export async function saveVoicePrefs(userId: string, prefs: VoicePrefs): Promise<void> {
+  // Notify first: the UI must reflect the switch even if the write fails.
+  if (!prefs.enabled) stopSpeaking();
+  listeners.forEach((cb) => cb(userId, prefs));
   try {
     await AsyncStorage.setItem(key(userId), JSON.stringify(prefs));
   } catch {
