@@ -69,4 +69,6 @@ if (process.env["PUSH_JOB_ENABLED"] === "true") {
         running = false;
       });
   }, intervalMs).unref();
+} else {
+  logger.warn("push job disabled (PUSH_JOB_ENABLED is not true): no remote push notifications will be sent");
 }

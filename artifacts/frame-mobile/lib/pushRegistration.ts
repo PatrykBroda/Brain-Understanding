@@ -16,14 +16,23 @@ export async function registerPushToken(): Promise<string | null> {
   try {
     const perms = await Notifications.getPermissionsAsync();
     if (!perms.granted) return null;
+    // Android 8+ needs a channel before any notification can show outside the app.
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "FRAME",
+        importance: Notifications.AndroidImportance.DEFAULT,
+      });
+    }
     const projectId =
       (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId ??
       Constants.easConfig?.projectId;
+    if (!projectId) console.warn("[push] no EAS projectId in this build; remote push cannot register");
     const res = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
     if (!isValidExpoToken(res.data)) return null;
     await apiPost("/push/register", { token: res.data, platform: Platform.OS });
     return res.data;
-  } catch {
+  } catch (err) {
+    console.warn("[push] token registration failed", err);
     return null;
   }
 }
