@@ -185,7 +185,7 @@ describe("daily loop, athlete in Asia/Bangkok", () => {
     expect(r.json.date).toBe("2026-10-22");
     expect(r.json.fresh).toBe(true);
     expect(r.json.state).toMatchObject({ name: "Volatile", current: true });
-    expect(r.json.focus.title).toBe("panics when passed");
+    expect(r.json.focus.title).toBe("Panics when passed");
     expect(r.json.focus.because[0]).toMatch(/told your coach today/);
     expect(r.json.disclosure.code).toBe("no_checkin_today");
   });

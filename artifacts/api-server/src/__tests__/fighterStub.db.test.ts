@@ -351,7 +351,7 @@ describe("a stub fighter through the live endpoints", () => {
     expect(t2.status).toBe(200);
     await call(u, "PATCH", "/fighter", { weaknesses: "guard retention" });
     const t3 = await call(u, "GET", "/today");
-    expect(JSON.stringify(t3.json.focus)).toContain("guard retention");
+    expect(JSON.stringify(t3.json.focus)).toMatch(/guard retention/i);
   });
 
   it("the Weekly Mission says there is nothing to build on yet, then builds once a goal is saved", async () => {

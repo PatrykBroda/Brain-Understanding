@@ -135,7 +135,7 @@ describe("the questionnaire on Profile", () => {
     // Close and reopen: a fresh read returns the edit.
     const reopened = await req("GET", "/fighter", undefined, token);
     expect(reopened.json.fighter.onboardingAnswers.chaos).toBe(0);
-    expect(reopened.json.fighter.weaknesses).toBe("cardio late in rounds");
+    expect(reopened.json.fighter.weaknesses).toBe("Cardio late in rounds");
 
     // The very next chat reply is built from the edit.
     mock.requests.length = 0;
@@ -190,7 +190,7 @@ describe("the questionnaire on Profile", () => {
     await req("PATCH", "/fighter", { weaknesses: "cardio late in rounds" }, token, "2026-10-12T05:30:00Z");
     const after = await req("GET", "/today", undefined, token, "2026-10-12T06:00:00Z");
     expect(after.json.fresh).toBe(true);
-    expect(after.json.focus.title).toBe("cardio late in rounds");
+    expect(after.json.focus.title).toBe("Cardio late in rounds");
     expect(after.json.focus.kind).toBe("onboarding");
   });
 });
