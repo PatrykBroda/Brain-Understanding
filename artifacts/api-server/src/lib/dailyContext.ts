@@ -28,6 +28,7 @@ import {
 import { getActiveFacts, lastSeenAt } from "./factsService";
 import { getActiveCompetition, pressureFor } from "./competitionService";
 import { daysBetween, formatLocalDate, localDate, localDayBounds } from "./localTime";
+import { sentenceCase } from "./sentenceCase";
 
 export const STATE_NAMES = [
   "Dormant",
@@ -231,7 +232,7 @@ export function deriveFocus(sig: FocusSignals): DailyFocusPayload {
     because.push(`You told your coach today: ${clip(injury.content, 140)}`);
     return {
       kind: "recovery",
-      title: `Work around ${clip(injury.topic || "it", 40)}`,
+      title: `Work around ${sentenceCase(clip(injury.topic || "it", 40))}`,
       detail: "Train what does not aggravate it. Drop anything that loads it, and tell your coach how it feels after.",
       because,
     };
@@ -248,7 +249,7 @@ export function deriveFocus(sig: FocusSignals): DailyFocusPayload {
     because.push(`You told your coach today: ${clip(weak.content, 140)}`);
     return {
       kind: "weakness",
-      title: clip(weak.topic || weak.content, 60),
+      title: sentenceCase(clip(weak.topic || weak.content, 60)),
       detail: "This came up today. Pick one rep of it in your next session and watch only that.",
       because,
     };
@@ -261,7 +262,7 @@ export function deriveFocus(sig: FocusSignals): DailyFocusPayload {
     );
     return {
       kind: "weakness",
-      title: clip(top.topic || top.content, 60),
+      title: sentenceCase(clip(top.topic || top.content, 60)),
       detail: clip(top.content, 90),
       because,
     };
@@ -270,12 +271,12 @@ export function deriveFocus(sig: FocusSignals): DailyFocusPayload {
   const stated = sig.weaknessesText.split(/[,.;\n]/).map((s) => s.trim()).filter(Boolean)[0];
   if (stated) {
     because.push("From your onboarding answers.");
-    return { kind: "onboarding", title: clip(stated, 60), detail: "You named this as a weakness. Aim one drill at it today.", because };
+    return { kind: "onboarding", title: sentenceCase(clip(stated, 60)), detail: "You named this as a weakness. Aim one drill at it today.", because };
   }
   const goal = sig.goalsText.split(/[,.;\n]/).map((s) => s.trim()).filter(Boolean)[0];
   if (goal) {
     because.push("From your onboarding answers.");
-    return { kind: "goal", title: clip(goal, 60), detail: "Do one thing today that moves you toward this.", because };
+    return { kind: "goal", title: sentenceCase(clip(goal, 60)), detail: "Do one thing today that moves you toward this.", because };
   }
   return {
     kind: "open",
@@ -552,6 +553,7 @@ export async function getDailyView(
     state = { name: row.state as StateName, source: row.stateSource, asOf: row.localDate, current: true };
     focus = {
       ...row.focus,
+      title: sentenceCase(row.focus.title),
       forDate: row.localDate,
       current: true,
       carriedOver: lastBefore != null && lastBefore.focus.title === row.focus.title,
@@ -559,7 +561,7 @@ export async function getDailyView(
   } else if (lastBefore) {
     // A quiet day: show the last read, dated, flagged not-current. Nothing new is made up.
     state = { name: lastBefore.state as StateName, source: lastBefore.stateSource, asOf: lastBefore.localDate, current: false };
-    focus = { ...lastBefore.focus, forDate: lastBefore.localDate, current: false, carriedOver: false };
+    focus = { ...lastBefore.focus, title: sentenceCase(lastBefore.focus.title), forDate: lastBefore.localDate, current: false, carriedOver: false };
   } else {
     state = { name: null, source: "", asOf: null, current: false };
     focus = null;
@@ -591,6 +593,6 @@ export async function getDailyView(
       lastReadDate: lastBefore?.localDate ?? null,
       today: opts.today,
     }),
-    history: previousRows.map((r) => ({ date: r.localDate, state: r.state as StateName, focusTitle: r.focus.title })),
+    history: previousRows.map((r) => ({ date: r.localDate, state: r.state as StateName, focusTitle: sentenceCase(r.focus.title) })),
   };
 }

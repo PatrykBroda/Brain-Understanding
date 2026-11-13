@@ -45,7 +45,7 @@ import {
 import { buildFirstReplyBlock, buildTodayBlock, loadCheckinOnlyBlock, loadCoachDayContext } from "../lib/coachContext";
 import { effectiveTimeZone, rememberTimezone, todayFor } from "../middlewares/timezone";
 import { localDate, localDayBounds } from "../lib/localTime";
-import { stampHistoryMessage } from "../lib/dateContext";
+import { createStampStripper, stampHistoryMessage, stripLeadingStamp } from "../lib/dateContext";
 import { openai, OPENAI_COACH_MODEL } from "../lib/openaiClient";
 import {
   getActiveCompetition,
@@ -566,14 +566,24 @@ router.post("/coach/chat", async (req, res) => {
     let assembled = "";
     // Tier 0 athletes get plain English: [[node]] notation is stripped from the stream.
     let bracketStripper: BracketStripper | null = null;
-    const emit = (delta: string) => {
-      const out = bracketStripper ? bracketStripper.push(delta) : delta;
+    // The model sometimes echoes the "[sent …]" header replayed history carries; it is
+    // dropped from the start of every reply before anything reaches the athlete or the DB.
+    const stampStripper = createStampStripper();
+    const emitClean = (text: string) => {
+      const out = bracketStripper ? bracketStripper.push(text) : text;
       if (!out) return;
       assembled += out;
       turn.content(out);
     };
-    // Release text the stripper was holding back (an unclosed "[[" at the very end).
+    const emit = (delta: string) => {
+      const clean = stampStripper.push(delta);
+      if (clean) emitClean(clean);
+    };
+    // Release text the strippers were holding back (an unclosed "[[" or a "[" that
+    // never closed, at the very end).
     const flushEmit = () => {
+      const held = stampStripper.flush();
+      if (held) emitClean(held);
       const rest = bracketStripper?.flush();
       if (!rest) return;
       assembled += rest;
@@ -623,8 +633,10 @@ router.post("/coach/chat", async (req, res) => {
     // "18 days out" cannot read as the present. The stored content is never changed.
     const promptNow = req.frameNow ?? new Date();
     const promptTz = effectiveTimeZone(req, fighter.timezone);
-    const datedContent = (m: { content: string; createdAt: Date }) =>
-      stampHistoryMessage(m.content, m.createdAt, promptNow, promptTz);
+    const datedContent = (m: { role: string; content: string; createdAt: Date }) =>
+      // Replies saved before the echo fix may already open with a stamp; never replay those
+      // as a model-written example to copy.
+      stampHistoryMessage(m.role === "assistant" ? stripLeadingStamp(m.content) : m.content, m.createdAt, promptNow, promptTz);
     const userTurns = fullHistory.filter((m) => m.role === "user").length;
     const firstReplyBlock = userTurns === 1 ? buildFirstReplyBlock(fighter) : null;
 
@@ -753,6 +765,7 @@ router.post("/coach/chat", async (req, res) => {
     // One provider call, bounded by its own first-token window and the shared deadline.
     const attemptOnce = async (provider: Provider) => {
       const windowMs = Math.max(1, Math.min(ATTEMPT_FIRST_TOKEN_MS, deadlineAt - Date.now()));
+      if (assembled.length === 0) stampStripper.reset();
       const guard = firstTokenGuard(turn.signal, windowMs);
       const onToken = guard.gotToken;
       const tracked: FirstTokenGuard = {

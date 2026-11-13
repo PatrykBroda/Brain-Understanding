@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
-import { loadVoicePrefs, saveVoicePrefs, speakReply, stopSpeaking, voiceAvailable } from "@/lib/voiceReplies";
+import { loadVoicePrefs, saveVoicePrefs, speakReply, stopSpeaking, subscribeVoicePrefs, voiceAvailable } from "@/lib/voiceReplies";
 import { speechText, type VoicePrefs } from "@/lib/speechText";
 import { FONT, TEXT_PRIMARY, TEXT_SECONDARY } from "@/constants/typography";
 
@@ -17,7 +17,17 @@ export function SpeakButton({ content }: { content: string }) {
 
   useEffect(() => {
     if (!userId) return;
-    void loadVoicePrefs(userId).then(setPrefs);
+    let live = true;
+    void loadVoicePrefs(userId).then((p) => live && setPrefs(p));
+    const off = subscribeVoicePrefs((id, p) => {
+      if (id !== userId) return;
+      setPrefs(p);
+      if (!p.enabled) setSpeaking(false);
+    });
+    return () => {
+      live = false;
+      off();
+    };
   }, [userId]);
   // Leaving the screen / unmounting the message stops its speech.
   useEffect(() => () => { if (speaking) stopSpeaking(); }, [speaking]);
@@ -59,7 +69,16 @@ export function VoiceSettings() {
 
   useEffect(() => {
     if (!userId) return;
-    void loadVoicePrefs(userId).then(setPrefs);
+    let live = true;
+    void loadVoicePrefs(userId).then((p) => live && setPrefs(p));
+    const off = subscribeVoicePrefs((id, p) => {
+      if (id !== userId) return;
+      setPrefs(p);
+    });
+    return () => {
+      live = false;
+      off();
+    };
   }, [userId]);
 
   if (!voiceAvailable() || !userId || !prefs) return null;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AthleteFact, Calibration, Fighter } from "@workspace/db";
-import { pinRelative, relativeAge, stampHistoryMessage, stampLabel } from "../lib/dateContext";
+import { createStampStripper, stripLeadingStamp, pinRelative, relativeAge, stampHistoryMessage, stampLabel } from "../lib/dateContext";
 import { buildDynamicContext } from "../lib/synochi";
 
 // Harry's report: 16:00 on Tue 10 Nov in London, camp switched off, old chat says
@@ -64,5 +64,39 @@ describe("assembled coach context, camp off", () => {
     const out = buildDynamicContext(fighter, [], [], [], "# Competition\nCOUNTDOWN: 12 day(s)", { now: NOW, tz: TZ });
     expect(out).toContain("COUNTDOWN: 12 day(s)");
     expect(out).not.toContain("NO ACTIVE CAMP");
+  });
+});
+
+describe("echoed history stamp", () => {
+  const STAMP = "[sent Thu 12 Nov, 02:24 (yesterday)]";
+  const stream = (chunks: string[]) => {
+    const s = createStampStripper();
+    return chunks.map((c) => s.push(c)).join("") + s.flush();
+  };
+
+  it("strips a leading stamp from a finished reply", () => {
+    expect(stripLeadingStamp(`${STAMP}\nGood morning.`)).toBe("Good morning.");
+    expect(stripLeadingStamp("Good morning [sent x]")).toBe("Good morning [sent x]");
+    expect(stripLeadingStamp("[[node]] notes")).toBe("[[node]] notes");
+  });
+
+  it("strips a stamp that arrives split across stream chunks", () => {
+    expect(stream(["[se", "nt Thu 12 Nov, 02", ":24 (yesterday)]", "\nGood ", "morning."])).toBe("Good morning.");
+    expect(stream([STAMP + "\n\nHello"])).toBe("Hello");
+  });
+
+  it("passes normal and [[node]] streams through unchanged", () => {
+    expect(stream(["Hel", "lo [x]"])).toBe("Hello [x]");
+    expect(stream(["[[Ju", "jitsu]] is", " good"])).toBe("[[Jujitsu]] is good");
+  });
+
+  it("releases a never-closed bracket at the end of the stream", () => {
+    expect(stream(["[sent Thu"])).toBe("[sent Thu");
+  });
+
+  it("history replay of an old reply that already carries a stamp is not double-stamped", () => {
+    const saved = `${STAMP}\nRest up.`;
+    const out = stampHistoryMessage(stripLeadingStamp(saved), YDAY, NOW, TZ);
+    expect(out.match(/\[sent/g)?.length).toBe(1);
   });
 });

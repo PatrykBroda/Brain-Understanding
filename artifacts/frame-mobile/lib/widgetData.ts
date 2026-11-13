@@ -2,6 +2,8 @@
 // from the same sources as Home (GET /today focus, GET /competition/active).
 // The native side only ever reads this JSON; no logic lives in Swift.
 
+import { sentenceCase } from "@/lib/sentenceCase";
+
 export const WIDGET_APP_GROUP = "group.app.replit.frame";
 export const WIDGET_STORAGE_KEY = "frame.widget.v1";
 
@@ -59,7 +61,7 @@ export function buildWidgetPayload(input: WidgetInput): WidgetPayload {
   return {
     v: 1,
     date: input.date,
-    focusTitle: focus ? clip(focus.title, MAX_TITLE) : "Check in to get today's focus",
+    focusTitle: focus ? clip(sentenceCase(focus.title), MAX_TITLE) : "Check in to get today's focus",
     focusDetail: focus ? clip(focus.detail, MAX_DETAIL) : "",
     daysLeft: camp ? camp.daysToEvent : null,
     campName: camp ? clip(camp.eventName, MAX_TITLE) : null,

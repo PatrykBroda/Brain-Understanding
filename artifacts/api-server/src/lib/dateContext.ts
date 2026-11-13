@@ -60,12 +60,84 @@ export function stampHistoryMessage(content: string, createdAt: Date, now: Date,
   return `[sent ${stampLabel(createdAt, now, tz)}]\n${pinRelative(content, createdAt, now, tz)}`;
 }
 
-export const DATED_CONTEXT_RULES = `# Dated context — read this before using anything below
+const MAX_STAMP_LEN = 140;
+const LEADING_STAMP_RE = /^\s*\[(?!\[)[^\]\n]{1,140}\]\s*/;
+
+/** Drops a leading "[sent Thu 12 Nov, 02:24 (yesterday)]"-style tag the model echoed. */
+export function stripLeadingStamp(text: string): string {
+  return text.replace(LEADING_STAMP_RE, "");
+}
+
+export interface StampStripper {
+  push(delta: string): string;
+  flush(): string;
+  reset(): void;
+}
+
+/**
+ * Streaming form of stripLeadingStamp. Holds back the start of the reply only while it
+ * could still turn out to be a "[...]" tag; everything after the first decision passes
+ * straight through. "[[node]]" notation and unclosed or over-long brackets are released
+ * untouched.
+ */
+export function createStampStripper(): StampStripper {
+  let buf = "";
+  let decided = false;
+  let trimming = false; // a stamp was removed: drop the blank space that followed it
+  return {
+    push(delta) {
+      if (trimming) {
+        const t = delta.trimStart();
+        if (t) trimming = false;
+        return t;
+      }
+      if (decided) return delta;
+      buf += delta;
+      const t = buf.trimStart();
+      if (t === "") return "";
+      if (t[0] !== "[" || t[1] === "[") {
+        decided = true;
+        const out = buf;
+        buf = "";
+        return out;
+      }
+      const close = t.indexOf("]");
+      if (close === -1) {
+        if (t.length > MAX_STAMP_LEN + 1 || t.includes("\n")) {
+          decided = true;
+          const out = buf;
+          buf = "";
+          return out;
+        }
+        return "";
+      }
+      decided = true;
+      const out = stripLeadingStamp(buf);
+      buf = "";
+      if (!out) trimming = true;
+      return out;
+    },
+    flush() {
+      if (decided) return "";
+      decided = true;
+      const out = buf;
+      buf = "";
+      return out;
+    },
+    reset() {
+      buf = "";
+      decided = false;
+      trimming = false;
+    },
+  };
+}
+
+export const DATED_CONTEXT_RULES =`# Dated context — read this before using anything below
 
 - The "# Today" line and the clock above are the only present. Every replayed message, observation and calibration answer is HISTORICAL and carries its own date. Never treat a past time of day as the current one: "it's 11pm, get some rest" is only ever right if the clock above says so.
 - Messages headed "[sent <date> …]" were written then, not now. "Tonight", "tomorrow", "this morning" and "today" inside them refer to THAT day. A session, meal or injury mentioned on an earlier day did not happen tonight, so describe it with its real day ("on Monday", "yesterday", "last week") unless its date is today.
 - Never copy a countdown ("18 days out", "in 2 weeks") from a message or observation. Recompute from an absolute date against today, or leave it out. Text marked "[as of …, stale]" is out of date by definition.
-- Never start a reply with a bracketed tag such as "[sent …]"; those are annotations for you, not part of how you speak.`;
+- Your reply must begin directly with your words. Never open, or put anywhere in a reply, a bracketed tag like "[sent …]", a date stamp or a "(yesterday)" label; those headers are private annotations on the athlete's and your earlier messages, not part of how you speak. Do not imitate them even though earlier messages carry them.`;
 
 export const NO_ACTIVE_CAMP_BLOCK = `# Competition status — NO ACTIVE CAMP
 

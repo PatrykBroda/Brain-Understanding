@@ -29,6 +29,7 @@ import {
 } from "@/hooks/useCheckin";
 import { useToday } from "@/hooks/useToday";
 import { useLocalDay } from "@/hooks/useLocalDay";
+import { sentenceCase } from "@/lib/sentenceCase";
 import { publishWidgetData } from "@/lib/widgetBridge";
 import { campPhaseInfo } from "@/lib/campPhases";
 import { syncReminderWithCamp } from "@/lib/dailyReminder";
@@ -634,7 +635,7 @@ export default function HomeScreen() {
       {/* Streak + Sunday recap */}
       <View style={styles.section}>
         <StreakLine />
-        <WeeklyRecapCard focus={today?.focus?.title ?? null} forced={recapParam === "1"} />
+        <WeeklyRecapCard focus={today?.focus?.title ? sentenceCase(today.focus.title) : null} forced={recapParam === "1"} />
       </View>
 
       {/* No check-in today: say so once, under the readiness card, with the way to fix it */}

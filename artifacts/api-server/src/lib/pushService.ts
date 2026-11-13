@@ -76,7 +76,7 @@ export class ExpoPushSender implements PushSender {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify(
-        tokens.map((to) => ({ to, title: msg.title, body: msg.body, data: msg.data, sound: "default" })),
+        tokens.map((to) => ({ to, title: msg.title, body: msg.body, data: msg.data, sound: "default", channelId: "default", priority: "high" })),
       ),
     });
     if (!r.ok) throw new Error(`expo push ${r.status}`);
