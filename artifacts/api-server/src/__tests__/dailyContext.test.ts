@@ -111,13 +111,16 @@ describe("focus", () => {
       notesToday: [{ category: "pattern", topic: "guard retention", content: "Keeps getting passed when tired" }],
       weaknesses: [{ topic: "takedown defence", content: "Sprawl is late", lastSeen: "2026-10-01", evidenceCount: 3 }],
     });
-    expect(f.title).toBe("guard retention");
+    expect(f.title).toBe("Guard retention");
     expect(f.because[0]).toMatch(/told your coach today/);
   });
   it("falls back to the recorded weakness, then onboarding, then an honest open prompt", () => {
     expect(
       deriveFocus({ ...sig, weaknesses: [{ topic: "takedown defence", content: "Sprawl is late", lastSeen: "2026-10-01", evidenceCount: 3 }] }).title,
-    ).toBe("takedown defence");
+    ).toBe("Takedown defence");
+    expect(
+      deriveFocus({ ...sig, weaknesses: [{ topic: "sparring: Guard Abandonment Is Systemic, Not Situational", content: "x", lastSeen: "2026-10-01", evidenceCount: 3 }] }).title,
+    ).toBe("Sparring: guard abandonment is systemic, not situational");
     expect(deriveFocus({ ...sig, weaknessesText: "cardio, guard" }).kind).toBe("onboarding");
     expect(deriveFocus(sig).kind).toBe("open");
   });

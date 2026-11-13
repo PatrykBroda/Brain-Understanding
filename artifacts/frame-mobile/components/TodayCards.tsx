@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
 import { GOLD } from "@/constants/colors";
+import { sentenceCase } from "@/lib/sentenceCase";
 import { formatDay } from "@/lib/localDay";
 import { focusBecause, type FocusView, type TodayView } from "@/lib/today";
 import { TEXT_SECONDARY, caption, meta, sectionTitle } from "@/constants/typography";
@@ -76,11 +77,11 @@ export function FocusCard({
             accessibilityLabel="Talk this through with your coach"
             onPress={() =>
               onAskCoach?.(
-                `My focus today is "${focus.title}". Walk me through how to work on it in my next session.`,
+                `My focus today is "${sentenceCase(focus.title)}". Walk me through how to work on it in my next session.`,
               )
             }
           >
-            <Text style={[s.focusLabel, stale && { color: "#8a8a8a" }]}>{focus.title}</Text>
+            <Text style={[s.focusLabel, stale && { color: "#8a8a8a" }]}>{sentenceCase(focus.title)}</Text>
             {!stale && onAskCoach ? <Feather name="chevron-right" size={16} color="#555" /> : null}
           </Pressable>
           <Text style={s.detail}>{focus.detail}</Text>
