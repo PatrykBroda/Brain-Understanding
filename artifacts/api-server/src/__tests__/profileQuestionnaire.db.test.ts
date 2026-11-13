@@ -135,7 +135,7 @@ describe("the questionnaire on Profile", () => {
     // Close and reopen: a fresh read returns the edit.
     const reopened = await req("GET", "/fighter", undefined, token);
     expect(reopened.json.fighter.onboardingAnswers.chaos).toBe(0);
-    expect(reopened.json.fighter.weaknesses).toBe("Cardio late in rounds");
+    expect(reopened.json.fighter.weaknesses).toBe("cardio late in rounds");
 
     // The very next chat reply is built from the edit.
     mock.requests.length = 0;
