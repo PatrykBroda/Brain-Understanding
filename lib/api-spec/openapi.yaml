@@ -11,6 +11,62 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /notifications:
+    get:
+      operationId: getNotifications
+      summary: List the signed-in user's in-app notifications
+      responses:
+        "200":
+          description: The newest 50 notifications and unread count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationInbox"
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      summary: Mark one owned notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Notification marked read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  id:
+                    type: integer
+                  readAt:
+                    type: string
+                    format: date-time
+                required: [ok, id, readAt]
+        "404":
+          description: Notification not found
+  /notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      summary: Mark all of the signed-in user's notifications as read
+      responses:
+        "200":
+          description: Number of notifications marked read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  updated:
+                    type: integer
+                required: [ok, updated]
   /billing/apple-price:
     get:
       operationId: getAppleSubscriptionPrice
@@ -55,6 +111,38 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    NotificationInbox:
+      type: object
+      properties:
+        unreadCount:
+          type: integer
+        notifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+      required: [unreadCount, notifications]
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        kind:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        data:
+          type: object
+          additionalProperties:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        readAt:
+          type: [string, "null"]
+          format: date-time
+      required: [id, kind, title, body, data, createdAt, readAt]
     AppleSubscriptionPrice:
       type: object
       properties:

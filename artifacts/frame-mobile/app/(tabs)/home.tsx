@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { getGetNotificationsQueryKey, useGetNotifications } from "@workspace/api-client-react";
 
 import { CompetitionBanner } from "@/components/CompetitionBanner";
 import { useAuth } from "@/context/AuthContext";
@@ -325,6 +326,10 @@ export default function HomeScreen() {
   const router = useRouter();
   const { isSignedIn, userId } = useAuth();
   const { fighter } = useFighter();
+  const notificationsQuery = useGetNotifications({
+    query: { enabled: isSignedIn, queryKey: getGetNotificationsQueryKey() },
+  });
+  const unreadNotifications = notificationsQuery.data?.unreadCount ?? 0;
 
   // State, Today's Focus and readiness for the athlete's local day (the server is the one
   // authority on what "today" is; an older check-in is never returned as today's).
@@ -489,6 +494,22 @@ export default function HomeScreen() {
           <View style={styles.wordmark} accessibilityRole="header" accessibilityLabel="FRAME">
             <FrameLogo height={16} color="#e0e0e0" />
           </View>
+          <Pressable
+            style={styles.notificationsBtn}
+            onPress={() => router.push("/notifications" as never)}
+            accessibilityRole="button"
+            accessibilityLabel={unreadNotifications > 0 ? `${unreadNotifications} unread notifications` : "Notifications"}
+            testID="open-notifications"
+          >
+            <Feather name="bell" size={18} color="#e0e0e0" />
+            {unreadNotifications > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                </Text>
+              </View>
+            )}
+          </Pressable>
         </View>
 
         {/* Identity overlay */}
@@ -754,6 +775,33 @@ const styles = StyleSheet.create({
   wordmark: {
     height: 33,
     justifyContent: "center",
+  },
+  notificationsBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(0,0,0,0.46)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  notificationBadge: {
+    position: "absolute",
+    right: -3,
+    top: -3,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#8A6A2F",
+  },
+  notificationBadgeText: {
+    color: "#050505",
+    fontSize: 9,
+    fontWeight: "700",
   },
   profileBtn: {
     width: 34,

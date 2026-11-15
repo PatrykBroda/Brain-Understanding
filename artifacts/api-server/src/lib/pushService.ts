@@ -1,5 +1,5 @@
 import type { PushMessage, PushUserContext } from "./pushLogic";
-import { pushesToSend } from "./pushLogic";
+import { decidePushes, pushesToSend } from "./pushLogic";
 
 export interface PushTarget {
   tokens: string[];
@@ -19,8 +19,10 @@ export interface PushSender {
 
 /** Persistence the job needs; the drizzle implementation lives in pushStore.ts. */
 export interface PushStore {
-  /** Every user that has at least one device, with tokens and context. */
+  /** Every athlete account, with zero or more device tokens and context. */
   listUsers(now: Date): Promise<(PushUserContext & PushTarget)[]>;
+  /** Persist an inbox item once per user/event. */
+  createNotification(userId: string, msg: PushMessage): Promise<void>;
   /** Atomically claim (user, dedupeKey). False if it was already claimed. */
   claim(userId: string, kind: string, dedupeKey: string): Promise<boolean>;
   /** Un-claim after a failed send so the next run retries. */
@@ -40,11 +42,19 @@ export interface PushJobResult {
  * send, so overlapping runs or a restart can never double-send. A thrown send
  * releases the claim and retries on the next pass.
  */
-export async function runPushJob(opts: { store: PushStore; sender: PushSender; now: Date }): Promise<PushJobResult> {
-  const { store, sender, now } = opts;
+export async function runPushJob(opts: {
+  store: PushStore;
+  sender: PushSender;
+  now: Date;
+  sendRemote?: boolean;
+}): Promise<PushJobResult> {
+  const { store, sender, now, sendRemote = true } = opts;
   const res: PushJobResult = { considered: 0, sent: 0, skippedDuplicate: 0, failed: 0 };
   for (const user of await store.listUsers(now)) {
-    if (user.tokens.length === 0) continue;
+    for (const msg of decidePushes(user, now)) {
+      await store.createNotification(user.userId, msg);
+    }
+    if (!sendRemote || user.tokens.length === 0) continue;
     for (const msg of pushesToSend(user, now)) {
       res.considered++;
       if (!(await store.claim(user.userId, msg.kind, msg.dedupeKey))) {

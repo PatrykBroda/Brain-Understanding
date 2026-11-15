@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, timestamp, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp, index, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 
 // Expo push tokens, one row per device token. A token belongs to exactly one user at a time:
@@ -46,5 +46,29 @@ export const pushSentTable = pgTable(
   (t) => [uniqueIndex("push_sent_user_key_uq").on(t.userId, t.dedupeKey)],
 );
 
+// Durable in-app inbox. Kept separately from push delivery so notification
+// history is available even when a user has no device token or opts out of push.
+export const notificationsTable = pgTable(
+  "notifications",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    dedupeKey: text("dedupe_key").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    data: jsonb("data").$type<Record<string, string>>().notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("notifications_user_dedupe_uq").on(t.userId, t.dedupeKey),
+    index("notifications_user_created_idx").on(t.userId, t.createdAt),
+  ],
+);
+
 export type PushToken = typeof pushTokensTable.$inferSelect;
 export type PushPreferences = typeof pushPreferencesTable.$inferSelect;
+export type Notification = typeof notificationsTable.$inferSelect;

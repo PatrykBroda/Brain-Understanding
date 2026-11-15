@@ -33,6 +33,7 @@ import { FighterProvider } from "@/context/FighterContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { setApiBase, setTokenGetter } from "@/lib/api";
 import { APP_DOMAIN, resolveApiBase } from "@/lib/appDomain";
+import { setAuthTokenGetter as setGeneratedAuthGetter, setBaseUrl as setGeneratedBaseUrl } from "@workspace/api-client-react";
 import { configurePurchases, syncPurchasesUser } from "@/lib/purchases";
 import { reportStartup } from "@/lib/crashReporter";
 import { FrameLogo } from "@/components/FrameLogo";
@@ -49,6 +50,7 @@ const apiBase = resolveApiBase({
 });
 if (apiBase) {
   setApiBase(apiBase);
+  setGeneratedBaseUrl(apiBase.replace(/\/api\/?$/, ""));
 }
 
 /**
@@ -76,6 +78,7 @@ function ApiSetup() {
   const { getToken } = useAuth();
   useEffect(() => {
     setTokenGetter(() => getToken());
+    setGeneratedAuthGetter(() => getToken());
   }, [getToken]);
   return null;
 }
