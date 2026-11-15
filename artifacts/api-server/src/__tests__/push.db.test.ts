@@ -121,6 +121,17 @@ describe("push token + preference routes", () => {
     expect((await call(b, "PATCH", `/api/notifications/${item!.id}/read`)).status).toBe(404);
     expect((await call(a, "PATCH", `/api/notifications/${item!.id}/read`)).json.ok).toBe(true);
     expect((await call(a, "GET", "/api/notifications")).json.unreadCount).toBe(0);
+
+    await db.insert(notificationsTable).values({
+      userId: a.id,
+      kind: "fight_approaching",
+      dedupeKey: "fight:test",
+      title: "Camp update",
+      body: "Check your plan",
+      data: { route: "camp" },
+    });
+    expect((await call(a, "POST", "/api/notifications/read-all")).json.updated).toBe(1);
+    expect((await call(a, "GET", "/api/notifications")).json.unreadCount).toBe(0);
   });
 });
 
