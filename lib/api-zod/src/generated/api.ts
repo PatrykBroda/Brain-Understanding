@@ -9,6 +9,46 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary List the signed-in user's in-app notifications
+ */
+export const GetNotificationsResponse = zod.object({
+  "unreadCount": zod.number(),
+  "notifications": zod.array(zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "title": zod.string(),
+  "body": zod.string(),
+  "data": zod.record(zod.string(), zod.string()),
+  "createdAt": zod.coerce.date(),
+  "readAt": zod.coerce.date().nullable()
+}))
+})
+
+
+/**
+ * @summary Mark one owned notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const MarkNotificationReadResponse = zod.object({
+  "ok": zod.boolean(),
+  "id": zod.number(),
+  "readAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Mark all of the signed-in user's notifications as read
+ */
+export const MarkAllNotificationsReadResponse = zod.object({
+  "ok": zod.boolean(),
+  "updated": zod.number()
+})
+
+
+/**
  * Authenticated. The product must belong to this app's Apple subscriptions. Returns 503 rather than guessing if Apple pricing cannot be verified.
  * @summary Get Apple's current standard subscription price for an App Store storefront
  */

@@ -6,7 +6,7 @@ import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 import { eq } from "drizzle-orm";
 import { AI_CONSENT_VERSION } from "@workspace/ai-consent";
-import { db, usersTable, fightersTable, pushTokensTable, videoAnalysesTable } from "@workspace/db";
+import { db, usersTable, fightersTable, pushTokensTable, videoAnalysesTable, notificationsTable } from "@workspace/db";
 import apiRouter from "../routes";
 import { signToken } from "../routes/auth";
 import { drizzlePushStore } from "../lib/pushStore";
@@ -97,6 +97,41 @@ describe("push token + preference routes", () => {
     expect((await call(a, "PUT", "/api/push/preferences", { quietStartMin: 600 })).json.quietStartMin).toBe(600);
     expect((await call(a, "PUT", "/api/push/preferences", {})).status).toBe(400);
     expect((await call(a, "PUT", "/api/push/preferences", { quietStartMin: 2000 })).status).toBe(400);
+  });
+
+  it("lists notifications, marks owned items read, and never exposes another user's items", async () => {
+    const a = await mk("inbox-a");
+    const b = await mk("inbox-b");
+    const [item] = await db
+      .insert(notificationsTable)
+      .values({
+        userId: a.id,
+        kind: "missed_3_days",
+        dedupeKey: "missed:test",
+        title: "Check in",
+        body: "Open FRAME",
+        data: { route: "checkin" },
+      })
+      .returning();
+
+    const listed = await call(a, "GET", "/api/notifications");
+    expect(listed.json.unreadCount).toBe(1);
+    expect(listed.json.notifications[0]).toMatchObject({ id: item!.id, title: "Check in", readAt: null });
+    expect((await call(b, "GET", "/api/notifications")).json.notifications).toHaveLength(0);
+    expect((await call(b, "PATCH", `/api/notifications/${item!.id}/read`)).status).toBe(404);
+    expect((await call(a, "PATCH", `/api/notifications/${item!.id}/read`)).json.ok).toBe(true);
+    expect((await call(a, "GET", "/api/notifications")).json.unreadCount).toBe(0);
+
+    await db.insert(notificationsTable).values({
+      userId: a.id,
+      kind: "fight_approaching",
+      dedupeKey: "fight:test",
+      title: "Camp update",
+      body: "Check your plan",
+      data: { route: "camp" },
+    });
+    expect((await call(a, "POST", "/api/notifications/read-all")).json.updated).toBe(1);
+    expect((await call(a, "GET", "/api/notifications")).json.unreadCount).toBe(0);
   });
 });
 

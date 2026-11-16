@@ -161,12 +161,17 @@ new build appears in App Store Connect.
 
 ## Notifications
 
-FRAME schedules one optional, **local** daily check-in notification (expo-notifications; no
-server push, no APNs token, no data leaves the device). It is off by default. The system
-permission prompt appears only after the athlete opts in, either via Profile > Daily check-in
-reminder or the "remind me daily" option on the once-a-day check-in pop-up (never on first
-launch or day one). Tapping it opens Chat with a check-in prompt pre-filled. The reminder can be
-turned off any time in Profile.
+FRAME supports optional local reminders and remote push notifications through
+`expo-notifications` and Expo Push Service. The notification permission prompt appears only
+after the athlete opts in via Profile > Daily check-in reminder or the "remind me daily"
+option on the once-a-day check-in pop-up. Once permission is granted, the signed-in device's
+Expo push token is registered to that account; signing out removes that device token.
+
+Remote pushes cover missed check-ins, completed self-analysis, and approaching fight dates.
+The payload contains the notification copy and an in-app destination, not the athlete's
+analysis content or profile data. The daily reminder remains optional and can be turned off
+any time in Profile. For iOS, remote delivery is available after the production app is
+uploaded to App Store Connect and installed through TestFlight or the App Store.
 
 ## App Privacy answer worksheet
 

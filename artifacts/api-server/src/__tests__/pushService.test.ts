@@ -7,8 +7,14 @@ const NOW = new Date("2026-11-06T10:00:00Z");
 function memStore(users: (PushUserContext & { tokens: string[] })[]) {
   const claimed = new Set<string>();
   const removed: string[] = [];
+  const inbox: { userId: string; key: string }[] = [];
   const store: PushStore = {
     listUsers: async () => users,
+    createNotification: async (userId, msg) => {
+      if (!inbox.some((row) => row.userId === userId && row.key === msg.dedupeKey)) {
+        inbox.push({ userId, key: msg.dedupeKey });
+      }
+    },
     claim: async (u, _k, key) => {
       const id = `${u}|${key}`;
       if (claimed.has(id)) return false;
@@ -22,7 +28,7 @@ function memStore(users: (PushUserContext & { tokens: string[] })[]) {
       removed.push(...t);
     },
   };
-  return { store, claimed, removed };
+  return { store, claimed, removed, inbox };
 }
 
 const user = (over: Partial<PushUserContext & { tokens: string[] }> = {}) => ({
@@ -78,9 +84,20 @@ describe("runPushJob", () => {
     expect(claimed.size).toBe(1);
   });
   it("skips users without tokens", async () => {
-    const { store } = memStore([user({ tokens: [] })]);
+    const { store, inbox } = memStore([user({ tokens: [] })]);
     const sender = okSender();
     expect((await runPushJob({ store, sender, now: NOW })).considered).toBe(0);
+    expect(inbox).toHaveLength(1);
+    expect(sender.send).not.toHaveBeenCalled();
+  });
+
+  it("persists inbox items even when remote delivery is disabled", async () => {
+    const { store, inbox } = memStore([user({ tokens: [], enabled: false })]);
+    const sender = okSender();
+    await runPushJob({ store, sender, now: NOW, sendRemote: false });
+    await runPushJob({ store, sender, now: NOW, sendRemote: false });
+    expect(inbox).toHaveLength(1);
+    expect(sender.send).not.toHaveBeenCalled();
   });
 });
 

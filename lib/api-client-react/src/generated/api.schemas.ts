@@ -5,6 +5,24 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type NotificationData = {[key: string]: string};
+
+export interface Notification {
+  id: number;
+  kind: string;
+  title: string;
+  body: string;
+  data: NotificationData;
+  createdAt: string;
+  /** @nullable */
+  readAt: string | null;
+}
+
+export interface NotificationInbox {
+  unreadCount: number;
+  notifications: Notification[];
+}
+
 export interface AppleSubscriptionPrice {
   productId: string;
   /** Storefront country code in the same form as the request. */
@@ -16,6 +34,17 @@ export interface AppleSubscriptionPrice {
 export interface HealthStatus {
   status: string;
 }
+
+export type MarkNotificationRead200 = {
+  ok: boolean;
+  id: number;
+  readAt: string;
+};
+
+export type MarkAllNotificationsRead200 = {
+  ok: boolean;
+  updated: number;
+};
 
 export type GetAppleSubscriptionPriceParams = {
 productId: string;
