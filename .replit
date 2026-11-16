@@ -98,3 +98,4 @@ APP_STORE_CONNECT_API_KEY_ID = "J6LZHP9VM9"
 
 [userenv.production]
 EXPO_PUBLIC_DOMAIN = "ajsajjajds.com"
+PUSH_JOB_ENABLED = "true"
