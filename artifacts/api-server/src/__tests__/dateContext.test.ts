@@ -100,3 +100,13 @@ describe("echoed history stamp", () => {
     expect(out.match(/\[sent/g)?.length).toBe(1);
   });
 });
+
+describe("clockExtras (planner / analysis)", () => {
+  it("tells the model today's date and does not claim there is no camp", async () => {
+    const { clockExtras } = await import("../lib/dateContext");
+    const { buildDynamicContext } = await import("../lib/synochi");
+    const out = buildDynamicContext(fighter, [], [], [], null, clockExtras(new Date("2026-11-17T11:00:00Z"), "Europe/London"));
+    expect(out).toContain("# Today — Tuesday 17 November 2026");
+    expect(out).not.toContain("NO ACTIVE CAMP");
+  });
+});

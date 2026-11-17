@@ -399,7 +399,7 @@ export function buildDynamicContext(
   calibrations: Calibration[],
   deepNodes: RetrievedNode[] = [],
   competitionBlock: string | null = null,
-  extras: { todayBlock?: string | null; firstReplyBlock?: string | null; now?: Date; tz?: string } = {},
+  extras: { todayBlock?: string | null; firstReplyBlock?: string | null; now?: Date; tz?: string; skipNoCamp?: boolean } = {},
 ): string {
   // With a clock, past material is dated and the model is told what "now" is. Callers
   // without one (video analysis) keep the plain rendering.

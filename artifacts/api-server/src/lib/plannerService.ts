@@ -13,6 +13,7 @@ import {
 } from "@workspace/db";
 import { and, asc, desc, eq, gt } from "drizzle-orm";
 import { buildDynamicContext } from "./synochi";
+import { clockExtras } from "./dateContext";
 import { openai, OPENAI_COACH_MODEL } from "./openaiClient";
 import { AI_PROVIDER_MAX_RETRIES } from "./aiConsent";
 import { AiConsentRequiredError, hasAiConsentForUser } from "./aiConsent";
@@ -252,6 +253,9 @@ export async function generateWeeklyPlan(args: {
   recentChat: string;
   /** Self-reported injury / soreness block (may be empty). */
   injuryBlock?: string;
+  /** The athlete's real now and timezone, so the plan is dated correctly. */
+  now?: Date;
+  tz?: string | null;
   /** Per-call timeout; defaults to PLANNER_CALL_TIMEOUT_MS. */
   timeoutMs?: number;
 }): Promise<{ items: PlanItem[]; rationale: string }> {
@@ -259,7 +263,7 @@ export async function generateWeeklyPlan(args: {
   const timeoutMs = args.timeoutMs ?? PLANNER_CALL_TIMEOUT_MS;
   const profileKeys = profileSourceKeys(fighter);
   const dynamic =
-    buildDynamicContext(fighter, facts, calibrations, []) +
+    buildDynamicContext(fighter, facts, calibrations, [], null, clockExtras(args.now ?? new Date(), args.tz ?? fighter.timezone ?? "UTC")) +
     "\n\n" +
     PLANNER_INSTRUCTIONS +
     (profileKeys.length

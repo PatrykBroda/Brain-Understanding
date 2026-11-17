@@ -33,6 +33,18 @@ export function nowLabel(now: Date, tz: string): string {
   return `${day}, ${clock(now, z)} (${z})`;
 }
 
+/**
+ * Clock extras for generators that do not load the competition block (planner, video analysis):
+ * facts and answers get dated, the model is told what today is, and we never claim "no active camp"
+ * because this caller simply did not look.
+ */
+export function clockExtras(now: Date, tz: string) {
+  const z = safeTimeZone(tz);
+  return { now, tz: z, skipNoCamp: true, todayBlock: `# Today — ${nowLabel(now, z)}
+
+This is the real current date and time for the athlete. Use it for any date arithmetic.` };
+}
+
 const COUNTDOWN_RES: RegExp[] = [
   /\b\d+\s*(?:days?|weeks?)\s*(?:out|to go|left|away|until|till|to)\b/gi,
   /\b(?:in|within|about|roughly)\s+\d+\s*(?:days?|weeks?)\b/gi,

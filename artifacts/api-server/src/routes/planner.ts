@@ -24,7 +24,7 @@ import type { PlanItem } from "@workspace/db";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { hasAiConsentForUser, requireAiConsent } from "../lib/aiConsent";
 import { describeProviderError, isRetryableProviderError } from "../lib/aiRetry";
-import { rememberTimezone, todayFor } from "../middlewares/timezone";
+import { effectiveTimeZone, rememberTimezone, todayFor } from "../middlewares/timezone";
 import { loadInjuryBlock } from "../lib/injuryStore";
 
 // Free tier sees a mission preview: the first item in full, the rest as
@@ -129,6 +129,8 @@ async function generate(fighterId: number, req: Request, fresh: boolean, weekSta
       provider,
       recentChat,
       injuryBlock,
+      now: req.frameNow ?? new Date(),
+      tz: effectiveTimeZone(req, fighter.timezone),
     });
 
   try {

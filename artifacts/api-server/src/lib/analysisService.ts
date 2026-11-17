@@ -28,6 +28,7 @@ import {
 import { trackHasFrameNear } from "./poseTrack";
 import { ONTOLOGY_KEYS, isOntologyKey } from "@workspace/ontology";
 import { buildDynamicContext } from "./synochi";
+import { clockExtras } from "./dateContext";
 import { logger } from "./logger";
 import { athleteContextLines } from "./athleteContext";
 import { combatContextBlock, combatPickTokens, selectCombatNotes } from "./combatIntelligence";
@@ -747,7 +748,7 @@ export async function generateAnalysis(args: {
   const combatBlock = combatContextBlock(combat);
 
   const dynamic =
-    buildDynamicContext(fighter, facts, [], []) +
+    buildDynamicContext(fighter, facts, [], [], null, clockExtras(new Date(), fighter.timezone ?? "UTC")) +
     "\n\n" +
     ANALYSIS_INSTRUCTIONS +
     (combatBlock ? "\n\n" + combatBlock : "") +
@@ -1068,7 +1069,7 @@ export async function generateOpponentAnalysis(args: {
   const { fighter, facts, kind, focus, opponentName, load, metrics, keyframes, athleteContext } = args;
 
   const dynamic =
-    buildDynamicContext(fighter, facts, [], []) +
+    buildDynamicContext(fighter, facts, [], [], null, clockExtras(new Date(), fighter.timezone ?? "UTC")) +
     "\n\n" +
     OPPONENT_INSTRUCTIONS +
     "\n\n" +
