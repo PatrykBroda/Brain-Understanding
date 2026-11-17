@@ -14,7 +14,6 @@ import {
   scheduleDailyReminder,
 } from "@/lib/dailyReminder";
 import {
-  DAILY_CHECKIN_PROMPT,
   formatTime,
   isCheckinTap,
   popupToShow,
@@ -39,13 +38,13 @@ import { FONT, TEXT_SECONDARY, label } from "@/constants/typography";
 const ACCENT = "#8A6A2F";
 const native = Platform.OS === "ios" || Platform.OS === "android";
 
-/** Open the chat tab with the check-in prompt pre-filled (nonce forces re-apply on repeat taps). */
+/** Open Home with the check-in form open (nonce forces re-apply on repeat taps). */
 function useOpenCheckIn() {
   const router = useRouter();
   return useCallback(() => {
     router.push({
-      pathname: "/(tabs)/chat",
-      params: { prefill: DAILY_CHECKIN_PROMPT, n: String(Date.now()) },
+      pathname: "/(tabs)/home",
+      params: { checkin: "1", n: String(Date.now()) },
     });
   }, [router]);
 }
