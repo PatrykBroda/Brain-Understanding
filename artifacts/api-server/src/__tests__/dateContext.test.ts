@@ -106,7 +106,7 @@ describe("clockExtras (planner / analysis)", () => {
     const { clockExtras } = await import("../lib/dateContext");
     const { buildDynamicContext } = await import("../lib/synochi");
     const out = buildDynamicContext(fighter, [], [], [], null, clockExtras(new Date("2026-11-17T11:00:00Z"), "Europe/London"));
-    expect(out).toContain("# Today — Tuesday 17 November 2026");
+    expect(out).toContain("# Today — Tuesday, 17 November 2026, 11:00");
     expect(out).not.toContain("NO ACTIVE CAMP");
   });
 });

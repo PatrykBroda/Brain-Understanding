@@ -511,7 +511,7 @@ export function buildDynamicContext(
   return `# Athlete profile (baseline)
 
 ${profile}${sportBlock}${coachingModeBlock}${maturityBlock}${styleBlock}
-${competitionBlock ? `\n${competitionBlock}\n` : clk ? `\n${NO_ACTIVE_CAMP_BLOCK}\n` : ""}${extras.todayBlock ? `\n${extras.todayBlock}\n` : ""}${extras.firstReplyBlock ? `\n${extras.firstReplyBlock}\n` : ""}
+${competitionBlock ? `\n${competitionBlock}\n` : clk && !extras.skipNoCamp ? `\n${NO_ACTIVE_CAMP_BLOCK}\n` : ""}${extras.todayBlock ? `\n${extras.todayBlock}\n` : ""}${extras.firstReplyBlock ? `\n${extras.firstReplyBlock}\n` : ""}
 ${clk ? `${DATED_CONTEXT_RULES}\n\n` : ""}# Accumulated athlete model (working memory — treat as evidence, supersede when wrong)
 
 ${factsBlock}
