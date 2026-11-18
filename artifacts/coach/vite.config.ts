@@ -5,42 +5,19 @@ import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { VitePWA } from "vite-plugin-pwa";
 
-// Public origin for canonical/OG URLs, sitemap and robots. Derived from the
-// first entry of REPLIT_DOMAINS. Fail-soft: when absent (e.g. local tooling),
-// %SITE_ORIGIN% collapses to "" so URLs degrade to root-relative instead of
-// breaking the build.
-const SITE_ORIGIN = (() => {
-  const first = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
-  return first ? `https://${first}` : "";
-})();
-
 function seoPlugin(): Plugin {
   return {
     name: "frame-seo",
-    transformIndexHtml(html) {
-      return html.replaceAll("%SITE_ORIGIN%", SITE_ORIGIN);
-    },
     generateBundle() {
-      // robots.txt — generated (the static public/ copy was removed) so the
-      // Sitemap line always points at the real deployed origin.
+      // Let crawlers fetch the page so they can read the noindex meta tag.
+      // Blocking all crawling here could leave previously indexed URLs visible.
       const robots = [
         "User-agent: *",
         "Allow: /",
         "Disallow: /api/",
-        ...(SITE_ORIGIN ? ["", `Sitemap: ${SITE_ORIGIN}/sitemap.xml`] : []),
         "",
       ].join("\n");
       this.emitFile({ type: "asset", fileName: "robots.txt", source: robots });
-
-      if (SITE_ORIGIN) {
-        const pages = ["/", "/sign-in", "/sign-up"];
-        const sitemap =
-          `<?xml version="1.0" encoding="UTF-8"?>\n` +
-          `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-          pages.map((p) => `  <url><loc>${SITE_ORIGIN}${p}</loc></url>`).join("\n") +
-          `\n</urlset>\n`;
-        this.emitFile({ type: "asset", fileName: "sitemap.xml", source: sitemap });
-      }
     },
   };
 }
