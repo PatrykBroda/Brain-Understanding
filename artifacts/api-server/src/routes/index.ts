@@ -23,6 +23,7 @@ import privacyRouter from "./privacy";
 import aiConsentRouter from "./aiConsent";
 import onboardingRouter from "./onboarding";
 import pushRouter from "./push";
+import juniorRouter from "./junior";
 import { requireAuth } from "../middlewares/authMiddleware";
 import { attachTimezone } from "../middlewares/timezone";
 import { requireCurrentAiConsent } from "../lib/aiConsent";
@@ -55,6 +56,8 @@ router.use(accountRouter);
 router.use(onboardingRouter);
 // Push registration/preferences stay reachable without AI consent so opting out always works.
 router.use(pushRouter);
+// Junior Portal pilot (parent / coach / gym admin). Flag-gated inside; no AI consent needed.
+router.use(juniorRouter);
 
 // All other authenticated FRAME use requires the current disclosure. Keep the
 // immediate provider-boundary checks in the individual AI services as well.
