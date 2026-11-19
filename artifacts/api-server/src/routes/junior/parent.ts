@@ -29,7 +29,7 @@ import {
   guardianLinksTable,
 } from "@workspace/db";
 import { h, JuniorError, nowOf, parse, userId, uuidParam } from "../../lib/junior/http";
-import { recordHistory } from "../../lib/junior/history";
+import { recordHistory, type DbLike } from "../../lib/junior/history";
 import { assertGuardian, assertGuardianWithGym, getApprovedMembership } from "../../lib/junior/authz";
 import { parentCanSee, toParentItem, type HistoryRow } from "../../lib/junior/historyView";
 import { weekStartOf } from "../../lib/junior/timetable";
@@ -273,8 +273,8 @@ export const VISIBILITY_MATRIX = [
 
 const privacyBody = z.object({ coachSeesWellbeing: z.boolean().optional(), teamSeesRecognition: z.boolean().optional() }).refine((b) => Object.keys(b).length > 0, "Nothing to change");
 
-export async function privacyFor(childId: string) {
-  const [p] = await db.select().from(childPrivacySettingsTable).where(eq(childPrivacySettingsTable.childId, childId));
+export async function privacyFor(childId: string, conn: DbLike = db) {
+  const [p] = await conn.select().from(childPrivacySettingsTable).where(eq(childPrivacySettingsTable.childId, childId));
   return { coachSeesWellbeing: p?.coachSeesWellbeing ?? false, teamSeesRecognition: p?.teamSeesRecognition ?? true };
 }
 
@@ -295,7 +295,7 @@ router.put(
     await assertGuardian(uid, childId);
     const b = parse(privacyBody, req.body);
     await db.transaction(async (tx) => {
-      const before = await privacyFor(childId);
+      const before = await privacyFor(childId, tx);
       const after = { ...before, ...b };
       await tx
         .insert(childPrivacySettingsTable)

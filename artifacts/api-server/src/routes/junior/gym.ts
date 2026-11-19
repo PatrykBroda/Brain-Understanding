@@ -211,7 +211,7 @@ router.patch(
       await recordHistory(tx, { gymId, actorUserId: uid, actorRole: role, entity: "occurrence", entityId: occId, action: "edited", before: { startsAt: o.startsAt, title: o.title }, after: { startsAt, title: patch.title } });
       return { cancelled: false, removedLogs: 0, notify: true, groupId: o.groupId };
     });
-    if (out.notify) void guardianIdsOfGroup(out.groupId).then((ids) => notifyUsers(ids, noticeFor("timetable", `occ:${occId}:${now.getTime()}`), now));
+    if (out.notify) await guardianIdsOfGroup(out.groupId).then((ids) => notifyUsers(ids, noticeFor("timetable", `occ:${occId}:${now.getTime()}`), now));
     const { notify: _n, groupId: _g, ...pub } = out;
     res.json({ ok: true, ...pub });
   }),
@@ -361,7 +361,7 @@ router.post(
     await requireGymStaff(uid, gymId, "coach");
     const b = parse(z.object({ title: z.string().trim().min(1).max(120), body: z.string().trim().max(2000).default(""), groupId: z.string().uuid().optional() }), req.body);
     const [a] = await db.insert(announcementsTable).values({ gymId, groupId: b.groupId ?? null, kind: "general", title: b.title, body: b.body, publishedBy: uid }).returning();
-    void (b.groupId ? guardianIdsOfGroup(b.groupId) : guardianIdsOfGym(gymId)).then((ids) => notifyUsers(ids, noticeFor("announcements", `ann:${a!.id}`), nowOf(req)));
+    await (b.groupId ? guardianIdsOfGroup(b.groupId) : guardianIdsOfGym(gymId)).then((ids) => notifyUsers(ids, noticeFor("announcements", `ann:${a!.id}`), nowOf(req)));
     res.status(201).json({ announcement: a });
   }),
 );

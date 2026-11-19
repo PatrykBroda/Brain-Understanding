@@ -128,7 +128,7 @@ router.post(
       await recordHistory(tx, { gymId, childId, actorUserId: uid, actorRole: actorOf(staff.role), entity: "star_award", entityId: r.id, action: "created", after: { weekStart: week } });
       return r;
     });
-    void guardianIdsOf([childId]).then((ids) => notifyUsers(ids, noticeFor("recognition", `star:${row.id}`), now));
+    await guardianIdsOf([childId]).then((ids) => notifyUsers(ids, noticeFor("recognition", `star:${row.id}`), now));
     res.status(201).json({ star: row });
   }),
 );
@@ -353,7 +353,7 @@ router.post(
       await recordHistory(tx, { gymId, actorUserId: uid, actorRole: actorOf(staff.role), entity: "schedule", entityId: sid, action: "changed_from", before: { title: old.title, weekday: old.weekday, startLocal: old.startLocal, endLocal: old.endLocal }, after: { fromDate: b.fromDate, newScheduleId: fresh!.id, title: fresh!.title, weekday: fresh!.weekday, startLocal, endLocal } });
       return { schedule: fresh!, groupId: old.groupId, removedOccurrences: removed, createdOccurrences: created - dupes, keptLogged: keptDates.size };
     });
-    void guardianIdsOfGroup(out.groupId).then((ids) => notifyUsers(ids, noticeFor("timetable", `sched:${out.schedule.id}`), now));
+    await guardianIdsOfGroup(out.groupId).then((ids) => notifyUsers(ids, noticeFor("timetable", `sched:${out.schedule.id}`), now));
     const { groupId: _g, ...pub } = out;
     res.status(201).json(pub);
   }),

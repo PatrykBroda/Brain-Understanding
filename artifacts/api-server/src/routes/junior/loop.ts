@@ -260,7 +260,7 @@ router.post(
       await recordHistory(tx, { gymId, childId, actorUserId: uid, actorRole: staff.role === "admin" ? "admin" : "coach", entity: "observation", entityId: row!.id, action: "created", after: { visibility: b.visibility } });
       return row!;
     });
-    if (b.visibility === "shared") void guardianIdsOf([childId]).then((ids) => notifyUsers(ids, noticeFor("observations", `obs:${o.id}`), nowOf(req)));
+    if (b.visibility === "shared") await guardianIdsOf([childId]).then((ids) => notifyUsers(ids, noticeFor("observations", `obs:${o.id}`), nowOf(req)));
     res.status(201).json({ observation: o });
   }),
 );
