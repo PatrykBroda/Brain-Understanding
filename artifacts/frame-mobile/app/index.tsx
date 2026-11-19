@@ -8,6 +8,7 @@ import { reportStartup } from "@/lib/crashReporter";
 import { BootLoader } from "@/components/BootLoader";
 import { INTRO_SEEN_KEY } from "@/app/splash";
 import { EmptyState, Screen } from "@/components/entry";
+import { useJuniorEntry } from "@/hooks/useJuniorEntry";
 
 function LoadingScreen({ label }: { label: string }) {
   return <BootLoader label={label} />;
@@ -16,6 +17,7 @@ function LoadingScreen({ label }: { label: string }) {
 export default function IndexScreen() {
   const { isLoaded, isSignedIn } = useAuth();
   const { isLoading: fighterLoading, error, refetch } = useFighter();
+  const { entry: juniorEntry } = useJuniorEntry();
 
   // Whether the first-launch cinematic intro has already played. null until
   // AsyncStorage resolves; gates the final redirect to /splash vs /home.
@@ -51,6 +53,13 @@ export default function IndexScreen() {
   if (!isSignedIn) {
     return <Redirect href="/sign-in" />;
   }
+
+  // Junior Portal pilot: parents/coaches never touch the fighter flow. Everyone else falls through unchanged.
+  if (juniorEntry === "loading") {
+    return <LoadingScreen label="Loading your Frame" />;
+  }
+  if (juniorEntry === "parent") return <Redirect href="/(parent)/home" />;
+  if (juniorEntry === "coach") return <Redirect href="/(coach)/today" />;
 
   if (fighterLoading) {
     return <LoadingScreen label="Loading your Frame" />;
