@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { db, fightersTable, usersTable, type Fighter } from "@workspace/db";
+import { db, fightersTable, usersTable, userRolesTable, type Fighter } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { verifyToken, isSessionRevoked } from "../routes/auth";
 import { ensureFighter } from "../lib/ensureFighter";
@@ -70,6 +70,11 @@ export async function getUserFighter(req: Request): Promise<Fighter | null> {
     .where(eq(fightersTable.userId, uid))
     .limit(1);
   if (fighter) return fighter;
+  // Junior Portal: an account whose only roles are parent/coach (no athlete role, no fighter row) is
+  // not an athlete and must never get a stub fighter. Accounts with NO role rows are existing
+  // athletes and behave exactly as before.
+  const roles = await db.select({ role: userRolesTable.role }).from(userRolesTable).where(eq(userRolesTable.userId, uid));
+  if (roles.length > 0 && !roles.some((r) => r.role === "athlete")) return null;
   try {
     return await ensureFighter(uid);
   } catch (err) {

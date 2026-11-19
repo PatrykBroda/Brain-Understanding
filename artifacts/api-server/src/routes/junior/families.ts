@@ -22,6 +22,7 @@ import { h, JuniorError, nowOf, parse, userId, uuidParam } from "../../lib/junio
 import { recordHistory } from "../../lib/junior/history";
 import { assertGuardian, requireGymStaff, getActiveStaff } from "../../lib/junior/authz";
 import { hashToken, newToken, normEmail } from "./identity";
+import { deleteChildren } from "../../lib/junior/deleteChildren";
 import { sendMail } from "../../lib/mailer";
 
 const router: IRouter = Router();
@@ -95,22 +96,6 @@ router.get(
     res.json({ child, attendance: logs, wellbeing, observations });
   }),
 );
-
-/** Hard delete of a child: data cascades, history rows for this child are purged (content-free gym row kept). */
-export async function deleteChildren(tx: Parameters<Parameters<typeof db.transaction>[0]>[0], childIds: string[], actorUserId: string | null) {
-  if (!childIds.length) return;
-  const gyms = await tx
-    .select({ gymId: childGymMembershipsTable.gymId, childId: childGymMembershipsTable.childId })
-    .from(childGymMembershipsTable)
-    .where(inArray(childGymMembershipsTable.childId, childIds));
-  await tx.execute(sql`SET LOCAL frame.allow_history_purge = 'on'`);
-  await tx.delete(changeHistoryTable).where(inArray(changeHistoryTable.childId, childIds));
-  await tx.delete(childrenTable).where(inArray(childrenTable.id, childIds));
-  await tx.execute(sql`SET LOCAL frame.allow_history_purge = 'off'`);
-  for (const g of new Set(gyms.map((x) => x.gymId))) {
-    await recordHistory(tx, { gymId: g, actorUserId, actorRole: "parent", entity: "child", action: "deleted" });
-  }
-}
 
 router.delete(
   "/children/:childId",
