@@ -39,3 +39,28 @@ describe("copy and helpers", () => {
     expect(newClientLogId().length).toBeGreaterThanOrEqual(8);
   });
 });
+
+import { emptyStateCopy, inviteActionPath, privacySummary, recapLine, timelineDayLabel, timelineLabel } from "../lib/junior";
+
+describe("junior phase 2 helpers", () => {
+  it("labels and day headings", () => {
+    expect(timelineLabel("star")).toBe("Star of the Week");
+    const now = new Date("2026-11-17T10:00:00Z");
+    expect(timelineDayLabel("2026-11-17T03:00:00Z", now)).toBe("Today");
+    expect(timelineDayLabel("2026-11-16T05:00:00Z", now)).toBe("Yesterday");
+    expect(timelineDayLabel("2026-11-10T05:00:00Z", now)).toMatch(/10 Nov/);
+  });
+  it("empty states prefer server text", () => {
+    expect(emptyStateCopy(null)).toBeNull();
+    expect(emptyStateCopy({ code: "NO_GYM", message: "server says" })).toBe("server says");
+    expect(emptyStateCopy({ code: "NO_GROUP", message: "" })).toMatch(/class group/);
+    expect(emptyStateCopy({ code: "???", message: "" })).toMatch(/Nothing/);
+  });
+  it("invite paths, privacy summary and recap never say absent", () => {
+    expect(inviteActionPath({ kind: "guardian", id: "x" }, "decline")).toBe("/junior/my/invites/guardian/x/decline");
+    expect(privacySummary({ coachSeesWellbeing: false, teamSeesRecognition: true })).toMatch(/cannot/);
+    expect(recapLine({ sessionsLogged: 3, classesHeld: 5 })).toBe("3 logged of 5 classes (2 not logged)");
+    expect(recapLine({ sessionsLogged: 3, classesHeld: 5 }).toLowerCase()).not.toContain("absent");
+    expect(recapLine({ sessionsLogged: 2, classesHeld: 2 })).toBe("2 logged of 2 classes");
+  });
+});

@@ -90,3 +90,57 @@ export function formatClassWhen(iso: string, timeZone = "Asia/Bangkok"): string 
   const time = new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
   return `${day}, ${time}`;
 }
+
+// ── Phase 2: parent timeline, invites, privacy ───────────────────────────────
+
+export type TimelineType = "session" | "observation" | "milestone" | "star" | "gym_change" | "membership";
+export interface TimelineItem { type: TimelineType; at: string; title: string; detail?: string | null; refId?: string }
+
+export function timelineLabel(t: TimelineType): string {
+  switch (t) {
+    case "session": return "Session";
+    case "observation": return "Coach note";
+    case "milestone": return "Milestone";
+    case "star": return "Star of the Week";
+    case "gym_change": return "Gym update";
+    case "membership": return "Gym";
+  }
+}
+
+/** Day heading for a timeline row; "Today"/"Yesterday" relative to `now`, in the gym's time zone. */
+export function timelineDayLabel(iso: string, now: Date = new Date(), timeZone = "Asia/Bangkok"): string {
+  const key = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone }).format(d);
+  const day = key(new Date(iso));
+  if (day === key(now)) return "Today";
+  if (day === key(new Date(now.getTime() - 86_400_000))) return "Yesterday";
+  return new Intl.DateTimeFormat("en-GB", { timeZone, weekday: "short", day: "numeric", month: "short" }).format(new Date(iso));
+}
+
+export interface EmptyState { code: string; message: string }
+/** Server wording wins; this only covers an older server that sends no message. */
+export function emptyStateCopy(e: EmptyState | null | undefined): string | null {
+  if (!e) return null;
+  if (e.message) return e.message;
+  switch (e.code) {
+    case "NO_GYM": return "Choose a gym for your child to start their journey.";
+    case "AWAITING_APPROVAL": return "Waiting for the gym to approve. You will see classes once they do.";
+    case "NO_GROUP": return "The gym has not placed this child in a class group yet.";
+    case "NO_SESSIONS": return "No sessions yet. They appear here when you add them.";
+    case "NO_INVITES": return "No invitations right now.";
+    default: return "Nothing to show yet.";
+  }
+}
+
+export interface InviteRow { kind: "guardian" | "staff"; id: string; title: string; from: string | null; expiresAt: string }
+export const inviteActionPath = (i: Pick<InviteRow, "kind" | "id">, decision: "accept" | "decline") => `/junior/my/invites/${i.kind}/${i.id}/${decision}`;
+
+export interface PrivacySettings { coachSeesWellbeing: boolean; teamSeesRecognition: boolean }
+export function privacySummary(p: PrivacySettings): string {
+  return p.coachSeesWellbeing ? "Coaches can see your wellbeing averages." : "Coaches cannot see wellbeing entries.";
+}
+
+/** "Not logged" is never "absent": a class the family did not log says nothing about attendance. */
+export function recapLine(r: { sessionsLogged: number; classesHeld: number }): string {
+  const nl = Math.max(0, r.classesHeld - r.sessionsLogged);
+  return `${r.sessionsLogged} logged of ${r.classesHeld} classes${nl > 0 ? ` (${nl} not logged)` : ""}`;
+}

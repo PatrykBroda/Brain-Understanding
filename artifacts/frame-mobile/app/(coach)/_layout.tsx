@@ -17,6 +17,7 @@ export default function CoachLayout() {
       <Tabs.Screen name="children" options={{ title: "Children", tabBarIcon: ({ color, size }) => <Feather name="users" size={size} color={color} /> }} />
       <Tabs.Screen name="account" options={{ title: "Account", tabBarIcon: ({ color, size }) => <Feather name="user" size={size} color={color} /> }} />
       <Tabs.Screen name="roster" options={{ href: null }} />
+      <Tabs.Screen name="team" options={{ href: null, title: "Team" }} />
     </Tabs>
   );
 }

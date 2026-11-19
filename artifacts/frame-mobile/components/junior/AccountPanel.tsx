@@ -39,6 +39,19 @@ export function AccountPanel({ role }: { role: "parent" | "coach" }) {
   return (
     <Page title="Account">
       {role === "parent" ? <GymRequest me={me.data} /> : null}
+      {role === "coach" && me.data?.staff?.some((s) => s.role === "admin") ? (
+        <Card>
+          <H>Gym admin</H>
+          <Button title="Team and groups" variant="secondary" onPress={() => router.push("/(coach)/team")} />
+        </Card>
+      ) : null}
+      {role === "parent" ? (
+        <Card>
+          <H>Invitations and privacy</H>
+          <Button title="My invitations" variant="secondary" onPress={() => router.push("/(parent)/invites")} />
+          <Button title="Privacy and notifications" variant="secondary" onPress={() => router.push("/(parent)/privacy")} />
+        </Card>
+      ) : null}
       <Card>
         <H>{role === "parent" ? "Co-parent invite" : "Gym staff invite"}</H>
         <Field label="Invite code" value={token} onChangeText={setToken} autoCapitalize="none" autoCorrect={false} />
