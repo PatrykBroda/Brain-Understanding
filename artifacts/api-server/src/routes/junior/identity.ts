@@ -12,6 +12,7 @@ import {
   milestoneRulesTable,
   staffInvitesTable,
   userEntitlementsTable,
+  entitlementAuditTable,
   userRolesTable,
   usersTable,
 } from "@workspace/db";
@@ -30,7 +31,7 @@ export const normEmail = (e: string) => e.trim().toLowerCase();
 export const newToken = () => crypto.randomBytes(24).toString("base64url");
 export const hashToken = (t: string) => crypto.createHash("sha256").update(t).digest("hex");
 
-async function requireFrameAdmin(uid: string): Promise<void> {
+export async function requireFrameAdmin(uid: string): Promise<void> {
   const [u] = await db.select({ isAdmin: usersTable.isAdmin }).from(usersTable).where(eq(usersTable.id, uid)).limit(1);
   if (!u?.isAdmin) throw new JuniorError(403, "FRAME_ADMIN_REQUIRED", "FRAME admin only");
 }
@@ -214,6 +215,7 @@ router.post(
         action: "granted",
         after: { entitlement: PARENT_ENTITLEMENT, source: b.source, expiresAt: b.expiresAt ?? null },
       });
+      await tx.insert(entitlementAuditTable).values({ targetUserId: target.id, action: "granted", source: b.source, expiresAt: b.expiresAt ?? null, actorUserId: uid });
     });
     res.status(201).json({ ok: true, userId: target.id });
   }),
@@ -231,6 +233,7 @@ router.delete(
         .set({ status: "revoked", updatedAt: new Date() })
         .where(and(eq(userEntitlementsTable.userId, target), eq(userEntitlementsTable.entitlement, PARENT_ENTITLEMENT)));
       await recordHistory(tx, { actorUserId: uid, actorRole: "frame_admin", entity: "entitlement", entityId: target, action: "revoked" });
+      await tx.insert(entitlementAuditTable).values({ targetUserId: target, action: "revoked", source: "all", actorUserId: uid });
     });
     res.json({ ok: true });
   }),

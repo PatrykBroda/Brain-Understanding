@@ -6,6 +6,7 @@ import gymRouter from "./gym";
 import loopRouter from "./loop";
 import parentRouter from "./parent";
 import recordsRouter from "./records";
+import entitlementsRouter from "./entitlements";
 
 /**
  * /api/junior/* — the Junior Portal pilot. Dark unless JUNIOR_PORTAL_ENABLED is set on the server.
@@ -25,6 +26,7 @@ inner.use(gymRouter);
 inner.use(loopRouter);
 inner.use(parentRouter);
 inner.use(recordsRouter);
+inner.use(entitlementsRouter);
 
 router.use("/junior", (req, res, next) => {
   if (!juniorEnabled()) {

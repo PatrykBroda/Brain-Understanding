@@ -186,6 +186,18 @@ export async function coachWellbeingSummary(childId: string, from: string, to: s
   return { shared: true as const, source: "parent-reported", entries: r?.n ?? 0, avgMood: r?.mood ?? null, avgEnergy: r?.energy ?? null, avgSleep: r?.sleep ?? null };
 }
 
+router.get(
+  "/gyms/:gymId/children/:childId/wellbeing",
+  h(async (req, res) => {
+    const gymId = uuidParam(req, "gymId");
+    const childId = uuidParam(req, "childId");
+    await staffChildGym(userId(req), gymId, childId);
+    const gym = await gymOf(gymId);
+    const today = localDate(nowOf(req), gym.timezone);
+    res.json(await coachWellbeingSummary(childId, addDays(today, -30), addDays(today, 1)));
+  }),
+);
+
 // == Monthly recap (coach only; "not logged" is never "absent") ============================================
 router.get(
   "/gyms/:gymId/children/:childId/recap",
