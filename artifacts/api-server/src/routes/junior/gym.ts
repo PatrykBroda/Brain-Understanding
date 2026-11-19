@@ -21,6 +21,7 @@ import { assertGuardianWithGym, requireGymStaff } from "../../lib/junior/authz";
 import { ensureHorizon, generateForSchedule, HORIZON_DAYS, localInstant, weekStartOf } from "../../lib/junior/timetable";
 import { recalcMilestones } from "../../lib/junior/milestones";
 import { addDays, localDate } from "../../lib/localTime";
+import { guardianIdsOfGroup, guardianIdsOfGym, noticeFor, notifyUsers } from "../../lib/junior/notify";
 
 const router: IRouter = Router();
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM");
@@ -180,7 +181,7 @@ router.patch(
         .where(and(eq(attendanceLogsTable.occurrenceId, occId), eq(attendanceLogsTable.status, "active")));
       const role = actorOf(staff.role);
       if (b.cancel) {
-        if (o.status === "cancelled") return { cancelled: true, removedLogs: 0 };
+        if (o.status === "cancelled") return { cancelled: true, removedLogs: 0, notify: false, groupId: o.groupId };
         if (logs.length && !b.confirm) {
           throw new JuniorError(409, "HAS_LOGS", `${logs.length} attendance log(s) exist for this class. Confirm to cancel and remove them.`, { logCount: logs.length });
         }
@@ -194,7 +195,7 @@ router.patch(
         }
         await tx.insert(announcementsTable).values({ gymId, groupId: o.groupId, kind: "timetable", title: `Cancelled: ${o.title}`, body: `${o.title} on ${o.originalDate} is cancelled.`, occurrenceId: occId, publishedBy: uid });
         await recordHistory(tx, { gymId, actorUserId: uid, actorRole: role, entity: "occurrence", entityId: occId, action: "cancelled", before: { startsAt: o.startsAt }, after: { removedLogs: logs.length } });
-        return { cancelled: true, removedLogs: logs.length };
+        return { cancelled: true, removedLogs: logs.length, notify: true, groupId: o.groupId };
       }
       const date = b.date ?? localDate(o.startsAt, tz);
       const startLocal = b.startLocal ?? hhmmOf(o.startsAt, tz);
@@ -208,9 +209,11 @@ router.patch(
       await tx.update(classOccurrencesTable).set(patch).where(eq(classOccurrencesTable.id, occId));
       await tx.insert(announcementsTable).values({ gymId, groupId: o.groupId, kind: "timetable", title: `Changed: ${patch.title}`, body: `${patch.title} now ${date} ${startLocal}-${endLocal}.`, occurrenceId: occId, publishedBy: uid });
       await recordHistory(tx, { gymId, actorUserId: uid, actorRole: role, entity: "occurrence", entityId: occId, action: "edited", before: { startsAt: o.startsAt, title: o.title }, after: { startsAt, title: patch.title } });
-      return { cancelled: false, removedLogs: 0 };
+      return { cancelled: false, removedLogs: 0, notify: true, groupId: o.groupId };
     });
-    res.json({ ok: true, ...out });
+    if (out.notify) void guardianIdsOfGroup(out.groupId).then((ids) => notifyUsers(ids, noticeFor("timetable", `occ:${occId}:${now.getTime()}`), now));
+    const { notify: _n, groupId: _g, ...pub } = out;
+    res.json({ ok: true, ...pub });
   }),
 );
 
@@ -358,6 +361,7 @@ router.post(
     await requireGymStaff(uid, gymId, "coach");
     const b = parse(z.object({ title: z.string().trim().min(1).max(120), body: z.string().trim().max(2000).default(""), groupId: z.string().uuid().optional() }), req.body);
     const [a] = await db.insert(announcementsTable).values({ gymId, groupId: b.groupId ?? null, kind: "general", title: b.title, body: b.body, publishedBy: uid }).returning();
+    void (b.groupId ? guardianIdsOfGroup(b.groupId) : guardianIdsOfGym(gymId)).then((ids) => notifyUsers(ids, noticeFor("announcements", `ann:${a!.id}`), nowOf(req)));
     res.status(201).json({ announcement: a });
   }),
 );

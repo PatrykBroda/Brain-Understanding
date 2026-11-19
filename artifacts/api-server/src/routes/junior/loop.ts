@@ -28,6 +28,7 @@ import { ensureHorizon, weekStartOf } from "../../lib/junior/timetable";
 import { activeSessionCount, recalcMilestones } from "../../lib/junior/milestones";
 import { addDays, localDate, startOfLocalDay } from "../../lib/localTime";
 import { focusFor } from "./gym";
+import { guardianIdsOf, noticeFor, notifyUsers } from "../../lib/junior/notify";
 
 const router: IRouter = Router();
 const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
@@ -236,7 +237,7 @@ router.get(
 // ── Observations (coach -> shared with the family, or private to staff) ──────
 const obsBody = z.object({ visibility: z.enum(["shared", "private"]), body: z.string().trim().min(1).max(1500), categoryId: z.string().uuid().optional(), occurrenceId: z.string().uuid().optional() });
 
-async function staffChildGym(uid: string, gymId: string, childId: string) {
+export async function staffChildGym(uid: string, gymId: string, childId: string) {
   const staff = await requireGymStaff(uid, gymId, "coach");
   const [m] = await db
     .select({ id: childGymMembershipsTable.id })
@@ -259,6 +260,7 @@ router.post(
       await recordHistory(tx, { gymId, childId, actorUserId: uid, actorRole: staff.role === "admin" ? "admin" : "coach", entity: "observation", entityId: row!.id, action: "created", after: { visibility: b.visibility } });
       return row!;
     });
+    if (b.visibility === "shared") void guardianIdsOf([childId]).then((ids) => notifyUsers(ids, noticeFor("observations", `obs:${o.id}`), nowOf(req)));
     res.status(201).json({ observation: o });
   }),
 );

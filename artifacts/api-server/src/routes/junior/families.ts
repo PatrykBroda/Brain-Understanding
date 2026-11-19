@@ -143,7 +143,7 @@ router.post(
     const [me] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, uid));
     const childId = await db.transaction(async (tx) => {
       const [inv] = await tx.select().from(guardianInvitesTable).where(eq(guardianInvitesTable.tokenHash, hashToken(token))).for("update");
-      if (!inv || inv.acceptedAt || inv.expiresAt.getTime() < nowOf(req).getTime() || normEmail(inv.email) !== normEmail(me?.email ?? "")) {
+      if (!inv || inv.acceptedAt || inv.declinedAt || inv.cancelledAt || inv.expiresAt.getTime() < nowOf(req).getTime() || normEmail(inv.email) !== normEmail(me?.email ?? "")) {
         throw new JuniorError(400, "INVALID_INVITE", "This invite is invalid, expired or for a different email");
       }
       await tx.update(guardianInvitesTable).set({ acceptedAt: new Date() }).where(eq(guardianInvitesTable.id, inv.id));

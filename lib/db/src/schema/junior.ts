@@ -73,6 +73,8 @@ export const staffInvitesTable = pgTable(
     tokenHash: text("token_hash").notNull(),
     expiresAt: ts("expires_at").notNull(),
     acceptedAt: ts("accepted_at"),
+    declinedAt: ts("declined_at"),
+    cancelledAt: ts("cancelled_at"),
     createdBy: text("created_by"),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
@@ -113,6 +115,8 @@ export const guardianInvitesTable = pgTable(
     tokenHash: text("token_hash").notNull(),
     expiresAt: ts("expires_at").notNull(),
     acceptedAt: ts("accepted_at"),
+    declinedAt: ts("declined_at"),
+    cancelledAt: ts("cancelled_at"),
     createdBy: text("created_by"),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
@@ -372,4 +376,77 @@ export const changeHistoryTable = pgTable(
     createdAt: ts("created_at").notNull().defaultNow(),
   },
   (t) => [index("change_history_child_idx").on(t.childId, t.createdAt), index("change_history_gym_idx").on(t.gymId, t.createdAt)],
+);
+
+// -- Phase 2 (migration 0016_junior_phase2.sql) --------------------------------
+export const childPrivacySettingsTable = pgTable("child_privacy_settings", {
+  childId: uuid("child_id").primaryKey().references(() => childrenTable.id, { onDelete: "cascade" }),
+  coachSeesWellbeing: boolean("coach_sees_wellbeing").notNull().default(false),
+  teamSeesRecognition: boolean("team_sees_recognition").notNull().default(true),
+  updatedBy: text("updated_by"),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const individualFocusesTable = pgTable(
+  "individual_focuses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    childId: uuid("child_id").notNull().references(() => childrenTable.id, { onDelete: "cascade" }),
+    gymId: uuid("gym_id").notNull().references(() => gymsTable.id, { onDelete: "cascade" }),
+    categoryId: uuid("category_id").references(() => focusCategoriesTable.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    details: text("details").notNull().default(""),
+    status: text("status").notNull().default("active"), // active | ended
+    createdBy: text("created_by"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    endedAt: ts("ended_at"),
+  },
+  (t) => [index("individual_focuses_child_idx").on(t.childId, t.status)],
+);
+
+export const starAwardsTable = pgTable(
+  "star_awards",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gymId: uuid("gym_id").notNull().references(() => gymsTable.id, { onDelete: "cascade" }),
+    groupId: uuid("group_id").references(() => classGroupsTable.id, { onDelete: "set null" }),
+    childId: uuid("child_id").notNull().references(() => childrenTable.id, { onDelete: "cascade" }),
+    weekStart: date("week_start", { mode: "string" }).notNull(),
+    note: text("note").notNull().default(""),
+    status: text("status").notNull().default("active"), // active | withdrawn
+    awardedBy: text("awarded_by"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    withdrawnAt: ts("withdrawn_at"),
+  },
+  (t) => [
+    uniqueIndex("star_awards_active_uq").on(t.childId, t.weekStart).where(sql`${t.status} = 'active'`),
+    index("star_awards_gym_idx").on(t.gymId, t.weekStart),
+  ],
+);
+
+export const juniorNotificationPrefsTable = pgTable("junior_notification_prefs", {
+  userId: text("user_id").primaryKey().references(() => usersTable.id, { onDelete: "cascade" }),
+  timetable: boolean("timetable").notNull().default(true),
+  observations: boolean("observations").notNull().default(true),
+  recognition: boolean("recognition").notNull().default(true),
+  announcements: boolean("announcements").notNull().default(true),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const entitlementAuditTable = pgTable(
+  "entitlement_audit",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    targetUserId: text("target_user_id").notNull(),
+    gymId: uuid("gym_id"),
+    childId: uuid("child_id"),
+    batchId: text("batch_id"),
+    action: text("action").notNull(), // granted | revoked
+    source: text("source").notNull(),
+    expiresAt: ts("expires_at"),
+    actorUserId: text("actor_user_id"),
+    reason: text("reason"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("entitlement_audit_target_idx").on(t.targetUserId, t.createdAt), index("entitlement_audit_gym_idx").on(t.gymId, t.createdAt)],
 );
