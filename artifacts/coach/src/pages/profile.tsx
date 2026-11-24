@@ -110,8 +110,9 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.size > 12 * 1024 * 1024) {
-      setUploadError("Image too large (max 12MB).");
+    // Large originals are shrunk to a JPEG before upload (lib/imagePrep.ts).
+    if (file.size > 40 * 1024 * 1024) {
+      setUploadError("Image too large (max 40MB).");
       return;
     }
     uploadHero.mutate(file);

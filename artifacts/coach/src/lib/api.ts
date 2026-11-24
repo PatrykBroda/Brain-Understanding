@@ -1,6 +1,7 @@
 import { SAVE_TIMEOUT_MS } from "./onboarding-form";
 import { deviceTimeZone } from "./local-day";
 import type { TodayView } from "./today";
+import { prepareImageFile } from "./imagePrep";
 
 const base = import.meta.env.BASE_URL;
 
@@ -393,7 +394,7 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-function fileToBase64(file: File): Promise<string> {
+function fileToBase64(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -438,12 +439,13 @@ export const api = {
       body: JSON.stringify(input),
     }),
   uploadHero: async (file: File) => {
-    const dataBase64 = await fileToBase64(file);
+    const prepared = await prepareImageFile(file);
+    const dataBase64 = await fileToBase64(prepared.blob);
     return jsonFetch<{ fighter: Fighter }>("api/fighter/hero", {
       method: "POST",
       body: JSON.stringify({
-        mimeType: file.type,
-        filename: file.name,
+        mimeType: prepared.mimeType,
+        filename: prepared.filename,
         dataBase64,
       }),
     });
@@ -480,15 +482,19 @@ export const api = {
     conversationId: number,
     file: File,
   ): Promise<AttachmentDto> => {
-    const dataBase64 = await fileToBase64(file);
     const kind: "image" | "video" = file.type.startsWith("video/") ? "video" : "image";
+    const prepared =
+      kind === "image"
+        ? await prepareImageFile(file)
+        : { blob: file as Blob, mimeType: file.type, filename: file.name };
+    const dataBase64 = await fileToBase64(prepared.blob);
     const res = await jsonFetch<{ attachment: AttachmentDto }>("api/attachments", {
       method: "POST",
       body: JSON.stringify({
         conversationId,
         kind,
-        mimeType: file.type,
-        filename: file.name,
+        mimeType: prepared.mimeType,
+        filename: prepared.filename,
         dataBase64,
       }),
     });

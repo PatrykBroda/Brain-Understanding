@@ -13,22 +13,21 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { getUserFighter } from "../middlewares/authMiddleware";
 import { UPLOADS_DIR } from "../lib/uploads";
+import { resolveUploadMime } from "../lib/uploadMime";
 
 const router: IRouter = Router();
 
 const MAX_BYTES = 12 * 1024 * 1024; // 12MB upload cap
 
-const SAFE_IMAGE_MIME = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
-const SAFE_VIDEO_MIME = new Set([
-  "video/mp4",
-  "video/webm",
-  "video/quicktime",
-]);
+const MIME_EXT: Record<string, string> = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "image/gif": ".gif",
+  "video/mp4": ".mp4",
+  "video/webm": ".webm",
+  "video/quicktime": ".mov",
+};
 
 router.post("/attachments", async (req, res) => {
   const body = req.body as {
@@ -50,15 +49,6 @@ router.post("/attachments", async (req, res) => {
   }
 
   const kind: "image" | "video" = body.kind === "video" ? "video" : "image";
-  const okMime =
-    kind === "image"
-      ? SAFE_IMAGE_MIME.has(body.mimeType)
-      : SAFE_VIDEO_MIME.has(body.mimeType);
-  if (!okMime) {
-    res.status(415).json({ error: `unsupported ${kind} mime: ${body.mimeType}` });
-    return;
-  }
-
   const fighter = await getUserFighter(req);
   if (!fighter) {
     res.status(403).json({ error: "no fighter" });
@@ -81,9 +71,14 @@ router.post("/attachments", async (req, res) => {
     return;
   }
 
-  const ext = (path.extname(body.filename) || (kind === "image" ? ".png" : ".mp4"))
-    .toLowerCase()
-    .replace(/[^a-z0-9.]/g, "");
+  // Trust the bytes over the client's declared type (see lib/uploadMime.ts).
+  const resolved = resolveUploadMime(kind, body.mimeType, body.filename, bytes);
+  if (!resolved.ok) {
+    res.status(415).json({ error: resolved.detail, code: resolved.reason === "heic" ? "HEIC_UNSUPPORTED" : undefined });
+    return;
+  }
+  const mime = resolved.mime;
+  const ext = MIME_EXT[mime] ?? (kind === "image" ? ".png" : ".mp4");
   const safeName = `${crypto.randomUUID()}${ext}`;
   const filePath = path.join(UPLOADS_DIR, safeName);
   let fileWritten = false;
@@ -124,7 +119,7 @@ router.post("/attachments", async (req, res) => {
         .values({
           conversationId: conv.id,
           kind,
-          mimeType: body.mimeType as string,
+          mimeType: mime,
           filename: body.filename as string,
           filePath: safeName,
           sizeBytes: bytes.length,

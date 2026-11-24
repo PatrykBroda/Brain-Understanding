@@ -34,6 +34,9 @@ describe("uploadErrorMessage", () => {
     expect(uploadErrorMessage(apiError(404))).toMatch(/reset/);
     expect(uploadErrorMessage(new TypeError("Network request failed"))).toMatch(/connection/);
   });
+  it("treats a stalled-upload timeout as a retryable connection problem", () => {
+    expect(uploadErrorMessage(new Error("Network request timed out"))).toMatch(/connection/);
+  });
   it("never shows the raw server text", () => {
     expect(uploadErrorMessage(apiError(413, "file too large (max 12582912 bytes)"))).not.toContain("12582912");
   });
