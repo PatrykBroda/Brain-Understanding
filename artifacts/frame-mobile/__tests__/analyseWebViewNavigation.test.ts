@@ -16,6 +16,18 @@ describe("Analyse WebView navigation", () => {
     ).toEqual({ action: "allow" });
   });
 
+  it("blocks Stripe's device-check page if iOS reports it as a popup", () => {
+    expect(
+      classifyAnalyseNavigation(
+        {
+          url: "https://js.stripe.com/v3/m-outer-0edadf75b42c6ef7240c043f3272f3f9.html#url=https%3A%2F%2Fbrain-understanding.replit.app%2Fmobile%2Fanalyse%3FframeMobile%3D1",
+          isTopFrame: true,
+        },
+        origin,
+      ),
+    ).toEqual({ action: "block" });
+  });
+
   it("opens a top-level external link outside the app", () => {
     const url = "https://example.com/help";
     expect(classifyAnalyseNavigation({ url, isTopFrame: true }, origin)).toEqual({

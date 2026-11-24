@@ -126,6 +126,13 @@ export default function AnalyseScreen() {
         onHttpError={(event) => {
           if (event.nativeEvent.url.startsWith(`${origin}/analyse`) && event.nativeEvent.statusCode >= 400) setLoadError(true);
         }}
+        onOpenWindow={(event) => {
+          const decision = classifyAnalyseNavigation(
+            { url: event.nativeEvent.targetUrl, isTopFrame: true },
+            origin,
+          );
+          if (decision.action === "openExternal") void Linking.openURL(decision.url);
+        }}
         onShouldStartLoadWithRequest={(request) => {
           const decision = classifyAnalyseNavigation(request, origin);
           if (decision.action === "openExternal") void Linking.openURL(decision.url);
