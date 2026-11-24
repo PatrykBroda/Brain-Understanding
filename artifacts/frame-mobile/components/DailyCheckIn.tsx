@@ -15,14 +15,12 @@ import {
 } from "@/lib/dailyReminder";
 import {
   formatTime,
-  isCheckinTap,
   popupToShow,
   shiftTime,
   withFirstSeen,
   type PopupKind,
   type ReminderState,
 } from "@/lib/reminderLogic";
-import { isRecapTap } from "@/lib/recapLogic";
 import {
   cancelWeeklyRecap,
   loadRecapPrefs,
@@ -32,7 +30,7 @@ import {
 } from "@/lib/weeklyRecap";
 import type { RecapPrefs } from "@/lib/recapLogic";
 import { fetchPushPrefs, registerPushToken, savePushPrefs } from "@/lib/pushRegistration";
-import { formatMinutes, parsePushTarget, shiftMinutes, type PushPrefs } from "@/lib/pushClientLogic";
+import { formatMinutes, shiftMinutes, type PushPrefs } from "@/lib/pushClientLogic";
 import { FONT, TEXT_SECONDARY, label } from "@/constants/typography";
 
 const ACCENT = "#8A6A2F";
@@ -51,7 +49,7 @@ function useOpenCheckIn() {
 
 /**
  * Mounted inside the signed-in tab layout (so it never shows over auth, onboarding or the
- * paywall). Shows the once-a-day check-in pop-up and routes notification taps to chat.
+ * paywall). Shows the once-a-day check-in pop-up and routes notification taps to Home.
  */
 export function DailyCheckInGate() {
   const { userId, isSignedIn } = useAuth();
@@ -97,25 +95,18 @@ export function DailyCheckInGate() {
     if (native && userId && isSignedIn) void registerPushToken();
   }, [userId, isSignedIn]);
 
-  // Notification tap (warm or cold start) -> chat with the check-in prefilled, or Home with the recap.
+  // Notification taps (warm or cold start) always open Home, regardless of notification type.
   useEffect(() => {
     if (!native || !isSignedIn) return;
     const handle = (r: Notifications.NotificationResponse | null) => {
-      const data = r?.notification.request.content.data;
-      const target = r ? parsePushTarget(data) : null;
-      if (target?.kind === "analysis") {
-        router.push({ pathname: "/(tabs)/analyse", params: { analysisId: target.analysisId } });
-      } else if (target?.kind === "camp") {
-        router.push("/(tabs)/planner");
-      } else if (r && (isCheckinTap(data) || target?.kind === "checkin")) openCheckIn();
-      else if (r && isRecapTap(data)) router.push({ pathname: "/(tabs)/home", params: { recap: "1", n: String(Date.now()) } });
+      if (r) router.replace("/(tabs)/home");
     };
     const sub = Notifications.addNotificationResponseReceivedListener(handle);
     void Notifications.getLastNotificationResponseAsync().then((r) => {
       if (r && r.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) handle(r);
     });
     return () => sub.remove();
-  }, [isSignedIn, openCheckIn, router]);
+  }, [isSignedIn, router]);
 
   const update = async (patch: Partial<ReminderState>) => {
     if (!userId || !stateRef.current) return;

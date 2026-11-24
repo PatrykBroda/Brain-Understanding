@@ -33,17 +33,6 @@ function relativeTime(value: string): string {
   return days < 7 ? `${days}d ago` : new Date(value).toLocaleDateString();
 }
 
-function destination(notification: Notification): "/(tabs)/home" | "/(tabs)/analyse" | "/(tabs)/planner" {
-  switch (notification.data.route) {
-    case "analysis":
-      return "/(tabs)/analyse";
-    case "camp":
-      return "/(tabs)/planner";
-    default:
-      return "/(tabs)/home";
-  }
-}
-
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -60,11 +49,11 @@ export default function NotificationsScreen() {
     },
   });
 
-  const openNotification = async (notification: Notification) => {
+  const openNotification = (notification: Notification) => {
     if (!notification.readAt) {
-      await markRead.mutateAsync({ id: notification.id }).catch(() => undefined);
+      void markRead.mutateAsync({ id: notification.id }).catch(() => undefined);
     }
-    router.push(destination(notification));
+    router.replace("/(tabs)/home");
   };
 
   return (

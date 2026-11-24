@@ -1,6 +1,7 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
+import type { ImagePickerAsset } from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -24,6 +25,7 @@ import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/context/AuthContext";
 import { useFighter, type Fighter } from "@/context/FighterContext";
 import { heroImageSource } from "@/lib/heroImage";
+import { prepareImageUpload } from "@/lib/imageUpload";
 import { apiDelete, apiGet, apiPatch, apiUrl, getAuthToken, heroFileUrl, uploadHero, removeHero } from "@/lib/api";
 import type { AiConsentStatus } from "@/lib/aiConsent";
 import { primaryFocus } from "@/lib/primaryFocus";
@@ -216,8 +218,13 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
   }, [fighter.updatedAt]);
 
   const upload = useMutation({
-    mutationFn: (payload: { mimeType: string; filename: string; dataBase64: string }) =>
-      uploadHero<{ fighter: Fighter }>(payload),
+    mutationFn: async (asset: ImagePickerAsset) => {
+      const prepared = await prepareImageUpload(asset);
+      if (prepared.dataBase64.length * 0.75 > MAX_IMAGE_BYTES) {
+        throw new Error("Image too large (max 12MB).");
+      }
+      return uploadHero<{ fighter: Fighter }>(prepared);
+    },
     onSuccess: () => {
       setUploadError(null);
       qc.invalidateQueries({ queryKey: ["fighter"] });
@@ -250,22 +257,11 @@ function IdentityBand({ fighter, subtitle }: { fighter: Fighter; subtitle?: stri
       allowsEditing: true,
       aspect: [4, 3],
       base64: true,
+      preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
     });
     if (result.canceled || result.assets.length === 0) return;
     const asset = result.assets[0];
-    if (!asset?.base64) {
-      setUploadError("Couldn't read that image. Try another.");
-      return;
-    }
-    if (asset.base64.length * 0.75 > MAX_IMAGE_BYTES) {
-      setUploadError("Image too large (max 12MB).");
-      return;
-    }
-    upload.mutate({
-      mimeType: asset.mimeType ?? "image/jpeg",
-      filename: asset.fileName ?? "hero.jpg",
-      dataBase64: asset.base64,
-    });
+    if (asset) upload.mutate(asset);
   }
 
   return (

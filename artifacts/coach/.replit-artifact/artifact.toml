@@ -17,15 +17,6 @@ localPort = 21706
 [services.development]
 run = "pnpm --filter @workspace/coach run dev"
 
-[services.production]
-build = [ "pnpm", "--filter", "@workspace/coach", "run", "build" ]
-publicDir = "artifacts/coach/dist/public"
-serve = "static"
-
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
-
 [services.env]
 PORT = "21706"
 BASE_PATH = "/"

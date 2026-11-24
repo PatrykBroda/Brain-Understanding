@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { FONT, label } from "@/constants/typography";
+import { classifyAnalyseNavigation } from "@/lib/analyseWebViewNavigation";
 
 /**
  * The coach's Analyse page already runs the real MediaPipe pose pass locally
@@ -125,11 +126,17 @@ export default function AnalyseScreen() {
         onHttpError={(event) => {
           if (event.nativeEvent.url.startsWith(`${origin}/analyse`) && event.nativeEvent.statusCode >= 400) setLoadError(true);
         }}
+        onOpenWindow={(event) => {
+          const decision = classifyAnalyseNavigation(
+            { url: event.nativeEvent.targetUrl, isTopFrame: true },
+            origin,
+          );
+          if (decision.action === "openExternal") void Linking.openURL(decision.url);
+        }}
         onShouldStartLoadWithRequest={(request) => {
-          if (request.url === "about:blank") return true;
-          if (origin && request.url.startsWith(`${origin}/`)) return true;
-          if (request.url.startsWith("https://")) void Linking.openURL(request.url);
-          return false;
+          const decision = classifyAnalyseNavigation(request, origin);
+          if (decision.action === "openExternal") void Linking.openURL(decision.url);
+          return decision.action === "allow";
         }}
         style={styles.webview}
       />
