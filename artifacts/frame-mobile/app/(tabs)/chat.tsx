@@ -53,6 +53,7 @@ import { MessageContent } from "@/components/MessageContent";
 import { SpeakButton } from "@/components/SpeakButton";
 import { CompetitionBanner } from "@/components/CompetitionBanner";
 import { OctagonSpinner } from "@/components/OctagonSpinner";
+import { ImagePreparationError, prepareImageUpload } from "@/lib/imageUpload";
 import { FrameLogo } from "@/components/FrameLogo";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
@@ -972,31 +973,42 @@ export default function ChatScreen() {
       mediaTypes: ["images", "videos"],
       quality: 0.7,
       base64: true,
+      preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
     });
     if (result.canceled || result.assets.length === 0) return;
     const asset = result.assets[0];
-    if (!asset.base64) {
-      setUploadError("Could not read that file.");
-      return;
-    }
-    if (asset.base64.length * 0.75 > MAX_FILE_BYTES) {
-      setUploadError("File too large (max 12MB).");
-      return;
-    }
     const kind: "image" | "video" = asset.type === "video" ? "video" : "image";
     setUploading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     try {
+      const prepared = kind === "image"
+        ? await prepareImageUpload(asset)
+        : {
+            uri: asset.uri,
+            mimeType: asset.mimeType ?? "video/mp4",
+            filename: asset.fileName ?? "clip.mp4",
+            dataBase64: asset.base64 ?? "",
+          };
+      if (!prepared.dataBase64) {
+        setUploadError("Could not read that file.");
+        return;
+      }
+      if (prepared.dataBase64.length * 0.75 > MAX_FILE_BYTES) {
+        setUploadError("File too large (max 12MB).");
+        return;
+      }
       const att = await uploadAttachment({
         conversationId,
         kind,
-        mimeType: asset.mimeType ?? (kind === "video" ? "video/mp4" : "image/jpeg"),
-        filename: asset.fileName ?? (kind === "video" ? "clip.mp4" : "image.jpg"),
-        dataBase64: asset.base64,
+        mimeType: prepared.mimeType,
+        filename: prepared.filename,
+        dataBase64: prepared.dataBase64,
       });
-      setDrafts((d) => [...d, { att, uri: asset.uri }]);
+      setDrafts((d) => [...d, { att, uri: prepared.uri }]);
     } catch (e) {
-      setUploadError(uploadErrorMessage(e));
+      setUploadError(
+        e instanceof ImagePreparationError ? e.message : uploadErrorMessage(e),
+      );
     } finally {
       setUploading(false);
     }

@@ -28,3 +28,4 @@
 - [AI consent at provider boundaries](ai-consent-provider-boundaries.md) — recheck current consent immediately before every provider call and retry; never trust an earlier route check for background work.
 - [RevenueCat storefront price freshness](revenuecat-storefront-price-freshness.md) — TestFlight prices can lie; StoreKit storefront codes are alpha-3, and sandbox region may differ from Media & Purchases.
 - [pnpm workspace package installs](pnpm-workspace-package-installs.md) — generic Node package installer runs pnpm add at root without -w; use a workspace-targeted pnpm add for artifact deps.
+- [Expo dependency repair](expo-dependency-repair.md) — finish interrupted Expo package linking with a frozen pnpm install before debugging app code.
