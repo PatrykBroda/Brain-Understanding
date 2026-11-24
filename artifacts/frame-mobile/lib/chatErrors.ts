@@ -15,7 +15,7 @@ function isApiError(error: unknown): error is ApiErrorLike {
 
 function isNetworkError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  return /network request failed|network connection was lost|network error|offline|internet connection/i.test(
+  return /network request failed|network connection was lost|network error|offline|internet connection|timed out/i.test(
     error.message,
   );
 }

@@ -44,12 +44,37 @@ export function heroFileUrl(cacheKey: string | number): string {
 // Athlete hero/cover image upload. Mirrors the web client: the server takes a
 // base64 payload (not multipart), so expo-image-picker's base64 output goes
 // straight through. Returns the updated fighter row.
+/** A stalled upload (dead signal, dropped connection that never errors) used to
+ * leave "Uploading…" spinning forever. Abort after this long and surface it as
+ * a network error so the athlete gets a retryable message. */
+export const UPLOAD_TIMEOUT_MS = 90_000;
+
+export async function withUploadTimeout<T>(
+  run: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number = UPLOAD_TIMEOUT_MS,
+): Promise<T> {
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+  try {
+    return await run(controller.signal);
+  } catch (e) {
+    if (timedOut) throw new Error("Network request timed out");
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function uploadHero<T>(payload: {
   mimeType: string;
   filename: string;
   dataBase64: string;
 }): Promise<T> {
-  return apiPost<T>("/fighter/hero", payload);
+  return withUploadTimeout((signal) => apiPost<T>("/fighter/hero", payload, { signal }));
 }
 
 export async function removeHero<T>(): Promise<T> {
@@ -78,7 +103,9 @@ export async function uploadAttachment(payload: {
   filename: string;
   dataBase64: string;
 }): Promise<AttachmentDto> {
-  const res = await apiPost<{ attachment: AttachmentDto }>("/attachments", payload);
+  const res = await withUploadTimeout((signal) =>
+    apiPost<{ attachment: AttachmentDto }>("/attachments", payload, { signal }),
+  );
   return res.attachment;
 }
 

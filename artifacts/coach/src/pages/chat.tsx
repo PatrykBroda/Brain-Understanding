@@ -51,6 +51,7 @@ const SUGGESTED_PROMPTS = [
 ];
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
+const MAX_IMAGE_ORIGINAL_BYTES = 40 * 1024 * 1024;
 
 function AttachmentThumb({
   att,
@@ -180,7 +181,9 @@ export default function ChatPage() {
     setUploading(true);
     try {
       for (const file of files) {
-        if (file.size > MAX_FILE_BYTES) {
+        // Photos are shrunk to a JPEG in api.uploadAttachment; videos are sent as-is.
+        const isVideo = file.type.startsWith("video/");
+        if (file.size > (isVideo ? MAX_FILE_BYTES : MAX_IMAGE_ORIGINAL_BYTES)) {
           setUploadError(`${file.name} too large (max 12MB)`);
           continue;
         }

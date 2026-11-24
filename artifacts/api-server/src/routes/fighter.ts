@@ -15,11 +15,11 @@ import { getActiveFacts } from "../lib/factsService";
 import type { Fighter } from "@workspace/db";
 import { prepareFighterBody, questionnaireChanged } from "../lib/fighterBody";
 import { recordFinishIfCompleted } from "../lib/onboardingEvents";
+import { resolveUploadMime } from "../lib/uploadMime";
 
 const router: IRouter = Router();
 
 const HERO_MAX_BYTES = 12 * 1024 * 1024; // 12MB
-const HERO_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 // Derive whole-year age from an ISO "YYYY-MM-DD" date of birth.
 function ageFromDob(dob: string | null | undefined): number | null {
@@ -182,11 +182,6 @@ router.post("/fighter/hero", async (req, res) => {
     res.status(400).json({ error: "mimeType, filename, dataBase64 required" });
     return;
   }
-  if (!HERO_MIME.has(body.mimeType)) {
-    res.status(415).json({ error: `unsupported image mime: ${body.mimeType}` });
-    return;
-  }
-
   const fighter = await getUserFighter(req);
   if (!fighter) {
     res.status(404).json({ error: "no fighter" });
@@ -211,18 +206,25 @@ router.post("/fighter/hero", async (req, res) => {
     return;
   }
 
+  const resolved = resolveUploadMime("image", body.mimeType, body.filename, bytes);
+  if (!resolved.ok) {
+    res.status(415).json({ error: resolved.detail, code: resolved.reason === "heic" ? "HEIC_UNSUPPORTED" : undefined });
+    return;
+  }
+  const heroMime = resolved.mime;
+
   // Upsert the single per-fighter hero row.
   await db
     .insert(heroImagesTable)
     .values({
       fighterId: fighter.id,
-      mimeType: body.mimeType,
+      mimeType: heroMime,
       dataBase64: body.dataBase64,
     })
     .onConflictDoUpdate({
       target: heroImagesTable.fighterId,
       set: {
-        mimeType: body.mimeType,
+        mimeType: heroMime,
         dataBase64: body.dataBase64,
         updatedAt: new Date(),
       },
