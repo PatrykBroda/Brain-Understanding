@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import { Button } from "@/components/entry";
 import { markFirstSteps } from "@/components/junior/FirstSteps";
+import { useRouter } from "expo-router";
+import { RoleBar } from "@/components/junior/RoleBar";
 import { useRoleSwitch } from "@/components/junior/useRoleSwitch";
 import type { JuniorMe } from "@/lib/junior";
 
@@ -21,18 +23,26 @@ export function AddRoleSection() {
     staleTime: 5 * 60_000,
   });
   const me = useQuery<JuniorMe>({ queryKey: ["junior", "me"], queryFn: () => apiGet<JuniorMe>("/junior/me"), enabled: config.data?.enabled === true, retry: false });
+  const router = useRouter();
   const [picked, setPicked] = useState<"parent" | "coach" | null>(null);
   const { switchTo, busy, consentModal } = useRoleSwitch();
 
   if (config.data?.enabled !== true || !me.data) return null;
   const options = OPTIONS.filter((o) => !me.data!.roles.includes(o.role));
-  if (options.length === 0) return null;
 
   return (
     <View style={s.wrap} testID="add-role-section">
-      <Text style={s.kicker}>Your roles</Text>
-      <Text style={s.title}>Add a role</Text>
-      <Text style={s.sub}>Same account, same login. You can switch any time from Account.</Text>
+      <Text style={s.kicker}>Your views</Text>
+      <Text style={s.title}>{options.length ? "Add a view" : "Switch view"}</Text>
+      <Text style={s.sub}>Same account, same login. Switch any time.</Text>
+      <RoleBar current="athlete" />
+      <View style={s.card}>
+        <Text style={s.cardTitle}>Join a gym</Text>
+        <Text style={s.cardLine}>Search for a gym and send a request. The gym approves it.</Text>
+        <View style={{ marginTop: 10 }}>
+          <Button title="Join a gym" variant="secondary" onPress={() => router.push("/join-gym" as never)} />
+        </View>
+      </View>
       {options.map((o) => (
         <View key={o.role} style={[s.card, picked === o.role && s.cardOn]}>
           <Pressable onPress={() => setPicked(picked === o.role ? null : o.role)} accessibilityRole="button" accessibilityLabel={o.title}>

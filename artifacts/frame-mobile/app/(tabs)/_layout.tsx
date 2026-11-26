@@ -56,6 +56,8 @@ export default function TabLayout() {
             />
           ) : null,
         tabBarShowLabel: true,
+        tabBarAllowFontScaling: false,
+        tabBarItemStyle: { paddingHorizontal: 0 },
         tabBarLabelStyle: {
           ...meta,
           marginBottom: 2,

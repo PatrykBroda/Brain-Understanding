@@ -1,24 +1,25 @@
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { palette } from "@/constants/entryTheme";
+import { layerTabOptions } from "@/components/junior/tabOptions";
+
+const icon = (name: React.ComponentProps<typeof Feather>["name"]) =>
+  function TabIcon({ color, size }: { color: string; size: number }) {
+    return <Feather name={name} size={size} color={color} />;
+  };
 
 export default function ParentLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: palette.gold,
-        tabBarInactiveTintColor: palette.textLow,
-        tabBarStyle: { backgroundColor: "#0B0C0E", borderTopColor: "rgba(255,255,255,0.08)" },
-      }}
-    >
-      <Tabs.Screen name="home" options={{ title: "Home", tabBarIcon: ({ color, size }) => <Feather name="home" size={size} color={color} /> }} />
-      <Tabs.Screen name="journey" options={{ title: "Journey", tabBarIcon: ({ color, size }) => <Feather name="map" size={size} color={color} /> }} />
-      <Tabs.Screen name="timeline" options={{ title: "Timeline", tabBarIcon: ({ color, size }) => <Feather name="clock" size={size} color={color} /> }} />
+    <Tabs screenOptions={layerTabOptions}>
+      <Tabs.Screen name="home" options={{ title: "Home", tabBarIcon: icon("home") }} />
+      <Tabs.Screen name="journey" options={{ title: "Journey", tabBarIcon: icon("map") }} />
+      <Tabs.Screen name="timeline" options={{ title: "Timeline", tabBarIcon: icon("clock") }} />
+      <Tabs.Screen name="juniors" options={{ title: "Juniors", tabBarIcon: icon("users") }} />
+      <Tabs.Screen name="account" options={{ title: "Account", tabBarIcon: icon("user") }} />
+      <Tabs.Screen name="junior" options={{ href: null, title: "Junior" }} />
+      <Tabs.Screen name="junior-new" options={{ href: null, title: "New junior account" }} />
       <Tabs.Screen name="invites" options={{ href: null, title: "Invitations" }} />
       <Tabs.Screen name="privacy" options={{ href: null, title: "Privacy" }} />
-      <Tabs.Screen name="account" options={{ title: "Account", tabBarIcon: ({ color, size }) => <Feather name="user" size={size} color={color} /> }} />
     </Tabs>
   );
 }

@@ -58,6 +58,22 @@ export function juniorErrorCopy(code: string | undefined, fallback: string): str
       return "A gym needs at least one admin.";
     case "INVALID_INVITE":
       return "That invite is invalid, expired, or meant for a different email.";
+    case "CONSENT_REQUIRED":
+      return "Please tick the parent consent box to continue.";
+    case "AGE_ABOVE_MAXIMUM":
+      return "Over-18s need their own FRAME account.";
+    case "USERNAME_TAKEN":
+      return "That username is taken. Try another.";
+    case "NOT_GYM_STAFF":
+      return "Only this gym's coaches and admins can see this.";
+    case "ALREADY_STAFF":
+      return "You already work at this gym.";
+    case "NOT_PENDING":
+      return "This request has already been answered.";
+    case "RATE_LIMITED":
+      return "Too many tries. Wait a moment and try again.";
+    case "AI_NOT_AVAILABLE":
+      return "AI coach and chat are not available for junior accounts yet.";
     default:
       return fallback;
   }

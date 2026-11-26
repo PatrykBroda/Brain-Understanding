@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiGet, apiPatch, apiPost, apiUrl } from "@/lib/api";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import type { AiConsentStatus } from "@/lib/aiConsent";
-import { errMsg } from "@/components/junior/ui";
+import { errMsg } from "@/components/junior/errMsg";
 import type { JuniorRole } from "@/lib/junior";
 
 /**

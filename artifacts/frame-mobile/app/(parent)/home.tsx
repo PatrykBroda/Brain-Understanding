@@ -42,8 +42,7 @@ export default function ParentHome() {
   const data = home.data;
   return (
     <Page title="Home" onRefresh={() => void home.refetch()} refreshing={home.isRefetching}>
-      <FirstSteps role="parent" />
-      {data && data.children.length === 0 ? <Notice>Add your child to get started.</Notice> : null}
+      {data ? <FirstSteps role="parent" state={{ children: data.children.length, anyGym: data.children.some((c) => c.membershipStatus === "approved") }} /> : null}
       {data && !data.canAddRecords && data.children.length > 0 ? (
         <Notice>You are in view-only mode: adding new records needs a FRAME Family plan. Everything already saved stays available.</Notice>
       ) : null}
@@ -51,7 +50,7 @@ export default function ParentHome() {
         <Card key={c.id}>
           <H>{c.displayName}</H>
           <T dim>{sessionsLabel(c.sessionCount)}</T>
-          {c.membershipStatus === null ? <T>Not linked to a gym yet. Open Account to request a gym.</T> : null}
+          {c.membershipStatus === null ? <T>Not linked to a gym yet. Account, then Join a gym.</T> : null}
           {c.membershipStatus === "pending" ? <T>Waiting for the gym to approve.</T> : null}
           {c.nextClass ? <T dim>Next class: {c.nextClass.title}, {formatClassWhen(c.nextClass.startsAt)}</T> : null}
           {c.needsLog ? (
@@ -81,7 +80,7 @@ function AddChild({ onDone }: { onDone: () => void }) {
   });
   return (
     <Card>
-      <H>Add a child</H>
+      <H>Add a child without a login</H>
       <Field label="First name or nickname" value={name} onChangeText={setName} />
       <Field label="Birth month (YYYY-MM)" value={ym} onChangeText={setYm} autoCapitalize="none" />
       <Button title="Add child" variant="secondary" loading={add.isPending} disabled={!name.trim() || !/^\d{4}-\d{2}$/.test(ym.trim())} onPress={() => add.mutate()} />

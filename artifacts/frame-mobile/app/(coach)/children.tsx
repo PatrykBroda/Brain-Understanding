@@ -3,11 +3,11 @@ import { Alert } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "@/lib/api";
 import { Button } from "@/components/entry";
-import { Card, ErrorBox, H, Notice, Page, T, errMsg } from "@/components/junior/ui";
+import { Card, EmptyCard, ErrorBox, H, Notice, Page, Section, T, errMsg } from "@/components/junior/ui";
 import { useCoachGym } from "@/hooks/useCoachGym";
 import { ageLabel } from "@/lib/junior";
 
-interface Req { id: string; childId: string; displayName: string; birthYearMonth: string }
+interface Req { id: string; kind?: "junior" | "member"; childId: string | null; displayName: string; birthYearMonth: string | null }
 interface Group { id: string; name: string }
 interface Kid { id: string; displayName: string; birthYearMonth: string; groupId: string | null }
 
@@ -34,16 +34,22 @@ export default function CoachChildren() {
       {reqs.data?.requests.map((r) => (
         <Card key={r.id}>
           <H>{r.displayName} wants to join</H>
-          <T dim>{ageLabel(r.birthYearMonth)}</T>
-          {groups.data?.groups.length ? <T>Approve into a group:</T> : <T>Create a class group first (gym admin), then you can approve.</T>}
-          {groups.data?.groups.map((g) => (
-            <Button key={g.id} title={`Approve into ${g.name}`} variant="secondary" loading={decide.isPending} onPress={() => decide.mutate({ id: r.id, decision: "approve", groupId: g.id })} />
-          ))}
+          <T dim>{r.kind === "member" ? "Adult member" : `Junior, ${ageLabel(r.birthYearMonth ?? "")}`}</T>
+          {r.kind === "member" ? (
+            <Button title="Approve" variant="secondary" loading={decide.isPending} onPress={() => decide.mutate({ id: r.id, decision: "approve" })} />
+          ) : (
+            <>
+              {groups.data?.groups.length ? <T>Approve into a group:</T> : <T>Create a class group first (gym admin), then you can approve.</T>}
+              {groups.data?.groups.map((g) => (
+                <Button key={g.id} title={`Approve into ${g.name}`} variant="secondary" loading={decide.isPending} onPress={() => decide.mutate({ id: r.id, decision: "approve", groupId: g.id })} />
+              ))}
+            </>
+          )}
           <Button title="Decline" variant="ghost" onPress={() => decide.mutate({ id: r.id, decision: "reject" })} />
         </Card>
       ))}
-      <H>In this gym</H>
-      {kids.data && kids.data.children.length === 0 ? <Notice>No approved children yet.</Notice> : null}
+      <Section>In this gym</Section>
+      {kids.data && kids.data.children.length === 0 ? <EmptyCard title="No approved children yet" body="When a parent asks to join, the request shows at the top. Approve it into a class group." /> : null}
       {kids.data?.children.map((k) => (
         <Card key={k.id}>
           <H>{k.displayName}</H>

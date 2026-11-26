@@ -1,48 +1,57 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { Button } from "@/components/entry";
-import { Card, H, T } from "@/components/junior/ui";
+import { WhatFirst } from "@/components/junior/ui";
 
-const key = (role: string) => `junior.firstSteps.${role}`;
-
-/** Remember that this device should show the "what to do first" card for a freshly added role. */
+/** Kept for the "add a role" flow; the card itself is now driven by real account state, not a one-time flag. */
 export async function markFirstSteps(role: "parent" | "coach"): Promise<void> {
-  await AsyncStorage.setItem(key(role), "1");
+  await AsyncStorage.removeItem(`junior.firstSteps.${role}`);
 }
 
-/** "What to do first" card shown once, right after a role is added from inside the app. */
-export function FirstSteps({ role }: { role: "parent" | "coach" }) {
+export interface FirstStepsState {
+  /** parent: number of children / junior accounts. */
+  children?: number;
+  /** parent: any child with an approved gym. */
+  anyGym?: boolean;
+  /** coach: on a gym's staff. */
+  onStaff?: boolean;
+  /** coach: approved children in the gym. */
+  gymKids?: number;
+}
+
+/**
+ * "What to do first", one per role. Shown only while the role is still empty, and it goes away on its own
+ * as soon as the first real thing exists. Each step has a button that goes to the right place.
+ */
+export function FirstSteps({ role, state }: { role: "parent" | "coach"; state: FirstStepsState }) {
   const router = useRouter();
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    void AsyncStorage.getItem(key(role)).then((v) => setShow(v === "1"));
-  }, [role]);
-  const dismiss = useCallback(() => {
-    setShow(false);
-    void AsyncStorage.removeItem(key(role));
-  }, [role]);
-  if (!show) return null;
-  const account = role === "parent" ? "/(parent)/account" : "/(coach)/account";
+  if (role === "parent") {
+    if ((state.children ?? 0) > 0 && state.anyGym) return null;
+    const noKids = (state.children ?? 0) === 0;
+    return (
+      <WhatFirst
+        steps={[
+          noKids ? "Create a junior account for your child, or add them without a login." : "Your child is added.",
+          "Join a gym for them. Nothing is shared until the gym approves.",
+          "Come back here to log sessions and read the coach's shared notes.",
+        ]}
+        action={noKids ? { label: "Create a junior account", onPress: () => router.push("/(parent)/junior-new" as never) } : { label: "Join a gym", onPress: () => router.push("/join-gym" as never) }}
+      />
+    );
+  }
+  if (state.onStaff && (state.gymKids ?? 0) > 0) return null;
+  if (!state.onStaff) {
+    return (
+      <WhatFirst
+        steps={["Ask your gym admin for a staff invite code.", "Enter the code in Account to join the gym team.", "Choosing Coach gives no gym access by itself. Only an invite from your gym does."]}
+        action={{ label: "Enter a gym invite code", onPress: () => router.push("/(coach)/account" as never) }}
+      />
+    );
+  }
   return (
-    <Card>
-      <H>Welcome. What to do first</H>
-      {role === "parent" ? (
-        <>
-          <T>1. Add your child below (first name and birth month).</T>
-          <T>2. Got a co-parent or gym invite code? Enter it in Account.</T>
-          <T dim>Your gym is linked later. Nothing is shared with a gym until you ask.</T>
-          <Button title="Enter an invite code" variant="secondary" onPress={() => router.push(account as never)} />
-        </>
-      ) : (
-        <>
-          <T>1. Ask your gym admin for a staff invite code.</T>
-          <T>2. Enter the code in Account to join the gym team.</T>
-          <T dim>Choosing Coach does not give gym access by itself. Only an invite from your gym does.</T>
-          <Button title="Enter gym invite code" variant="secondary" onPress={() => router.push(account as never)} />
-        </>
-      )}
-      <Button title="Got it" variant="ghost" onPress={dismiss} />
-    </Card>
+    <WhatFirst
+      steps={["Open Children to approve join requests into a class group.", "Open Today to see classes and leave coach notes.", "Check the Board to see top performers once members have trained."]}
+      action={{ label: "Open Children", onPress: () => router.push("/(coach)/children" as never) }}
+    />
   );
 }
