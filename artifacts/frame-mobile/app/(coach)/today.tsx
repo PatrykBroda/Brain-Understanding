@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import { Button } from "@/components/entry";
 import { Card, ErrorBox, H, Notice, Page, T } from "@/components/junior/ui";
+import { FirstSteps } from "@/components/junior/FirstSteps";
 import { useCoachGym } from "@/hooks/useCoachGym";
 import { formatClassWhen } from "@/lib/junior";
 
@@ -21,6 +22,7 @@ export default function CoachToday() {
   if (!loading && !gymId) {
     return (
       <Page title="Today">
+        <FirstSteps role="coach" />
         <Notice>You are not on a gym's staff yet. Ask your gym admin for an invite code, then enter it in Account.</Notice>
       </Page>
     );

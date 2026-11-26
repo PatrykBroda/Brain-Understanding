@@ -8,9 +8,10 @@ import { apiPost } from "@/lib/api";
 import { Button, Field, Screen } from "@/components/entry";
 import { palette } from "@/constants/entryTheme";
 import { errMsg } from "@/components/junior/ui";
+import { markFirstSteps } from "@/components/junior/FirstSteps";
 
 /**
- * Pilot sign-up for parents and coaches. Reachable by link/deep link only (frame://junior-start), so the
+ * Old-link sign-up for parents and coaches (new users sign up as a normal FRAME account and add a role in Profile). Reachable by link/deep link only (frame://junior-start), so the
  * athlete sign-in and sign-up screens are untouched. The server only honours `role` while the pilot flag is on.
  */
 export default function JuniorStart() {
@@ -40,6 +41,9 @@ export default function JuniorStart() {
         app: "mobile",
       });
       await signIn(data.token);
+      // Same code path as "Add a role" inside the app (idempotent; the server already recorded the role at sign-up).
+      await markFirstSteps(role);
+      await apiPost("/junior/roles", { role }).catch(() => undefined);
       void qc.invalidateQueries({ queryKey: ["junior"] });
       router.replace("/");
     } catch (e) {

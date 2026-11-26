@@ -37,6 +37,7 @@ import { Belt } from "@/components/Belt";
 import { VoiceSettings } from "@/components/SpeakButton";
 import { DailyReminderSettings, PushSettings, WeeklyRecapSettings } from "@/components/DailyCheckIn";
 import { ProfileEditModal } from "@/components/ProfileEditModal";
+import { AddRoleSection } from "@/components/junior/AddRoleSection";
 import { AnswersSection } from "@/components/AnswersSection";
 import { FactConfidence } from "@/components/FactConfidence";
 import { dismissProps } from "@/components/FormScroll";
@@ -917,6 +918,7 @@ export default function ProfileScreen() {
 
           {/* ACCOUNT */}
           <View style={s.section}>
+            <AddRoleSection />
             <DailyReminderSettings />
             <WeeklyRecapSettings />
             <VoiceSettings />

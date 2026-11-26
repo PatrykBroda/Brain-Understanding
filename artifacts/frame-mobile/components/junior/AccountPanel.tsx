@@ -7,6 +7,7 @@ import { apiGet, apiPost } from "@/lib/api";
 import { Button, Field } from "@/components/entry";
 import { Card, H, Page, T, errMsg } from "@/components/junior/ui";
 import type { JuniorMe } from "@/lib/junior";
+import { useRoleSwitch } from "@/components/junior/useRoleSwitch";
 
 /** Shared Account tab for parent and coach: role switch, invite code, and (parents) gym request. */
 export function AccountPanel({ role }: { role: "parent" | "coach" }) {
@@ -16,14 +17,7 @@ export function AccountPanel({ role }: { role: "parent" | "coach" }) {
   const me = useQuery({ queryKey: ["junior", "me"], queryFn: () => apiGet<JuniorMe>("/junior/me") });
   const [token, setToken] = useState("");
 
-  const switchTo = useMutation({
-    mutationFn: (r: "athlete" | "parent" | "coach") => apiPost("/junior/roles", { role: r }),
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["junior"] });
-      router.replace("/");
-    },
-    onError: (e) => Alert.alert("Could not switch", errMsg(e)),
-  });
+  const { switchTo, busy, consentModal } = useRoleSwitch();
 
   const accept = useMutation({
     mutationFn: () => apiPost(role === "parent" ? "/junior/guardian-invites/accept" : "/junior/staff-invites/accept", { token: token.trim() }),
@@ -59,9 +53,11 @@ export function AccountPanel({ role }: { role: "parent" | "coach" }) {
       </Card>
       <Card>
         <H>Switch view</H>
-        {role === "parent" && roles.includes("coach") ? <Button title="Coach view" variant="secondary" onPress={() => switchTo.mutate("coach")} /> : null}
-        {role === "coach" && roles.includes("parent") ? <Button title="Parent view" variant="secondary" onPress={() => switchTo.mutate("parent")} /> : null}
-        {roles.includes("athlete") ? <Button title="Athlete view" variant="secondary" onPress={() => switchTo.mutate("athlete")} /> : null}
+        {(["parent", "coach", "athlete"] as const)
+          .filter((r) => r !== role && roles.includes(r))
+          .map((r) => (
+            <Button key={r} title={`${r[0]!.toUpperCase()}${r.slice(1)} view`} variant="secondary" loading={busy} onPress={() => void switchTo(r)} />
+          ))}
         {roles.length <= 1 ? <T dim>This is your only view.</T> : null}
       </Card>
       <Button
@@ -72,6 +68,7 @@ export function AccountPanel({ role }: { role: "parent" | "coach" }) {
           router.replace("/sign-in");
         }}
       />
+      {consentModal}
     </Page>
   );
 }

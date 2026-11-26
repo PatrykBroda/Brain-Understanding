@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "@/lib/api";
 import { Button, Field } from "@/components/entry";
 import { Card, ErrorBox, H, Notice, Page, T, errMsg } from "@/components/junior/ui";
+import { FirstSteps } from "@/components/junior/FirstSteps";
 import { formatClassWhen, newClientLogId, sessionsLabel } from "@/lib/junior";
 
 interface HomeChild {
@@ -41,6 +42,7 @@ export default function ParentHome() {
   const data = home.data;
   return (
     <Page title="Home" onRefresh={() => void home.refetch()} refreshing={home.isRefetching}>
+      <FirstSteps role="parent" />
       {data && data.children.length === 0 ? <Notice>Add your child to get started.</Notice> : null}
       {data && !data.canAddRecords && data.children.length > 0 ? (
         <Notice>You are in view-only mode: adding new records needs a FRAME Family plan. Everything already saved stays available.</Notice>

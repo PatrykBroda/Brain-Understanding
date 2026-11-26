@@ -23,6 +23,8 @@ import { DEFAULT_MILESTONES } from "../../lib/junior/milestones";
 import { PARENT_ENTITLEMENT, userHasParentEntitlement } from "../../lib/junior/entitlement";
 import { isValidTimeZone } from "../../lib/localTime";
 import { sendMail } from "../../lib/mailer";
+import { hasAiConsentForUser } from "../../lib/aiConsent";
+import { ensureFighter } from "../../lib/ensureFighter";
 
 const router: IRouter = Router();
 
@@ -82,16 +84,46 @@ router.get(
   }),
 );
 
-// Choosing a view only records a UI preference. It grants nothing (acceptance #13).
+// Adding a role from inside the app only records a UI preference. It grants nothing (acceptance #13):
+// coach rights still come only from an active gym_staff row, parent rights from guardian links.
+//  - A normal account (no role rows yet) that adds parent/coach ALSO gets the athlete role, so
+//    "Athlete view" stays available in the switcher.
+//  - Switching to athlete on an account that has no athlete role (made via /junior-start: no AI
+//    consent, no fighter) is refused with AI_CONSENT_REQUIRED until the current AI consent is
+//    accepted; then ensureFighter runs and the role is added. The app shows the consent screen and retries.
+//  - Repeat calls are idempotent; real additions are written to the history log.
 router.post(
   "/roles",
   h(async (req, res) => {
     const uid = userId(req);
     const { role } = parse(roleBody, req.body);
-    await db
-      .insert(userRolesTable)
-      .values({ userId: uid, role })
-      .onConflictDoUpdate({ target: [userRolesTable.userId, userRolesTable.role], set: { lastActiveAt: new Date() } });
+    const existing = await db.select().from(userRolesTable).where(eq(userRolesTable.userId, uid));
+    const has = (r: string) => existing.some((x) => x.role === r);
+
+    if (role === "athlete" && !has("athlete")) {
+      if (!(await hasAiConsentForUser(uid))) {
+        throw new JuniorError(409, "AI_CONSENT_REQUIRED", "Accept FRAME's AI data use before opening the Athlete view.");
+      }
+      await ensureFighter(uid);
+    }
+
+    await db.transaction(async (tx) => {
+      const before = existing.map((x) => x.role);
+      if (role !== "athlete" && existing.length === 0) {
+        await tx
+          .insert(userRolesTable)
+          .values({ userId: uid, role: "athlete", lastActiveAt: new Date(Date.now() - 1000) })
+          .onConflictDoNothing();
+        await recordHistory(tx, { actorUserId: uid, actorRole: "system", entity: "user_role", entityId: uid, action: "added", before, after: { role: "athlete", via: "auto" } });
+      }
+      if (!has(role)) {
+        await recordHistory(tx, { actorUserId: uid, actorRole: role === "athlete" ? "system" : role, entity: "user_role", entityId: uid, action: "added", before, after: { role } });
+      }
+      await tx
+        .insert(userRolesTable)
+        .values({ userId: uid, role })
+        .onConflictDoUpdate({ target: [userRolesTable.userId, userRolesTable.role], set: { lastActiveAt: new Date() } });
+    });
     const roles = await db.select().from(userRolesTable).where(eq(userRolesTable.userId, uid));
     res.json({
       roles: roles.map((r) => r.role),
