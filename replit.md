@@ -117,3 +117,6 @@ Mobile-first 3-tab app (will be wrapped in a mobile shell). All routes gated by 
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
 - See the `database` skill for production DB queries.
+
+## Coach website production service is REQUIRED
+`artifacts/coach/.replit-artifact/artifact.toml` must keep `[services.production]`. The mobile Analyse tab is a WebView of `<domain>/analyse?frameMobile=1`, served by the coach site. Removing it (commit 25954f3) left the Analyse tab on an endless "Loading". To keep the site out of Google use noindex (meta tag in `artifacts/coach/index.html` + `public/robots.txt`), never remove the service.

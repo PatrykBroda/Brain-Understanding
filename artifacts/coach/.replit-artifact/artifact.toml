@@ -17,6 +17,8 @@ localPort = 21706
 [services.development]
 run = "pnpm --filter @workspace/coach run dev"
 
+# REQUIRED: mobile Analyse tab WebView loads <domain>/analyse?frameMobile=1 from this coach site.
+# Do NOT remove. To hide the site from Google use noindex, not removal.
 [services.production]
 build = [ "pnpm", "--filter", "@workspace/coach", "run", "build" ]
 publicDir = "artifacts/coach/dist/public"
