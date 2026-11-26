@@ -24,6 +24,8 @@ export const usersTable = pgTable("users", {
   legalConsentAt: timestamp("legal_consent_at", { withTimezone: true }),
   // Set when the password is reset. Sessions (JWTs) issued before this are rejected.
   passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
+  // Junior account (a minor's login, linked to a parent via guardian_links). Restricts what the login may call.
+  isJunior: boolean("is_junior").notNull().default(false),
 });
 
 export type User = typeof usersTable.$inferSelect;

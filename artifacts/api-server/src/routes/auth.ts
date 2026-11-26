@@ -26,7 +26,10 @@ import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { LEGAL_CONSENT_VERSION } from "../lib/legalConsent";
 import { AI_CONSENT_VERSION } from "../lib/aiConsent";
-import { db, usersTable, FIGHTER_NAME_MAX } from "@workspace/db";
+import { db, usersTable, userRolesTable, FIGHTER_NAME_MAX } from "@workspace/db";
+import { juniorEnabled } from "../lib/junior/entitlement";
+import { loginEmailFor, JUNIOR_LOGIN_DOMAIN } from "../lib/junior/accountConfig";
+import { juniorLoginGate } from "../lib/junior/juniorLogin";
 import { eq } from "drizzle-orm";
 import { recordSignup } from "../lib/onboardingEvents";
 import { ensureFighter } from "../lib/ensureFighter";
@@ -206,7 +209,9 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     aiConsentVersion,
     app,
     name,
+    role,
   } = (req.body ?? {}) as {
+    role?: unknown;
     name?: unknown;
     email?: unknown;
     password?: unknown;
@@ -226,6 +231,11 @@ router.post("/auth/register", async (req: Request, res: Response) => {
   }
 
   if (typeof email !== "string" || !email.includes("@")) {
+    res.status(400).json({ error: "Valid email required" });
+    return;
+  }
+  // Addresses on the junior login domain are reserved for junior accounts made by a parent.
+  if (email.trim().toLowerCase().endsWith(`@${JUNIOR_LOGIN_DOMAIN}`)) {
     res.status(400).json({ error: "Valid email required" });
     return;
   }
@@ -251,9 +261,14 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     });
     return;
   }
+  // Junior Portal (pilot): a parent- or coach-only sign-up never uses the AI coach, so it is not asked
+  // for AI consent and gets no fighter row. Only honoured while the server flag is on; any other value
+  // (or athlete) takes the unchanged path below.
+  const juniorRole = juniorEnabled() && (role === "parent" || role === "coach") ? role : null;
   if (
-    acceptedAiConsent !== true ||
-    aiConsentVersion !== AI_CONSENT_VERSION
+    !juniorRole &&
+    (acceptedAiConsent !== true ||
+      aiConsentVersion !== AI_CONSENT_VERSION)
   ) {
     res.status(400).json({
       error:
@@ -285,16 +300,20 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     displayName,
     legalConsentVersion: LEGAL_CONSENT_VERSION,
     legalConsentAt: acceptedAt,
-    aiAnalysisConsentVersion: AI_CONSENT_VERSION,
-    aiAnalysisConsentAt: acceptedAt,
+    ...(juniorRole ? {} : { aiAnalysisConsentVersion: AI_CONSENT_VERSION, aiAnalysisConsentAt: acceptedAt }),
   });
 
-  // Every account has a fighter from the start: a stub with the sign-up name and blank answers.
-  // If this hiccups, GET /fighter creates it on first read.
-  try {
-    await ensureFighter(id, displayName);
-  } catch (err) {
-    req.log.warn({ err }, "stub fighter not created at sign-up");
+  if (juniorRole) {
+    // UI preference only; grants nothing. No fighter is created for a parent/coach account.
+    await db.insert(userRolesTable).values({ userId: id, role: juniorRole }).onConflictDoNothing();
+  } else {
+    // Every account has a fighter from the start: a stub with the sign-up name and blank answers.
+    // If this hiccups, GET /fighter creates it on first read.
+    try {
+      await ensureFighter(id, displayName);
+    } catch (err) {
+      req.log.warn({ err }, "stub fighter not created at sign-up");
+    }
   }
 
   // Funnel: account created (analytics only, never throws).
@@ -322,10 +341,12 @@ router.post("/auth/login", async (req: Request, res: Response) => {
     return;
   }
 
+  // Junior Portal: a login with no "@" is a junior username (only while the pilot flag is on).
+  const loginEmail = !email.includes("@") && juniorEnabled() ? loginEmailFor(email.trim().toLowerCase()) : normalizeEmail(email);
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.email, normalizeEmail(email)))
+    .where(eq(usersTable.email, loginEmail))
     .limit(1);
 
   // Always run bcrypt.compare — full cost-10 work regardless of account existence,
@@ -339,6 +360,13 @@ router.post("/auth/login", async (req: Request, res: Response) => {
     return;
   }
 
+  if (user!.isJunior) {
+    const gate = await juniorLoginGate(user!.id);
+    if (gate) {
+      res.status(gate.status).json({ error: gate.error, code: gate.code });
+      return;
+    }
+  }
   const token = await signToken(user!.id, user!.email);
   res.json({ token, userId: user!.id });
 });

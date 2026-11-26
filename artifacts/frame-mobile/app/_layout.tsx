@@ -307,6 +307,9 @@ function RootLayoutNav() {
             <Stack.Screen name="forgot-password" options={{ animation: "fade" }} />
             <Stack.Screen name="reset-password" options={{ animation: "fade" }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(parent)" options={{ headerShown: false }} />
+            <Stack.Screen name="(coach)" options={{ headerShown: false }} />
+            <Stack.Screen name="junior-start" options={{ animation: "fade" }} />
             <Stack.Screen
               name="paywall"
               options={{

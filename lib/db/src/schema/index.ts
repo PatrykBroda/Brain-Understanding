@@ -24,3 +24,5 @@ export * from "./password_reset_tokens";
 export * from "./push";
 
 export * from "./injury_logs";
+
+export * from "./junior";

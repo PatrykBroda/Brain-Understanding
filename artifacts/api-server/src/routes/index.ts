@@ -23,7 +23,9 @@ import privacyRouter from "./privacy";
 import aiConsentRouter from "./aiConsent";
 import onboardingRouter from "./onboarding";
 import pushRouter from "./push";
+import juniorRouter, { juniorPublicRouter } from "./junior";
 import { requireAuth } from "../middlewares/authMiddleware";
+import { restrictJuniorAccounts } from "../middlewares/juniorRestrict";
 import { attachTimezone } from "../middlewares/timezone";
 import { requireCurrentAiConsent } from "../lib/aiConsent";
 
@@ -37,12 +39,16 @@ router.use(crashlogRouter);
 router.use(authRouter);
 router.use(passwordResetRouter);
 router.use(privacyRouter);
+// Junior account setup from a parent's code (flag-gated inside; no login yet).
+router.use(juniorPublicRouter);
 // Google OAuth callback — Google arrives with no session; identity is
 // recovered from the signed `state`, so this MUST stay public.
 router.use(googlePublicRouter);
 
 // everything below requires a valid JWT
 router.use(requireAuth);
+// A junior login may only reach /junior/junior-me (and is blocked while paused). Everything else: 403.
+router.use(restrictJuniorAccounts);
 router.use(attachTimezone);
 
 // These authenticated routes must remain reachable without current consent:
@@ -55,6 +61,8 @@ router.use(accountRouter);
 router.use(onboardingRouter);
 // Push registration/preferences stay reachable without AI consent so opting out always works.
 router.use(pushRouter);
+// Junior Portal pilot (parent / coach / gym admin). Flag-gated inside; no AI consent needed.
+router.use(juniorRouter);
 
 // All other authenticated FRAME use requires the current disclosure. Keep the
 // immediate provider-boundary checks in the individual AI services as well.

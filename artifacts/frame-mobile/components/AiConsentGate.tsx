@@ -9,12 +9,15 @@ import { AiConsentStatus } from "@/lib/aiConsent";
 import { AiConsentModal } from "@/components/AiAnalysisConsentModal";
 import { TEXT_SECONDARY, label } from "@/constants/typography";
 import { aiConsentLoadErrorCopy } from "@/lib/aiConsentError";
+import { useJuniorEntry } from "@/hooks/useJuniorEntry";
 
 export function AiConsentGate({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, signOut } = useAuth();
   const router = useRouter();
   const qc = useQueryClient();
   const [deletingAccount, setDeletingAccount] = useState(false);
+  // Junior Portal parents/coaches have no AI features, so the AI consent prompt does not apply to them.
+  const { entry: juniorEntry } = useJuniorEntry();
 
   const {
     data: status,
@@ -91,6 +94,10 @@ export function AiConsentGate({ children }: { children: React.ReactNode }) {
 
   // When signed out, render children (auth flows)
   if (isLoaded && !isSignedIn) {
+    return <>{children}</>;
+  }
+
+  if (juniorEntry === "parent" || juniorEntry === "coach") {
     return <>{children}</>;
   }
 

@@ -11,6 +11,7 @@ import { eq, inArray, sql } from "drizzle-orm";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { UPLOADS_DIR } from "./uploads";
+import { deleteChildren, soleGuardianChildIds } from "./junior/deleteChildren";
 
 export class AccountNotFoundError extends Error {
   constructor() {
@@ -120,6 +121,10 @@ export async function deleteAccountData(
             .onConflictDoNothing()
             .returning({ id: accountDeletionFilesTable.id })
         : [];
+
+    // Junior Portal: children whose only guardian is this account go with it (incl. their history).
+    // Children with another active guardian stay; this account's link cascades away with the user.
+    await deleteChildren(tx, await soleGuardianChildIds(tx, userId), userId);
 
     await tx
       .delete(googleOauthStatesTable)
