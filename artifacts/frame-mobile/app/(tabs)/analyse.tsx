@@ -9,7 +9,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { FONT, label } from "@/constants/typography";
-import { classifyAnalyseNavigation } from "@/lib/analyseWebViewNavigation";
+import {
+  ANALYSE_LOAD_TIMEOUT_MS,
+  ANALYSE_READY_MESSAGE,
+  classifyAnalyseNavigation,
+  isWrongAnalysePage,
+} from "@/lib/analyseWebViewNavigation";
 
 /**
  * The coach's Analyse page already runs the real MediaPipe pose pass locally
@@ -25,6 +30,9 @@ export default function AnalyseScreen() {
   const [token, setToken] = useState<string | null>(null);
   const [tokenChecked, setTokenChecked] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  // Bumped by "Try again" to remount the WebView. `ready` flips when the page says it has mounted.
+  const [attempt, setAttempt] = useState(0);
+  const ready = useRef(false);
   // Free members keep the Analyse page while they have free analyses left (server-enforced);
   // FRAME+ is unlimited. Unknown allowance -> open the page and let the server decide.
   // Latched per user so spending the last free analysis doesn't yank the report away mid-view.
@@ -56,6 +64,20 @@ export default function AnalyseScreen() {
   }, [hasAccess, getToken, userId]);
 
   const loading = isPending || (hasAccess && !tokenChecked);
+  const showingWebView =
+    !loading && !isError && !!entitlement && !!url && hasAccess && !!token && !loadError && Platform.OS !== "web";
+
+  // The WebView must never sit on a loading screen forever: if the Analyse page does not report
+  // ready in time (wrong page served, hung request, offline), show the error + retry instead.
+  useEffect(() => {
+    if (!showingWebView) return;
+    ready.current = false;
+    const timer = setTimeout(() => {
+      if (!ready.current) setLoadError(true);
+    }, ANALYSE_LOAD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [showingWebView, attempt]);
+
   if (loading) {
     return <BootLoader label="Loading" />;
   }
@@ -92,7 +114,7 @@ export default function AnalyseScreen() {
       <View style={styles.center}>
         <Text style={styles.title}>Can't load analyse</Text>
         <Text style={styles.body}>The analysis screen needs a connection. Your footage has not been uploaded.</Text>
-        <Pressable style={styles.button} onPress={() => setLoadError(false)}>
+        <Pressable style={styles.button} onPress={() => { setLoadError(false); setAttempt((n) => n + 1); }}>
           <Text style={styles.buttonText}>Try again</Text>
         </Pressable>
       </View>
@@ -114,7 +136,7 @@ export default function AnalyseScreen() {
   return (
     <View style={[styles.webHost, { paddingTop: insets.top, paddingBottom: 50 + insets.bottom }]}>
       <WebView
-        key={userId ?? "anonymous"}
+        key={`${userId ?? "anonymous"}:${attempt}`}
         source={{ uri: url }}
         injectedJavaScriptBeforeContentLoaded={bootstrap}
         javaScriptEnabled
@@ -123,6 +145,12 @@ export default function AnalyseScreen() {
         mediaPlaybackRequiresUserAction={false}
         allowsBackForwardNavigationGestures={false}
         onError={() => setLoadError(true)}
+        onMessage={(event) => {
+          if (event.nativeEvent.data === ANALYSE_READY_MESSAGE) ready.current = true;
+        }}
+        onNavigationStateChange={(nav) => {
+          if (isWrongAnalysePage(nav.url, origin)) setLoadError(true);
+        }}
         onHttpError={(event) => {
           if (event.nativeEvent.url.startsWith(`${origin}/analyse`) && event.nativeEvent.statusCode >= 400) setLoadError(true);
         }}

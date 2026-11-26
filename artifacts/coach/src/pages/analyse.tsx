@@ -199,6 +199,13 @@ export default function AnalysePage() {
       requestAnimationFrame(() => setReportVisible(true));
     }, 150);
   }
+  // Inside the iOS app's WebView: tell the app this page really loaded. The app shows an error
+  // with a retry button if it never hears this (instead of an endless loading screen).
+  useEffect(() => {
+    (window as unknown as { ReactNativeWebView?: { postMessage(m: string): void } }).ReactNativeWebView?.postMessage(
+      "frame-analyse-ready",
+    );
+  }, []);
   const [phase, setPhase] = useState<Phase>({ stage: "idle" });
   const [result, setResult] = useState<VideoAnalysis | null>(null);
   // "Athlete Model Updated" — only present right after a NEW analysis; the

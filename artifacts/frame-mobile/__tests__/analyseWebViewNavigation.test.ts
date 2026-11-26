@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyAnalyseNavigation } from "../lib/analyseWebViewNavigation";
+import { ANALYSE_LOAD_TIMEOUT_MS, ANALYSE_READY_MESSAGE, classifyAnalyseNavigation, isWrongAnalysePage } from "../lib/analyseWebViewNavigation";
 
 const origin = "https://brain-understanding.replit.app";
 
@@ -52,5 +52,26 @@ describe("Analyse WebView navigation", () => {
     expect(classifyAnalyseNavigation({ url: "javascript:alert(1)", isTopFrame: true }, origin)).toEqual({
       action: "block",
     });
+  });
+});
+
+describe("Analyse WebView wrong-page guard", () => {
+  it("flags the app's own Expo web build (what a deploy without the coach serves for /analyse)", () => {
+    expect(isWrongAnalysePage(`${origin}/mobile/analyse?frameMobile=1`, origin)).toBe(true);
+    expect(isWrongAnalysePage(`${origin}/mobile`, origin)).toBe(true);
+    expect(isWrongAnalysePage(`${origin}/mobile/`, origin)).toBe(true);
+  });
+
+  it("accepts the coach Analyse page and off-site frames", () => {
+    expect(isWrongAnalysePage(`${origin}/analyse?frameMobile=1`, origin)).toBe(false);
+    expect(isWrongAnalysePage(`${origin}/mobileish`, origin)).toBe(false);
+    expect(isWrongAnalysePage("https://js.stripe.com/v3/m-outer.html", origin)).toBe(false);
+    expect(isWrongAnalysePage(`${origin}/mobile/analyse`, null)).toBe(false);
+  });
+
+  it("has a ready message and a bounded load timeout", () => {
+    expect(ANALYSE_READY_MESSAGE).toBe("frame-analyse-ready");
+    expect(ANALYSE_LOAD_TIMEOUT_MS).toBeGreaterThan(10000);
+    expect(ANALYSE_LOAD_TIMEOUT_MS).toBeLessThanOrEqual(60000);
   });
 });

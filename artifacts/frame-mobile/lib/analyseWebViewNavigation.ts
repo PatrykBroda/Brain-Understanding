@@ -35,3 +35,20 @@ export function classifyAnalyseNavigation(
   }
   return { action: "block" };
 }
+
+/** Posted by the coach's Analyse page (window.ReactNativeWebView.postMessage) once it has mounted. */
+export const ANALYSE_READY_MESSAGE = "frame-analyse-ready";
+
+/** How long the WebView may take to report ready before the app shows "Can't load analyse" + retry. */
+export const ANALYSE_LOAD_TIMEOUT_MS = 30000;
+
+/**
+ * True when the WebView is sitting on the wrong site: the app's own Expo web build (under /mobile/)
+ * instead of the coach's Analyse page. That is what a deployment with no coach web app serves for
+ * /analyse (SPA fallback), and it shows an endless "Loading" screen inside the WebView.
+ */
+export function isWrongAnalysePage(url: string, origin: string | null): boolean {
+  if (!origin || !url.startsWith(`${origin}/`)) return false;
+  const path = url.slice(origin.length);
+  return path === "/mobile" || path.startsWith("/mobile/") || path.startsWith("/mobile?");
+}
