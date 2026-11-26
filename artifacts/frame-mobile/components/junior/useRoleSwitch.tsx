@@ -19,17 +19,21 @@ export function useRoleSwitch() {
   const [busy, setBusy] = useState(false);
   const [consent, setConsent] = useState<{ role: JuniorRole; status: AiConsentStatus | null } | null>(null);
 
-  const finish = useCallback(async () => {
-    await qc.invalidateQueries({ queryKey: ["junior"] });
-    router.replace("/");
-  }, [qc, router]);
+  // Go straight to the chosen role's home ("/" is ambiguous with the athlete tabs index on web).
+  const finish = useCallback(
+    async (role: JuniorRole) => {
+      await qc.invalidateQueries({ queryKey: ["junior"] });
+      router.replace((role === "parent" ? "/(parent)/home" : role === "coach" ? "/(coach)/today" : "/(tabs)/home") as never);
+    },
+    [qc, router],
+  );
 
   const switchTo = useCallback(
     async (role: JuniorRole) => {
       setBusy(true);
       try {
         await apiPost("/junior/roles", { role });
-        await finish();
+        await finish(role);
       } catch (e) {
         if (e instanceof ApiError && e.code === "AI_CONSENT_REQUIRED") {
           const status = await apiGet<AiConsentStatus>("/ai-consent").catch(() => null);
@@ -53,7 +57,7 @@ export function useRoleSwitch() {
       const role = consent.role;
       setConsent(null);
       await apiPost("/junior/roles", { role });
-      await finish();
+      await finish(role);
     } catch (e) {
       Alert.alert("Could not switch", errMsg(e));
     } finally {
