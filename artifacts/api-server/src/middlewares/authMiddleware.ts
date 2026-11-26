@@ -9,6 +9,7 @@ declare global {
   namespace Express {
     interface Request {
       userId?: string;
+      isJunior?: boolean;
     }
   }
 }
@@ -32,7 +33,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
       // account must not grant access — this is the global revocation check
       // since JWTs are otherwise not revocable.
       const [user] = await db
-        .select({ id: usersTable.id, passwordChangedAt: usersTable.passwordChangedAt })
+        .select({ id: usersTable.id, passwordChangedAt: usersTable.passwordChangedAt, isJunior: usersTable.isJunior })
         .from(usersTable)
         .where(eq(usersTable.id, payload.userId))
         .limit(1);
@@ -48,6 +49,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
         return;
       }
       req.userId = payload.userId;
+      req.isJunior = user.isJunior;
       next();
     })
     .catch((err) => {

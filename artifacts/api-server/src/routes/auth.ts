@@ -28,6 +28,8 @@ import { LEGAL_CONSENT_VERSION } from "../lib/legalConsent";
 import { AI_CONSENT_VERSION } from "../lib/aiConsent";
 import { db, usersTable, userRolesTable, FIGHTER_NAME_MAX } from "@workspace/db";
 import { juniorEnabled } from "../lib/junior/entitlement";
+import { loginEmailFor, JUNIOR_LOGIN_DOMAIN } from "../lib/junior/accountConfig";
+import { juniorLoginGate } from "../lib/junior/juniorLogin";
 import { eq } from "drizzle-orm";
 import { recordSignup } from "../lib/onboardingEvents";
 import { ensureFighter } from "../lib/ensureFighter";
@@ -232,6 +234,11 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Valid email required" });
     return;
   }
+  // Addresses on the junior login domain are reserved for junior accounts made by a parent.
+  if (email.trim().toLowerCase().endsWith(`@${JUNIOR_LOGIN_DOMAIN}`)) {
+    res.status(400).json({ error: "Valid email required" });
+    return;
+  }
   // The sign-up form asks for a name. Optional for installed builds that predate it.
   let displayName = "";
   if (name !== undefined && name !== null) {
@@ -334,10 +341,12 @@ router.post("/auth/login", async (req: Request, res: Response) => {
     return;
   }
 
+  // Junior Portal: a login with no "@" is a junior username (only while the pilot flag is on).
+  const loginEmail = !email.includes("@") && juniorEnabled() ? loginEmailFor(email.trim().toLowerCase()) : normalizeEmail(email);
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.email, normalizeEmail(email)))
+    .where(eq(usersTable.email, loginEmail))
     .limit(1);
 
   // Always run bcrypt.compare — full cost-10 work regardless of account existence,
@@ -351,6 +360,13 @@ router.post("/auth/login", async (req: Request, res: Response) => {
     return;
   }
 
+  if (user!.isJunior) {
+    const gate = await juniorLoginGate(user!.id);
+    if (gate) {
+      res.status(gate.status).json({ error: gate.error, code: gate.code });
+      return;
+    }
+  }
   const token = await signToken(user!.id, user!.email);
   res.json({ token, userId: user!.id });
 });

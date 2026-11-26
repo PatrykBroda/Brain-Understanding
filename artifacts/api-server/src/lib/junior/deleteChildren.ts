@@ -1,5 +1,5 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { changeHistoryTable, childGymMembershipsTable, childrenTable, guardianLinksTable } from "@workspace/db";
+import { changeHistoryTable, childGymMembershipsTable, childrenTable, guardianLinksTable, juniorAccountsTable, usersTable } from "@workspace/db";
 import { recordHistory, type Tx } from "./history";
 
 /**
@@ -14,10 +14,14 @@ export async function deleteChildren(tx: Tx, childIds: string[], actorUserId: st
     .select({ gymId: childGymMembershipsTable.gymId })
     .from(childGymMembershipsTable)
     .where(inArray(childGymMembershipsTable.childId, childIds));
+  // A junior's login goes with the record (the link is ON DELETE SET NULL, so find the users first).
+  const juniorUsers = await tx.select({ userId: juniorAccountsTable.userId }).from(juniorAccountsTable).where(inArray(juniorAccountsTable.childId, childIds));
   await tx.execute(sql`SET LOCAL frame.allow_history_purge = 'on'`);
   await tx.delete(changeHistoryTable).where(inArray(changeHistoryTable.childId, childIds));
   await tx.delete(childrenTable).where(inArray(childrenTable.id, childIds));
   await tx.execute(sql`SET LOCAL frame.allow_history_purge = 'off'`);
+  const loginIds = juniorUsers.map((j) => j.userId).filter((x): x is string => !!x);
+  if (loginIds.length) await tx.delete(usersTable).where(and(inArray(usersTable.id, loginIds), eq(usersTable.isJunior, true)));
   for (const g of new Set(gyms.map((x) => x.gymId))) {
     await recordHistory(tx, { gymId: g, actorUserId, actorRole: "parent", entity: "child", action: "deleted" });
   }

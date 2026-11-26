@@ -13,6 +13,7 @@ import {
   gymsTable,
   usersTable,
   userRolesTable,
+  gymMembershipsTable,
   attendanceLogsTable,
   observationsTable,
   wellbeingEntriesTable,
@@ -24,6 +25,7 @@ import { assertGuardian, requireGymStaff, getActiveStaff } from "../../lib/junio
 import { hashToken, newToken, normEmail } from "./identity";
 import { deleteChildren } from "../../lib/junior/deleteChildren";
 import { sendMail } from "../../lib/mailer";
+import { boardName } from "../../lib/junior/stats";
 
 const router: IRouter = Router();
 const INVITE_TTL_MS = 7 * 24 * 3600 * 1000;
@@ -232,7 +234,18 @@ router.get(
       .from(childGymMembershipsTable)
       .innerJoin(childrenTable, eq(childrenTable.id, childGymMembershipsTable.childId))
       .where(and(eq(childGymMembershipsTable.gymId, gymId), eq(childGymMembershipsTable.status, "pending")));
-    res.json({ requests: rows });
+    // Adult members asking to join: first name + initial only (no email, no birth data).
+    const adults = await db
+      .select({ id: gymMembershipsTable.id, name: usersTable.displayName, createdAt: gymMembershipsTable.createdAt })
+      .from(gymMembershipsTable)
+      .innerJoin(usersTable, eq(usersTable.id, gymMembershipsTable.userId))
+      .where(and(eq(gymMembershipsTable.gymId, gymId), eq(gymMembershipsTable.status, "pending")));
+    res.json({
+      requests: [
+        ...rows.map((r) => ({ ...r, kind: "junior" as const })),
+        ...adults.map((a) => ({ id: a.id, childId: null as string | null, displayName: boardName(a.name || "New member"), birthYearMonth: null as string | null, createdAt: a.createdAt, kind: "member" as const })),
+      ],
+    });
   }),
 );
 
@@ -247,12 +260,28 @@ router.post(
     const staff = await requireGymStaff(uid, gymId, "coach");
     const b = parse(decideBody, req.body);
     await db.transaction(async (tx) => {
+      const actorRole = staff.role === "admin" ? "admin" : "coach";
       const [m] = await tx
         .select()
         .from(childGymMembershipsTable)
         .where(and(eq(childGymMembershipsTable.id, mid), eq(childGymMembershipsTable.gymId, gymId)))
         .for("update");
-      if (!m) throw new JuniorError(404, "NOT_FOUND", "Not found");
+      if (!m) {
+        // Not a junior request: an adult member's request to this gym?
+        const [a] = await tx
+          .select()
+          .from(gymMembershipsTable)
+          .where(and(eq(gymMembershipsTable.id, mid), eq(gymMembershipsTable.gymId, gymId)))
+          .for("update");
+        if (!a) throw new JuniorError(404, "NOT_FOUND", "Not found");
+        if (a.status !== "pending") throw new JuniorError(409, "ALREADY_DECIDED", "Already decided");
+        await tx
+          .update(gymMembershipsTable)
+          .set({ status: b.decision === "approve" ? "approved" : "rejected", decidedBy: uid, decidedAt: new Date() })
+          .where(eq(gymMembershipsTable.id, mid));
+        await recordHistory(tx, { gymId, actorUserId: uid, actorRole, entity: "gym_membership", entityId: mid, action: b.decision === "approve" ? "approved" : "rejected" });
+        return;
+      }
       if (m.status !== "pending") throw new JuniorError(409, "ALREADY_DECIDED", "Already decided");
       if (b.decision === "approve") {
         await tx.update(childGymMembershipsTable).set({ status: "approved", decidedBy: uid, decidedAt: new Date() }).where(eq(childGymMembershipsTable.id, mid));
@@ -260,7 +289,7 @@ router.post(
       } else {
         await tx.update(childGymMembershipsTable).set({ status: "rejected", decidedBy: uid, decidedAt: new Date() }).where(eq(childGymMembershipsTable.id, mid));
       }
-      await recordHistory(tx, { gymId, childId: m.childId, actorUserId: uid, actorRole: staff.role === "admin" ? "admin" : "coach", entity: "membership", entityId: mid, action: b.decision === "approve" ? "approved" : "rejected" });
+      await recordHistory(tx, { gymId, childId: m.childId, actorUserId: uid, actorRole, entity: "membership", entityId: mid, action: b.decision === "approve" ? "approved" : "rejected" });
     });
     res.json({ ok: true });
   }),

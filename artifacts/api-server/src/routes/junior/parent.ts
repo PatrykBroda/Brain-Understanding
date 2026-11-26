@@ -268,14 +268,15 @@ export const VISIBILITY_MATRIX = [
   { item: "How are they feeling (mood, energy, sleep)", parent: true, coach: "setting", note: "Hidden from coaches unless you switch it on. Never part of attendance." },
   { item: "Guardian emails and contact details", parent: true, coach: false, note: "Coaches never see them." },
   { item: "Milestones and Star of the Week", parent: true, coach: true, note: "" },
+  { item: "Shown by name on the gym's performance board", parent: true, coach: true, note: "Off by default. First name and initial only." },
   { item: "Star of the Week shown to the class group", parent: true, coach: true, note: "Only if the gym turns team recognition on AND you allow it." },
 ] as const;
 
-const privacyBody = z.object({ coachSeesWellbeing: z.boolean().optional(), teamSeesRecognition: z.boolean().optional() }).refine((b) => Object.keys(b).length > 0, "Nothing to change");
+const privacyBody = z.object({ coachSeesWellbeing: z.boolean().optional(), teamSeesRecognition: z.boolean().optional(), showOnGymBoard: z.boolean().optional() }).refine((b) => Object.keys(b).length > 0, "Nothing to change");
 
 export async function privacyFor(childId: string, conn: DbLike = db) {
   const [p] = await conn.select().from(childPrivacySettingsTable).where(eq(childPrivacySettingsTable.childId, childId));
-  return { coachSeesWellbeing: p?.coachSeesWellbeing ?? false, teamSeesRecognition: p?.teamSeesRecognition ?? true };
+  return { coachSeesWellbeing: p?.coachSeesWellbeing ?? false, teamSeesRecognition: p?.teamSeesRecognition ?? true, showOnGymBoard: p?.showOnGymBoard ?? false };
 }
 
 router.get(

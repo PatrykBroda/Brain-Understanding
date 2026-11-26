@@ -383,6 +383,7 @@ export const childPrivacySettingsTable = pgTable("child_privacy_settings", {
   childId: uuid("child_id").primaryKey().references(() => childrenTable.id, { onDelete: "cascade" }),
   coachSeesWellbeing: boolean("coach_sees_wellbeing").notNull().default(false),
   teamSeesRecognition: boolean("team_sees_recognition").notNull().default(true),
+  showOnGymBoard: boolean("show_on_gym_board").notNull().default(false),
   updatedBy: text("updated_by"),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
@@ -449,4 +450,61 @@ export const entitlementAuditTable = pgTable(
     createdAt: ts("created_at").notNull().defaultNow(),
   },
   (t) => [index("entitlement_audit_target_idx").on(t.targetUserId, t.createdAt), index("entitlement_audit_gym_idx").on(t.gymId, t.createdAt)],
+);
+
+// -- Junior accounts (migration 0017_junior_accounts.sql) ----------------------------------------------
+export const juniorAccountsTable = pgTable(
+  "junior_accounts",
+  {
+    childId: uuid("child_id").primaryKey().references(() => childrenTable.id, { onDelete: "cascade" }),
+    userId: text("user_id").unique().references(() => usersTable.id, { onDelete: "set null" }),
+    username: text("username").unique(),
+    birthDate: date("birth_date", { mode: "string" }).notNull(),
+    ageBand: text("age_band").notNull(),
+    status: text("status").notNull().default("active"), // pending_setup | active | paused | parent_managed
+    aiEnabled: boolean("ai_enabled").notNull().default(false),
+    chatEnabled: boolean("chat_enabled").notNull().default(false),
+    createdBy: text("created_by").notNull(),
+    inviteTokenHash: text("invite_token_hash"),
+    inviteExpiresAt: ts("invite_expires_at"),
+    activatedAt: ts("activated_at"),
+    lastLoginAt: ts("last_login_at"),
+    pausedAt: ts("paused_at"),
+    pausedBy: text("paused_by"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+);
+
+export const juniorConsentsTable = pgTable(
+  "junior_consents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    childId: uuid("child_id").notNull().references(() => childrenTable.id, { onDelete: "cascade" }),
+    guardianUserId: text("guardian_user_id").notNull(),
+    version: text("version").notNull(),
+    ageBand: text("age_band").notNull(),
+    statement: text("statement").notNull(),
+    consentedAt: ts("consented_at").notNull().defaultNow(),
+    withdrawnAt: ts("withdrawn_at"),
+  },
+  (t) => [index("junior_consents_child_idx").on(t.childId)],
+);
+
+export const gymMembershipsTable = pgTable(
+  "gym_memberships",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gymId: uuid("gym_id").notNull().references(() => gymsTable.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("pending"), // pending | approved | rejected | ended | cancelled
+    showOnBoard: boolean("show_on_board").notNull().default(false),
+    decidedBy: text("decided_by"),
+    decidedAt: ts("decided_at"),
+    endedAt: ts("ended_at"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("gym_memberships_open_uq").on(t.gymId, t.userId).where(sql`${t.status} IN ('pending','approved')`),
+    index("gym_memberships_user_idx").on(t.userId),
+  ],
 );
