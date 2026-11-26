@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { layerTabOptions } from "@/components/junior/tabOptions";
 
 const icon = (name: React.ComponentProps<typeof Feather>["name"]) =>
@@ -9,8 +10,9 @@ const icon = (name: React.ComponentProps<typeof Feather>["name"]) =>
   };
 
 export default function ParentLayout() {
+  const insets = useSafeAreaInsets();
   return (
-    <Tabs screenOptions={layerTabOptions}>
+    <Tabs screenOptions={layerTabOptions(insets.bottom)}>
       <Tabs.Screen name="home" options={{ title: "Home", tabBarIcon: icon("home") }} />
       <Tabs.Screen name="journey" options={{ title: "Journey", tabBarIcon: icon("map") }} />
       <Tabs.Screen name="timeline" options={{ title: "Timeline", tabBarIcon: icon("clock") }} />

@@ -61,6 +61,7 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           ...meta,
           marginBottom: 2,
+          flexShrink: 0,
         },
       }}
     >

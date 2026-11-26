@@ -1,5 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSegments } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import { palette } from "@/constants/entryTheme";
@@ -15,9 +16,11 @@ const LABEL: Record<JuniorRole, string> = { athlete: "Athlete", parent: "Parent"
 export function RoleBar({ current }: { current?: JuniorRole }) {
   const me = useQuery<JuniorMe>({ queryKey: ["junior", "me"], queryFn: () => apiGet<JuniorMe>("/junior/me"), retry: false });
   const { switchTo, busy, consentModal } = useRoleSwitch();
+  const segments = useSegments() as string[];
+  const layer: JuniorRole | undefined = segments[0] === "(coach)" ? "coach" : segments[0] === "(parent)" ? "parent" : segments[0] === "(tabs)" ? "athlete" : undefined;
   const roles = (me.data?.roles ?? []) as JuniorRole[];
   if (roles.length < 2) return null;
-  const active: JuniorRole = current ?? me.data?.activeRole ?? "athlete";
+  const active: JuniorRole = current ?? layer ?? me.data?.activeRole ?? "athlete";
   const order: JuniorRole[] = (["athlete", "parent", "coach"] as const).filter((r) => roles.includes(r));
   return (
     <View style={s.bar} testID="role-switcher" accessibilityRole="tablist">
